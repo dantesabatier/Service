@@ -19,8 +19,8 @@
     "ext-pcntl": "*",
     "ext-posix": "*",
     "ext-fileinfo": "*",
-    "sabatier/coredata": "@dev",
-    "sabatier/foundation": "@dev"
+    "sabatier/coredata": "^1.0-dev",
+    "sabatier/foundation": "^1.0-dev"
   },
   "require-dev": {
     "phpunit/phpunit": "^9",

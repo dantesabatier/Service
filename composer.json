@@ -10,19 +10,17 @@
   "authors": [
     {
       "name": ":dantesabatier",
-      "email": "dantesabatier@me.com",
-      "homepage": "https://dantesabatier.com",
-      "role": "Developer"
+      "homepage": "https://github.com/dantesabatier"
     }
   ],
   "require": {
     "php": ">=8.1",
-    "sabatier/coredata": "@dev",
-    "sabatier/foundation": "@dev",
     "ext-json": "*",
     "ext-pcntl": "*",
     "ext-posix": "*",
-    "ext-fileinfo": "*"
+    "ext-fileinfo": "*",
+    "sabatier/coredata": "@dev",
+    "sabatier/foundation": "@dev"
   },
   "require-dev": {
     "phpunit/phpunit": "^9",
@@ -55,19 +53,7 @@
       "dev-master": "1.0-dev"
     }
   },
-  "repositories": [
-    {
-      "type": "path",
-      "url": "../Foundation"
-    },
-    {
-      "type": "path",
-      "url": "../CoreData"
-    }
-  ],
   "scripts": {
     "psalm": "vendor/bin/psalm --config=psalm.xml"
-  },
-  "optimize-autoloader": true,
-  "classmap-authoritative": true
+  }
 }

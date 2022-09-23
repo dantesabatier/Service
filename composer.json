@@ -1,6 +1,6 @@
 {
   "name": "sabatier/service",
-  "description": ":package_description",
+  "description": "The Service framework allows you to create fully functional web services in minutes.",
   "keywords": [
     "sabatier",
     "service"
@@ -9,7 +9,7 @@
   "license": "MIT",
   "authors": [
     {
-      "name": ":dantesabatier",
+      "name": "dantesabatier",
       "homepage": "https://github.com/dantesabatier"
     }
   ],
@@ -19,8 +19,8 @@
     "ext-pcntl": "*",
     "ext-posix": "*",
     "ext-fileinfo": "*",
-    "sabatier/coredata": "^1.0-dev",
-    "sabatier/foundation": "^1.0-dev"
+    "sabatier/foundation": "^1.0-dev",
+    "sabatier/coredata": "^1.0-dev"
   },
   "require-dev": {
     "phpunit/phpunit": "^9",

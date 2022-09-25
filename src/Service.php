@@ -90,9 +90,7 @@ class Service extends ObjectClass
             $this->$name = $request;
             return $this->$name;
         } elseif ($name == 'bundle') {
-            /** @var Bundle $bundle */
-            $bundle = Bundle::bundleForClass(static::class);
-            $this->$name = $bundle;
+            $this->$name = Bundle::bundleForClass(static::class) ?? throw new InternalInconsistencyException('bundle cannot be null');
             return $this->$name;
         } elseif ($name == 'name') {
             $this->$name = $this->bundle->object(kCFBundleNameKey);

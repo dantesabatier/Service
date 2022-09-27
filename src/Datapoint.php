@@ -190,7 +190,7 @@ class Datapoint extends Endpoint
             } else {
                 $predicates = $items->map(fn(URLQueryItem $item): ComparisonPredicate => new ComparisonPredicate(Expression::expressionForKeyPath($item->name), Expression::expressionForConstantValue($item->value)));
                 /** @psalm-suppress InvalidArgument */
-                $fetchRequest->predicate = $predicates->count() > 1 ? CompoundPredicate::andPredicateWithSubpredicates($predicates) : $predicates->first(); // @phpstan-ignore-line
+                $fetchRequest->predicate = $predicates->count() > 1 ? CompoundPredicate::andPredicateWithSubpredicates($predicates) : $predicates->first();
             }
         }
         if ($serialization = $service->serialization) {

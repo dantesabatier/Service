@@ -1,18 +1,12 @@
-<?php /** @noinspection PhpUnused */
-
-/**
- * Created by PhpStorm.
- * User: dante
- * Date: 03/07/20
- * Time: 18:45
- */
+<?php
 
 namespace Sabatier\Service;
 
 use Sabatier\Foundation\URLScheme;
+
 use function Sabatier\Foundation\string_has_prefix;
 
-function request_url(): string
+function requested_url(): string
 {
     return sprintf("%s://%s%s", empty($_SERVER['HTTPS']) ? URLScheme::http : URLScheme::https, $_SERVER['HTTP_HOST'] ?? '', $_SERVER['REQUEST_URI'] ?? '');
 }

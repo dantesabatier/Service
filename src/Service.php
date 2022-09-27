@@ -20,13 +20,13 @@ use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\HTTPRequestMethod;
 use Sabatier\Foundation\HTTPStatusCode;
 use Sabatier\Foundation\HTTPURLResponse;
-use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Foundation\Number;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Foundation\URL;
 use Sabatier\Foundation\URLRequest;
 use Throwable;
+use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\human_readable_value;
 use function Sabatier\Foundation\string_has_suffix;
 use function Sabatier\Foundation\string_is_equal;
@@ -39,10 +39,10 @@ class Service extends ObjectClass
 {
     /** @internal */
     public static int $debugDefault = 0;
-    public readonly Bundle $bundle;
-    public readonly string $name;
     public readonly URLRequest $request;
     public readonly PersistentContainer $persistentContainer;
+    public readonly Bundle $bundle;
+    public readonly string $name;
     /** @var ArrayClass<Endpoint> */
     public readonly ArrayClass $endpoints;
     /** @var Dictionary<mixed>|null */
@@ -55,8 +55,10 @@ class Service extends ObjectClass
 
     public function __construct()
     {
-        unset($this->persistentContainer);
         unset($this->request);
+        unset($this->persistentContainer);
+        unset($this->bundle);
+        unset($this->name);
         unset($this->endpoints);
         unset($this->serialization);
         unset($this->authentication);
@@ -64,8 +66,6 @@ class Service extends ObjectClass
         unset($this->tokenKey);
         unset($this->tokenValidity);
         unset($this->usersEntityName);
-        unset($this->bundle);
-        unset($this->name);
         /** @psalm-suppress PossiblyNullArgument */
         self::$debugDefault = (new Number(ProcessInfo::processInfo()->environment['SERVICE_DEBUG_LEVEL'] ?? 0))->intValue;
     }
@@ -73,7 +73,7 @@ class Service extends ObjectClass
     public function __get(string $name)
     {
         if ($name == 'request') {
-            $request = new URLRequest(new URL(request_url()));
+            $request = new URLRequest(new URL(requested_url()));
             $request->httpMethod = $_SERVER['REQUEST_METHOD'];
             $request->allHTTPHeaderFields = new Dictionary(getallheaders());
             $contents = file_get_contents('php://input');
@@ -90,7 +90,7 @@ class Service extends ObjectClass
             $this->$name = $request;
             return $this->$name;
         } elseif ($name == 'bundle') {
-            $this->$name = Bundle::bundleForClass(static::class) ?? throw new InternalInconsistencyException('bundle cannot be null');
+            $this->$name = Bundle::bundleForClass(static::class) ?? fatal_error("Unable to load the application main bundle");
             return $this->$name;
         } elseif ($name == 'name') {
             $this->$name = $this->bundle->object(kCFBundleNameKey);
@@ -103,7 +103,7 @@ class Service extends ObjectClass
             }
             $persistentContainer->loadPersistentStores(function (PersistentStoreDescription $description, ?Error $error): void {
                 if ($error) {
-                    throw new InternalInconsistencyException($error->description());
+                    fatal_error("Unable to load persistent stores: $error");
                 }
             });
             $this->$name = $persistentContainer;

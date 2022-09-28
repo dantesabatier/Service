@@ -2,13 +2,22 @@
 
 namespace Sabatier\Service;
 
+use Sabatier\Foundation\URLComponents;
 use Sabatier\Foundation\URLScheme;
 
+use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\string_has_prefix;
 
-function requested_url(): string
+function build_request_url(): string
 {
-    return sprintf("%s://%s%s", empty($_SERVER['HTTPS']) ? URLScheme::http : URLScheme::https, $_SERVER['HTTP_HOST'] ?? '', $_SERVER['REQUEST_URI'] ?? '');
+    [$path, $query] = explode('?', $_SERVER['REQUEST_URI']);
+    $components = new URLComponents();
+    $components->scheme = empty($_SERVER['HTTPS']) ? URLScheme::http : URLScheme::https;
+    $components->host = $_SERVER['HTTP_HOST'];
+    $components->path = $path;
+    $components->query = $query;
+    /** @noinspection PhpUnhandledExceptionInspection */
+    return $components->string ?? fatal_error();
 }
 
 if (!function_exists('getallheaders')) :

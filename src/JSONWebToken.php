@@ -50,7 +50,7 @@ class JSONWebToken extends ObjectClass
             'tokenString' => jwt_generate($this->payload, $this->key),
             'isValid' => jwt_validate((string)$this->tokenString, $this->key, $this->issuer),
             'payload' => jwt_payload((string)$this->tokenString, $this->key, $this->issuer, $this->isValid),
-            'url' => new URL(request_url()),
+            'url' => new URL(build_request_url()),
             'issuer' => $this->url->host,
             default => $this->valueForUndefinedKey($name)
         };

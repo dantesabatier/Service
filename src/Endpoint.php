@@ -20,7 +20,15 @@ abstract class Endpoint extends ObjectClass
 
     public function __construct(public readonly Service $service)
     {
-        $this->url = new URL($this->route(), $this->service->request->url);
+        unset($this->url);
+    }
+
+    public function __get(string $name)
+    {
+        return $this->$name = match ($name) {
+            'url' => new URL($this->route(), $this->service->request->url),
+            default => $this->valueForUndefinedKey($name)
+        };
     }
 
     public function name(): string

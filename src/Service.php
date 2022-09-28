@@ -40,9 +40,8 @@ class Service extends ObjectClass
     /** @internal */
     public static int $debugDefault = 0;
     public readonly URLRequest $request;
-    public readonly PersistentContainer $persistentContainer;
     public readonly Bundle $bundle;
-    public readonly string $name;
+    public readonly PersistentContainer $persistentContainer;
     /** @var ArrayClass<Endpoint> */
     public readonly ArrayClass $endpoints;
     /** @var Dictionary<mixed>|null */
@@ -56,9 +55,8 @@ class Service extends ObjectClass
     public function __construct()
     {
         unset($this->request);
-        unset($this->persistentContainer);
         unset($this->bundle);
-        unset($this->name);
+        unset($this->persistentContainer);
         unset($this->endpoints);
         unset($this->serialization);
         unset($this->authentication);
@@ -66,37 +64,34 @@ class Service extends ObjectClass
         unset($this->tokenKey);
         unset($this->tokenValidity);
         unset($this->usersEntityName);
-        /** @psalm-suppress PossiblyNullArgument */
-        self::$debugDefault = (new Number(ProcessInfo::processInfo()->environment['SERVICE_DEBUG_LEVEL'] ?? 0))->intValue;
     }
 
     public function __get(string $name)
     {
         if ($name == 'request') {
-            $request = new URLRequest(new URL(requested_url()));
+            $url = new URL(build_request_url());
+            $request = new URLRequest($url);
             $request->httpMethod = $_SERVER['REQUEST_METHOD'];
             $request->allHTTPHeaderFields = new Dictionary(getallheaders());
             $contents = file_get_contents('php://input');
-            $data = empty($_FILES) ? json_decode($contents, true) : $_FILES;
-            if (empty($data)) {
-                parse_str($contents, $data);
-                if (empty($data)) {
-                    $data = $_REQUEST;
+            $content = empty($_FILES) ? json_decode($contents, true) : $_FILES;
+            if (empty($content)) {
+                parse_str($contents, $content);
+                if (empty($content)) {
+                    $content = $_REQUEST;
                 }
             }
-            if (!empty($data)) {
-                $request->httpBody = json_encode($data);
+            if (!empty($content)) {
+                $request->httpBody = json_encode($content);
             }
             $this->$name = $request;
             return $this->$name;
         } elseif ($name == 'bundle') {
+            /** @noinspection PhpUnhandledExceptionInspection */
             $this->$name = Bundle::bundleForClass(static::class) ?? fatal_error("Unable to load the application main bundle");
             return $this->$name;
-        } elseif ($name == 'name') {
-            $this->$name = $this->bundle->object(kCFBundleNameKey);
-            return $this->$name;
         } elseif ($name == 'persistentContainer') {
-            $persistentContainer = new PersistentContainer($this->name);
+            $persistentContainer = new PersistentContainer($this->bundle->object(kCFBundleNameKey));
             if ($description = $persistentContainer->persistentStoreDescriptions->first()) {
                 $description->setOptionForKey(false, PersistentHistoryTrackingKey);
                 $description->setOptionForKey(false, PersistentStoreRemoteChangeNotificationPostOptionKey);
@@ -155,7 +150,7 @@ class Service extends ObjectClass
         }
     }
 
-    private function send(HTTPURLResponse $response, ?string $data): void
+    private function send(HTTPURLResponse $response, ?string $content): void
     {
         header(sprintf("%s %s %s", $response->httpVersion, $response->statusCode, HTTPURLResponse::localizedString($response->statusCode)));
         if ($response instanceof BatchResponse) {
@@ -168,7 +163,7 @@ class Service extends ObjectClass
             });
             ob_start();
             if ($response->isEmpty()) {
-                echo $data ?? '';
+                echo $content ?? '';
             } else {
                 $count = $response->count();
                 foreach ($response as $idx => $data) {
@@ -186,8 +181,9 @@ class Service extends ObjectClass
                 }
             }
             ob_start();
+            /** @noinspection SpellCheckingInspection */
             ob_start("ob_gzhandler");
-            echo $data ?? '';
+            echo $content ?? '';
             ob_end_flush();
             header('Content-Length: ' . ob_get_length());
         }
@@ -203,7 +199,7 @@ class Service extends ObjectClass
             $authentication = $this->authentication;
             if ($authentication->scheme != AuthenticationScheme::bearer) {
                 if (self::$debugDefault) {
-                    error_log(sprintf("%s %s(%s) unsupported authentication scheme \"%s\"", self::class, __FUNCTION__, $authentication->scheme->name, $endpoint->name()));
+                    error_log(sprintf("%s %s(%s) invalid authentication scheme", self::class, __FUNCTION__, $endpoint->name()));
                 }
                 return false;
             }
@@ -226,9 +222,11 @@ class Service extends ObjectClass
 
     public function run(): void
     {
-        $data = null;
+        $content = null;
         try {
-            ProcessInfo::processInfo()->processName = $this->name;
+            /** @psalm-suppress PossiblyNullArgument */
+            self::$debugDefault = (new Number(ProcessInfo::processInfo()->environment['SERVICE_DEBUG_LEVEL'] ?? 0))->intValue;
+            ProcessInfo::processInfo()->processName = $this->bundle->object(kCFBundleNameKey);
             $path = $this->request->url->path;
             if (!($endpoint = $this->endpoints->first(fn(Endpoint $endpoint): bool => string_is_equal($endpoint->route(), $path)))) {
                 $name = $this->request->url->lastPathComponent;
@@ -258,19 +256,19 @@ class Service extends ObjectClass
                         throw new UnauthorizedException();
                     }
                     $response = $endpoint->response();
-                    $data = $endpoint->content();
+                    $content = $endpoint->content();
                 }
             } else {
                 $fileManager = FileManager::default();
                 $fileURL = new URL($path, $fileManager->documentRootDirectory);
                 $filename = $fileURL->path;
                 if ($fileManager->fileExists($filename, $isDirectory) && !$isDirectory) {
-                    $data = $fileManager->contents($filename);
-                    $headers = (function () use ($fileURL, $filename, $data): Dictionary {
+                    $content = $fileManager->contents($filename);
+                    $headers = (function () use ($fileURL, $filename, $content): Dictionary {
                         /** @var Dictionary<mixed> $headers */
                         $headers = new Dictionary();
                         if ($contentType = mime_content_type($filename)) {
-                            if ($data && ($encoding = mb_detect_encoding($data))) {
+                            if ($content && ($encoding = mb_detect_encoding($content))) {
                                 $contentType .= "; charset=$encoding";
                             }
                             $headers['Content-Type'] = $contentType;
@@ -280,7 +278,7 @@ class Service extends ObjectClass
                         return $headers;
                     });
                     if ($this->request->httpMethod == HTTPRequestMethod::get) {
-                        if ($data !== null) {
+                        if ($content !== null) {
                             $response = new HTTPURLResponse($this->request->url, HTTPStatusCode::ok, null, $headers());
                         } else {
                             throw new InternalServerErrorException();
@@ -319,7 +317,7 @@ class Service extends ObjectClass
                 $headers['Access-Control-Allow-Headers'] = $value;
             }
             /** @psalm-suppress PossiblyUndefinedVariable */
-            $this->send(new HTTPURLResponse($response->url, $response->statusCode, null, $headers), $data); // @phpstan-ignore-line
+            $this->send(new HTTPURLResponse($response->url, $response->statusCode, null, $headers), $content); // @phpstan-ignore-line
         }
     }
 }

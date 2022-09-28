@@ -8,6 +8,7 @@
 namespace Sabatier\Service;
 
 use Exception;
+use ReflectionClass;
 use Sabatier\CoreData\PersistentContainer;
 use Sabatier\CoreData\PersistentStoreDescription;
 use Sabatier\Foundation\ArrayClass;
@@ -28,12 +29,12 @@ use Sabatier\Foundation\URLRequest;
 use Throwable;
 use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\human_readable_value;
-use function Sabatier\Foundation\string_has_suffix;
 use function Sabatier\Foundation\string_is_equal;
 
 /**
  * Class Service
  * @package Sabatier\Service
+ * @property-read ArrayClass<Endpoint> $endpoints
  */
 class Service extends ObjectClass
 {
@@ -42,8 +43,8 @@ class Service extends ObjectClass
     public readonly URLRequest $request;
     public readonly Bundle $bundle;
     public readonly PersistentContainer $persistentContainer;
-    /** @var ArrayClass<Endpoint> */
-    public readonly ArrayClass $endpoints;
+    /** @var Dictionary<Endpoint> */
+    private Dictionary $endpointsByRoute;
     /** @var Dictionary<mixed>|null */
     public readonly ?Dictionary $serialization;
     public readonly Authentication $authentication;
@@ -57,13 +58,16 @@ class Service extends ObjectClass
         unset($this->request);
         unset($this->bundle);
         unset($this->persistentContainer);
-        unset($this->endpoints);
+        unset($this->endpointsByRoute);
         unset($this->serialization);
         unset($this->authentication);
         unset($this->authorization);
         unset($this->tokenKey);
         unset($this->tokenValidity);
         unset($this->usersEntityName);
+
+        /** @psalm-suppress PossiblyNullArgument */
+        self::$debugDefault = (new Number(ProcessInfo::processInfo()->environment['SERVICE_DEBUG_LEVEL'] ?? 0))->intValue;
     }
 
     public function __get(string $name)
@@ -103,9 +107,24 @@ class Service extends ObjectClass
             });
             $this->$name = $persistentContainer;
             return $this->$name;
-        } elseif ($name == 'endpoints') {
-            /** @var ArrayClass<Endpoint> $endpoints */
-            $endpoints = new ArrayClass();
+        } elseif ($name == 'endpointsByRoute') {
+            /** @noinspection PhpUnhandledExceptionInspection */
+            $principalClass = $this->bundle->principalClass ?? fatal_error("Unable to load bundle's principal class");
+            /** @noinspection PhpUnhandledExceptionInspection */
+            $reflectionClass = new ReflectionClass($principalClass);
+            $namespaceName = $reflectionClass->getNamespaceName();
+            /** @var Dictionary<Endpoint> $endpointsByRoute */
+            $endpointsByRoute = new Dictionary();
+            $register = /** @param class-string<Endpoint> $endpointClass */
+                function (string $endpointClass) use ($endpointsByRoute): void {
+                    /** @psalm-suppress UnsafeInstantiation */
+                    $endpoint = new $endpointClass($this);
+                    $endpointsByRoute[$endpoint->route()] = $endpoint;
+                };
+            $register(Authenticate::class);
+            $register(Me::class);
+            $register(Home::class);
+            $register(Logout::class);
             $pluginsUrl = $this->bundle->builtInPlugInsURL;
             $fileManager = FileManager::default();
             if ($fileManager->fileExists($pluginsUrl->path)) {
@@ -115,16 +134,17 @@ class Service extends ObjectClass
                         $path = $url->path;
                         /** @psalm-suppress UnresolvableInclude */
                         require_once $path;
-                        $endpointClass = sprintf("App\\%s\\%s", $pluginsUrl->lastPathComponent, $fileManager->displayName($path));
+                        $endpointClass = "$namespaceName\\$pluginsUrl->lastPathComponent\\{$fileManager->displayName($path)}";
                         if (class_exists($endpointClass) && is_subclass_of($endpointClass, Endpoint::class)) {
-                            /** @psalm-suppress UnsafeInstantiation */
-                            $endpoints->append(new $endpointClass($this));
+                            $register($endpointClass);
                         }
                     }
                 }
             }
-            $this->$name = $endpoints;
+            $this->$name = $endpointsByRoute;
             return $this->$name;
+        } elseif ($name == 'endpoints') {
+            return $this->endpointsByRoute->values;
         } elseif ($name == 'serialization') {
             $this->$name = (($string = $this->request->valueForHttpHeaderField('Serialization')) && ($array = json_decode($string, true))) ? Dictionary::dictionaryWithArray($array) : null;
             return $this->$name;
@@ -222,28 +242,14 @@ class Service extends ObjectClass
 
     public function run(): void
     {
-        $content = null;
         try {
-            /** @psalm-suppress PossiblyNullArgument */
-            self::$debugDefault = (new Number(ProcessInfo::processInfo()->environment['SERVICE_DEBUG_LEVEL'] ?? 0))->intValue;
+            $content = null;
             ProcessInfo::processInfo()->processName = $this->bundle->object(kCFBundleNameKey);
             $path = $this->request->url->path;
-            if (!($endpoint = $this->endpoints->first(fn(Endpoint $endpoint): bool => string_is_equal($endpoint->route(), $path)))) {
-                $name = $this->request->url->lastPathComponent;
-                if (empty($name)) {
-                    $name = Home::className();
-                }
-                $internalEndpointClasses = new ArrayClass([Home::class, Authenticate::class, Me::class, Logout::class]);
-                if ($endpointClass = $internalEndpointClasses->first(fn(string $class): bool => string_has_suffix($class, $name))) {
-                    $instance = new $endpointClass($this);
-                    if (string_is_equal($instance->route(), $path)) {
-                        $endpoint = $instance;
-                    }
-                } elseif ($entity = $this->persistentContainer->managedObjectModel->entitiesByName[$name]) {
-                    $instance = new Datapoint($this, $entity);
-                    if (string_is_equal($instance->route(), $path)) {
-                        $endpoint = $instance;
-                    }
+            if (!($endpoint = $this->endpointsByRoute[$path]) && ($entity = $this->persistentContainer->managedObjectModel->entitiesByName[$this->request->url->lastPathComponent])) {
+                $datapoint = new Datapoint($this, $entity);
+                if ($path === $datapoint->route()) {
+                    $endpoint = $datapoint;
                 }
             }
             if ($endpoint) {

@@ -10,7 +10,9 @@ use Sabatier\Foundation\ComparisonPredicate;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Expression;
 use Sabatier\Foundation\ObjectClass;
+use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Foundation\URLCredential;
+use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\substring_from_index;
 
 /**
@@ -33,7 +35,8 @@ class Authorization extends ObjectClass
     public function __get(string $name)
     {
         if ($name == 'token') {
-            $this->$name = (($string = $this->service->request->valueForHttpHeaderField('Authorization')) && ($index = strpos($string, ' ')) && ($hash = trim(substring_from_index($string, $index))) && count(explode('.', $hash)) == 3) ? new JSONWebToken($this->service->tokenKey, null, $hash) : null;
+            /** @noinspection PhpUnhandledExceptionInspection */
+            $this->$name = (($string = $this->service->request->valueForHttpHeaderField('Authorization')) && ($index = strpos($string, ' ')) && ($hash = trim(substring_from_index($string, $index))) && count(explode('.', $hash)) == 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment['SERVICE_TOKEN_KEY'] ?? fatal_error("environment variable \"SERVICE_TOKEN_KEY\" cannot be null"), null, $hash) : null;
             return $this->$name;
         } elseif ($name == 'credential') {
             $credential = null;
@@ -66,7 +69,8 @@ class Authorization extends ObjectClass
                 $context = $this->service->persistentContainer->viewContext;
                 /** @var FetchRequest<ManagedObject> $fetchRequest */
                 $fetchRequest = new FetchRequest();
-                $fetchRequest->entity = EntityDescription::entity($this->service->usersEntityName, $context);
+                /** @noinspection PhpUnhandledExceptionInspection */
+                $fetchRequest->entity = EntityDescription::entity(ProcessInfo::processInfo()->environment['SERVICE_USERS_ENTITY_NAME'] ?? fatal_error("environment variable \"SERVICE_USERS_ENTITY_NAME\" cannot be null"), $context);
                 $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath('username'), Expression::expressionForConstantValue($username));
                 $fetchRequest->serialization = $serialization;
                 /** @noinspection PhpUnhandledExceptionInspection */

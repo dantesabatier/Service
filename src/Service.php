@@ -44,14 +44,11 @@ class Service extends ObjectClass
     public readonly Bundle $bundle;
     public readonly PersistentContainer $persistentContainer;
     /** @var Dictionary<Endpoint> */
-    private Dictionary $endpointsByRoute;
+    public readonly Dictionary $endpointsByRoute;
     /** @var Dictionary<mixed>|null */
     public readonly ?Dictionary $serialization;
     public readonly Authentication $authentication;
     public readonly Authorization $authorization;
-    public readonly string $tokenKey;
-    public readonly int $tokenValidity;
-    public readonly string $usersEntityName;
 
     public function __construct()
     {
@@ -62,9 +59,6 @@ class Service extends ObjectClass
         unset($this->serialization);
         unset($this->authentication);
         unset($this->authorization);
-        unset($this->tokenKey);
-        unset($this->tokenValidity);
-        unset($this->usersEntityName);
 
         /** @psalm-suppress PossiblyNullArgument */
         self::$debugDefault = (new Number(ProcessInfo::processInfo()->environment['SERVICE_DEBUG_LEVEL'] ?? 0))->intValue;
@@ -153,17 +147,6 @@ class Service extends ObjectClass
             return $this->$name;
         } elseif ($name == 'authorization') {
             $this->$name = new Authorization($this);
-            return $this->$name;
-        } elseif ($name == 'tokenKey') {
-            /** @psalm-suppress PossiblyNullPropertyAssignmentValue */
-            $this->$name = ProcessInfo::processInfo()->environment['SERVICE_TOKEN_KEY'];
-            return $this->$name;
-        } elseif ($name == 'tokenValidity') {
-            $this->$name = (new Number(ProcessInfo::processInfo()->environment['SERVICE_TOKEN_VALIDITY'] ?? 8))->intValue;
-            return $this->$name;
-        } elseif ($name == 'usersEntityName') {
-            /** @psalm-suppress PossiblyNullPropertyAssignmentValue */
-            $this->$name = ProcessInfo::processInfo()->environment['SERVICE_USERS_ENTITY_NAME'];
             return $this->$name;
         } else {
             return $this->valueForUndefinedKey($name);

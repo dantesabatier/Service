@@ -113,6 +113,7 @@ class Datapoint extends Endpoint
                     $context->save();
                     return new HTTPURLResponse($request->url, HTTPStatusCode::noContent);
                 } else {
+                    /** @noinspection SpellCheckingInspection */
                     if (($password = $dictionary['password']) && !string_begins_with($password, '\$2[abxy]', CompareOptions::quoted)) {
                         $dictionary['password'] = password_hash($password, PASSWORD_BCRYPT);
                     }

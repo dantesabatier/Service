@@ -4,20 +4,20 @@ namespace Sabatier\Service;
 
 use Sabatier\Foundation\URLComponents;
 use Sabatier\Foundation\URLScheme;
-
 use function Sabatier\Foundation\fatal_error;
+use function Sabatier\Foundation\is_running_from_cli;
 use function Sabatier\Foundation\string_has_prefix;
 
 function build_request_url(): string
 {
-    $elements = explode('?', $_SERVER['REQUEST_URI']);
+    $elements = explode('?', $_SERVER['REQUEST_URI'] ?? '');
     $components = new URLComponents();
-    $components->scheme = empty($_SERVER['HTTPS']) ? URLScheme::http : URLScheme::https;
-    $components->host = $_SERVER['HTTP_HOST'];
+    $components->scheme = is_running_from_cli() ? null : (empty($_SERVER['HTTPS']) ? URLScheme::http : URLScheme::https);
+    $components->host = $_SERVER['HTTP_HOST'] ?? null;
     $components->path = $elements[0] ?? null;
     $components->query = $elements[1] ?? null;
     /** @noinspection PhpUnhandledExceptionInspection */
-    return $components->string ?? fatal_error();
+    return $components->string ?? fatal_error("Unable to build request url");
 }
 
 if (!function_exists('getallheaders')) :

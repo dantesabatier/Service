@@ -60,7 +60,6 @@ class Service extends ObjectClass
         unset($this->authentication);
         unset($this->authorization);
 
-        /** @psalm-suppress PossiblyNullArgument */
         self::$debugDefault = (new Number(ProcessInfo::processInfo()->environment['SERVICE_DEBUG_LEVEL'] ?? 0))->intValue;
     }
 
@@ -113,7 +112,7 @@ class Service extends ObjectClass
                 function (string $endpointClass) use ($endpointsByRoute): void {
                     /** @psalm-suppress UnsafeInstantiation */
                     $endpoint = new $endpointClass($this);
-                    $endpointsByRoute[$endpoint->route()] = $endpoint;
+                    $endpointsByRoute[$endpoint->route()] = $endpoint; // @phpstan-ignore-line
                 };
             $register(Authenticate::class);
             $register(Me::class);
@@ -126,9 +125,10 @@ class Service extends ObjectClass
                 foreach ($urls as $url) {
                     if (string_is_equal($url->pathExtension, 'php', CompareOptions::caseInsensitive)) {
                         $path = $url->path;
+                        $fileName = pathinfo($path, PATHINFO_FILENAME);
                         /** @psalm-suppress UnresolvableInclude */
                         require_once $path;
-                        $endpointClass = "$namespaceName\\$pluginsUrl->lastPathComponent\\{$fileManager->displayName($path)}";
+                        $endpointClass = "$namespaceName\\$pluginsUrl->lastPathComponent\\$fileName";
                         if (class_exists($endpointClass) && is_subclass_of($endpointClass, Endpoint::class)) {
                             $register($endpointClass);
                         }
@@ -140,7 +140,7 @@ class Service extends ObjectClass
         } elseif ($name == 'endpoints') {
             return $this->endpointsByRoute->values;
         } elseif ($name == 'serialization') {
-            $this->$name = (($string = $this->request->valueForHttpHeaderField('Serialization')) && ($array = json_decode($string, true))) ? Dictionary::dictionaryWithArray($array) : null;
+            $this->$name = (($string = $this->request->valueForHttpHeaderField($name)) && ($array = json_decode($string, true))) ? Dictionary::dictionaryWithArray($array) : null;
             return $this->$name;
         } elseif ($name == 'authentication') {
             $this->$name = new Authentication($this);
@@ -226,8 +226,8 @@ class Service extends ObjectClass
     public function run(): void
     {
         try {
-            $content = null;
             ProcessInfo::processInfo()->processName = $this->bundle->object(kCFBundleNameKey);
+            $content = null;
             $path = $this->request->url->path;
             if (!($endpoint = $this->endpointsByRoute[$path]) && ($entity = $this->persistentContainer->managedObjectModel->entitiesByName[$this->request->url->lastPathComponent])) {
                 $datapoint = new Datapoint($this, $entity);
@@ -292,6 +292,7 @@ class Service extends ObjectClass
             if (self::$debugDefault) {
                 error_log("Service: error: $throwable");
             }
+            $content = null;
         } finally {
             /** @psalm-suppress PossiblyUndefinedVariable */
             $headers = $response->allHeaderFields; // @phpstan-ignore-line
@@ -306,7 +307,7 @@ class Service extends ObjectClass
                 $headers['Access-Control-Allow-Headers'] = $value;
             }
             /** @psalm-suppress PossiblyUndefinedVariable */
-            $this->send(new HTTPURLResponse($response->url, $response->statusCode, null, $headers), $content); // @phpstan-ignore-line
+            $this->send($response, $content); // @phpstan-ignore-line
         }
     }
 }

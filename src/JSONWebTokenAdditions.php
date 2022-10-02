@@ -1,8 +1,11 @@
-<?php /** @noinspection PhpUnused */
+<?php
+
+/** @noinspection PhpUnused */
 
 namespace Sabatier\Service;
 
 use Sabatier\Foundation\Date;
+
 use function Sabatier\Foundation\string_compare;
 use function Sabatier\Foundation\string_contains;
 

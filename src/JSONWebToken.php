@@ -5,6 +5,7 @@ namespace Sabatier\Service;
 use InvalidArgumentException;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\URL;
+
 use function Sabatier\Foundation\human_readable_value;
 
 /**

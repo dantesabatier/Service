@@ -4,6 +4,7 @@ namespace Sabatier\Service;
 
 use Sabatier\Foundation\URLComponents;
 use Sabatier\Foundation\URLScheme;
+
 use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\is_running_from_cli;
 use function Sabatier\Foundation\string_has_prefix;

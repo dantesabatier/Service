@@ -10,6 +10,7 @@ use Sabatier\Foundation\HTTPStatusCode;
 use Sabatier\Foundation\HTTPURLResponse;
 use Sabatier\Foundation\Number;
 use Sabatier\Foundation\ProcessInfo;
+
 use function Sabatier\Foundation\fatal_error;
 
 /** @internal */

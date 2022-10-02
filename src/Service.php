@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @author Dante Sabatier <dantesabatier@me.com>
  * @version 1.0
@@ -27,9 +28,11 @@ use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Foundation\URL;
 use Sabatier\Foundation\URLRequest;
 use Throwable;
+
 use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\human_readable_value;
 use function Sabatier\Foundation\string_is_equal;
+
 use const Sabatier\CoreData\PersistentHistoryTrackingKey;
 use const Sabatier\CoreData\PersistentStoreRemoteChangeNotificationPostOptionKey;
 use const Sabatier\Foundation\kCFBundleNameKey;

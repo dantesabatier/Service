@@ -1,11 +1,5 @@
 <?php
 
-/**
- * @author Dante Sabatier <dantesabatier@me.com>
- * @version 1.0
- * @package Sabatier\Service
- */
-
 namespace Sabatier\Service;
 
 use Exception;
@@ -28,11 +22,9 @@ use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Foundation\URL;
 use Sabatier\Foundation\URLRequest;
 use Throwable;
-
 use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\human_readable_value;
 use function Sabatier\Foundation\string_is_equal;
-
 use const Sabatier\CoreData\PersistentHistoryTrackingKey;
 use const Sabatier\CoreData\PersistentStoreRemoteChangeNotificationPostOptionKey;
 use const Sabatier\Foundation\kCFBundleNameKey;
@@ -55,6 +47,7 @@ class Service extends ObjectClass
     public readonly ?Dictionary $serialization;
     public readonly Authentication $authentication;
     public readonly Authorization $authorization;
+    public ?ServiceDelegate $delegate = null;
 
     public function __construct()
     {
@@ -91,7 +84,7 @@ class Service extends ObjectClass
             return $this->$name;
         } elseif ($name == 'bundle') {
             /** @noinspection PhpUnhandledExceptionInspection */
-            $this->$name = Bundle::bundleForClass(static::class) ?? fatal_error("Unable to load the application main bundle");
+            $this->$name = Bundle::bundleWithURL(FileManager::default()->documentRootDirectory) ?? fatal_error("Unable to load the application main bundle");
             return $this->$name;
         } elseif ($name == 'persistentContainer') {
             $persistentContainer = new PersistentContainer($this->bundle->object(kCFBundleNameKey));
@@ -124,17 +117,17 @@ class Service extends ObjectClass
             $register(Me::class);
             $register(Home::class);
             $register(Logout::class);
-            $pluginsUrl = $this->bundle->builtInPlugInsURL;
+            $pluginsURL = $this->bundle->bundleURL->appendingPathComponent('src')->appendingPathComponent('Plugins');
             $fileManager = FileManager::default();
-            if ($fileManager->fileExists($pluginsUrl->path)) {
-                $urls = $fileManager->contentsOfDirectory($pluginsUrl, null, DirectoryEnumerationOptions::skipsHiddenFiles);
+            if ($fileManager->fileExists($pluginsURL->path)) {
+                $urls = $fileManager->contentsOfDirectory($pluginsURL, null, DirectoryEnumerationOptions::skipsHiddenFiles);
                 foreach ($urls as $url) {
                     if (string_is_equal($url->pathExtension, 'php', CompareOptions::caseInsensitive)) {
                         $path = $url->path;
                         $fileName = pathinfo($path, PATHINFO_FILENAME);
                         /** @psalm-suppress UnresolvableInclude */
                         require_once $path;
-                        $endpointClass = "$namespaceName\\$pluginsUrl->lastPathComponent\\$fileName";
+                        $endpointClass = "$namespaceName\\$pluginsURL->lastPathComponent\\$fileName";
                         if (class_exists($endpointClass) && is_subclass_of($endpointClass, Endpoint::class)) {
                             $register($endpointClass);
                         }

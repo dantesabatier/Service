@@ -1,7 +1,5 @@
 <?php
 
-/** @noinspection PhpUnused */
-
 namespace Sabatier\Service;
 
 use Sabatier\Foundation\Date;

@@ -2,13 +2,6 @@
 
 /** @noinspection PhpInternalEntityUsedInspection */
 
-/**
- * Created by PhpStorm.
- * User: dante
- * Date: 08/09/20
- * Time: 09:07
- */
-
 namespace Sabatier\Service;
 
 use Exception;

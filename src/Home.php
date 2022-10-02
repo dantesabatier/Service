@@ -7,6 +7,9 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\HTTPRequestMethod;
 use Sabatier\Foundation\HTTPStatusCode;
 use Sabatier\Foundation\HTTPURLResponse;
+use const Sabatier\Foundation\kCFBundleNameKey;
+use const Sabatier\Foundation\kCFBundleShortVersionStringKey;
+use const Sabatier\Foundation\kCFBundleVersionKey;
 
 /** @internal */
 class Home extends Endpoint

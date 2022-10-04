@@ -39,6 +39,7 @@ class Service extends ObjectClass
     /** @internal */
     public static int $debugDefault = 0;
     public readonly URLRequest $request;
+    /** @deprecated */
     public readonly Bundle $bundle;
     public readonly PersistentContainer $persistentContainer;
     /** @var Dictionary<Endpoint> */
@@ -52,7 +53,6 @@ class Service extends ObjectClass
     public function __construct()
     {
         unset($this->request);
-        unset($this->bundle);
         unset($this->persistentContainer);
         unset($this->endpointsByRoute);
         unset($this->serialization);
@@ -82,12 +82,8 @@ class Service extends ObjectClass
             }
             $this->$name = $request;
             return $this->$name;
-        } elseif ($name == 'bundle') {
-            /** @noinspection PhpUnhandledExceptionInspection */
-            $this->$name = Bundle::bundleWithURL(FileManager::default()->documentRootDirectory) ?? fatal_error("Unable to load the application main bundle");
-            return $this->$name;
         } elseif ($name == 'persistentContainer') {
-            $persistentContainer = new PersistentContainer($this->bundle->object(kCFBundleNameKey));
+            $persistentContainer = new PersistentContainer(Bundle::main()->object(kCFBundleNameKey));
             if ($description = $persistentContainer->persistentStoreDescriptions->first()) {
                 $description->setOptionForKey(false, PersistentHistoryTrackingKey);
                 $description->setOptionForKey(false, PersistentStoreRemoteChangeNotificationPostOptionKey);
@@ -100,8 +96,9 @@ class Service extends ObjectClass
             $this->$name = $persistentContainer;
             return $this->$name;
         } elseif ($name == 'endpointsByRoute') {
+            $bundle = Bundle::main();
             /** @noinspection PhpUnhandledExceptionInspection */
-            $principalClass = $this->bundle->principalClass ?? fatal_error("Unable to load bundle's principal class");
+            $principalClass = $bundle->principalClass ?? fatal_error("Unable to load bundle's principal class");
             /** @noinspection PhpUnhandledExceptionInspection */
             $reflectionClass = new ReflectionClass($principalClass);
             $namespaceName = $reflectionClass->getNamespaceName();
@@ -117,7 +114,7 @@ class Service extends ObjectClass
             $register(Me::class);
             $register(Home::class);
             $register(Logout::class);
-            $pluginsURL = $this->bundle->bundleURL->appendingPathComponent('src')->appendingPathComponent('Plugins');
+            $pluginsURL = $bundle->bundleURL->appendingPathComponent('src')->appendingPathComponent('Plugins');
             $fileManager = FileManager::default();
             if ($fileManager->fileExists($pluginsURL->path)) {
                 $urls = $fileManager->contentsOfDirectory($pluginsURL, null, DirectoryEnumerationOptions::skipsHiddenFiles);
@@ -225,7 +222,7 @@ class Service extends ObjectClass
     public function run(): void
     {
         try {
-            ProcessInfo::processInfo()->processName = $this->bundle->object(kCFBundleNameKey);
+            ProcessInfo::processInfo()->processName = Bundle::main()->object(kCFBundleNameKey);
             $content = null;
             $path = $this->request->url->path;
             if (!($endpoint = $this->endpointsByRoute[$path]) && ($entity = $this->persistentContainer->managedObjectModel->entitiesByName[$this->request->url->lastPathComponent])) {
@@ -284,7 +281,7 @@ class Service extends ObjectClass
             }
         } catch (Throwable $throwable) {
             if ($throwable instanceof InvalidRequestException) {
-                $response = new HTTPURLResponse($this->request->url, $throwable->getCode(), null, $throwable instanceof UnauthorizedException ? new Dictionary(["WWW-Authenticate" => sprintf("%s realm=\"%s\"", AuthenticationScheme::bearer->name, $this->request->url->host)]) : null);
+                $response = new HTTPURLResponse($this->request->url, $throwable->getCode(), null, $throwable instanceof UnauthorizedException ? new Dictionary(["WWW-Authenticate" => sprintf("%s realm=\"%s\"", AuthenticationScheme::bearer->name, $this->request->url->host ?? '')]) : null);
             } else {
                 $response = new HTTPURLResponse($this->request->url, HTTPStatusCode::internalServerError);
             }

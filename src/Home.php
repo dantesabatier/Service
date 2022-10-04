@@ -3,6 +3,7 @@
 namespace Sabatier\Service;
 
 use Sabatier\Foundation\ArrayClass;
+use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\HTTPRequestMethod;
 use Sabatier\Foundation\HTTPStatusCode;
@@ -32,7 +33,7 @@ class Home extends Endpoint
 
     public function response(): HTTPURLResponse
     {
-        $bundle = $this->service->bundle;
+        $bundle = Bundle::main();
         /** @var string $name */
         $name = $bundle->object(kCFBundleNameKey);
         /** @var string $version */

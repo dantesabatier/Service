@@ -25,6 +25,7 @@ use Sabatier\Foundation\Predicate;
 use Sabatier\Foundation\SortDescriptor;
 use Sabatier\Foundation\URLComponents;
 use Sabatier\Foundation\URLQueryItem;
+
 use function Sabatier\Foundation\string_begins_with;
 use function Sabatier\Foundation\string_is_equal;
 
@@ -152,7 +153,8 @@ class Datapoint extends Endpoint
                     }
                     if (property_exists($decoded, 'propertiesToFetch')) {
                         /** @psalm-suppress InvalidPropertyAssignmentValue */
-                        $fetchRequest->propertiesToFetch = (new ArrayClass($decoded->propertiesToFetch))->compactMap(function (mixed $element): ExpressionDescription|string|null { // @phpstan-ignore-line
+                        $fetchRequest->propertiesToFetch = (new ArrayClass($decoded->propertiesToFetch))->compactMap(function (mixed $element): ExpressionDescription|string|null {
+ // @phpstan-ignore-line
                             if (is_string($element)) {
                                 return $element;
                             } elseif (is_object($element)) {

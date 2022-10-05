@@ -21,8 +21,8 @@ function jwt_validate(string $jwt, string $pk, ?string $iss = null): bool
             [$header, $payload, $signature] = $components;
             $unsigned = sprintf("%s.%s", $header, $payload);
             $signed = base64_encode(hash_hmac('sha256', $unsigned, $pk, true));
-            $isValid = $signature == $signed;
-            if ($isValid && ($obj = json_decode(base64_decode($payload)))) {
+            $isValid = $signature === $signed;
+            if ($isValid && ($obj = json_decode(base64_decode($payload), null, 512, JSON_THROW_ON_ERROR))) {
                 $date = new Date();
                 $isValid = !(((property_exists($obj, 'nbf') && $obj->nbf > $date->timeIntervalSinceReferenceDate) || (property_exists($obj, 'exp') && $obj->exp < $date->timeIntervalSinceReferenceDate) || (property_exists($obj, 'iss') && $obj->iss !== $iss)));
             }
@@ -34,7 +34,7 @@ function jwt_validate(string $jwt, string $pk, ?string $iss = null): bool
 function jwt_generate(array $payload, string $pk): string
 {
     $header = base64_encode(json_encode(['alg' => 'HS256', 'typ' => 'JWT']));
-    $payload = base64_encode(json_encode($payload));
+    $payload = base64_encode(json_encode($payload, JSON_THROW_ON_ERROR));
     $unsigned = sprintf("%s.%s", $header, $payload);
     $signed = base64_encode(hash_hmac('sha256', $unsigned, $pk, true));
     return sprintf("%s.%s", $unsigned, $signed);
@@ -45,7 +45,7 @@ function jwt_payload(string $jwt, string $pk, ?string $iss = null, ?bool $valida
     $validated ??= jwt_validate($jwt, $pk, $iss);
     if ($validated) {
         [, $payload,] = explode('.', $jwt);
-        return json_decode(base64_decode($payload));
+        return json_decode(base64_decode($payload), null, 512, JSON_THROW_ON_ERROR);
     }
     return null;
 }

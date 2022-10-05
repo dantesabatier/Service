@@ -60,14 +60,14 @@ class Datapoint extends Endpoint
                 if ($fetchRequestResult instanceof BatchFaultingArray) {
                     return new BatchResponse($request->url, $fetchRequestResult, $fetchRequest);
                 }
-                $this->content = json_encode($fetchRequestResult, JSON_PRESERVE_ZERO_FRACTION);
+                $this->content = json_encode($fetchRequestResult, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
                 return new HTTPURLResponse($request->url, HTTPStatusCode::ok, null, new Dictionary(['Content-Type' => "application/json; charset=utf-8"]));
             case HTTPRequestMethod::post:
             case HTTPRequestMethod::put:
             case HTTPRequestMethod::patch:
             case HTTPRequestMethod::delete:
                 $body = $request->httpBody ?? '';
-                if (!($array = json_decode($body, true))) {
+                if (!($array = json_decode($body, true, 512, JSON_THROW_ON_ERROR))) {
                     $components = new URLComponents($request->url->absoluteString);
                     $items = $components->queryItems ?? throw new BadRequestException();
                     $array = $items->reduce([], function (array &$result, URLQueryItem $item): array {
@@ -94,14 +94,12 @@ class Datapoint extends Endpoint
                     }
                     $object = $context->fetch($fetchRequest)->first();
                 }
-                if ($object === null) {
+                if (!$object instanceof ManagedObject) {
                     if ($request->httpMethod != HTTPRequestMethod::post) {
                         throw new NotFoundException();
                     }
-                } else {
-                    if ($request->httpMethod == HTTPRequestMethod::post) {
-                        throw new ConflictException();
-                    }
+                } elseif ($request->httpMethod == HTTPRequestMethod::post) {
+                    throw new ConflictException();
                 }
                 if ($request->httpMethod == HTTPRequestMethod::delete) {
                     /** @psalm-suppress PossiblyNullArgument */
@@ -134,7 +132,7 @@ class Datapoint extends Endpoint
         $components = new URLComponents($request->url->absoluteString);
         if ($items = $components->queryItems) {
             if ($item = $items->first(fn(URLQueryItem $item): bool => string_is_equal($item->name, 'fetchRequest', CompareOptions::caseInsensitive))) {
-                if (($value = $item->value) && ($json = base64_decode($value)) && ($decoded = json_decode($json))) {
+                if (($value = $item->value) && ($json = base64_decode($value)) && ($decoded = json_decode($json, null, 512, JSON_THROW_ON_ERROR))) {
                     if (property_exists($decoded, 'predicate')) {
                         $predicate = $decoded->predicate;
                         if (property_exists($predicate, 'format')) {
@@ -153,8 +151,7 @@ class Datapoint extends Endpoint
                     }
                     if (property_exists($decoded, 'propertiesToFetch')) {
                         /** @psalm-suppress InvalidPropertyAssignmentValue */
-                        $fetchRequest->propertiesToFetch = (new ArrayClass($decoded->propertiesToFetch))->compactMap(function (mixed $element): ExpressionDescription|string|null {
- // @phpstan-ignore-line
+                        $fetchRequest->propertiesToFetch = /** @phpstan-ignore-line */ (new ArrayClass($decoded->propertiesToFetch))->compactMap(function (mixed $element): ExpressionDescription|string|null {
                             if (is_string($element)) {
                                 return $element;
                             } elseif (is_object($element)) {

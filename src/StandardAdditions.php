@@ -40,23 +40,17 @@ if (!function_exists('getallheaders')) :
                     $key = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', $key))));
                     $headers[$key] = $value;
                 }
-            } else {
-                if (isset($copy_server[$key])) {
-                    $headers[$copy_server[$key]] = $value;
-                }
+            } elseif (isset($copy_server[$key])) {
+                $headers[$copy_server[$key]] = $value;
             }
         }
         if (!isset($headers['Authorization'])) {
             if (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
                 $headers['Authorization'] = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
-            } else {
-                if (isset($_SERVER['PHP_AUTH_USER'])) {
-                    $headers['Authorization'] = "Basic " . base64_encode(sprintf("%s:%s", $_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW'] ?? ''));
-                } else {
-                    if (isset($_SERVER['PHP_AUTH_DIGEST'])) {
-                        $headers['Authorization'] = $_SERVER['PHP_AUTH_DIGEST'];
-                    }
-                }
+            } elseif (isset($_SERVER['PHP_AUTH_USER'])) {
+                $headers['Authorization'] = "Basic " . base64_encode(sprintf("%s:%s", $_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW'] ?? ''));
+            } elseif (isset($_SERVER['PHP_AUTH_DIGEST'])) {
+                $headers['Authorization'] = $_SERVER['PHP_AUTH_DIGEST'];
             }
         }
         return $headers;

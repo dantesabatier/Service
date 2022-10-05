@@ -23,7 +23,7 @@ class Logout extends Endpoint
 
     public function response(): HTTPURLResponse
     {
-        $this->content = json_encode(true);
+        $this->content = json_encode(true, JSON_THROW_ON_ERROR);
         return new HTTPURLResponse($this->url, HTTPStatusCode::ok, null, new Dictionary(["Content-Type" => "application/json; charset=utf-8"]));
     }
 }

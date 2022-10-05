@@ -41,7 +41,7 @@ class Authorization extends ObjectClass
             return $this->$name;
         } elseif ($name == 'credential') {
             $credential = null;
-            if (($body = $this->service->request->httpBody) && ($array = json_decode($body, true))) {
+            if (($body = $this->service->request->httpBody) && ($array = json_decode($body, true, 512, JSON_THROW_ON_ERROR))) {
                 /** @var string|null $username */
                 $username = $array['username'] ?? null;
                 /** @var string|null $password */

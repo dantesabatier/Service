@@ -28,7 +28,7 @@ class Authenticate extends Endpoint
         }
         $date = new Date();
         $token = new JSONWebToken(ProcessInfo::processInfo()->environment['SERVICE_TOKEN_KEY'] ?? fatal_error("environment variable \"SERVICE_TOKEN_KEY\" cannot be null"), ['iat' => $date->timeIntervalSinceReferenceDate, 'jti' => base64_encode(random_bytes(16)), 'iss' => $this->url->host, 'nbf' => $date->timeIntervalSinceReferenceDate, 'exp' => $date->addingTimeInterval(60 * 60 * (new Number(ProcessInfo::processInfo()->environment['SERVICE_TOKEN_VALIDITY'] ?? 8))->intValue)->timeIntervalSinceReferenceDate, 'username' => $username]);
-        $this->content = json_encode($token);
+        $this->content = json_encode($token, JSON_THROW_ON_ERROR);
         return new HTTPURLResponse($this->url, HTTPStatusCode::ok, null, new Dictionary(["Content-Type" => "application/json; charset=utf-8"]));
     }
 }

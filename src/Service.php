@@ -41,8 +41,6 @@ class Service extends ObjectClass
     /** @internal */
     public static int $debugDefault = 0;
     public readonly URLRequest $request;
-    /** @deprecated */
-    public readonly Bundle $bundle;
     public readonly PersistentContainer $persistentContainer;
     /** @var Dictionary<Endpoint> */
     public readonly Dictionary $endpointsByRoute;
@@ -72,6 +70,10 @@ class Service extends ObjectClass
             $request->httpMethod = $_SERVER['REQUEST_METHOD'];
             $request->allHTTPHeaderFields = new Dictionary(getallheaders());
             $contents = file_get_contents('php://input');
+            if (empty($contents)) {
+                $contents = "[]";
+            }
+            /** @var array<string, mixed> $content */
             $content = empty($_FILES) ? json_decode($contents, true) : $_FILES;
             if (empty($content)) {
                 parse_str($contents, $content);
@@ -233,7 +235,7 @@ class Service extends ObjectClass
                     $endpoint = $datapoint;
                 }
             }
-            if ($endpoint) {
+            if ($endpoint instanceof Endpoint) {
                 if ($this->request->httpMethod == HTTPRequestMethod::options) {
                     $response = new HTTPURLResponse($this->request->url);
                 } elseif (!$endpoint->allowedMethods()->containsElement($this->request->httpMethod)) {
@@ -247,36 +249,29 @@ class Service extends ObjectClass
                 }
             } else {
                 $fileManager = FileManager::default();
+                // TODO: Add some limitations
                 $fileURL = new URL($path, $fileManager->documentRootDirectory);
-                $filename = $fileURL->path;
-                if ($fileManager->fileExists($filename, $isDirectory) && !$isDirectory) {
-                    $content = $fileManager->contents($filename);
-                    $headers = (function () use ($fileURL, $filename, $content): Dictionary {
+                $filePath = $fileURL->path;
+                if ($fileManager->fileExists($filePath, $isDirectory) && !$isDirectory) {
+                    $content = $fileManager->contents($filePath) ?? throw new InternalServerErrorException();
+                    $headerFields = (function () use ($fileURL, $filePath, $content): Dictionary {
                         /** @var Dictionary<mixed> $headers */
                         $headers = new Dictionary();
-                        if ($contentType = mime_content_type($filename)) {
+                        if ($contentType = mime_content_type($filePath)) {
                             if ($content && ($encoding = mb_detect_encoding($content))) {
                                 $contentType .= "; charset=$encoding";
                             }
                             $headers['Content-Type'] = $contentType;
                         }
-                        $headers['Content-Length'] = filesize($filename);
+                        $headers['Content-Length'] = filesize($filePath);
                         $headers['Content-Disposition'] = "inline; filename=$fileURL->lastPathComponent";
                         return $headers;
                     });
-                    if ($this->request->httpMethod == HTTPRequestMethod::get) {
-                        if ($content !== null) {
-                            $response = new HTTPURLResponse($this->request->url, HTTPStatusCode::ok, null, $headers());
-                        } else {
-                            throw new InternalServerErrorException();
-                        }
-                    } elseif ($this->request->httpMethod == HTTPRequestMethod::head) {
-                        $response = new HTTPURLResponse($this->request->url, HTTPStatusCode::ok, null, $headers());
-                    } elseif ($this->request->httpMethod == HTTPRequestMethod::options) {
-                        $response = new HTTPURLResponse($this->request->url);
-                    } else {
-                        throw new MethodNotAllowedException();
-                    }
+                    $response = match ($this->request->httpMethod) {
+                        HTTPRequestMethod::options => new HTTPURLResponse($this->request->url),
+                        HTTPRequestMethod::head, HTTPRequestMethod::get => new HTTPURLResponse($this->request->url, HTTPStatusCode::ok, null, $headerFields()),
+                        default => throw new MethodNotAllowedException()
+                    };
                 } else {
                     throw new NotFoundException();
                 }

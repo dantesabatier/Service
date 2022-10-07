@@ -66,7 +66,7 @@ class Datapoint extends Endpoint
             case HTTPRequestMethod::put:
             case HTTPRequestMethod::patch:
             case HTTPRequestMethod::delete:
-                $body = $request->httpBody ?? '';
+                $body = $request->httpBody ?? '[]';
                 if (!($array = json_decode($body, true, 512, JSON_THROW_ON_ERROR))) {
                     $components = new URLComponents($request->url->absoluteString);
                     $items = $components->queryItems ?? throw new BadRequestException();

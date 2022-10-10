@@ -16,7 +16,7 @@ class Logout extends Endpoint
         return new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
     }
 
-    public function isSecure(): bool
+    public function requiresAuthentication(): bool
     {
         return false;
     }

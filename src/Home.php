@@ -26,7 +26,7 @@ class Home extends Endpoint
         return new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::get]);
     }
 
-    public function isSecure(): bool
+    public function requiresAuthentication(): bool
     {
         return false;
     }

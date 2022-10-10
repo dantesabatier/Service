@@ -49,9 +49,9 @@ abstract class Endpoint extends ObjectClass
         return new ArrayClass([HTTPRequestMethod::head, HTTPRequestMethod::options, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::put, HTTPRequestMethod::delete]);
     }
 
-    public function isSecure(): bool
+    public function requiresAuthentication(): bool
     {
-        return true;
+        return $this->service->requiresAuthentication;
     }
 
     /**

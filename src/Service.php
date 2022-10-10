@@ -2,7 +2,6 @@
 
 namespace Sabatier\Service;
 
-use Exception;
 use ReflectionClass;
 use Sabatier\CoreData\PersistentContainer;
 use Sabatier\CoreData\PersistentStoreDescription;
@@ -48,7 +47,8 @@ class Service extends ObjectClass
     public readonly ?Dictionary $serialization;
     public readonly Authentication $authentication;
     public readonly Authorization $authorization;
-    public ?ServiceDelegate $delegate = null;
+    public ?ServiceDelegate $delegate;
+    public bool $requiresAuthentication = true;
 
     public function __construct()
     {
@@ -58,6 +58,7 @@ class Service extends ObjectClass
         unset($this->serialization);
         unset($this->authentication);
         unset($this->authorization);
+        unset($this->delegate);
 
         self::$debugDefault = (new Number(ProcessInfo::processInfo()->environment['SERVICE_DEBUG_LEVEL'] ?? 0))->intValue;
     }
@@ -67,13 +68,13 @@ class Service extends ObjectClass
         if ($name == 'request') {
             $url = new URL(build_request_url());
             $request = new URLRequest($url);
-            $request->httpMethod = $_SERVER['REQUEST_METHOD'];
+            $request->httpMethod = $_SERVER['REQUEST_METHOD'] ?? HTTPRequestMethod::get;
             $request->allHTTPHeaderFields = new Dictionary(getallheaders());
             $contents = file_get_contents('php://input');
             if (empty($contents)) {
                 $contents = "[]";
             }
-            /** @var array<string, mixed> $content */
+            /** @psalm-suppress TypeDoesNotContainType, RedundantCondition */
             $content = empty($_FILES) ? json_decode($contents, true) : $_FILES;
             if (empty($content)) {
                 parse_str($contents, $content);
@@ -99,13 +100,15 @@ class Service extends ObjectClass
             });
             $this->$name = $persistentContainer;
             return $this->$name;
+        } elseif ($name == 'delegate') {
+            $delegate = null;
+            if (($principalClass = Bundle::main()->principalClass) && class_exists($principalClass) && isset(class_implements($principalClass)[ServiceDelegate::class])) {
+                /** @var ServiceDelegate $delegate */
+                $delegate = new $principalClass();
+            }
+            $this->$name = $delegate;
+            return $this->$name;
         } elseif ($name == 'endpointsByRoute') {
-            $bundle = Bundle::main();
-            /** @noinspection PhpUnhandledExceptionInspection */
-            $principalClass = $bundle->principalClass ?? fatal_error("Unable to load bundle's principal class");
-            /** @noinspection PhpUnhandledExceptionInspection */
-            $reflectionClass = new ReflectionClass($principalClass);
-            $namespaceName = $reflectionClass->getNamespaceName();
             /** @var Dictionary<Endpoint> $endpointsByRoute */
             $endpointsByRoute = new Dictionary();
             $register = /** @param class-string<Endpoint> $endpointClass */
@@ -114,23 +117,30 @@ class Service extends ObjectClass
                     $endpoint = new $endpointClass($this);
                     $endpointsByRoute[$endpoint->route()] = $endpoint; // @phpstan-ignore-line
                 };
-            $register(Authenticate::class);
-            $register(Me::class);
             $register(Home::class);
-            $register(Logout::class);
-            $pluginsURL = $bundle->bundleURL->appendingPathComponent('src')->appendingPathComponent('Plugins');
-            $fileManager = FileManager::default();
-            if ($fileManager->fileExists($pluginsURL->path)) {
-                $urls = $fileManager->contentsOfDirectory($pluginsURL, null, DirectoryEnumerationOptions::skipsHiddenFiles);
-                foreach ($urls as $url) {
-                    if (string_is_equal($url->pathExtension, 'php', CompareOptions::caseInsensitive)) {
-                        $path = $url->path;
-                        $fileName = pathinfo($path, PATHINFO_FILENAME);
-                        /** @psalm-suppress UnresolvableInclude */
-                        require_once $path;
-                        $endpointClass = "$namespaceName\\$pluginsURL->lastPathComponent\\$fileName";
-                        if (class_exists($endpointClass) && is_subclass_of($endpointClass, Endpoint::class)) {
-                            $register($endpointClass);
+            if ($this->requiresAuthentication) {
+                foreach ([Authenticate::class, Me::class, Logout::class] as $endpointClass) {
+                    $register($endpointClass);
+                }
+            }
+            if ($delegate = $this->delegate) {
+                /** @noinspection PhpUnhandledExceptionInspection */
+                $reflectionClass = new ReflectionClass($delegate::class);
+                $namespaceName = $reflectionClass->getNamespaceName();
+                $pluginsURL = Bundle::main()->bundleURL->appendingPathComponent('src')->appendingPathComponent('Endpoints');
+                $fileManager = FileManager::default();
+                if ($fileManager->fileExists($pluginsURL->path)) {
+                    $urls = $fileManager->contentsOfDirectory($pluginsURL, null, DirectoryEnumerationOptions::skipsHiddenFiles);
+                    foreach ($urls as $url) {
+                        if (string_is_equal($url->pathExtension, 'php', CompareOptions::caseInsensitive)) {
+                            $path = $url->path;
+                            $fileName = pathinfo($path, PATHINFO_FILENAME);
+                            /** @psalm-suppress UnresolvableInclude */
+                            require_once $path;
+                            $endpointClass = "$namespaceName\\$pluginsURL->lastPathComponent\\$fileName";
+                            if (class_exists($endpointClass) && is_subclass_of($endpointClass, Endpoint::class)) {
+                                $register($endpointClass);
+                            }
                         }
                     }
                 }
@@ -193,12 +203,9 @@ class Service extends ObjectClass
         ob_end_flush();
     }
 
-    /**
-     * @throws Exception
-     */
     private function validate(Endpoint $endpoint): bool
     {
-        if ($endpoint->isSecure()) {
+        if ($endpoint->requiresAuthentication()) {
             $authentication = $this->authentication;
             if ($authentication->scheme != AuthenticationScheme::bearer) {
                 if (self::$debugDefault) {
@@ -227,6 +234,9 @@ class Service extends ObjectClass
     {
         try {
             ProcessInfo::processInfo()->processName = Bundle::main()->object(kCFBundleNameKey);
+            if ($this->delegate?->responds('serviceWillFinishLaunching')) {
+                $this->delegate->perform('serviceWillFinishLaunching', [$this]);
+            }
             $content = null;
             $path = $this->request->url->path;
             if (!($endpoint = $this->endpointsByRoute[$path]) && ($entity = $this->persistentContainer->managedObjectModel->entitiesByName[$this->request->url->lastPathComponent])) {

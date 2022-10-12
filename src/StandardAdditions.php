@@ -9,6 +9,7 @@ use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\is_running_from_cli;
 use function Sabatier\Foundation\string_has_prefix;
 use function Sabatier\Foundation\substring_to_index;
+use function Sabatier\Foundation\typeof;
 
 function build_request_url(): string
 {
@@ -37,11 +38,13 @@ if (!function_exists('getallheaders')) :
         foreach ($_SERVER as $key => $value) {
             if (string_has_prefix($key, 'HTTP_')) {
                 $key = substring_to_index($key, 5);
-                if ((!isset($copy_server[$key]) || !isset($_SERVER[$key])) && is_string($value)) {
+                if (!isset($copy_server[$key]) || !isset($_SERVER[$key])) {
                     $key = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', $key))));
+                    assert(is_string($value), sprintf("invalid argument: expecting string, \"%s\" given", typeof($value)));
                     $headers[$key] = $value;
                 }
-            } elseif (isset($copy_server[$key]) && is_string($value)) {
+            } elseif (isset($copy_server[$key])) {
+                assert(is_string($value), sprintf("invalid argument: expecting string, \"%s\" given", typeof($value)));
                 $headers[$copy_server[$key]] = $value;
             }
         }

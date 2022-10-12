@@ -26,6 +26,7 @@ use Sabatier\Foundation\SortDescriptor;
 use Sabatier\Foundation\URLComponents;
 use Sabatier\Foundation\URLQueryItem;
 
+use function Sabatier\Foundation\human_readable_value;
 use function Sabatier\Foundation\string_begins_with;
 use function Sabatier\Foundation\string_is_equal;
 
@@ -69,7 +70,7 @@ class Datapoint extends Endpoint
                 $body = $request->httpBody ?? '[]';
                 if (!($array = json_decode($body, true, 512, JSON_THROW_ON_ERROR))) {
                     $components = new URLComponents($request->url->absoluteString);
-                    $items = $components->queryItems ?? throw new BadRequestException();
+                    $items = $components->queryItems ?? throw new BadRequestException(sprintf("Bad request, (%s) body cannot be null", human_readable_value($request->httpMethod)));
                     $array = $items->reduce([], function (array &$result, URLQueryItem $item): array {
                         $result[$item->name] = $item->value;
                         return $result;
@@ -82,7 +83,7 @@ class Datapoint extends Endpoint
                 $objectID = $dictionary['objectID'];
                 if ($objectID === null) {
                     if ($request->httpMethod != HTTPRequestMethod::post) {
-                        throw new BadRequestException();
+                        throw new BadRequestException(sprintf("Bad request, (%s) objectID cannot be null", human_readable_value($request->httpMethod)));
                     }
                 } else {
                     /** @var FetchRequest<ManagedObject> $fetchRequest */
@@ -96,10 +97,10 @@ class Datapoint extends Endpoint
                 }
                 if (!$object instanceof ManagedObject) {
                     if ($request->httpMethod != HTTPRequestMethod::post) {
-                        throw new NotFoundException();
+                        throw new NotFoundException(sprintf("Not found, (%s) object doesn't exists", human_readable_value($request->httpMethod)));
                     }
                 } elseif ($request->httpMethod == HTTPRequestMethod::post) {
-                    throw new ConflictException();
+                    throw new ConflictException(sprintf("Conflict, (%s) object exists", human_readable_value($request->httpMethod)));
                 }
                 if ($request->httpMethod == HTTPRequestMethod::delete) {
                     /** @psalm-suppress PossiblyNullArgument */
@@ -130,9 +131,9 @@ class Datapoint extends Endpoint
         $fetchRequest = new FetchRequest();
         $fetchRequest->entity = $this->entity;
         $components = new URLComponents($request->url->absoluteString);
-        if ($items = $components->queryItems) {
-            if ($item = $items->first(fn(URLQueryItem $item): bool => string_is_equal($item->name, 'fetchRequest', CompareOptions::caseInsensitive))) {
-                if (($value = $item->value) && ($json = base64_decode($value)) && ($decoded = json_decode($json, null, 512, JSON_THROW_ON_ERROR))) {
+        if ($queryItems = $components->queryItems) {
+            if ($queryItem = $queryItems->first(fn(URLQueryItem $queryItem): bool => string_is_equal($queryItem->name, 'fetchRequest', CompareOptions::caseInsensitive))) {
+                if (($value = $queryItem->value) && ($json = base64_decode(htmlspecialchars($value, ENT_QUOTES))) && ($decoded = json_decode($json, null, 512, JSON_THROW_ON_ERROR))) {
                     if (property_exists($decoded, 'predicate')) {
                         $predicate = $decoded->predicate;
                         if (property_exists($predicate, 'format')) {
@@ -183,7 +184,7 @@ class Datapoint extends Endpoint
                     }
                 }
             } else {
-                $predicates = $items->map(fn(URLQueryItem $item): ComparisonPredicate => new ComparisonPredicate(Expression::expressionForKeyPath($item->name), Expression::expressionForConstantValue($item->value)));
+                $predicates = $queryItems->map(fn(URLQueryItem $queryItem): ComparisonPredicate => new ComparisonPredicate(Expression::expressionForKeyPath($queryItem->name), Expression::expressionForConstantValue($queryItem->value)));
                 /** @psalm-suppress InvalidArgument */
                 $fetchRequest->predicate = $predicates->count() > 1 ? CompoundPredicate::andPredicateWithSubpredicates($predicates) : $predicates->first();
             }

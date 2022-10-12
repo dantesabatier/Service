@@ -7,8 +7,8 @@ use Rector\CodeQuality\Rector\If_\ExplicitBoolCompareRector;
 use Rector\Config\RectorConfig;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessParamTagRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessReturnTagRector;
-use Rector\Php71\Rector\FuncCall\CountOnNullRector;
 use Rector\Php73\Rector\FuncCall\JsonThrowOnErrorRector;
+use Rector\Php74\Rector\Property\RestoreDefaultNullToNullableTypePropertyRector;
 use Rector\Php80\Rector\FunctionLike\MixedTypeRector;
 use Rector\Php80\Rector\FunctionLike\UnionTypesRector;
 use Rector\Php81\Rector\FuncCall\NullToStrictStringFuncCallArgRector;
@@ -30,12 +30,12 @@ return static function (RectorConfig $rectorConfig): void {
         ],
         ExplicitBoolCompareRector::class,
         ReturnNeverTypeRector::class,
-        CountOnNullRector::class,
         NullToStrictStringFuncCallArgRector::class,
         UnionTypesRector::class,
         MixedTypeRector::class,
         RemoveUselessParamTagRector::class,
         RemoveUselessReturnTagRector::class
     ]);
-    $rectorConfig->rule(InlineConstructorDefaultToPropertyRector::class);$rectorConfig->disableParallel();
+    $rectorConfig->rule(InlineConstructorDefaultToPropertyRector::class);
+    $rectorConfig->disableParallel();
 };

@@ -47,7 +47,7 @@ class Service extends ObjectClass
     public readonly ?Dictionary $serialization;
     public readonly Authentication $authentication;
     public readonly Authorization $authorization;
-    public ?ServiceDelegate $delegate;
+    public ?ServiceDelegate $delegate = null;
     public bool $requiresAuthentication = true;
 
     public function __construct()

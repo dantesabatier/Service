@@ -21,11 +21,9 @@ use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Foundation\URL;
 use Sabatier\Foundation\URLRequest;
 use Throwable;
-
 use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\human_readable_value;
 use function Sabatier\Foundation\string_is_equal;
-
 use const Sabatier\CoreData\PersistentHistoryTrackingKey;
 use const Sabatier\CoreData\PersistentStoreRemoteChangeNotificationPostOptionKey;
 use const Sabatier\Foundation\kCFBundleNameKey;
@@ -209,7 +207,7 @@ class Service extends ObjectClass
             $authentication = $this->authentication;
             if ($authentication->scheme != AuthenticationScheme::bearer) {
                 if (self::$debugDefault) {
-                    error_log(sprintf("%s %s(%s) invalid authentication scheme", self::class, __FUNCTION__, $endpoint->name()));
+                    error_log(sprintf("%s, invalid authentication scheme", $endpoint->name()));
                 }
                 return false;
             }
@@ -221,7 +219,7 @@ class Service extends ObjectClass
                     return ($password = $credential?->password) && ($hash = $user?->valueForKey('password')) && password_verify($password, $hash);
                 }
                 if (self::$debugDefault) {
-                    error_log(sprintf("%s %s(%s) token cannot be null", self::class, __FUNCTION__, $endpoint->name()));
+                    error_log(sprintf("%s, token cannot be null", $endpoint->name()));
                 }
                 return false;
             }

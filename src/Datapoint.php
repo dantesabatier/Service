@@ -70,7 +70,7 @@ class Datapoint extends Endpoint
                 $body = $request->httpBody ?? '[]';
                 if (!($array = json_decode($body, true, 512, JSON_THROW_ON_ERROR))) {
                     $components = new URLComponents($request->url->absoluteString);
-                    $items = $components->queryItems ?? throw new BadRequestException(sprintf("Bad request, (%s) body cannot be null", human_readable_value($request->httpMethod)));
+                    $items = $components->queryItems ?? throw new BadRequestException("Bad request, body cannot be null");
                     $array = $items->reduce([], function (array &$result, URLQueryItem $item): array {
                         $result[$item->name] = $item->value;
                         return $result;
@@ -83,7 +83,7 @@ class Datapoint extends Endpoint
                 $objectID = $dictionary['objectID'];
                 if ($objectID === null) {
                     if ($request->httpMethod != HTTPRequestMethod::post) {
-                        throw new BadRequestException(sprintf("Bad request, (%s) objectID cannot be null", human_readable_value($request->httpMethod)));
+                        throw new BadRequestException("Bad request, objectID cannot be null");
                     }
                 } else {
                     /** @var FetchRequest<ManagedObject> $fetchRequest */
@@ -97,10 +97,10 @@ class Datapoint extends Endpoint
                 }
                 if (!$object instanceof ManagedObject) {
                     if ($request->httpMethod != HTTPRequestMethod::post) {
-                        throw new NotFoundException(sprintf("Not found, (%s) object doesn't exists", human_readable_value($request->httpMethod)));
+                        throw new NotFoundException("Not found, object doesn't exists");
                     }
                 } elseif ($request->httpMethod == HTTPRequestMethod::post) {
-                    throw new ConflictException(sprintf("Conflict, (%s) object exists", human_readable_value($request->httpMethod)));
+                    throw new ConflictException("Conflict, object exists");
                 }
                 if ($request->httpMethod == HTTPRequestMethod::delete) {
                     /** @psalm-suppress PossiblyNullArgument */
@@ -133,7 +133,7 @@ class Datapoint extends Endpoint
         $components = new URLComponents($request->url->absoluteString);
         if ($queryItems = $components->queryItems) {
             if ($queryItem = $queryItems->first(fn(URLQueryItem $queryItem): bool => string_is_equal($queryItem->name, 'fetchRequest', CompareOptions::caseInsensitive))) {
-                if (($value = $queryItem->value) && ($json = base64_decode(htmlspecialchars($value, ENT_QUOTES))) && ($decoded = json_decode($json, null, 512, JSON_THROW_ON_ERROR))) {
+                if (($value = $queryItem->value) && ($json = base64_decode($value)) && ($decoded = json_decode($json, null, 512, JSON_THROW_ON_ERROR))) {
                     if (property_exists($decoded, 'predicate')) {
                         $predicate = $decoded->predicate;
                         if (property_exists($predicate, 'format')) {
@@ -152,25 +152,26 @@ class Datapoint extends Endpoint
                     }
                     if (property_exists($decoded, 'propertiesToFetch')) {
                         /** @psalm-suppress InvalidPropertyAssignmentValue */
-                        $fetchRequest->propertiesToFetch = /** @phpstan-ignore-line */ (new ArrayClass($decoded->propertiesToFetch))->compactMap(function (mixed $element): ExpressionDescription|string|null {
-                            if (is_string($element)) {
-                                return $element;
-                            } elseif (is_object($element)) {
-                                if (property_exists($element, 'name') && property_exists($element, 'expression')) {
-                                    $expression = $element->expression;
-                                    if (property_exists($expression, 'format')) {
-                                        $expressionDescription = new ExpressionDescription();
-                                        $expressionDescription->name = $element->name;
-                                        $expressionDescription->expression = Expression::expressionWithFormat($expression->format, ArrayClass::arrayWithArray($expression->arguments ?? []));
-                                        if (property_exists($expression, 'expressionResultType')) {
-                                            $expressionDescription->expressionResultType = AttributeType::from($expression->expressionResultType);
+                        $fetchRequest->propertiesToFetch = /** @phpstan-ignore-line */
+                            (new ArrayClass($decoded->propertiesToFetch))->compactMap(function (mixed $element): ExpressionDescription|string|null {
+                                if (is_string($element)) {
+                                    return $element;
+                                } elseif (is_object($element)) {
+                                    if (property_exists($element, 'name') && property_exists($element, 'expression')) {
+                                        $expression = $element->expression;
+                                        if (property_exists($expression, 'format')) {
+                                            $expressionDescription = new ExpressionDescription();
+                                            $expressionDescription->name = $element->name;
+                                            $expressionDescription->expression = Expression::expressionWithFormat($expression->format, ArrayClass::arrayWithArray($expression->arguments ?? []));
+                                            if (property_exists($expression, 'expressionResultType')) {
+                                                $expressionDescription->expressionResultType = AttributeType::from($expression->expressionResultType);
+                                            }
+                                            return $expressionDescription;
                                         }
-                                        return $expressionDescription;
                                     }
                                 }
-                            }
-                            return null;
-                        });
+                                return null;
+                            });
                     }
                     $fetchRequest->returnsDistinctResults = $decoded->returnsDistinctResults ?? false;
                     if (property_exists($decoded, 'propertiesToGroupBy')) {
@@ -184,7 +185,7 @@ class Datapoint extends Endpoint
                     }
                 }
             } else {
-                $predicates = $queryItems->map(fn(URLQueryItem $queryItem): ComparisonPredicate => new ComparisonPredicate(Expression::expressionForKeyPath($queryItem->name), Expression::expressionForConstantValue($queryItem->value)));
+                $predicates = $queryItems->map(fn(URLQueryItem $queryItem): ComparisonPredicate => new ComparisonPredicate(Expression::expressionForKeyPath($queryItem->name), Expression::expressionForConstantValue(($value = $queryItem->value) ? htmlspecialchars($value, ENT_QUOTES) : $value)));
                 /** @psalm-suppress InvalidArgument */
                 $fetchRequest->predicate = $predicates->count() > 1 ? CompoundPredicate::andPredicateWithSubpredicates($predicates) : $predicates->first();
             }

@@ -18,6 +18,7 @@ use Sabatier\Foundation\HTTPURLResponse;
 use Sabatier\Foundation\Number;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\ProcessInfo;
+use Sabatier\Foundation\SearchPathDirectory;
 use Sabatier\Foundation\URL;
 use Sabatier\Foundation\URLRequest;
 use Throwable;
@@ -72,7 +73,6 @@ class Service extends ObjectClass
             if (empty($contents)) {
                 $contents = "[]";
             }
-            /** @psalm-suppress TypeDoesNotContainType, RedundantCondition */
             $content = empty($_FILES) ? json_decode($contents, true) : $_FILES;
             if (empty($content)) {
                 parse_str($contents, $content);
@@ -257,8 +257,7 @@ class Service extends ObjectClass
                 }
             } else {
                 $fileManager = FileManager::default();
-                // TODO: Add some limitations
-                $fileURL = new URL($path, $fileManager->documentRootDirectory);
+                $fileURL = new URL($path, $fileManager->url(SearchPathDirectory::sharedPublicDirectory));
                 $filePath = $fileURL->path;
                 if ($fileManager->fileExists($filePath, $isDirectory) && !$isDirectory) {
                     $content = $fileManager->contents($filePath) ?? throw new InternalServerErrorException();

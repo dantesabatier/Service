@@ -19,7 +19,6 @@ class Me extends Endpoint
     public function response(): HTTPURLResponse
     {
         $authorization = $this->service->authorization;
-        /** @psalm-suppress NullPropertyFetch, RedundantCondition, TypeDoesNotContainType */
         if (!$authorization->token?->isValid || !($user = $authorization->user)) {
             throw new UnauthorizedException();
         }

@@ -4,10 +4,10 @@ namespace Sabatier\Service;
 
 use Sabatier\Foundation\HTTPStatusCode;
 
-class NotFoundException extends InvalidRequestException
+class ServiceUnavailableException extends InvalidRequestException
 {
     public function __construct(string $message = "")
     {
-        parent::__construct($message, HTTPStatusCode::notFound);
+        parent::__construct($message, HTTPStatusCode::serviceUnavailable);
     }
 }

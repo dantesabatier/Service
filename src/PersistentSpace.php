@@ -1,0 +1,218 @@
+<?php
+
+/** @noinspection PhpInternalEntityUsedInspection */
+
+namespace Sabatier\Service;
+
+use Exception;
+use Sabatier\CoreData\AttributeType;
+use Sabatier\CoreData\BatchFaultingArray;
+use Sabatier\CoreData\EntityDescription;
+use Sabatier\CoreData\ExpressionDescription;
+use Sabatier\CoreData\FetchRequest;
+use Sabatier\CoreData\FetchRequestResultType;
+use Sabatier\CoreData\ManagedObject;
+use Sabatier\Foundation\ArrayClass;
+use Sabatier\Foundation\CompareOptions;
+use Sabatier\Foundation\ComparisonPredicate;
+use Sabatier\Foundation\CompoundPredicate;
+use Sabatier\Foundation\Dictionary;
+use Sabatier\Foundation\Expression;
+use Sabatier\Foundation\HTTPRequestMethod;
+use Sabatier\Foundation\HTTPStatusCode;
+use Sabatier\Foundation\HTTPURLResponse;
+use Sabatier\Foundation\Predicate;
+use Sabatier\Foundation\SortDescriptor;
+use Sabatier\Foundation\URLComponents;
+use Sabatier\Foundation\URLQueryItem;
+use function Sabatier\Foundation\string_begins_with;
+use function Sabatier\Foundation\string_contains;
+use function Sabatier\Foundation\string_is_equal;
+
+/** @internal */
+class PersistentSpace extends Responder
+{
+    public FetchRequest $fetchRequest;
+
+    public function __construct(public readonly EntityDescription $entity)
+    {
+        parent::__construct();
+        unset($this->fetchRequest);
+        $this->contentType = "application/json; charset=utf-8";
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function __get(string $name)
+    {
+        if ($name == 'fetchRequest') {
+            $fetchRequest = new FetchRequest();
+            $fetchRequest->entity = $this->entity;
+            $components = new URLComponents($this->request->url->absoluteString);
+            if ($queryItems = $components->queryItems) {
+                if ($queryItem = $queryItems->first(fn(URLQueryItem $queryItem): bool => string_is_equal($queryItem->name, 'fetchRequest', CompareOptions::caseInsensitive))) {
+                    if (($value = $queryItem->value) && ($json = base64_decode($value)) && ($decoded = json_decode($json, null, 512, JSON_THROW_ON_ERROR))) {
+                        if (property_exists($decoded, 'predicate')) {
+                            $predicate = $decoded->predicate;
+                            if (property_exists($predicate, 'format')) {
+                                $fetchRequest->predicate = Predicate::format($predicate->format, ArrayClass::arrayWithArray($predicate->arguments ?? []));
+                            }
+                        }
+                        $fetchRequest->includesSubentities = $decoded->includesSubentities ?? true;
+                        $fetchRequest->fetchLimit = $decoded->fetchLimit ?? 0;
+                        $fetchRequest->fetchOffset = $decoded->fetchOffset ?? 0;
+                        $fetchRequest->fetchBatchSize = $decoded->fetchBatchSize ?? 0;
+                        if (property_exists($decoded, 'sortDescriptors')) {
+                            $fetchRequest->sortDescriptors = (new ArrayClass($decoded->sortDescriptors))->map(fn(object $obj): SortDescriptor => new SortDescriptor($obj->key, $obj->ascending));
+                        }
+                        if (property_exists($decoded, 'resultType')) {
+                            $fetchRequest->resultType = FetchRequestResultType::from($decoded->resultType);
+                        }
+                        if (property_exists($decoded, 'propertiesToFetch')) {
+                            /** @psalm-suppress InvalidPropertyAssignmentValue */
+                            $fetchRequest->propertiesToFetch = /** @phpstan-ignore-line */
+                                (new ArrayClass($decoded->propertiesToFetch))->compactMap(function (mixed $element): ExpressionDescription|string|null {
+                                    if (is_string($element)) {
+                                        return $element;
+                                    } elseif (is_object($element)) {
+                                        if (property_exists($element, 'name') && property_exists($element, 'expression')) {
+                                            $expression = $element->expression;
+                                            if (property_exists($expression, 'format')) {
+                                                $expressionDescription = new ExpressionDescription();
+                                                $expressionDescription->name = $element->name;
+                                                $expressionDescription->expression = Expression::expressionWithFormat($expression->format, ArrayClass::arrayWithArray($expression->arguments ?? []));
+                                                if (property_exists($expression, 'expressionResultType')) {
+                                                    $expressionDescription->expressionResultType = AttributeType::from($expression->expressionResultType);
+                                                }
+                                                return $expressionDescription;
+                                            }
+                                        }
+                                    }
+                                    return null;
+                                });
+                        }
+                        $fetchRequest->returnsDistinctResults = $decoded->returnsDistinctResults ?? false;
+                        if (property_exists($decoded, 'propertiesToGroupBy')) {
+                            $fetchRequest->propertiesToGroupBy = new ArrayClass($decoded->propertiesToGroupBy);
+                        }
+                        if (property_exists($decoded, 'havingPredicate')) {
+                            $havingPredicate = $decoded->havingPredicate;
+                            if (property_exists($havingPredicate, 'format')) {
+                                $fetchRequest->havingPredicate = Predicate::format($havingPredicate->format, ArrayClass::arrayWithArray($havingPredicate->arguments ?? []));
+                            }
+                        }
+                    }
+                } else {
+                    $predicates = $queryItems->map(fn(URLQueryItem $queryItem): ComparisonPredicate => new ComparisonPredicate(Expression::expressionForKeyPath($queryItem->name), Expression::expressionForConstantValue($queryItem->value)));
+                    /** @psalm-suppress InvalidArgument */
+                    $fetchRequest->predicate = $predicates->count() > 1 ? CompoundPredicate::andPredicateWithSubpredicates($predicates) : $predicates->first();
+                }
+            }
+            if ($serialization = $this->serialization) {
+                $fetchRequest->serialization = $serialization;
+            }
+            $this->$name = $fetchRequest;
+            return $this->$name;
+        } else {
+            return parent::__get($name);
+        }
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function response(): HTTPURLResponse
+    {
+        $statusCode = HTTPStatusCode::ok;
+        /** @var Dictionary<mixed> $headerFields */
+        $headerFields = new Dictionary();
+        switch ($this->request->httpMethod) {
+            case HTTPRequestMethod::get:
+            case HTTPRequestMethod::head:
+                $fetchRequest = $this->fetchRequest;
+                $fetchRequestResult = match ($fetchRequest->resultType) {
+                    FetchRequestResultType::managedObjectResultType, FetchRequestResultType::managedObjectIDResultType,
+                    FetchRequestResultType::dictionaryResultType => $this->managedObjectContext->fetch($fetchRequest),
+                    FetchRequestResultType::countResultType => new Dictionary(['count' => $this->managedObjectContext->count($fetchRequest)])
+                };
+                if ($fetchRequestResult instanceof BatchFaultingArray) {
+                    return new BatchResponse($this->request->url, $fetchRequestResult, $fetchRequest);
+                }
+                $content = json_encode($fetchRequestResult, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
+                if ($this->request->httpMethod === HTTPRequestMethod::get) {
+                    $this->content = $content;
+                }
+                break;
+            case HTTPRequestMethod::post:
+            case HTTPRequestMethod::put:
+            case HTTPRequestMethod::patch:
+            case HTTPRequestMethod::delete:
+                $contentType = $this->request->valueForHttpHeaderField("Content-Type") ?? throw new BadRequestException();
+                $mediaType = $contentType;
+                if (string_contains($contentType, ";")) {
+                    [$mediaType,] = explode(";", $contentType);
+                }
+                $supportedMediaTypes = new ArrayClass(["application/json", "application/x-www-form-urlencoded", "multipart/form-data"]);
+                if (!$supportedMediaTypes->contains(fn(string $supportedMediaType): bool => string_is_equal($supportedMediaType, $mediaType, CompareOptions::caseInsensitive))) {
+                    throw new UnsupportedMediaTypeException();
+                }
+                $httpBody = $this->request->httpBody ?? '[]';
+                if (!($parsedBody = json_decode($httpBody, true, 512, JSON_THROW_ON_ERROR))) {
+                    $components = new URLComponents($this->request->url->absoluteString);
+                    $items = $components->queryItems ?? throw new BadRequestException("Bad request, body cannot be null");
+                    $parsedBody = $items->reduce([], function (array &$result, URLQueryItem $item): array {
+                        $result[$item->name] = $item->value;
+                        return $result;
+                    });
+                }
+                $object = null;
+                /** @var Dictionary<mixed> $keyedValues */
+                $keyedValues = Dictionary::dictionaryWithArray($parsedBody);
+                $objectID = $keyedValues['objectID'];
+                if ($objectID === null) {
+                    if ($this->request->httpMethod !== HTTPRequestMethod::post) {
+                        throw new BadRequestException("Bad request, objectID cannot be null");
+                    }
+                } else {
+                    /** @var FetchRequest<ManagedObject> $fetchRequest */
+                    $fetchRequest = new FetchRequest();
+                    $fetchRequest->entity = $this->entity;
+                    $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath('objectID'), Expression::expressionForConstantValue($objectID));
+                    if ($serialization = $this->serialization) {
+                        $fetchRequest->serialization = $serialization;
+                    }
+                    $object = $this->managedObjectContext->fetch($fetchRequest)->first();
+                }
+                if (!$object instanceof ManagedObject) {
+                    if ($this->request->httpMethod !== HTTPRequestMethod::post) {
+                        throw new NotFoundException("Not found, object doesn't exists");
+                    }
+                } elseif ($this->request->httpMethod === HTTPRequestMethod::post) {
+                    throw new ConflictException("Conflict, object exists");
+                }
+                if ($this->request->httpMethod === HTTPRequestMethod::delete) {
+                    /** @psalm-suppress PossiblyNullArgument */
+                    $this->managedObjectContext->delete($object);
+                    $this->managedObjectContext->save();
+                    $statusCode = HTTPStatusCode::noContent;
+                } else {
+                    /** @noinspection SpellCheckingInspection */
+                    if (($password = $keyedValues['password']) && !string_begins_with($password, '\$2[abxy]', CompareOptions::quoted)) {
+                        $keyedValues['password'] = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
+                    }
+                    $object ??= EntityDescription::insertNewObject($this->entity->name, $this->managedObjectContext);
+                    $object->setValuesForKeys($keyedValues);
+                    $this->managedObjectContext->save();
+                    $this->content = json_encode($object->serialized($this->serialization), JSON_PRESERVE_ZERO_FRACTION);
+                }
+                break;
+            case HTTPRequestMethod::options:
+                break;
+            default:
+                throw new MethodNotAllowedException();
+        }
+        $headerFields["Content-Type"] = $this->contentType;
+        return new HTTPURLResponse($this->request->url, $statusCode, null, $headerFields);
+    }
+}

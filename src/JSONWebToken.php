@@ -2,67 +2,55 @@
 
 namespace Sabatier\Service;
 
+use Exception;
 use InvalidArgumentException;
 use Sabatier\Foundation\ObjectClass;
-use Sabatier\Foundation\URL;
 
-use function Sabatier\Foundation\human_readable_value;
-
-/**
- * Class JSONWebToken
- * @package Sabatier\Service
- */
 class JSONWebToken extends ObjectClass
 {
-    public readonly ?string $tokenString;
-    public readonly mixed $payload;
-    public readonly ?string $issuer;
+    public readonly string $tokenString;
+    public readonly ?object $payload;
     public readonly bool $isValid;
-    public readonly URL $url;
 
     /**
      * @param string $key
-     * @param array<string, mixed>|null $payload
+     * @param array|object|null $payload
      * @param string|null $token
      * @param string|null $issuer
      */
-    public function __construct(public readonly string $key, ?array $payload = null, ?string $token = null, ?string $issuer = null)
+    public function __construct(public readonly string $key, array|object|null $payload = null, ?string $token = null, public readonly ?string $issuer = null)
     {
         unset($this->tokenString);
         unset($this->payload);
-        unset($this->issuer);
         unset($this->isValid);
-        unset($this->url);
         if ($payload) {
-            $this->payload = $payload;
+            $this->payload = (object)$payload;
         } elseif ($token) {
             $this->tokenString = $token;
         } else {
             throw new InvalidArgumentException();
         }
-        if ($issuer) {
-            $this->issuer = $issuer;
-        }
     }
 
+    /**
+     * @throws Exception
+     */
     public function __get(string $name)
     {
         return $this->$name = match ($name) {
-            'tokenString' => jwt_generate($this->payload, $this->key),
-            'isValid' => jwt_validate((string)$this->tokenString, $this->key, $this->issuer),
-            'payload' => jwt_payload((string)$this->tokenString, $this->key, $this->issuer, $this->isValid),
-            'url' => new URL(build_request_url()),
-            'issuer' => $this->url->host,
+            'tokenString' => jwt_generate((object)$this->payload, $this->key),
+            'isValid' => jwt_validate($this->tokenString, $this->key, $this->issuer),
+            'payload' => jwt_payload($this->tokenString, $this->key, $this->issuer, $this->isValid),
             default => $this->valueForUndefinedKey($name)
         };
     }
 
     public function description(): string
     {
-        return human_readable_value($this->tokenString);
+        return $this->tokenString;
     }
 
-    public function jsonSerialize(): ?string
+    public function jsonSerialize(): string
     {
         return $this->tokenString;
     }

@@ -42,7 +42,7 @@
     },
     "files": [
       "src/JSONWebTokenAdditions.php",
-      "src/StandardAdditions.php"
+      "src/Constants.php"
     ]
   },
   "autoload-dev": {

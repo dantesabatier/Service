@@ -2,9 +2,7 @@
 
 namespace Sabatier\Service;
 
-use Countable;
 use IteratorAggregate;
-use JetBrains\PhpStorm\Pure;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
@@ -17,26 +15,16 @@ use Traversable;
  * @template-implements IteratorAggregate<string>
  * @internal
  */
-class BatchResponse extends HTTPURLResponse implements IteratorAggregate, Countable
+class BatchResponse extends HTTPURLResponse implements IteratorAggregate
 {
     public readonly int $count;
+    public readonly bool $isEmpty;
 
     public function __construct(URL $url, private readonly ArrayClass $fetchRequestResults, private readonly FetchRequest $fetchRequest)
     {
         parent::__construct($url, HTTPStatusCode::ok, null, new Dictionary(["Content-Type" => "text/plain; charset=utf-8", "Transfer-Encoding" => "chunked"]));
         $this->count = (int)ceil($this->fetchRequestResults->count() / max($this->fetchRequest->fetchBatchSize, 1));
-    }
-
-    #[Pure]
-    public function count(): int
-    {
-        return $this->count;
-    }
-
-    #[Pure]
-    public function isEmpty(): bool
-    {
-        return $this->count() === 0;
+        $this->isEmpty = $this->count === 0;
     }
 
     public function getIterator(): Traversable

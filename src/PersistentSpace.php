@@ -32,13 +32,14 @@ use function Sabatier\Foundation\string_is_equal;
 /** @internal */
 class PersistentSpace extends Responder
 {
+    public EntityDescription $entity;
     public FetchRequest $fetchRequest;
 
-    public function __construct(public readonly EntityDescription $entity)
+    public function __construct()
     {
         parent::__construct();
         unset($this->fetchRequest);
-        $this->contentType = "application/json; charset=utf-8";
+        unset($this->entity);
     }
 
     /**
@@ -46,7 +47,10 @@ class PersistentSpace extends Responder
      */
     public function __get(string $name)
     {
-        if ($name == 'fetchRequest') {
+        if ($name == 'entity') {
+            $this->$name = $this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel?->entitiesByName?->valueForKey($this->request->url->lastPathComponent) ?? throw new NotFoundException("Unable to load entity \"{$this->request->url->lastPathComponent}\"");
+            return $this->$name;
+        } elseif ($name == 'fetchRequest') {
             $fetchRequest = new FetchRequest();
             $fetchRequest->entity = $this->entity;
             $components = new URLComponents($this->request->url->absoluteString);
@@ -119,9 +123,11 @@ class PersistentSpace extends Responder
         }
     }
 
-    /**
-     * @throws Exception
-     */
+    public function isFirstResponder(): bool
+    {
+        return $this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel?->entitiesByName?->valueForKey($this->request->url->lastPathComponent) !== null;
+    }
+
     public function response(): HTTPURLResponse
     {
         $statusCode = HTTPStatusCode::ok;
@@ -142,6 +148,7 @@ class PersistentSpace extends Responder
                 $content = json_encode($fetchRequestResult, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
                 if ($this->request->httpMethod === HTTPRequestMethod::get) {
                     $this->content = $content;
+                    $this->contentType = "application/json; charset=utf-8";
                 }
                 break;
             case HTTPRequestMethod::post:
@@ -205,6 +212,7 @@ class PersistentSpace extends Responder
                     $object->setValuesForKeys($keyedValues);
                     $this->managedObjectContext->save();
                     $this->content = json_encode($object->serialized($this->serialization), JSON_PRESERVE_ZERO_FRACTION);
+                    $this->contentType = "application/json; charset=utf-8";
                 }
                 break;
             case HTTPRequestMethod::options:

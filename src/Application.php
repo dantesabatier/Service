@@ -33,7 +33,9 @@ class Application extends Responder
     private static ?Application $shared = null;
     public readonly URLRequest $request;
     public readonly PersistentContainer $persistentContainer;
-    public readonly ProtectionSpace $protectionSpace;
+    private readonly ProtectionSpace $protectionSpace;
+    private readonly PersistentSpace $persistentSpace;
+    private readonly ResourceManager $resourceManager;
     public ?ApplicationDelegate $delegate = null;
 
     final public function __construct()
@@ -42,6 +44,8 @@ class Application extends Responder
         unset($this->request);
         unset($this->persistentContainer);
         unset($this->protectionSpace);
+        unset($this->persistentSpace);
+        unset($this->resourceManager);
         unset($this->delegate);
     }
 
@@ -72,6 +76,12 @@ class Application extends Responder
         } elseif ($name == 'protectionSpace') {
             $this->$name = new ProtectionSpace();
             return $this->$name;
+        } elseif ($name == 'persistentSpace') {
+            $this->$name = new PersistentSpace();
+            return $this->$name;
+        } elseif ($name == 'resourceManager') {
+            $this->$name = new ResourceManager();
+            return $this->$name;
         } elseif ($name == 'delegate') {
             $delegate = null;
             if (($principalClass = Bundle::main()->principalClass) && isset(class_implements($principalClass)[ApplicationDelegate::class])) {
@@ -99,7 +109,6 @@ class Application extends Responder
 
     private function instantiateInitialResponder(): Responder
     {
-        $path = $this->request->url->path;
         if ($delegate = $this->delegate) {
             $reflectionClass = new ReflectionClass($delegate);
             $namespaceName = $reflectionClass->getNamespaceName();
@@ -123,25 +132,23 @@ class Application extends Responder
                     if (!class_exists($responderClass) || !is_subclass_of($responderClass, Responder::class)) {
                         continue;
                     }
-                    /** @psalm-suppress UnsafeInstantiation */
                     $responder = new $responderClass();
-                    if (!$responder->isResponder($path)) {
-                        continue;
+                    if ($responder->isFirstResponder()) {
+                        return $responder;
                     }
-                    return $responder;
                 }
             }
         }
-        if ($this->protectionSpace->isResponder($path)) {
-            return $this->protectionSpace;
-        } elseif ($path === '/') {
-            return $this;
-        } elseif ($this->request->url->pathExtension) {
-            return new ResourceManager();
-        } elseif (($entity = $this->persistentContainer->persistentStoreCoordinator->managedObjectModel->entitiesByName[$this->request->url->lastPathComponent])) {
-            return new PersistentSpace($entity);
+        foreach ([$this->protectionSpace, $this->persistentSpace, $this->resourceManager] as $responder) {
+            if ($responder->isFirstResponder()) {
+                return $responder;
+            }
         }
-        throw new NotFoundException();
+        if ($this->request->url->path === "/") {
+            throw new ServiceUnavailableException();
+        } else {
+            throw new NotFoundException();
+        }
     }
 
     private function send(HTTPURLResponse $response, ?string $content): void
@@ -165,7 +172,7 @@ class Application extends Responder
                 }
             });
             if ($isEmpty) {
-                return;
+                die();
             }
             ob_start();
             foreach ($response as $idx => $data) {
@@ -176,13 +183,13 @@ class Application extends Responder
                 flush();
             }
             ob_end_flush();
-            return;
+            die();
         }
         foreach ($response->allHeaderFields as $key => $value) {
             header(sprintf("%s: %s", $key, human_readable_value($value)));
         }
         if ($isEmpty) {
-            return;
+            die();
         }
         ob_start();
         /** @noinspection SpellCheckingInspection */
@@ -205,6 +212,7 @@ class Application extends Responder
             });
             $this->delegate?->applicationWillFinishLaunching($this);
             $responder = $this->instantiateInitialResponder();
+            $responder->isProtectedContentAvailable = $this->isProtectedContentAvailable;
             if (!$responder->allowedMethods->containsElement($this->request->httpMethod)) {
                 throw new MethodNotAllowedException();
             }
@@ -231,12 +239,8 @@ class Application extends Responder
             $this->send($response, $responder->content);
         } catch (Throwable $throwable) {
             $response = $throwable instanceof InvalidRequestException ? new HTTPURLResponse($this->request->url, (int)$throwable->getCode(), null, $throwable instanceof UnauthorizedException ? new Dictionary(["WWW-Authenticate" => sprintf("%s realm=\"%s\"", URLAuthenticationMethodBearer, human_readable_value($this->request->url->host))]) : null) : new HTTPURLResponse($this->request->url, HTTPStatusCode::internalServerError);
-            $content = $this->delegate?->applicationWillFail($this, $response, $throwable);
-            if ($content instanceof View) {
-                $content = (string)$content;
-            }
-            $content ??= sprintf("%s %s", $response->statusCode, HTTPURLResponse::localizedString($response->statusCode));
-            $this->send($response, $content);
+            $content = $this->delegate?->applicationWillFail($this, $response, $throwable) ?? sprintf("%s %s", $response->statusCode, HTTPURLResponse::localizedString($response->statusCode));
+            $this->send($response, (string)$content);
         }
     }
 

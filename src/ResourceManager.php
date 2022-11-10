@@ -23,9 +23,11 @@ class ResourceManager extends Responder
         $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::head, HTTPRequestMethod::options]);
     }
 
-    /**
-     * @throws Exception
-     */
+    public function isFirstResponder(): bool
+    {
+        return $this->request->url->pathExtension !== "";
+    }
+
     public function response(): HTTPURLResponse
     {
         /** @var Dictionary<mixed> $headerFields */

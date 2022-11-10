@@ -16,11 +16,9 @@ class View extends ObjectClass
 
     public function render(): string
     {
-        $path = $this->bundle->url($this->name, "php")?->path ?? throw new NotFoundException();
+        $path = $this->bundle->url($this->name, "php")?->path ?? throw new NotFoundException("Unable to load template \"$this->name\"");
         $context = (array)$this->context;
-        foreach ($context as $key => $value) {
-            $$key = $value;
-        }
+        extract($context);
         ob_start();
         /** @psalm-suppress UnresolvableInclude */
         require_once $path;

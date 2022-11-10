@@ -14,6 +14,9 @@ use Sabatier\Foundation\HTTPURLResponse;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\URLRequest;
 
+/**
+ * @psalm-consistent-constructor
+ */
 abstract class Responder extends ObjectClass
 {
     public readonly URLRequest $request;
@@ -41,15 +44,16 @@ abstract class Responder extends ObjectClass
     {
         return $this->$name = match ($name) {
             'request' => Application::shared()->request,
-            'serialization' => (($string = $this->request->valueForHttpHeaderField('serialization')) && ($array = json_decode($string, true, 512, JSON_THROW_ON_ERROR))) ? Dictionary::dictionaryWithArray($array) : null,
+            'serialization' => (($string = $this->request->valueForHttpHeaderField('serialization')) && ($array = json_decode($string, true))) ? Dictionary::dictionaryWithArray($array) : null,
             'managedObjectContext' => Application::shared()->persistentContainer->viewContext,
             'allowedMethods' => new ArrayClass([HTTPRequestMethod::head, HTTPRequestMethod::options, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::put, HTTPRequestMethod::delete]),
             default => $this->valueForUndefinedKey($name)
         };
     }
-
-    public function isResponder(string $path): bool
+    
+    public function isFirstResponder(): bool
     {
+        $path = $this->request->url->path;
         $reflectionClass = new ReflectionClass($this);
         foreach ($reflectionClass->getAttributes(Endpoint::class) as $attribute) {
             $endpoint = $attribute->newInstance();
@@ -71,6 +75,9 @@ abstract class Responder extends ObjectClass
         return false;
     }
 
+    /**
+     * @throws Exception
+     */
     public function response(): HTTPURLResponse
     {
         /** @var Dictionary<mixed> $headerFields */

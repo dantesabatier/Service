@@ -99,7 +99,7 @@ class ProtectionSpace extends Responder
         $environment = ProcessInfo::processInfo()->environment;
         /** @var string $entityName */
         $entityName = $environment['APPLICATION_USERS_ENTITY_NAME'] ?? fatal_error("environment variable \"APPLICATION_USERS_ENTITY_NAME\" cannot be null");
-        if (!($username = $this->token?->payload->username)) {
+        if (!($username = $this->token?->payload?->username)) {
             throw new UnauthorizedException();
         }
         /** @var Dictionary<mixed> $serialization */

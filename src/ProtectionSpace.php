@@ -8,17 +8,17 @@ use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
-use Sabatier\Foundation\ComparisonPredicate;
+use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
-use Sabatier\Foundation\Expression;
-use Sabatier\Foundation\HTTPRequestMethod;
-use Sabatier\Foundation\HTTPURLResponse;
+use Sabatier\Foundation\Predicates\Expression;
+use Sabatier\Foundation\Networking\HTTPRequestMethod;
+use Sabatier\Foundation\Networking\HTTPURLResponse;
 use Sabatier\Foundation\ProcessInfo;
 use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\substring_from_index;
 use function Sabatier\Foundation\substring_to_index;
-use const Sabatier\Foundation\URLAuthenticationMethodDefault;
+use const Sabatier\Foundation\Networking\URLAuthenticationMethodDefault;
 
 class ProtectionSpace extends Responder
 {

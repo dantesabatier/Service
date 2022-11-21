@@ -4,7 +4,7 @@ namespace Sabatier\Service;
 
 use Attribute;
 use JetBrains\PhpStorm\ExpectedValues;
-use Sabatier\Foundation\HTTPRequestMethod;
+use Sabatier\Foundation\Networking\HTTPRequestMethod;
 
 #[Attribute(Attribute::TARGET_METHOD)]
 class Action

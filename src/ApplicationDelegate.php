@@ -2,7 +2,7 @@
 
 namespace Sabatier\Service;
 
-use Sabatier\Foundation\HTTPURLResponse;
+use Sabatier\Foundation\Networking\HTTPURLResponse;
 use Throwable;
 
 interface ApplicationDelegate

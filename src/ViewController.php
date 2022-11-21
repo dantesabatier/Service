@@ -5,8 +5,8 @@ namespace Sabatier\Service;
 use ReflectionClass;
 use ReflectionProperty;
 use Sabatier\Foundation\Bundle;
-use Sabatier\Foundation\HTTPRequestMethod;
-use Sabatier\Foundation\HTTPURLResponse;
+use Sabatier\Foundation\Networking\HTTPRequestMethod;
+use Sabatier\Foundation\Networking\HTTPURLResponse;
 use function Sabatier\Foundation\class_name;
 use const Sabatier\Foundation\kCFBundleNameKey;
 

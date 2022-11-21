@@ -8,11 +8,11 @@ use ReflectionMethod;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
-use Sabatier\Foundation\HTTPRequestMethod;
-use Sabatier\Foundation\HTTPStatusCode;
-use Sabatier\Foundation\HTTPURLResponse;
+use Sabatier\Foundation\Networking\HTTPRequestMethod;
+use Sabatier\Foundation\Networking\HTTPStatusCode;
+use Sabatier\Foundation\Networking\HTTPURLResponse;
 use Sabatier\Foundation\ObjectClass;
-use Sabatier\Foundation\URLRequest;
+use Sabatier\Foundation\Networking\URLRequest;
 
 /**
  * @psalm-consistent-constructor

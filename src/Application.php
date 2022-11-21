@@ -11,13 +11,13 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\DirectoryEnumerationOptions;
 use Sabatier\Foundation\Error;
 use Sabatier\Foundation\FileManager;
-use Sabatier\Foundation\HTTPRequestMethod;
-use Sabatier\Foundation\HTTPStatusCode;
-use Sabatier\Foundation\HTTPURLResponse;
+use Sabatier\Foundation\Networking\HTTPRequestMethod;
+use Sabatier\Foundation\Networking\HTTPStatusCode;
+use Sabatier\Foundation\Networking\HTTPURLResponse;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Foundation\URL;
-use Sabatier\Foundation\URLRequest;
+use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Foundation\UserDefaults;
 use Throwable;
 use function Sabatier\Foundation\fatal_error;
@@ -239,8 +239,11 @@ class Application extends Responder
             $this->send($response, $responder->content);
         } catch (Throwable $throwable) {
             $response = $throwable instanceof InvalidRequestException ? new HTTPURLResponse($this->request->url, (int)$throwable->getCode(), null, $throwable instanceof UnauthorizedException ? new Dictionary(["WWW-Authenticate" => sprintf("%s realm=\"%s\"", URLAuthenticationMethodBearer, human_readable_value($this->request->url->host))]) : null) : new HTTPURLResponse($this->request->url, HTTPStatusCode::internalServerError);
-            $content = $this->delegate?->applicationWillFail($this, $response, $throwable) ?? sprintf("%s %s", $response->statusCode, HTTPURLResponse::localizedString($response->statusCode));
-            $this->send($response, (string)$content);
+            $content = $this->delegate?->applicationWillFail($this, $response, $throwable);
+            if ($content instanceof View) {
+                $content = (string)$content;
+            }
+            $this->send($response, $content);
         }
     }
 

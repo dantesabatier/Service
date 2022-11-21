@@ -2,7 +2,7 @@
 
 namespace Sabatier\Service;
 
-use Sabatier\Foundation\HTTPStatusCode;
+use Sabatier\Foundation\Networking\HTTPStatusCode;
 
 class ServiceUnavailableException extends InvalidRequestException
 {

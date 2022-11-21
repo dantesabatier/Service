@@ -14,14 +14,14 @@ use Sabatier\CoreData\FetchRequestResultType;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\CompareOptions;
-use Sabatier\Foundation\ComparisonPredicate;
-use Sabatier\Foundation\CompoundPredicate;
+use Sabatier\Foundation\Predicates\ComparisonPredicate;
+use Sabatier\Foundation\Predicates\CompoundPredicate;
 use Sabatier\Foundation\Dictionary;
-use Sabatier\Foundation\Expression;
-use Sabatier\Foundation\HTTPRequestMethod;
-use Sabatier\Foundation\HTTPStatusCode;
-use Sabatier\Foundation\HTTPURLResponse;
-use Sabatier\Foundation\Predicate;
+use Sabatier\Foundation\Predicates\Expression;
+use Sabatier\Foundation\Networking\HTTPRequestMethod;
+use Sabatier\Foundation\Networking\HTTPStatusCode;
+use Sabatier\Foundation\Networking\HTTPURLResponse;
+use Sabatier\Foundation\Predicates\Predicate;
 use Sabatier\Foundation\SortDescriptor;
 use Sabatier\Foundation\URLComponents;
 use Sabatier\Foundation\URLQueryItem;
@@ -130,23 +130,27 @@ class PersistentSpace extends Responder
 
     public function response(): HTTPURLResponse
     {
+        $context = $this->managedObjectContext;
+        $entity = $this->entity;
+        $request = $this->request;
+        $method = $request->httpMethod;
         $statusCode = HTTPStatusCode::ok;
         /** @var Dictionary<mixed> $headerFields */
         $headerFields = new Dictionary();
-        switch ($this->request->httpMethod) {
+        switch ($method) {
             case HTTPRequestMethod::get:
             case HTTPRequestMethod::head:
                 $fetchRequest = $this->fetchRequest;
                 $fetchRequestResult = match ($fetchRequest->resultType) {
                     FetchRequestResultType::managedObjectResultType, FetchRequestResultType::managedObjectIDResultType,
-                    FetchRequestResultType::dictionaryResultType => $this->managedObjectContext->fetch($fetchRequest),
-                    FetchRequestResultType::countResultType => new Dictionary(['count' => $this->managedObjectContext->count($fetchRequest)])
+                    FetchRequestResultType::dictionaryResultType => $context->fetch($fetchRequest),
+                    FetchRequestResultType::countResultType => new Dictionary(['count' => $context->count($fetchRequest)])
                 };
                 if ($fetchRequestResult instanceof BatchFaultingArray) {
-                    return new BatchResponse($this->request->url, $fetchRequestResult, $fetchRequest);
+                    return new BatchResponse($request->url, $fetchRequestResult, $fetchRequest);
                 }
                 $content = json_encode($fetchRequestResult, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
-                if ($this->request->httpMethod === HTTPRequestMethod::get) {
+                if ($method === HTTPRequestMethod::get) {
                     $this->content = $content;
                     $this->contentType = "application/json; charset=utf-8";
                 }
@@ -155,16 +159,18 @@ class PersistentSpace extends Responder
             case HTTPRequestMethod::put:
             case HTTPRequestMethod::patch:
             case HTTPRequestMethod::delete:
-                $contentType = $this->request->valueForHttpHeaderField("Content-Type") ?? throw new BadRequestException();
-                $mediaType = $contentType;
-                if (string_contains($contentType, ";")) {
-                    [$mediaType,] = explode(";", $contentType);
+                if ($method !== HTTPRequestMethod::delete) {
+                    $contentType = $request->valueForHttpHeaderField("Content-Type") ?? throw new BadRequestException();
+                    $mediaType = $contentType;
+                    if (string_contains($contentType, ";")) {
+                        [$mediaType,] = explode(";", $contentType);
+                    }
+                    $supportedMediaTypes = new ArrayClass(["application/json", "application/x-www-form-urlencoded", "multipart/form-data"]);
+                    if (!$supportedMediaTypes->contains(fn(string $supportedMediaType): bool => string_is_equal($supportedMediaType, $mediaType, CompareOptions::caseInsensitive))) {
+                        throw new UnsupportedMediaTypeException();
+                    }
                 }
-                $supportedMediaTypes = new ArrayClass(["application/json", "application/x-www-form-urlencoded", "multipart/form-data"]);
-                if (!$supportedMediaTypes->contains(fn(string $supportedMediaType): bool => string_is_equal($supportedMediaType, $mediaType, CompareOptions::caseInsensitive))) {
-                    throw new UnsupportedMediaTypeException();
-                }
-                $httpBody = $this->request->httpBody ?? '[]';
+                $httpBody = $request->httpBody ?? '[]';
                 if (!($parsedBody = json_decode($httpBody, true, 512, JSON_THROW_ON_ERROR))) {
                     $components = new URLComponents($this->request->url->absoluteString);
                     $items = $components->queryItems ?? throw new BadRequestException("Bad request, body cannot be null");
@@ -178,7 +184,7 @@ class PersistentSpace extends Responder
                 $keyedValues = Dictionary::dictionaryWithArray($parsedBody);
                 $objectID = $keyedValues['objectID'];
                 if ($objectID === null) {
-                    if ($this->request->httpMethod !== HTTPRequestMethod::post) {
+                    if ($method !== HTTPRequestMethod::post) {
                         throw new BadRequestException("Bad request, objectID cannot be null");
                     }
                 } else {
@@ -189,28 +195,28 @@ class PersistentSpace extends Responder
                     if ($serialization = $this->serialization) {
                         $fetchRequest->serialization = $serialization;
                     }
-                    $object = $this->managedObjectContext->fetch($fetchRequest)->first();
+                    $object = $context->fetch($fetchRequest)->first();
                 }
                 if (!$object instanceof ManagedObject) {
-                    if ($this->request->httpMethod !== HTTPRequestMethod::post) {
+                    if ($method !== HTTPRequestMethod::post) {
                         throw new NotFoundException("Not found, object doesn't exists");
                     }
-                } elseif ($this->request->httpMethod === HTTPRequestMethod::post) {
+                } elseif ($method === HTTPRequestMethod::post) {
                     throw new ConflictException("Conflict, object exists");
                 }
-                if ($this->request->httpMethod === HTTPRequestMethod::delete) {
+                if ($method === HTTPRequestMethod::delete) {
                     /** @psalm-suppress PossiblyNullArgument */
-                    $this->managedObjectContext->delete($object);
-                    $this->managedObjectContext->save();
+                    $context->delete($object);
+                    $context->save();
                     $statusCode = HTTPStatusCode::noContent;
                 } else {
                     /** @noinspection SpellCheckingInspection */
                     if (($password = $keyedValues['password']) && !string_begins_with($password, '\$2[abxy]', CompareOptions::quoted)) {
                         $keyedValues['password'] = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
                     }
-                    $object ??= EntityDescription::insertNewObject($this->entity->name, $this->managedObjectContext);
+                    $object ??= EntityDescription::insertNewObject($entity->name, $context);
                     $object->setValuesForKeys($keyedValues);
-                    $this->managedObjectContext->save();
+                    $context->save();
                     $this->content = json_encode($object->serialized($this->serialization), JSON_PRESERVE_ZERO_FRACTION);
                     $this->contentType = "application/json; charset=utf-8";
                 }
@@ -221,6 +227,6 @@ class PersistentSpace extends Responder
                 throw new MethodNotAllowedException();
         }
         $headerFields["Content-Type"] = $this->contentType;
-        return new HTTPURLResponse($this->request->url, $statusCode, null, $headerFields);
+        return new HTTPURLResponse($request->url, $statusCode, null, $headerFields);
     }
 }

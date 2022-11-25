@@ -5,6 +5,7 @@
 namespace Sabatier\Service;
 
 use Exception;
+use Sabatier\CoreData\AtomicStore;
 use Sabatier\CoreData\AttributeType;
 use Sabatier\CoreData\BatchFaultingArray;
 use Sabatier\CoreData\EntityDescription;
@@ -12,6 +13,7 @@ use Sabatier\CoreData\ExpressionDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\FetchRequestResultType;
 use Sabatier\CoreData\ManagedObject;
+use Sabatier\CoreData\PersistentStore;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
@@ -25,6 +27,9 @@ use Sabatier\Foundation\Predicates\Predicate;
 use Sabatier\Foundation\SortDescriptor;
 use Sabatier\Foundation\URLComponents;
 use Sabatier\Foundation\URLQueryItem;
+
+use const Sabatier\CoreData\XMLStoreType;
+
 use function Sabatier\Foundation\string_begins_with;
 use function Sabatier\Foundation\string_contains;
 use function Sabatier\Foundation\string_is_equal;
@@ -188,6 +193,11 @@ class PersistentSpace extends Responder
                         throw new BadRequestException("Bad request, objectID cannot be null");
                     }
                 } else {
+                    $objectID = (int)$objectID;
+                    $store = $context->persistentStoreCoordinator?->persistentStores?->first(fn(PersistentStore $store): bool => $store->type() === XMLStoreType);
+                    if ($store instanceof AtomicStore) {
+                        $objectID = $store->objectID($entity, $objectID);
+                    }
                     /** @var FetchRequest<ManagedObject> $fetchRequest */
                     $fetchRequest = new FetchRequest();
                     $fetchRequest->entity = $this->entity;

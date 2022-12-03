@@ -21,6 +21,7 @@ use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Foundation\UserDefaults;
 use Throwable;
 use function Sabatier\Foundation\fatal_error;
+use function Sabatier\Foundation\getallheaders;
 use function Sabatier\Foundation\human_readable_value;
 use function Sabatier\Foundation\request_url;
 use function Sabatier\Foundation\string_is_equal;

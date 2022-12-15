@@ -19,6 +19,7 @@ use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\substring_from_index;
 use function Sabatier\Foundation\substring_to_index;
 use const Sabatier\Foundation\Networking\URLAuthenticationMethodDefault;
+use const Sabatier\Foundation\Networking\URLAuthenticationMethodHTTPBearer;
 
 class ProtectionSpace extends Responder
 {
@@ -61,7 +62,7 @@ class ProtectionSpace extends Responder
         /** @var int $validity */
         $validity = $environment['APPLICATION_TOKEN_VALIDITY'] ?? 8;
         $authenticationMethod = $this->authenticationMethod;
-        if ($authenticationMethod !== URLAuthenticationMethodDefault && $authenticationMethod !== URLAuthenticationMethodBearer) {
+        if ($authenticationMethod !== URLAuthenticationMethodDefault && $authenticationMethod !== URLAuthenticationMethodHTTPBearer) {
             throw new BadRequestException();
         }
         $httpBody = $this->request->httpBody ?? '[]';

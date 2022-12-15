@@ -38,8 +38,7 @@
       "Sabatier\\Service\\": "src"
     },
     "files": [
-      "src/JSONWebTokenAdditions.php",
-      "src/Constants.php"
+      "src/JSONWebTokenAdditions.php"
     ]
   },
   "autoload-dev": {

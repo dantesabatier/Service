@@ -11,7 +11,7 @@ class Record extends ManagedObject
     {
         /** @var Dictionary<mixed> $dictionary */
         $dictionary = new Dictionary();
-        $dictionary['objectID'] = $this->objectID->referenceObject;
+        $dictionary["objectID"] = $this->objectID->referenceObject;
         $dictionary->merge(parent::jsonSerialize());
         return $dictionary;
     }

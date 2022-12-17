@@ -51,8 +51,8 @@ class ResourceManager extends Responder
                     if ($this->request->httpMethod === HTTPRequestMethod::get) {
                         $this->content = $content;
                     }
-                    $headerFields['Content-Type'] = $this->contentType;
-                    $headerFields['Content-Disposition'] = "inline; filename=$url->lastPathComponent";
+                    $headerFields["Content-Type"] = $this->contentType;
+                    $headerFields["Content-Disposition"] = "inline; filename=$url->lastPathComponent";
                 }
                 break;
             case HTTPRequestMethod::options:

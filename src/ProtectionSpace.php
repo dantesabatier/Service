@@ -37,11 +37,11 @@ class ProtectionSpace extends Responder
 
     public function __get(string $name)
     {
-        if ($name == 'authenticationMethod') {
-            $this->$name = (($string = $this->request->valueForHttpHeaderField('Authorization')) && ($index = strpos($string, ' ')) && ($authenticationMethod = substring_to_index($string, $index))) ? $authenticationMethod : URLAuthenticationMethodDefault;
+        if ($name == "authenticationMethod") {
+            $this->$name = (($string = $this->request->valueForHttpHeaderField("Authorization")) && ($index = strpos($string, " ")) && ($authenticationMethod = substring_to_index($string, $index))) ? $authenticationMethod : URLAuthenticationMethodDefault;
             return $this->$name;
-        } elseif ($name == 'token') {
-            $this->$name = (($string = $this->request->valueForHttpHeaderField('Authorization')) && ($index = strpos($string, ' ')) && ($hash = trim(substring_from_index($string, $index))) && count(explode('.', $hash)) == 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment['APPLICATION_TOKEN_KEY'] ?? fatal_error("environment variable \"APPLICATION_TOKEN_KEY\" cannot be null"), null, $hash, $this->request->url->host) : null;
+        } elseif ($name == "token") {
+            $this->$name = (($string = $this->request->valueForHttpHeaderField("Authorization")) && ($index = strpos($string, " ")) && ($hash = trim(substring_from_index($string, $index))) && count(explode(".", $hash)) == 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment["APPLICATION_TOKEN_KEY"] ?? fatal_error("environment variable \"APPLICATION_TOKEN_KEY\" cannot be null"), null, $hash, $this->request->url->host) : null;
             return $this->$name;
         } else {
             return parent::__get($name);
@@ -56,38 +56,38 @@ class ProtectionSpace extends Responder
     {
         $environment = ProcessInfo::processInfo()->environment;
         /** @var string $key */
-        $key = $environment['APPLICATION_TOKEN_KEY'] ?? fatal_error("environment variable \"APPLICATION_TOKEN_KEY\" cannot be null");
+        $key = $environment["APPLICATION_TOKEN_KEY"] ?? fatal_error("environment variable \"APPLICATION_TOKEN_KEY\" cannot be null");
         /** @var string $entityName */
-        $entityName = $environment['APPLICATION_USERS_ENTITY_NAME'] ?? fatal_error("environment variable \"APPLICATION_USERS_ENTITY_NAME\" cannot be null");
+        $entityName = $environment["APPLICATION_USERS_ENTITY_NAME"] ?? fatal_error("environment variable \"APPLICATION_USERS_ENTITY_NAME\" cannot be null");
         /** @var int $validity */
-        $validity = $environment['APPLICATION_TOKEN_VALIDITY'] ?? 8;
+        $validity = $environment["APPLICATION_TOKEN_VALIDITY"] ?? 8;
         $authenticationMethod = $this->authenticationMethod;
         if ($authenticationMethod !== URLAuthenticationMethodDefault && $authenticationMethod !== URLAuthenticationMethodHTTPBearer) {
             throw new BadRequestException();
         }
-        $httpBody = $this->request->httpBody ?? '[]';
+        $httpBody = $this->request->httpBody ?? "[]";
         /** @var array<string, string> $array */
         $array = json_decode($httpBody, true, 512, JSON_THROW_ON_ERROR);
         if (!$array) {
             throw new BadRequestException();
         }
         /** @var string|null $username */
-        $username = $array['username'] ?? null;
+        $username = $array["username"] ?? null;
         /** @var string|null $password */
-        $password = $array['password'] ?? null;
+        $password = $array["password"] ?? null;
         if (!$username || !$password) {
             throw new BadRequestException();
         }
         /** @var FetchRequest<ManagedObject> $fetchRequest */
         $fetchRequest = new FetchRequest();
         $fetchRequest->entity = EntityDescription::entity($entityName, $this->managedObjectContext);
-        $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath('username'), Expression::expressionForConstantValue($username));
-        $fetchRequest->propertiesToFetch = new ArrayClass(['username', 'password']); // @phpstan-ignore-line
+        $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($username));
+        $fetchRequest->propertiesToFetch = new ArrayClass(["username", "password"]); // @phpstan-ignore-line
         if (!($user = $this->managedObjectContext->fetch($fetchRequest)->first()?->serialized($this->serialization)) || !password_verify($password, $user->valueForKey("password"))) {
             throw new UnauthorizedException();
         }
         $date = new Date();
-        $this->token = new JSONWebToken($key, ['iat' => $date->timeIntervalSinceReferenceDate, 'jti' => base64_encode(random_bytes(16)), 'iss' => $this->request->url->host, 'nbf' => $date->timeIntervalSinceReferenceDate, 'exp' => $date->addingTimeInterval(60 * 60 * $validity)->timeIntervalSinceReferenceDate, 'username' => $username], null, $this->request->url->host);
+        $this->token = new JSONWebToken($key, ["iat" => $date->timeIntervalSinceReferenceDate, "jti" => base64_encode(random_bytes(16)), "iss" => $this->request->url->host, "nbf" => $date->timeIntervalSinceReferenceDate, "exp" => $date->addingTimeInterval(60 * 60 * $validity)->timeIntervalSinceReferenceDate, "username" => $username], null, $this->request->url->host);
         $this->content = json_encode($this->token, JSON_THROW_ON_ERROR);
     }
 
@@ -99,18 +99,18 @@ class ProtectionSpace extends Responder
     {
         $environment = ProcessInfo::processInfo()->environment;
         /** @var string $entityName */
-        $entityName = $environment['APPLICATION_USERS_ENTITY_NAME'] ?? fatal_error("environment variable \"APPLICATION_USERS_ENTITY_NAME\" cannot be null");
+        $entityName = $environment["APPLICATION_USERS_ENTITY_NAME"] ?? fatal_error("environment variable \"APPLICATION_USERS_ENTITY_NAME\" cannot be null");
         if (!($username = $this->token?->payload?->username)) {
             throw new UnauthorizedException();
         }
         /** @var Dictionary<mixed> $serialization */
         $serialization = $this->serialization ?? new Dictionary();
-        $serialization['username'] = AttributeType::string;
+        $serialization["username"] = AttributeType::string;
         $serialization->removeValueForKey("password");
         /** @var FetchRequest<ManagedObject> $fetchRequest */
         $fetchRequest = new FetchRequest();
         $fetchRequest->entity = EntityDescription::entity($entityName, $this->managedObjectContext);
-        $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath('username'), Expression::expressionForConstantValue($username));
+        $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($username));
         $fetchRequest->serialization = $serialization;
         if (!($user = $this->managedObjectContext->fetch($fetchRequest)->first()?->serialized($this->serialization))) {
             throw new NotFoundException();

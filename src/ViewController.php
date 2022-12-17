@@ -32,10 +32,10 @@ abstract class ViewController extends Responder
 
     public function __get(string $name)
     {
-        if ($name == 'name') {
+        if ($name == "name") {
             $this->$name = str_ireplace(class_name(self::class), '', class_name(static::class));
             return $this->$name;
-        } elseif ($name == 'context') {
+        } elseif ($name == "context") {
             $this->$name = array_reduce((new ReflectionClass($this))->getProperties(ReflectionProperty::IS_PUBLIC), function (array $context, ReflectionProperty $property): array {
                 if ($property->getAttributes(Outlet::class) !== []) {
                     $context[$property->name] = $this->valueForKey($property->name);
@@ -43,7 +43,7 @@ abstract class ViewController extends Responder
                 return $context;
             }, []);
             return $this->$name;
-        } elseif ($name == 'view') {
+        } elseif ($name == "view") {
             $this->viewWillLoad();
             /** @var class-string<View> $viewClass */
             $viewClass = static::viewClass();
@@ -51,10 +51,10 @@ abstract class ViewController extends Responder
             $this->$name = new $viewClass($this->name, $this->context, $this->bundle);
             $this->viewDidLoad();
             return $this->$name;
-        } elseif ($name == 'bundle') {
+        } elseif ($name == "bundle") {
             $this->$name = Bundle::main();
             return $this->$name;
-        } elseif ($name == 'title') {
+        } elseif ($name == "title") {
             $this->$name = $this->bundle->object(kCFBundleNameKey);
             return $this->$name;
         } else {

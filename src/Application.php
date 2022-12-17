@@ -53,16 +53,16 @@ class Application extends Responder
 
     public function __get(string $name)
     {
-        if ($name == 'request') {
+        if ($name == "request") {
             $request = new URLRequest(new URL(request_url()));
-            $request->httpMethod = $_SERVER['REQUEST_METHOD'] ?? HTTPRequestMethod::get;
+            $request->httpMethod = $_SERVER["REQUEST_METHOD"] ?? HTTPRequestMethod::get;
             $request->allHTTPHeaderFields = new Dictionary(getallheaders());
-            if ($value = $request->valueForHttpHeaderField('X-Http-Method-Override')) {
+            if ($value = $request->valueForHttpHeaderField("X-Http-Method-Override")) {
                 $request->httpMethod = $value;
             }
             $this->$name = $request;
             return $this->$name;
-        } elseif ($name == 'persistentContainer') {
+        } elseif ($name == "persistentContainer") {
             $persistentContainer = new PersistentContainer(Bundle::main()->object(kCFBundleNameKey));
             if ($description = $persistentContainer->persistentStoreDescriptions->first()) {
                 $description->setOptionForKey(UserDefaults::standard()->bool(PersistentHistoryTrackingKey), PersistentHistoryTrackingKey);
@@ -75,16 +75,16 @@ class Application extends Responder
             });
             $this->$name = $persistentContainer;
             return $this->$name;
-        } elseif ($name == 'protectionSpace') {
+        } elseif ($name == "protectionSpace") {
             $this->$name = new ProtectionSpace();
             return $this->$name;
-        } elseif ($name == 'persistentSpace') {
+        } elseif ($name == "persistentSpace") {
             $this->$name = new PersistentSpace();
             return $this->$name;
-        } elseif ($name == 'resourceManager') {
+        } elseif ($name == "resourceManager") {
             $this->$name = new ResourceManager();
             return $this->$name;
-        } elseif ($name == 'delegate') {
+        } elseif ($name == "delegate") {
             $delegate = null;
             if (($principalClass = Bundle::main()->principalClass) && isset(class_implements($principalClass)[ApplicationDelegate::class])) {
                 /** @var class-string<ApplicationDelegate> $delegateClass */
@@ -115,8 +115,8 @@ class Application extends Responder
             $reflectionClass = new ReflectionClass($delegate);
             $namespaceName = $reflectionClass->getNamespaceName();
             $fileManager = FileManager::default();
-            $baseURL = Bundle::main()->bundleURL->appendingPathComponent('src');
-            $directories = ['Responders', 'ViewControllers'];
+            $baseURL = Bundle::main()->bundleURL->appendingPathComponent("src");
+            $directories = ["Responders", "ViewControllers"];
             foreach ($directories as $directory) {
                 $directoryURL = $baseURL->appendingPathComponent($directory);
                 if (!$fileManager->fileExists($directoryURL->path)) {
@@ -124,7 +124,7 @@ class Application extends Responder
                 }
                 $urls = $fileManager->contentsOfDirectory($directoryURL, null, DirectoryEnumerationOptions::skipsHiddenFiles);
                 foreach ($urls as $url) {
-                    if (!string_is_equal($url->pathExtension, 'php', CompareOptions::caseInsensitive)) {
+                    if (!string_is_equal($url->pathExtension, "php", CompareOptions::caseInsensitive)) {
                         continue;
                     }
                     $filePath = $url->path;
@@ -160,7 +160,7 @@ class Application extends Responder
             default => $response instanceof BatchResponse ? $response->isEmpty : empty($content)
         };
         if ($isEmpty) {
-            foreach (['Content-Type', 'Content-Length'] as $key) {
+            foreach (["Content-Type", "Content-Length"] as $key) {
                 $response->allHeaderFields->removeValueForKey($key);
             }
         }
@@ -198,7 +198,7 @@ class Application extends Responder
         ob_start("ob_gzhandler");
         echo $content;
         ob_end_flush();
-        header('Content-Length: ' . ob_get_length());
+        header("Content-Length: " . ob_get_length());
         ob_end_flush();
     }
 
@@ -229,14 +229,14 @@ class Application extends Responder
             $response = $responder->response();
             $headerFields = $response->allHeaderFields;
             if ($value = $this->request->valueForHttpHeaderField("Origin")) {
-                $headerFields['Access-Control-Allow-Origin'] = $value;
+                $headerFields["Access-Control-Allow-Origin"] = $value;
                 $headerFields["Access-Control-Allow-Credentials"] = true;
             }
-            if ($value = $this->request->valueForHttpHeaderField('Access-Control-Request-Method')) {
-                $headerFields['Access-Control-Allow-Methods'] = $value;
+            if ($value = $this->request->valueForHttpHeaderField("Access-Control-Request-Method")) {
+                $headerFields["Access-Control-Allow-Methods"] = $value;
             }
-            if ($value = $this->request->valueForHttpHeaderField('Access-Control-Request-Headers')) {
-                $headerFields['Access-Control-Allow-Headers'] = $value;
+            if ($value = $this->request->valueForHttpHeaderField("Access-Control-Request-Headers")) {
+                $headerFields["Access-Control-Allow-Headers"] = $value;
             }
             $this->send($response, $responder->content);
         } catch (Throwable $throwable) {

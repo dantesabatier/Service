@@ -52,19 +52,19 @@ class PersistentSpace extends Responder
      */
     public function __get(string $name)
     {
-        if ($name == 'entity') {
+        if ($name == "entity") {
             $this->$name = $this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel?->entitiesByName?->valueForKey($this->request->url->lastPathComponent) ?? throw new NotFoundException("Unable to load entity \"{$this->request->url->lastPathComponent}\"");
             return $this->$name;
-        } elseif ($name == 'fetchRequest') {
+        } elseif ($name == "fetchRequest") {
             $fetchRequest = new FetchRequest();
             $fetchRequest->entity = $this->entity;
             $components = new URLComponents($this->request->url->absoluteString);
             if ($queryItems = $components->queryItems) {
-                if ($queryItem = $queryItems->first(fn(URLQueryItem $queryItem): bool => string_is_equal($queryItem->name, 'fetchRequest', CompareOptions::caseInsensitive))) {
+                if ($queryItem = $queryItems->first(fn(URLQueryItem $queryItem): bool => string_is_equal($queryItem->name, "fetchRequest", CompareOptions::caseInsensitive))) {
                     if (($value = $queryItem->value) && ($json = base64_decode($value)) && ($decoded = json_decode($json, null, 512, JSON_THROW_ON_ERROR))) {
-                        if (property_exists($decoded, 'predicate')) {
+                        if (property_exists($decoded, "predicate")) {
                             $predicate = $decoded->predicate;
-                            if (property_exists($predicate, 'format')) {
+                            if (property_exists($predicate, "format")) {
                                 $fetchRequest->predicate = Predicate::format($predicate->format, ArrayClass::arrayWithArray($predicate->arguments ?? []));
                             }
                         }
@@ -72,26 +72,26 @@ class PersistentSpace extends Responder
                         $fetchRequest->fetchLimit = $decoded->fetchLimit ?? 0;
                         $fetchRequest->fetchOffset = $decoded->fetchOffset ?? 0;
                         $fetchRequest->fetchBatchSize = $decoded->fetchBatchSize ?? 0;
-                        if (property_exists($decoded, 'sortDescriptors')) {
+                        if (property_exists($decoded, "sortDescriptors")) {
                             $fetchRequest->sortDescriptors = (new ArrayClass($decoded->sortDescriptors))->map(fn(object $obj): SortDescriptor => new SortDescriptor($obj->key, $obj->ascending));
                         }
-                        if (property_exists($decoded, 'resultType')) {
+                        if (property_exists($decoded, "resultType")) {
                             $fetchRequest->resultType = FetchRequestResultType::from($decoded->resultType);
                         }
-                        if (property_exists($decoded, 'propertiesToFetch')) {
+                        if (property_exists($decoded, "propertiesToFetch")) {
                             /** @psalm-suppress InvalidPropertyAssignmentValue */
                             $fetchRequest->propertiesToFetch = /** @phpstan-ignore-line */
                                 (new ArrayClass($decoded->propertiesToFetch))->compactMap(function (mixed $element): ExpressionDescription|string|null {
                                     if (is_string($element)) {
                                         return $element;
                                     } elseif (is_object($element)) {
-                                        if (property_exists($element, 'name') && property_exists($element, 'expression')) {
+                                        if (property_exists($element, "name") && property_exists($element, "expression")) {
                                             $expression = $element->expression;
-                                            if (property_exists($expression, 'format')) {
+                                            if (property_exists($expression, "format")) {
                                                 $expressionDescription = new ExpressionDescription();
                                                 $expressionDescription->name = $element->name;
                                                 $expressionDescription->expression = Expression::expressionWithFormat($expression->format, ArrayClass::arrayWithArray($expression->arguments ?? []));
-                                                if (property_exists($expression, 'expressionResultType')) {
+                                                if (property_exists($expression, "expressionResultType")) {
                                                     $expressionDescription->expressionResultType = AttributeType::from($expression->expressionResultType);
                                                 }
                                                 return $expressionDescription;
@@ -102,12 +102,12 @@ class PersistentSpace extends Responder
                                 });
                         }
                         $fetchRequest->returnsDistinctResults = $decoded->returnsDistinctResults ?? false;
-                        if (property_exists($decoded, 'propertiesToGroupBy')) {
+                        if (property_exists($decoded, "propertiesToGroupBy")) {
                             $fetchRequest->propertiesToGroupBy = new ArrayClass($decoded->propertiesToGroupBy);
                         }
-                        if (property_exists($decoded, 'havingPredicate')) {
+                        if (property_exists($decoded, "havingPredicate")) {
                             $havingPredicate = $decoded->havingPredicate;
-                            if (property_exists($havingPredicate, 'format')) {
+                            if (property_exists($havingPredicate, "format")) {
                                 $fetchRequest->havingPredicate = Predicate::format($havingPredicate->format, ArrayClass::arrayWithArray($havingPredicate->arguments ?? []));
                             }
                         }
@@ -149,7 +149,7 @@ class PersistentSpace extends Responder
                 $fetchRequestResult = match ($fetchRequest->resultType) {
                     FetchRequestResultType::managedObjectResultType, FetchRequestResultType::managedObjectIDResultType,
                     FetchRequestResultType::dictionaryResultType => $context->fetch($fetchRequest),
-                    FetchRequestResultType::countResultType => new Dictionary(['count' => $context->count($fetchRequest)])
+                    FetchRequestResultType::countResultType => new Dictionary(["count" => $context->count($fetchRequest)])
                 };
                 if ($fetchRequestResult instanceof BatchFaultingArray) {
                     return new BatchResponse($request->url, $fetchRequestResult, $fetchRequest);
@@ -175,7 +175,7 @@ class PersistentSpace extends Responder
                         throw new UnsupportedMediaTypeException();
                     }
                 }
-                $httpBody = $request->httpBody ?? '[]';
+                $httpBody = $request->httpBody ?? "[]";
                 if (!($parsedBody = json_decode($httpBody, true, 512, JSON_THROW_ON_ERROR))) {
                     $components = new URLComponents($this->request->url->absoluteString);
                     $items = $components->queryItems ?? throw new BadRequestException("Bad request, body cannot be null");
@@ -187,7 +187,7 @@ class PersistentSpace extends Responder
                 $object = null;
                 /** @var Dictionary<mixed> $keyedValues */
                 $keyedValues = Dictionary::dictionaryWithArray($parsedBody);
-                $objectID = $keyedValues['objectID'];
+                $objectID = $keyedValues["objectID"];
                 if ($objectID === null) {
                     if ($method !== HTTPRequestMethod::post) {
                         throw new BadRequestException("Bad request, objectID cannot be null");
@@ -201,7 +201,7 @@ class PersistentSpace extends Responder
                     /** @var FetchRequest<ManagedObject> $fetchRequest */
                     $fetchRequest = new FetchRequest();
                     $fetchRequest->entity = $this->entity;
-                    $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath('objectID'), Expression::expressionForConstantValue($objectID));
+                    $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("objectID"), Expression::expressionForConstantValue($objectID));
                     if ($serialization = $this->serialization) {
                         $fetchRequest->serialization = $serialization;
                     }
@@ -221,8 +221,8 @@ class PersistentSpace extends Responder
                     $statusCode = HTTPStatusCode::noContent;
                 } else {
                     /** @noinspection SpellCheckingInspection */
-                    if (($password = $keyedValues['password']) && !string_begins_with($password, '\$2[abxy]', CompareOptions::quoted)) {
-                        $keyedValues['password'] = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
+                    if (($password = $keyedValues["password"]) && !string_begins_with($password, "\$2[abxy]", CompareOptions::quoted)) {
+                        $keyedValues["password"] = password_hash($password, PASSWORD_BCRYPT, ["cost" => 12]);
                     }
                     $object ??= EntityDescription::insertNewObject($entity->name, $context);
                     $object->setValuesForKeys($keyedValues);

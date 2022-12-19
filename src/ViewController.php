@@ -63,14 +63,6 @@ abstract class ViewController extends Responder
         }
     }
 
-    /**
-     * @return class-string<View>
-     */
-    public static function viewClass(): string
-    {
-        return View::class;
-    }
-
     public function loadView(): void
     {
         $this->content = (string)$this->view;

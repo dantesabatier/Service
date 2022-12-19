@@ -12,6 +12,9 @@ use const Sabatier\Foundation\kCFBundleNameKey;
 
 abstract class ViewController extends Responder
 {
+    /** @var class-string<Renderer> */
+    public static string $rendererClass = Renderer::class;
+    private static ?Renderer $renderer = null;
     public string $name;
     public readonly View $view;
     /** @var object|array<string, mixed> */
@@ -45,10 +48,8 @@ abstract class ViewController extends Responder
             return $this->$name;
         } elseif ($name == "view") {
             $this->viewWillLoad();
-            /** @var class-string<View> $viewClass */
-            $viewClass = static::viewClass();
-            $viewClass::initialize();
-            $this->$name = new $viewClass($this->name, $this->context, $this->bundle);
+            self::$renderer ??= new static::$rendererClass($this->bundle);
+            $this->$name = new View($this->name, $this->context, self::$renderer);
             $this->viewDidLoad();
             return $this->$name;
         } elseif ($name == "bundle") {

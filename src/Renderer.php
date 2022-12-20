@@ -7,9 +7,9 @@ use Sabatier\Foundation\Bundle;
 /**
  * @psalm-consistent-constructor
  */
-class Renderer
+readonly class Renderer
 {
-    public function __construct(public readonly Bundle $bundle)
+    public function __construct(public Bundle $bundle)
     {
     }
 

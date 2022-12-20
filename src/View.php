@@ -2,7 +2,6 @@
 
 namespace Sabatier\Service;
 
-use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\ObjectClass;
 
 /**

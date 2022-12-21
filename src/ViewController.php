@@ -10,16 +10,23 @@ use Sabatier\Foundation\Networking\HTTPURLResponse;
 use function Sabatier\Foundation\class_name;
 use const Sabatier\Foundation\kCFBundleNameKey;
 
+/**
+ * @property-read bool $isViewLoaded A Boolean value indicating whether the view is currently loaded into memory.
+ */
 abstract class ViewController extends Responder
 {
     /** @var class-string<Renderer> */
-    public static string $rendererClass = Renderer::class;
+    public static string $rendererClass = NativeRenderer::class;
     private static ?Renderer $renderer = null;
+    /** @var string The name of the view controller's template file, if one was specified. */
     public string $name;
+    /** @var View The view that the controller manages. */
     public readonly View $view;
     /** @var object|array<string, mixed> */
     public object|array $context = [];
+    /** @var Bundle The view controller's template bundle if it exists. */
     public Bundle $bundle;
+    /** @var string|null A localized string that represents the view this controller manages. */
     #[Outlet]
     public ?string $title = null;
 
@@ -58,6 +65,8 @@ abstract class ViewController extends Responder
         } elseif ($name == "title") {
             $this->$name = $this->bundle->object(kCFBundleNameKey);
             return $this->$name;
+        } elseif ($name == "isViewLoaded") {
+            return isset($this->view);
         } else {
             return parent::__get($name);
         }

@@ -239,7 +239,7 @@ class Application extends Responder
             }
             $this->send($response, $responder->content);
         } catch (Throwable $throwable) {
-            $response = $throwable instanceof InvalidRequestException ? new HTTPURLResponse($this->request->url, (int)$throwable->getCode(), null, $throwable instanceof UnauthorizedException ? new Dictionary(["WWW-Authenticate" => sprintf("%s realm=\"%s\"", "Bearer", human_readable_value($this->request->url->host))]) : null) : new HTTPURLResponse($this->request->url, HTTPStatusCode::internalServerError);
+            $response = $throwable instanceof InvalidRequestException ? new HTTPURLResponse($this->request->url, (int)$throwable->getCode(), null, $throwable instanceof UnauthorizedException ? new Dictionary(["WWW-Authenticate" => "Bearer realm=\"{$this->request->url->host}\""]) : null) : new HTTPURLResponse($this->request->url, HTTPStatusCode::internalServerError);
             $content = $this->delegate?->applicationWillFail($this, $response, $throwable);
             if ($content instanceof View) {
                 $content = (string)$content;

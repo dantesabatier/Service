@@ -27,9 +27,7 @@ use Sabatier\Foundation\Predicates\Predicate;
 use Sabatier\Foundation\SortDescriptor;
 use Sabatier\Foundation\URLComponents;
 use Sabatier\Foundation\URLQueryItem;
-
 use const Sabatier\CoreData\XMLStoreType;
-
 use function Sabatier\Foundation\string_begins_with;
 use function Sabatier\Foundation\string_contains;
 use function Sabatier\Foundation\string_is_equal;
@@ -194,7 +192,7 @@ class PersistentSpace extends Responder
                     }
                 } else {
                     $objectID = (int)$objectID;
-                    $store = $context->persistentStoreCoordinator?->persistentStores?->first(fn(PersistentStore $store): bool => $store->type() === XMLStoreType);
+                    $store = $context->persistentStoreCoordinator?->persistentStores?->first(fn(PersistentStore $store): bool => $store->type === XMLStoreType);
                     if ($store instanceof AtomicStore) {
                         $objectID = $store->objectID($entity, $objectID);
                     }

@@ -16,15 +16,18 @@ use Sabatier\Foundation\URLFileTypeMappings;
 /** @internal */
 class ResourceManager extends Responder
 {
+    private readonly URL $url;
+
     public function __construct()
     {
         parent::__construct();
         $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::head, HTTPRequestMethod::options]);
+        $this->url = new URL($this->request->url->path, FileManager::default()->documentRootDirectory);
     }
 
     public function isFirstResponder(): bool
     {
-        return $this->request->url->pathExtension !== "";
+        return FileManager::default()->fileExists($this->url->path, $isDirectory) && !$isDirectory && FileManager::default()->isReadableFile($this->url->path);
     }
 
     public function response(): HTTPURLResponse
@@ -34,17 +37,8 @@ class ResourceManager extends Responder
         switch ($this->request->httpMethod) {
             case HTTPRequestMethod::get:
             case HTTPRequestMethod::head:
-                $fileManager = FileManager::default();
-                $url = new URL($this->request->url->path, $fileManager->documentRootDirectory);
-                $path = $url->path;
-                if (!$fileManager->fileExists($path)) {
-                    throw new NotFoundException("Not found, \"$url->lastPathComponent\"");
-                }
-                if (!$fileManager->isReadableFile($path)) {
-                    throw new ForbiddenException();
-                }
-                if ($content = $fileManager->contents($path)) {
-                    if (($contentType = URLFileTypeMappings::shared()->mimeType($url->pathExtension)) && ($encoding = mb_detect_encoding($content))) {
+                if ($content = FileManager::default()->contents($this->url->path)) {
+                    if (($contentType = URLFileTypeMappings::shared()->mimeType($this->url->pathExtension)) && ($encoding = mb_detect_encoding($content))) {
                         $contentType .= "; charset=$encoding";
                     }
                     $this->contentType = $contentType;
@@ -52,7 +46,7 @@ class ResourceManager extends Responder
                         $this->content = $content;
                     }
                     $headerFields["Content-Type"] = $this->contentType;
-                    $headerFields["Content-Disposition"] = "inline; filename=$url->lastPathComponent";
+                    $headerFields["Content-Disposition"] = "inline; filename={$this->url->lastPathComponent}";
                 }
                 break;
             case HTTPRequestMethod::options:

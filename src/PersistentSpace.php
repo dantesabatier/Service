@@ -35,8 +35,8 @@ use const Sabatier\CoreData\XMLStoreType;
 /** @internal */
 class PersistentSpace extends Responder
 {
-    public EntityDescription $entity;
-    public FetchRequest $fetchRequest;
+    private readonly EntityDescription $entity;
+    private readonly FetchRequest $fetchRequest;
 
     public function __construct()
     {

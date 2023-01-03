@@ -8,20 +8,21 @@ use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
-use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
-use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
+use Sabatier\Foundation\Predicates\ComparisonPredicate;
+use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Foundation\ProcessInfo;
 use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\substring_from_index;
 use function Sabatier\Foundation\substring_to_index;
-use const Sabatier\Foundation\Networking\URLAuthenticationMethodDefault;
 
-class ProtectionSpace extends Responder
+/** @internal */
+class NativeProtection extends Protection
 {
+
     public readonly string $authenticationMethod;
     public readonly ?JSONWebToken $token;
 
@@ -37,10 +38,10 @@ class ProtectionSpace extends Responder
     public function __get(string $name)
     {
         if ($name == "authenticationMethod") {
-            $this->$name = (($string = $this->request->valueForHttpHeaderField("Authorization")) && ($index = strpos($string, " ")) && ($authenticationMethod = substring_to_index($string, $index))) ? $authenticationMethod : URLAuthenticationMethodDefault;
+            $this->$name = (($string = $this->request->valueForHttpHeaderField("Authorization")) && ($index = strpos($string, " ")) && ($authenticationMethod = substring_to_index($string, $index))) ? $authenticationMethod : "Bearer";
             return $this->$name;
         } elseif ($name == "token") {
-            $this->$name = (($string = $this->request->valueForHttpHeaderField("Authorization")) && ($index = strpos($string, " ")) && ($hash = trim(substring_from_index($string, $index))) && count(explode(".", $hash)) == 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment["APPLICATION_TOKEN_KEY"] ?? fatal_error("environment variable \"APPLICATION_TOKEN_KEY\" cannot be null"), null, $hash, $this->request->url->host) : null;
+            $this->$name = (($string = $this->request->valueForHttpHeaderField("Authorization")) && ($index = strpos($string, " ")) && ($hash = trim(substring_from_index($string, $index))) && count(explode(".", $hash)) == 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment["APPLICATION_TOKEN_KEY"] ?? fatal_error("Environment variable \"APPLICATION_TOKEN_KEY\" cannot be null"), null, $hash, $this->request->url->host) : null;
             return $this->$name;
         } else {
             return parent::__get($name);
@@ -55,13 +56,13 @@ class ProtectionSpace extends Responder
     {
         $environment = ProcessInfo::processInfo()->environment;
         /** @var string $key */
-        $key = $environment["APPLICATION_TOKEN_KEY"] ?? fatal_error("environment variable \"APPLICATION_TOKEN_KEY\" cannot be null");
+        $key = $environment["APPLICATION_TOKEN_KEY"] ?? fatal_error("Environment variable \"APPLICATION_TOKEN_KEY\" cannot be null");
         /** @var string $entityName */
-        $entityName = $environment["APPLICATION_USERS_ENTITY_NAME"] ?? fatal_error("environment variable \"APPLICATION_USERS_ENTITY_NAME\" cannot be null");
+        $entityName = $environment["APPLICATION_USERS_ENTITY_NAME"] ?? fatal_error("Environment variable \"APPLICATION_USERS_ENTITY_NAME\" cannot be null");
         /** @var int $validity */
         $validity = $environment["APPLICATION_TOKEN_VALIDITY"] ?? 8;
         $authenticationMethod = $this->authenticationMethod;
-        if ($authenticationMethod !== URLAuthenticationMethodDefault && $authenticationMethod !== "Bearer") {
+        if ($authenticationMethod != "Bearer") {
             throw new UnauthorizedException();
         }
         $httpBody = $this->request->httpBody ?? "[]";
@@ -98,7 +99,7 @@ class ProtectionSpace extends Responder
     {
         $environment = ProcessInfo::processInfo()->environment;
         /** @var string $entityName */
-        $entityName = $environment["APPLICATION_USERS_ENTITY_NAME"] ?? fatal_error("environment variable \"APPLICATION_USERS_ENTITY_NAME\" cannot be null");
+        $entityName = $environment["APPLICATION_USERS_ENTITY_NAME"] ?? fatal_error("Environment variable \"APPLICATION_USERS_ENTITY_NAME\" cannot be null");
         if (!($username = $this->token?->payload?->username)) {
             throw new UnauthorizedException();
         }
@@ -131,7 +132,7 @@ class ProtectionSpace extends Responder
         switch ($this->request->httpMethod) {
             case HTTPRequestMethod::get:
             case HTTPRequestMethod::post:
-                if (!$this->token?->isValid) {
+                if (!$this->isValid()) {
                     throw new UnauthorizedException();
                 }
                 break;
@@ -141,5 +142,15 @@ class ProtectionSpace extends Responder
                 throw new MethodNotAllowedException();
         }
         return parent::response();
+    }
+
+    public function isValid(): bool
+    {
+        return $this->token?->isValid === false;
+    }
+
+    public function username(): ?string
+    {
+        return $this->token?->payload?->username;
     }
 }

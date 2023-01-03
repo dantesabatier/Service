@@ -153,7 +153,7 @@ class PersistentSpace extends Responder
                     return new BatchResponse($request->url, $fetchRequestResult, $fetchRequest);
                 }
                 $content = json_encode($fetchRequestResult, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
-                if ($method === HTTPRequestMethod::get) {
+                if ($method == HTTPRequestMethod::get) {
                     $this->content = $content;
                     $this->contentType = "application/json; charset=utf-8";
                 }
@@ -162,7 +162,7 @@ class PersistentSpace extends Responder
             case HTTPRequestMethod::put:
             case HTTPRequestMethod::patch:
             case HTTPRequestMethod::delete:
-                if ($method !== HTTPRequestMethod::delete) {
+                if ($method != HTTPRequestMethod::delete) {
                     $contentType = $request->valueForHttpHeaderField("Content-Type") ?? throw new BadRequestException();
                     $mediaType = $contentType;
                     if (string_contains($contentType, ";")) {
@@ -187,12 +187,12 @@ class PersistentSpace extends Responder
                 $keyedValues = Dictionary::dictionaryWithArray($parsedBody);
                 $objectID = $keyedValues["objectID"];
                 if ($objectID === null) {
-                    if ($method !== HTTPRequestMethod::post) {
+                    if ($method != HTTPRequestMethod::post) {
                         throw new BadRequestException("Bad request, objectID cannot be null");
                     }
                 } else {
                     $objectID = (int)$objectID;
-                    $store = $context->persistentStoreCoordinator?->persistentStores?->first(fn(PersistentStore $store): bool => $store->type === XMLStoreType);
+                    $store = $context->persistentStoreCoordinator?->persistentStores?->first(fn(PersistentStore $store): bool => $store->type == XMLStoreType);
                     if ($store instanceof AtomicStore) {
                         $objectID = $store->objectID($entity, $objectID);
                     }
@@ -206,13 +206,13 @@ class PersistentSpace extends Responder
                     $object = $context->fetch($fetchRequest)->first();
                 }
                 if (!$object instanceof ManagedObject) {
-                    if ($method !== HTTPRequestMethod::post) {
+                    if ($method != HTTPRequestMethod::post) {
                         throw new NotFoundException("Not found, object doesn't exists");
                     }
-                } elseif ($method === HTTPRequestMethod::post) {
+                } elseif ($method == HTTPRequestMethod::post) {
                     throw new ConflictException("Conflict, object exists");
                 }
-                if ($method === HTTPRequestMethod::delete) {
+                if ($method == HTTPRequestMethod::delete) {
                     /** @psalm-suppress PossiblyNullArgument */
                     $context->delete($object);
                     $context->save();

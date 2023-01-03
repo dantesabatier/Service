@@ -34,9 +34,9 @@ class Application extends Responder
     private static ?Application $shared = null;
     public readonly URLRequest $request;
     public readonly PersistentContainer $persistentContainer;
-    private readonly ProtectionSpace $protectionSpace;
     private readonly PersistentSpace $persistentSpace;
     private readonly ResourceManager $resourceManager;
+    public Protection $protection;
     public ?ApplicationDelegate $delegate = null;
 
     final public function __construct()
@@ -44,7 +44,7 @@ class Application extends Responder
         parent::__construct();
         unset($this->request);
         unset($this->persistentContainer);
-        unset($this->protectionSpace);
+        unset($this->protection);
         unset($this->persistentSpace);
         unset($this->resourceManager);
         unset($this->delegate);
@@ -74,8 +74,8 @@ class Application extends Responder
             });
             $this->$name = $persistentContainer;
             return $this->$name;
-        } elseif ($name == "protectionSpace") {
-            $this->$name = new ProtectionSpace();
+        } elseif ($name == "protection") {
+            $this->$name = new NativeProtection();
             return $this->$name;
         } elseif ($name == "persistentSpace") {
             $this->$name = new PersistentSpace();
@@ -140,7 +140,7 @@ class Application extends Responder
                 }
             }
         }
-        foreach ([$this->protectionSpace, $this->persistentSpace, $this->resourceManager] as $responder) {
+        foreach ([$this->protection, $this->persistentSpace, $this->resourceManager] as $responder) {
             if ($responder->isFirstResponder()) {
                 return $responder;
             }
@@ -217,12 +217,12 @@ class Application extends Responder
             if (!$responder->allowedMethods->containsElement($this->request->httpMethod)) {
                 throw new MethodNotAllowedException();
             }
-            if ($this->request->httpMethod !== HTTPRequestMethod::options) {
-                if (!$responder->isEqual($this->protectionSpace) && !$responder->isProtectedContentAvailable && !$this->protectionSpace->token?->isValid) {
+            if ($this->request->httpMethod != HTTPRequestMethod::options) {
+                if (!$responder->isEqual($this->protection) && !$responder->isProtectedContentAvailable && !$this->protection->isValid()) {
                     throw new UnauthorizedException();
                 }
-                if ($this->request->httpMethod !== HTTPRequestMethod::get) {
-                    $viewContext->transactionAuthor = $this->protectionSpace->token?->payload?->username;
+                if ($this->request->httpMethod != HTTPRequestMethod::get) {
+                    $viewContext->transactionAuthor = $this->protection->username();
                 }
             }
             $response = $responder->response();

@@ -146,7 +146,7 @@ class NativeProtection extends Protection
 
     public function isValid(): bool
     {
-        return $this->token?->isValid === false;
+        return $this->token?->isValid ?? false;
     }
 
     public function username(): ?string

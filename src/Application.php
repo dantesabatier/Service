@@ -14,10 +14,10 @@ use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
+use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Foundation\URL;
-use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Foundation\UserDefaults;
 use Throwable;
 use function Sabatier\Foundation\fatal_error;
@@ -29,25 +29,29 @@ use const Sabatier\CoreData\PersistentHistoryTrackingKey;
 use const Sabatier\CoreData\PersistentStoreRemoteChangeNotificationPostOptionKey;
 use const Sabatier\Foundation\kCFBundleNameKey;
 
+/**
+ * The centralized point of control and coordination.
+ */
 class Application extends Responder
 {
     private static ?Application $shared = null;
     public readonly URLRequest $request;
     public readonly PersistentContainer $persistentContainer;
+    /** @var ApplicationDelegate|null The delegate of the app object. */
+    public ?ApplicationDelegate $delegate = null;
+    public Authentication $authentication;
     private readonly PersistentSpace $persistentSpace;
     private readonly ResourceManager $resourceManager;
-    public Protection $protection;
-    public ?ApplicationDelegate $delegate = null;
 
     final public function __construct()
     {
         parent::__construct();
         unset($this->request);
         unset($this->persistentContainer);
-        unset($this->protection);
+        unset($this->delegate);
+        unset($this->authentication);
         unset($this->persistentSpace);
         unset($this->resourceManager);
-        unset($this->delegate);
     }
 
     public function __get(string $name)
@@ -74,15 +78,6 @@ class Application extends Responder
             });
             $this->$name = $persistentContainer;
             return $this->$name;
-        } elseif ($name == "protection") {
-            $this->$name = new NativeProtection();
-            return $this->$name;
-        } elseif ($name == "persistentSpace") {
-            $this->$name = new PersistentSpace();
-            return $this->$name;
-        } elseif ($name == "resourceManager") {
-            $this->$name = new ResourceManager();
-            return $this->$name;
         } elseif ($name == "delegate") {
             $delegate = null;
             if (($principalClass = Bundle::main()->principalClass) && isset(class_implements($principalClass)[ApplicationDelegate::class])) {
@@ -95,11 +90,24 @@ class Application extends Responder
             }
             $this->$name = $delegate;
             return $this->$name;
+        } elseif ($name == "authentication") {
+            $this->$name = new JSONWebTokenAuthentication();
+            return $this->$name;
+        } elseif ($name == "persistentSpace") {
+            $this->$name = new PersistentSpace();
+            return $this->$name;
+        } elseif ($name == "resourceManager") {
+            $this->$name = new ResourceManager();
+            return $this->$name;
         } else {
             return parent::__get($name);
         }
     }
 
+    /**
+     * The singleton app instance.
+     * @return Application
+     */
     public static function shared(): Application
     {
         if (static::$shared === null) {
@@ -140,12 +148,12 @@ class Application extends Responder
                 }
             }
         }
-        foreach ([$this->protection, $this->persistentSpace, $this->resourceManager] as $responder) {
+        foreach ([$this->authentication, $this->persistentSpace, $this->resourceManager] as $responder) {
             if ($responder->isFirstResponder()) {
                 return $responder;
             }
         }
-        if ($this->request->url->path === "/") {
+        if ($this->request->url->path == "/") {
             throw new ServiceUnavailableException();
         } else {
             throw new NotFoundException();
@@ -218,13 +226,14 @@ class Application extends Responder
                 throw new MethodNotAllowedException();
             }
             if ($this->request->httpMethod != HTTPRequestMethod::options) {
-                if (!$responder->isEqual($this->protection) && !$responder->isProtectedContentAvailable && !$this->protection->isValid()) {
+                if (!$responder->isEqual($this->authentication) && !$responder->isProtectedContentAvailable && !$this->authentication->isValid()) {
                     throw new UnauthorizedException();
                 }
                 if ($this->request->httpMethod != HTTPRequestMethod::get) {
-                    $viewContext->transactionAuthor = $this->protection->username();
+                    $viewContext->transactionAuthor = $this->authentication->username();
                 }
             }
+            $this->delegate?->applicationDidFinishLaunching($this);
             $response = $responder->response();
             $headerFields = $response->allHeaderFields;
             if ($value = $this->request->valueForHttpHeaderField("Origin")) {
@@ -248,6 +257,10 @@ class Application extends Responder
         }
     }
 
+    /**
+     * Terminates the receiver.
+     * @return never
+     */
     public function terminate(): never
     {
         exit();

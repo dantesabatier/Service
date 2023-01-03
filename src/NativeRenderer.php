@@ -2,7 +2,6 @@
 
 namespace Sabatier\Service;
 
-/** @internal */
 class NativeRenderer extends Renderer
 {
     public function render(string $name, object|array $context): string

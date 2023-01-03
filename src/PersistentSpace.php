@@ -16,21 +16,21 @@ use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\PersistentStore;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\CompareOptions;
-use Sabatier\Foundation\Predicates\ComparisonPredicate;
-use Sabatier\Foundation\Predicates\CompoundPredicate;
 use Sabatier\Foundation\Dictionary;
-use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
+use Sabatier\Foundation\Predicates\ComparisonPredicate;
+use Sabatier\Foundation\Predicates\CompoundPredicate;
+use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Foundation\Predicates\Predicate;
 use Sabatier\Foundation\SortDescriptor;
 use Sabatier\Foundation\URLComponents;
 use Sabatier\Foundation\URLQueryItem;
-use const Sabatier\CoreData\XMLStoreType;
 use function Sabatier\Foundation\string_begins_with;
 use function Sabatier\Foundation\string_contains;
 use function Sabatier\Foundation\string_is_equal;
+use const Sabatier\CoreData\XMLStoreType;
 
 /** @internal */
 class PersistentSpace extends Responder

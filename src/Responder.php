@@ -11,10 +11,11 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
-use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\Networking\URLRequest;
+use Sabatier\Foundation\ObjectClass;
 
 /**
+ * An abstract interface for responding to and handling events.
  * @psalm-consistent-constructor
  */
 abstract class Responder extends ObjectClass
@@ -50,22 +51,27 @@ abstract class Responder extends ObjectClass
             default => $this->valueForUndefinedKey($name)
         };
     }
-    
+
+    /**
+     * Returns a Boolean value indicating whether this object is the first responder.
+     * @return bool true if the responder is the first responder; otherwise, false.
+     */
     public function isFirstResponder(): bool
     {
-        $path = $this->request->url->path;
+        $request = $this->request;
+        $path = $request->url->path;
         $reflectionClass = new ReflectionClass($this);
         foreach ($reflectionClass->getAttributes(Endpoint::class) as $attribute) {
             $endpoint = $attribute->newInstance();
-            if ($endpoint->path === $path) {
+            if ($endpoint->path == $path && $request->httpMethod == HTTPRequestMethod::get) {
                 return true;
             }
         }
         foreach ($reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
             foreach ($method->getAttributes(Action::class) as $attribute) {
                 $action = $attribute->newInstance();
-                if ($action->path === $path) {
-                    if ($this->request->httpMethod === $action->method) {
+                if ($action->path == $path) {
+                    if ($request->httpMethod == $action->method) {
                         $this->perform($method->name);
                     }
                     return true;

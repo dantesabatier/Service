@@ -15,8 +15,6 @@ use const Sabatier\Foundation\kCFBundleNameKey;
  */
 abstract class ViewController extends Responder
 {
-    /** @var class-string<Renderer> */
-    public static string $rendererClass = NativeRenderer::class;
     private static ?Renderer $renderer = null;
     /** @var string The name of the view controller's template file, if one was specified. */
     public string $name;
@@ -56,7 +54,7 @@ abstract class ViewController extends Responder
         } elseif ($name == "view") {
             $this->viewWillLoad();
             if (self::$renderer === null) {
-                self::$renderer = new static::$rendererClass($this->bundle);
+                self::$renderer = new View::$rendererClass($this->bundle);
             }
             $this->$name = new View($this->name, $this->context, self::$renderer);
             $this->viewDidLoad();

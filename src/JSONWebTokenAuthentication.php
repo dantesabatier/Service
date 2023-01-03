@@ -18,34 +18,23 @@ use Sabatier\Foundation\ProcessInfo;
 use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\substring_from_index;
 use function Sabatier\Foundation\substring_to_index;
+use const Sabatier\Foundation\Networking\URLAuthenticationMethodDefault;
 
 /** @internal */
-class NativeProtection extends Protection
+class JSONWebTokenAuthentication extends Authentication
 {
+    private ?JSONWebToken $token;
 
-    public readonly string $authenticationMethod;
-    public readonly ?JSONWebToken $token;
-
+    /**
+     * @throws Exception
+     */
     public function __construct()
     {
         parent::__construct();
-        unset($this->authenticationMethod);
-        unset($this->token);
         $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::options]);
         $this->contentType = "application/json; charset=utf-8";
-    }
-
-    public function __get(string $name)
-    {
-        if ($name == "authenticationMethod") {
-            $this->$name = (($string = $this->request->valueForHttpHeaderField("Authorization")) && ($index = strpos($string, " ")) && ($authenticationMethod = substring_to_index($string, $index))) ? $authenticationMethod : "Bearer";
-            return $this->$name;
-        } elseif ($name == "token") {
-            $this->$name = (($string = $this->request->valueForHttpHeaderField("Authorization")) && ($index = strpos($string, " ")) && ($hash = trim(substring_from_index($string, $index))) && count(explode(".", $hash)) == 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment["APPLICATION_TOKEN_KEY"] ?? fatal_error("Environment variable \"APPLICATION_TOKEN_KEY\" cannot be null"), null, $hash, $this->request->url->host) : null;
-            return $this->$name;
-        } else {
-            return parent::__get($name);
-        }
+        $this->token = (($string = $this->request->valueForHttpHeaderField("Authorization")) && ($index = strpos($string, " ")) && ($hash = trim(substring_from_index($string, $index))) && count(explode(".", $hash)) == 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment["APPLICATION_TOKEN_KEY"] ?? fatal_error("Environment variable \"APPLICATION_TOKEN_KEY\" cannot be null"), null, $hash, $this->request->url->host) : null;
+        $this->method = (($string = $this->request->valueForHttpHeaderField("Authorization")) && ($index = strpos($string, " ")) && ($method = substring_to_index($string, $index))) ? $method : URLAuthenticationMethodDefault;
     }
 
     /**
@@ -61,7 +50,7 @@ class NativeProtection extends Protection
         $entityName = $environment["APPLICATION_USERS_ENTITY_NAME"] ?? fatal_error("Environment variable \"APPLICATION_USERS_ENTITY_NAME\" cannot be null");
         /** @var int $validity */
         $validity = $environment["APPLICATION_TOKEN_VALIDITY"] ?? 8;
-        $authenticationMethod = $this->authenticationMethod;
+        $authenticationMethod = $this->method;
         if ($authenticationMethod != "Bearer") {
             throw new UnauthorizedException();
         }

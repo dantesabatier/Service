@@ -30,7 +30,7 @@ use const Sabatier\CoreData\PersistentStoreRemoteChangeNotificationPostOptionKey
 use const Sabatier\Foundation\kCFBundleNameKey;
 
 /**
- * The centralized point of control and coordination.
+ * An object that manages an app’s main url request and resources used by all of that app’s objects.
  */
 class Application extends Responder
 {

@@ -15,7 +15,7 @@ use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Foundation\ObjectClass;
 
 /**
- * An abstract interface for responding to and handling events.
+ * An abstract interface for responding to and handling url requests.
  * @psalm-consistent-constructor
  */
 abstract class Responder extends ObjectClass

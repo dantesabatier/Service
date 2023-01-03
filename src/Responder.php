@@ -13,6 +13,7 @@ use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
 use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Foundation\ObjectClass;
+use function Sabatier\Foundation\human_readable_value;
 
 /**
  * An abstract interface for responding to and handling url requests.
@@ -21,7 +22,7 @@ use Sabatier\Foundation\ObjectClass;
 abstract class Responder extends ObjectClass
 {
     public readonly URLRequest $request;
-    /** @var Dictionary<mixed>|null */
+    /** @var Dictionary|null */
     public readonly ?Dictionary $serialization;
     public readonly ManagedObjectContext $managedObjectContext;
     /** @var ArrayClass<string> */
@@ -90,5 +91,54 @@ abstract class Responder extends ObjectClass
         $headerFields = new Dictionary();
         $headerFields["Content-Type"] = $this->contentType;
         return new HTTPURLResponse($this->request->url, HTTPStatusCode::ok, null, $headerFields);
+    }
+
+    public function send(HTTPURLResponse $response, ?string $content): void
+    {
+        $isEmpty = match ($response->statusCode) {
+            HTTPStatusCode::created, HTTPStatusCode::noContent, HTTPStatusCode::resetContent, HTTPStatusCode::notModified => true,
+            default => $response instanceof BatchResponse ? $response->isEmpty : empty($content)
+        };
+        if ($isEmpty) {
+            foreach (["Content-Type", "Content-Length"] as $key) {
+                $response->allHeaderFields->removeValueForKey($key);
+            }
+        }
+        header(sprintf("%s %s %s", $response->httpVersion, $response->statusCode, HTTPURLResponse::localizedString($response->statusCode)));
+        if ($response instanceof BatchResponse) {
+            flush();
+            header_register_callback(function () use ($response) {
+                foreach ($response->allHeaderFields as $key => $value) {
+                    header(sprintf("%s: %s", $key, human_readable_value($value)));
+                    flush();
+                }
+            });
+            if ($isEmpty) {
+                die();
+            }
+            ob_start();
+            foreach ($response as $idx => $data) {
+                echo $data;
+                if (($idx + 1) < $response->count) {
+                    echo "\r\n";
+                }
+                flush();
+            }
+            ob_end_flush();
+            die();
+        }
+        foreach ($response->allHeaderFields as $key => $value) {
+            header(sprintf("%s: %s", $key, human_readable_value($value)));
+        }
+        if ($isEmpty) {
+            die();
+        }
+        ob_start();
+        /** @noinspection SpellCheckingInspection */
+        ob_start("ob_gzhandler");
+        echo $content;
+        ob_end_flush();
+        header("Content-Length: " . ob_get_length());
+        ob_end_flush();
     }
 }

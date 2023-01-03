@@ -74,7 +74,7 @@ abstract class ViewController extends Responder
 
     public function loadView(): void
     {
-        $this->content = (string)$this->view;
+        $this->content = $this->view->render();
     }
 
     public function viewWillLoad(): void

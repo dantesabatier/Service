@@ -2,13 +2,11 @@
 
 namespace Sabatier\Service;
 
-use Sabatier\Foundation\ObjectClass;
-
 /**
  * An object that manages the content for an area on the screen.
  * @psalm-consistent-constructor
  */
-class View extends ObjectClass
+class View
 {
     /** @var class-string<Renderer> */
     public static string $rendererClass = NativeRenderer::class;
@@ -20,10 +18,5 @@ class View extends ObjectClass
     public function render(): string
     {
         return $this->renderer->render($this->name, $this->context);
-    }
-
-    public function description(): string
-    {
-        return $this->render();
     }
 }

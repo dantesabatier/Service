@@ -171,18 +171,17 @@ class PersistentSpace extends Responder
                         throw new UnsupportedMediaTypeException();
                     }
                 }
-                $httpBody = $request->httpBody ?? "[]";
-                if (!($parsedBody = json_decode($httpBody, true, 512, JSON_THROW_ON_ERROR))) {
+                if (!($body = json_decode($request->httpBody ?? "[]", true, 512, JSON_THROW_ON_ERROR))) {
                     $components = new URLComponents($this->request->url->absoluteString);
                     $items = $components->queryItems ?? throw new BadRequestException("Bad request, body cannot be null");
-                    $parsedBody = $items->reduce([], function (array &$result, URLQueryItem $item): array {
+                    $body = $items->reduce([], function (array &$result, URLQueryItem $item): array {
                         $result[$item->name] = $item->value;
                         return $result;
                     });
                 }
                 $object = null;
                 /** @var Dictionary<mixed> $keyedValues */
-                $keyedValues = Dictionary::dictionaryWithArray($parsedBody);
+                $keyedValues = Dictionary::dictionaryWithArray($body);
                 $objectID = $keyedValues["objectID"];
                 if ($objectID === null) {
                     if ($method != HTTPRequestMethod::post) {

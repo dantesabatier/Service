@@ -39,7 +39,7 @@ class Application extends Responder
     public readonly PersistentContainer $persistentContainer;
     /** @var ApplicationDelegate|null The delegate of the app object. */
     public ?ApplicationDelegate $delegate = null;
-    public Protection $protection;
+    public ProtectionSpace $protectionSpace;
     private readonly PersistentSpace $persistentSpace;
     private readonly ResourceManager $resourceManager;
 
@@ -49,7 +49,7 @@ class Application extends Responder
         unset($this->request);
         unset($this->persistentContainer);
         unset($this->delegate);
-        unset($this->protection);
+        unset($this->protectionSpace);
         unset($this->persistentSpace);
         unset($this->resourceManager);
     }
@@ -91,7 +91,7 @@ class Application extends Responder
             $this->$name = $delegate;
             return $this->$name;
         } elseif ($name == "protection") {
-            $this->$name = new JSONWebTokenProtection();
+            $this->$name = new JSONWebTokenProtectionSpace();
             return $this->$name;
         } elseif ($name == "persistentSpace") {
             $this->$name = new PersistentSpace();
@@ -148,7 +148,7 @@ class Application extends Responder
                 }
             }
         }
-        foreach ([$this->protection, $this->persistentSpace, $this->resourceManager] as $responder) {
+        foreach ([$this->protectionSpace, $this->persistentSpace, $this->resourceManager] as $responder) {
             if ($responder->isFirstResponder()) {
                 return $responder;
             }
@@ -224,7 +224,7 @@ class Application extends Responder
                 throw new MethodNotAllowedException();
             }
             if ($this->request->httpMethod != HTTPRequestMethod::options) {
-                $protection = $this->protection;
+                $protection = $this->protectionSpace;
                 if (!$responder->isProtectedContentAvailable && !$responder->isEqual($protection) && !$protection->isProtectedContentAvailable) {
                     throw new UnauthorizedException();
                 }

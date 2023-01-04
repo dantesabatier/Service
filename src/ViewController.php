@@ -75,6 +75,7 @@ abstract class ViewController extends Responder
     public function loadView(): void
     {
         $this->content = $this->view->render();
+        $this->contentType = "text/html; charset=utf-8";
     }
 
     public function viewWillLoad(): void
@@ -90,6 +91,6 @@ abstract class ViewController extends Responder
         if ($this->request->httpMethod === HTTPRequestMethod::get) {
             $this->loadView();
         }
-        return parent::response();
+        return new HTTPURLResponse($this->request->url);
     }
 }

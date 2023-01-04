@@ -130,7 +130,7 @@ class JSONWebTokenAuthentication extends Authentication
             default:
                 throw new MethodNotAllowedException();
         }
-        return parent::response();
+        return new HTTPURLResponse($this->request->url);
     }
 
     public function isValid(): bool

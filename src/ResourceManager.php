@@ -5,15 +5,12 @@
 namespace Sabatier\Service;
 
 use Sabatier\Foundation\ArrayClass;
-use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
-use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
 use Sabatier\Foundation\URL;
 use Sabatier\Foundation\URLFileTypeMappings;
 
-/** @internal */
 class ResourceManager extends Responder
 {
     private readonly URL $url;
@@ -32,8 +29,6 @@ class ResourceManager extends Responder
 
     public function response(): HTTPURLResponse
     {
-        /** @var Dictionary<mixed> $headerFields */
-        $headerFields = new Dictionary();
         switch ($this->request->httpMethod) {
             case HTTPRequestMethod::get:
             case HTTPRequestMethod::head:
@@ -45,8 +40,7 @@ class ResourceManager extends Responder
                     if ($this->request->httpMethod === HTTPRequestMethod::get) {
                         $this->content = $content;
                     }
-                    $headerFields["Content-Type"] = $this->contentType;
-                    $headerFields["Content-Disposition"] = "inline; filename={$this->url->lastPathComponent}";
+                    $this->contentDisposition = "inline; filename={$this->url->lastPathComponent}";
                 }
                 break;
             case HTTPRequestMethod::options:
@@ -54,6 +48,6 @@ class ResourceManager extends Responder
             default:
                 throw new MethodNotAllowedException();
         }
-        return new HTTPURLResponse($this->request->url, HTTPStatusCode::ok, null, $headerFields);
+        return new HTTPURLResponse($this->request->url);
     }
 }

@@ -236,6 +236,8 @@ class Application extends Responder
             $this->delegate?->applicationDidFinishLaunching($this);
             $response = $responder->response();
             $headerFields = $response->allHeaderFields;
+            $headerFields["Content-Type"] = $responder->contentType;
+            $headerFields["Content-Disposition"] = $responder->contentDisposition;
             if ($value = $this->request->valueForHttpHeaderField("Origin")) {
                 $headerFields["Access-Control-Allow-Origin"] = $value;
                 $headerFields["Access-Control-Allow-Credentials"] = true;

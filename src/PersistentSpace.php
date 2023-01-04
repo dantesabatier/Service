@@ -138,8 +138,6 @@ class PersistentSpace extends Responder
         $request = $this->request;
         $method = $request->httpMethod;
         $statusCode = HTTPStatusCode::ok;
-        /** @var Dictionary<mixed> $headerFields */
-        $headerFields = new Dictionary();
         switch ($method) {
             case HTTPRequestMethod::get:
             case HTTPRequestMethod::head:
@@ -234,7 +232,6 @@ class PersistentSpace extends Responder
             default:
                 throw new MethodNotAllowedException();
         }
-        $headerFields["Content-Type"] = $this->contentType;
-        return new HTTPURLResponse($request->url, $statusCode, null, $headerFields);
+        return new HTTPURLResponse($request->url, $statusCode);
     }
 }

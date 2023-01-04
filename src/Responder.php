@@ -28,6 +28,7 @@ abstract class Responder extends ObjectClass
     public ArrayClass $allowedMethods;
     public ?string $content = null;
     public ?string $contentType = null;
+    public ?string $contentDisposition = null;
     public bool $isProtectedContentAvailable = false;
 
     public function __construct()
@@ -86,9 +87,6 @@ abstract class Responder extends ObjectClass
      */
     public function response(): HTTPURLResponse
     {
-        /** @var Dictionary<mixed> $headerFields */
-        $headerFields = new Dictionary();
-        $headerFields["Content-Type"] = $this->contentType;
-        return new HTTPURLResponse($this->request->url, HTTPStatusCode::ok, null, $headerFields);
+        return new HTTPURLResponse($this->request->url);
     }
 }

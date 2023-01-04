@@ -90,7 +90,7 @@ class Application extends Responder
             }
             $this->$name = $delegate;
             return $this->$name;
-        } elseif ($name == "protection") {
+        } elseif ($name == "protectionSpace") {
             $this->$name = new JSONWebTokenProtectionSpace();
             return $this->$name;
         } elseif ($name == "persistentSpace") {
@@ -249,7 +249,7 @@ class Application extends Responder
             }
             $this->send($response, $responder->content);
         } catch (Throwable $throwable) {
-            $response = $throwable instanceof InvalidRequestException ? new HTTPURLResponse($this->request->url, (int)$throwable->getCode(), null, $throwable instanceof UnauthorizedException ? new Dictionary(["WWW-Authenticate" => "Bearer realm=\"{$this->request->url->host}\""]) : null) : new HTTPURLResponse($this->request->url, HTTPStatusCode::internalServerError);
+            $response = $throwable instanceof InvalidRequestException ? new HTTPURLResponse($this->request->url, (int)$throwable->getCode(), null, $throwable instanceof UnauthorizedException ? new Dictionary(["WWW-Authenticate" => "{$this->protectionSpace->defaultAuthenticationMethod} realm=\"{$this->request->url->host}\""]) : null) : new HTTPURLResponse($this->request->url, HTTPStatusCode::internalServerError);
             $content = $this->delegate?->applicationWillFail($this, $response, $throwable);
             if ($content instanceof View) {
                 $content = $content->render();

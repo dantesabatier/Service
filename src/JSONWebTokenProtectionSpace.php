@@ -21,6 +21,7 @@ use function Sabatier\Foundation\substring_to_index;
 /** @internal */
 class JSONWebTokenProtectionSpace extends ProtectionSpace
 {
+    public string $defaultAuthenticationMethod = "Bearer";
     private ?JSONWebToken $token;
 
     /**
@@ -35,8 +36,8 @@ class JSONWebTokenProtectionSpace extends ProtectionSpace
         }
         $this->authenticationMethod = substring_to_index($authentication, $authenticationIndex);
         $this->token = (($hash = trim(substring_from_index($authentication, $authenticationIndex))) && count(explode(".", $hash)) == 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment["APPLICATION_TOKEN_KEY"] ?? fatal_error("Environment variable \"APPLICATION_TOKEN_KEY\" cannot be null"), null, $hash, $this->request->url->host) : null;
-        $this->isProtectedContentAvailable = (bool)$this->token?->isValid;
         $this->username = $this->token?->payload?->username;
+        $this->isProtectedContentAvailable = (bool)$this->token?->isValid;
         $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::options]);
     }
 
@@ -53,8 +54,7 @@ class JSONWebTokenProtectionSpace extends ProtectionSpace
         $entityName = $environment["APPLICATION_USERS_ENTITY_NAME"] ?? fatal_error("Environment variable \"APPLICATION_USERS_ENTITY_NAME\" cannot be null");
         /** @var int $validity */
         $validity = $environment["APPLICATION_TOKEN_VALIDITY"] ?? 8;
-        $method = $this->authenticationMethod;
-        if ($method != "Bearer") {
+        if ($this->authenticationMethod != $this->defaultAuthenticationMethod) {
             throw new UnauthorizedException();
         }
         /** @var array<string, string> $body */
@@ -79,8 +79,8 @@ class JSONWebTokenProtectionSpace extends ProtectionSpace
         }
         $date = new Date();
         $this->token = new JSONWebToken($key, ["iat" => $date->timeIntervalSinceReferenceDate, "jti" => base64_encode(random_bytes(16)), "iss" => $this->request->url->host, "nbf" => $date->timeIntervalSinceReferenceDate, "exp" => $date->addingTimeInterval(60 * 60 * $validity)->timeIntervalSinceReferenceDate, "username" => $username], null, $this->request->url->host);
-        $this->isProtectedContentAvailable = $this->token->isValid;
         $this->username = $this->token->payload?->username;
+        $this->isProtectedContentAvailable = $this->token->isValid;
         $this->content = json_encode($this->token, JSON_THROW_ON_ERROR);
         $this->contentType = "application/json; charset=utf-8";
     }

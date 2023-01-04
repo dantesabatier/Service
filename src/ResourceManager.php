@@ -14,7 +14,7 @@ use Sabatier\Foundation\URLFileTypeMappings;
 /** @internal */
 class ResourceManager extends Responder
 {
-    public readonly URL $resourceURL;
+    private readonly URL $resourceURL;
 
     public function __construct()
     {

@@ -22,6 +22,7 @@ use Sabatier\Foundation\UserDefaults;
 use Throwable;
 use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\getallheaders;
+use function Sabatier\Foundation\human_readable_value;
 use function Sabatier\Foundation\request_url;
 use function Sabatier\Foundation\string_is_equal;
 use const Sabatier\CoreData\PersistentHistoryTrackingKey;
@@ -157,6 +158,55 @@ class Application extends Responder
         } else {
             throw new NotFoundException();
         }
+    }
+
+    private function send(HTTPURLResponse $response, ?string $content): void
+    {
+        $isEmpty = match ($response->statusCode) {
+            HTTPStatusCode::created, HTTPStatusCode::noContent, HTTPStatusCode::resetContent, HTTPStatusCode::notModified => true,
+            default => $response instanceof BatchResponse ? $response->isEmpty : empty($content)
+        };
+        if ($isEmpty) {
+            foreach (["Content-Type", "Content-Length"] as $key) {
+                $response->allHeaderFields->removeValueForKey($key);
+            }
+        }
+        header(sprintf("%s %s %s", $response->httpVersion, $response->statusCode, HTTPURLResponse::localizedString($response->statusCode)));
+        if ($response instanceof BatchResponse) {
+            flush();
+            header_register_callback(function () use ($response) {
+                foreach ($response->allHeaderFields as $key => $value) {
+                    header(sprintf("%s: %s", $key, human_readable_value($value)));
+                    flush();
+                }
+            });
+            if ($isEmpty) {
+                die();
+            }
+            ob_start();
+            foreach ($response as $idx => $data) {
+                echo $data;
+                if (($idx + 1) < $response->count) {
+                    echo "\r\n";
+                }
+                flush();
+            }
+            ob_end_flush();
+            die();
+        }
+        foreach ($response->allHeaderFields as $key => $value) {
+            header(sprintf("%s: %s", $key, human_readable_value($value)));
+        }
+        if ($isEmpty) {
+            die();
+        }
+        ob_start();
+        /** @noinspection SpellCheckingInspection */
+        ob_start("ob_gzhandler");
+        echo $content;
+        ob_end_flush();
+        header("Content-Length: " . ob_get_length());
+        ob_end_flush();
     }
 
     public function run(): void

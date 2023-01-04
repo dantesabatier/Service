@@ -11,7 +11,6 @@ use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
-use Sabatier\Foundation\Networking\HTTPURLResponse;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Foundation\ProcessInfo;
@@ -33,7 +32,7 @@ class JSONWebTokenProtection extends Protection
         $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::options]);
         $this->token = (($string = $this->request->valueForHttpHeaderField("Authorization")) && ($index = strpos($string, " ")) && ($hash = trim(substring_from_index($string, $index))) && count(explode(".", $hash)) == 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment["APPLICATION_TOKEN_KEY"] ?? fatal_error("Environment variable \"APPLICATION_TOKEN_KEY\" cannot be null"), null, $hash, $this->request->url->host) : null;
         $this->method = (($string = $this->request->valueForHttpHeaderField("Authorization")) && ($index = strpos($string, " ")) && ($method = substring_to_index($string, $index))) ? $method : null;
-        $this->isProtectedContentAvailable = $this->token?->isValid === true;
+        $this->isProtectedContentAvailable = (bool)$this->token?->isValid;
         $this->username = $this->token?->payload?->username;
     }
 
@@ -91,7 +90,7 @@ class JSONWebTokenProtection extends Protection
         $environment = ProcessInfo::processInfo()->environment;
         /** @var string $entityName */
         $entityName = $environment["APPLICATION_USERS_ENTITY_NAME"] ?? fatal_error("Environment variable \"APPLICATION_USERS_ENTITY_NAME\" cannot be null");
-        if (!($username = $this->token?->payload?->username)) {
+        if (!($username = $this->username)) {
             throw new UnauthorizedException();
         }
         /** @var Dictionary<mixed> $serialization */
@@ -118,22 +117,5 @@ class JSONWebTokenProtection extends Protection
     {
         $this->content = json_encode(true, JSON_THROW_ON_ERROR);
         $this->contentType = "application/json; charset=utf-8";
-    }
-
-    public function response(): HTTPURLResponse
-    {
-        switch ($this->request->httpMethod) {
-            case HTTPRequestMethod::get:
-            case HTTPRequestMethod::post:
-                if (!$this->isProtectedContentAvailable) {
-                    throw new UnauthorizedException();
-                }
-                break;
-            case HTTPRequestMethod::options:
-                break;
-            default:
-                throw new MethodNotAllowedException();
-        }
-        return new HTTPURLResponse($this->request->url);
     }
 }

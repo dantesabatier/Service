@@ -39,7 +39,7 @@ class Application extends Responder
     public readonly PersistentContainer $persistentContainer;
     /** @var ApplicationDelegate|null The delegate of the app object. */
     public ?ApplicationDelegate $delegate = null;
-    public Authentication $authentication;
+    public Protection $protection;
     private readonly PersistentSpace $persistentSpace;
     private readonly ResourceManager $resourceManager;
 
@@ -49,7 +49,7 @@ class Application extends Responder
         unset($this->request);
         unset($this->persistentContainer);
         unset($this->delegate);
-        unset($this->authentication);
+        unset($this->protection);
         unset($this->persistentSpace);
         unset($this->resourceManager);
     }
@@ -90,8 +90,8 @@ class Application extends Responder
             }
             $this->$name = $delegate;
             return $this->$name;
-        } elseif ($name == "authentication") {
-            $this->$name = new JSONWebTokenAuthentication();
+        } elseif ($name == "protection") {
+            $this->$name = new JSONWebTokenProtection();
             return $this->$name;
         } elseif ($name == "persistentSpace") {
             $this->$name = new PersistentSpace();
@@ -148,7 +148,7 @@ class Application extends Responder
                 }
             }
         }
-        foreach ([$this->authentication, $this->persistentSpace, $this->resourceManager] as $responder) {
+        foreach ([$this->protection, $this->persistentSpace, $this->resourceManager] as $responder) {
             if ($responder->isFirstResponder()) {
                 return $responder;
             }
@@ -225,12 +225,12 @@ class Application extends Responder
                 throw new MethodNotAllowedException();
             }
             if ($this->request->httpMethod != HTTPRequestMethod::options) {
-                $authentication = $this->authentication;
-                if (!$responder->isEqual($authentication) && !$authentication->isValid() && !$responder->isProtectedContentAvailable) {
+                $protection = $this->protection;
+                if (!$responder->isProtectedContentAvailable && !$responder->isEqual($protection) && !$protection->isProtectedContentAvailable) {
                     throw new UnauthorizedException();
                 }
                 if ($this->request->httpMethod != HTTPRequestMethod::get) {
-                    $viewContext->transactionAuthor = $authentication->username();
+                    $viewContext->transactionAuthor = $protection->username;
                 }
             }
             $this->delegate?->applicationDidFinishLaunching($this);

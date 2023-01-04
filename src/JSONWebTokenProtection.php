@@ -18,10 +18,9 @@ use Sabatier\Foundation\ProcessInfo;
 use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\substring_from_index;
 use function Sabatier\Foundation\substring_to_index;
-use const Sabatier\Foundation\Networking\URLAuthenticationMethodDefault;
 
 /** @internal */
-class JSONWebTokenAuthentication extends Authentication
+class JSONWebTokenProtection extends Protection
 {
     private ?JSONWebToken $token;
 
@@ -34,7 +33,9 @@ class JSONWebTokenAuthentication extends Authentication
         $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::options]);
         $this->contentType = "application/json; charset=utf-8";
         $this->token = (($string = $this->request->valueForHttpHeaderField("Authorization")) && ($index = strpos($string, " ")) && ($hash = trim(substring_from_index($string, $index))) && count(explode(".", $hash)) == 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment["APPLICATION_TOKEN_KEY"] ?? fatal_error("Environment variable \"APPLICATION_TOKEN_KEY\" cannot be null"), null, $hash, $this->request->url->host) : null;
-        $this->method = (($string = $this->request->valueForHttpHeaderField("Authorization")) && ($index = strpos($string, " ")) && ($method = substring_to_index($string, $index))) ? $method : URLAuthenticationMethodDefault;
+        $this->authenticationMethod = (($string = $this->request->valueForHttpHeaderField("Authorization")) && ($index = strpos($string, " ")) && ($authenticationMethod = substring_to_index($string, $index))) ? $authenticationMethod : null;
+        $this->isProtectedContentAvailable = $this->token?->isValid === true;
+        $this->username = $this->token?->payload?->username;
     }
 
     /**
@@ -50,7 +51,7 @@ class JSONWebTokenAuthentication extends Authentication
         $entityName = $environment["APPLICATION_USERS_ENTITY_NAME"] ?? fatal_error("Environment variable \"APPLICATION_USERS_ENTITY_NAME\" cannot be null");
         /** @var int $validity */
         $validity = $environment["APPLICATION_TOKEN_VALIDITY"] ?? 8;
-        $authenticationMethod = $this->method;
+        $authenticationMethod = $this->authenticationMethod;
         if ($authenticationMethod != "Bearer") {
             throw new UnauthorizedException();
         }
@@ -77,6 +78,8 @@ class JSONWebTokenAuthentication extends Authentication
         }
         $date = new Date();
         $this->token = new JSONWebToken($key, ["iat" => $date->timeIntervalSinceReferenceDate, "jti" => base64_encode(random_bytes(16)), "iss" => $this->request->url->host, "nbf" => $date->timeIntervalSinceReferenceDate, "exp" => $date->addingTimeInterval(60 * 60 * $validity)->timeIntervalSinceReferenceDate, "username" => $username], null, $this->request->url->host);
+        $this->isProtectedContentAvailable = $this->token->isValid;
+        $this->username = $this->token->payload?->username;
         $this->content = json_encode($this->token, JSON_THROW_ON_ERROR);
     }
 
@@ -121,7 +124,7 @@ class JSONWebTokenAuthentication extends Authentication
         switch ($this->request->httpMethod) {
             case HTTPRequestMethod::get:
             case HTTPRequestMethod::post:
-                if (!$this->isValid()) {
+                if (!$this->isProtectedContentAvailable) {
                     throw new UnauthorizedException();
                 }
                 break;
@@ -131,15 +134,5 @@ class JSONWebTokenAuthentication extends Authentication
                 throw new MethodNotAllowedException();
         }
         return new HTTPURLResponse($this->request->url);
-    }
-
-    public function isValid(): bool
-    {
-        return $this->token?->isValid ?? false;
-    }
-
-    public function username(): ?string
-    {
-        return $this->token?->payload?->username;
     }
 }

@@ -37,10 +37,9 @@ class Application extends Responder
     private static ?Application $shared = null;
     public readonly URLRequest $request;
     public readonly PersistentContainer $persistentContainer;
-    public bool $isProtectedContentAvailable = true;
     /** @var ApplicationDelegate|null The delegate of the app object. */
     public ?ApplicationDelegate $delegate = null;
-    public ?Authentication $authentication = null;
+    public Authentication $authentication;
     private readonly PersistentSpace $persistentSpace;
     private readonly ResourceManager $resourceManager;
 
@@ -150,7 +149,7 @@ class Application extends Responder
             }
         }
         foreach ([$this->authentication, $this->persistentSpace, $this->resourceManager] as $responder) {
-            if ($responder?->isFirstResponder()) {
+            if ($responder->isFirstResponder()) {
                 return $responder;
             }
         }
@@ -225,13 +224,13 @@ class Application extends Responder
             if (!$responder->allowedMethods->containsElement($this->request->httpMethod)) {
                 throw new MethodNotAllowedException();
             }
-            $authentication = $this->authentication;
             if ($this->request->httpMethod != HTTPRequestMethod::options) {
-                if (!$responder->isProtectedContentAvailable && $authentication && !$responder->isEqual($authentication) && !$authentication->isValid()) {
+                $authentication = $this->authentication;
+                if (!$responder->isEqual($authentication) && !$authentication->isValid() && !$responder->isProtectedContentAvailable) {
                     throw new UnauthorizedException();
                 }
                 if ($this->request->httpMethod != HTTPRequestMethod::get) {
-                    $viewContext->transactionAuthor = $authentication?->username();
+                    $viewContext->transactionAuthor = $authentication->username();
                 }
             }
             $this->delegate?->applicationDidFinishLaunching($this);

@@ -155,9 +155,8 @@ class Application extends Responder
         }
         if ($this->request->url->path == "/") {
             return $this;
-        } else {
-            throw new NotFoundException();
         }
+        throw new NotFoundException();
     }
 
     private function send(HTTPURLResponse $response, ?string $content): void

@@ -31,7 +31,6 @@ class JSONWebTokenProtection extends Protection
     {
         parent::__construct();
         $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::options]);
-        $this->contentType = "application/json; charset=utf-8";
         $this->token = (($string = $this->request->valueForHttpHeaderField("Authorization")) && ($index = strpos($string, " ")) && ($hash = trim(substring_from_index($string, $index))) && count(explode(".", $hash)) == 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment["APPLICATION_TOKEN_KEY"] ?? fatal_error("Environment variable \"APPLICATION_TOKEN_KEY\" cannot be null"), null, $hash, $this->request->url->host) : null;
         $this->authenticationMethod = (($string = $this->request->valueForHttpHeaderField("Authorization")) && ($index = strpos($string, " ")) && ($authenticationMethod = substring_to_index($string, $index))) ? $authenticationMethod : null;
         $this->isProtectedContentAvailable = $this->token?->isValid === true;
@@ -55,16 +54,15 @@ class JSONWebTokenProtection extends Protection
         if ($authenticationMethod != "Bearer") {
             throw new UnauthorizedException();
         }
-        $httpBody = $this->request->httpBody ?? "[]";
-        /** @var array<string, string> $array */
-        $array = json_decode($httpBody, true, 512, JSON_THROW_ON_ERROR);
-        if (!$array) {
+        /** @var array<string, string> $body */
+        $body = json_decode($this->request->httpBody ?? "[]", true, 512, JSON_THROW_ON_ERROR);
+        if (!$body) {
             throw new BadRequestException();
         }
         /** @var string|null $username */
-        $username = $array["username"] ?? null;
+        $username = $body["username"] ?? null;
         /** @var string|null $password */
-        $password = $array["password"] ?? null;
+        $password = $body["password"] ?? null;
         if (!$username || !$password) {
             throw new BadRequestException();
         }
@@ -81,6 +79,7 @@ class JSONWebTokenProtection extends Protection
         $this->isProtectedContentAvailable = $this->token->isValid;
         $this->username = $this->token->payload?->username;
         $this->content = json_encode($this->token, JSON_THROW_ON_ERROR);
+        $this->contentType = "application/json; charset=utf-8";
     }
 
     /**
@@ -108,6 +107,7 @@ class JSONWebTokenProtection extends Protection
             throw new NotFoundException();
         }
         $this->content = json_encode($user, JSON_PRESERVE_ZERO_FRACTION);
+        $this->contentType = "application/json; charset=utf-8";
     }
 
     /**
@@ -117,6 +117,7 @@ class JSONWebTokenProtection extends Protection
     public function logout(): void
     {
         $this->content = json_encode(true, JSON_THROW_ON_ERROR);
+        $this->contentType = "application/json; charset=utf-8";
     }
 
     public function response(): HTTPURLResponse

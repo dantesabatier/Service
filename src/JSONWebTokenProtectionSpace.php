@@ -21,7 +21,7 @@ use function Sabatier\Foundation\substring_to_index;
 /** @internal */
 class JSONWebTokenProtectionSpace extends ProtectionSpace
 {
-    public string $defaultAuthenticationMethod = "Bearer";
+    public string $defaultAuthenticationMethod = self::authenticationMethodBearer;
     private ?JSONWebToken $token;
 
     /**

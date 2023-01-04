@@ -13,18 +13,18 @@ use Sabatier\Foundation\URLFileTypeMappings;
 
 class ResourceManager extends Responder
 {
-    public readonly URL $url;
+    public readonly URL $resourceURL;
 
     public function __construct()
     {
         parent::__construct();
         $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::head, HTTPRequestMethod::options]);
-        $this->url = new URL($this->request->url->path, FileManager::default()->documentRootDirectory);
+        $this->resourceURL = new URL($this->request->url->path, FileManager::default()->documentRootDirectory);
     }
 
     public function isFirstResponder(): bool
     {
-        return FileManager::default()->fileExists($this->url->path, $isDirectory) && !$isDirectory && FileManager::default()->isReadableFile($this->url->path);
+        return FileManager::default()->fileExists($this->resourceURL->path, $isDirectory) && !$isDirectory && FileManager::default()->isReadableFile($this->resourceURL->path);
     }
 
     public function response(): HTTPURLResponse
@@ -32,15 +32,15 @@ class ResourceManager extends Responder
         switch ($this->request->httpMethod) {
             case HTTPRequestMethod::get:
             case HTTPRequestMethod::head:
-                if ($content = FileManager::default()->contents($this->url->path)) {
-                    if (($contentType = URLFileTypeMappings::shared()->mimeType($this->url->pathExtension)) && ($encoding = mb_detect_encoding($content))) {
+                if ($content = FileManager::default()->contents($this->resourceURL->path)) {
+                    if (($contentType = URLFileTypeMappings::shared()->mimeType($this->resourceURL->pathExtension)) && ($encoding = mb_detect_encoding($content))) {
                         $contentType .= "; charset=$encoding";
                     }
                     $this->contentType = $contentType;
                     if ($this->request->httpMethod === HTTPRequestMethod::get) {
                         $this->content = $content;
                     }
-                    $this->contentDisposition = "inline; filename={$this->url->lastPathComponent}";
+                    $this->contentDisposition = "inline; filename={$this->resourceURL->lastPathComponent}";
                 }
                 break;
             case HTTPRequestMethod::options:

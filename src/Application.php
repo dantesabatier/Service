@@ -37,9 +37,10 @@ class Application extends Responder
     private static ?Application $shared = null;
     public readonly URLRequest $request;
     public readonly PersistentContainer $persistentContainer;
+    public bool $isProtectedContentAvailable = true;
     /** @var ApplicationDelegate|null The delegate of the app object. */
     public ?ApplicationDelegate $delegate = null;
-    public Authentication $authentication;
+    public ?Authentication $authentication = null;
     private readonly PersistentSpace $persistentSpace;
     private readonly ResourceManager $resourceManager;
 
@@ -149,12 +150,12 @@ class Application extends Responder
             }
         }
         foreach ([$this->authentication, $this->persistentSpace, $this->resourceManager] as $responder) {
-            if ($responder->isFirstResponder()) {
+            if ($responder?->isFirstResponder()) {
                 return $responder;
             }
         }
         if ($this->request->url->path == "/") {
-            throw new ServiceUnavailableException();
+            return $this;
         } else {
             throw new NotFoundException();
         }
@@ -221,16 +222,16 @@ class Application extends Responder
             });
             $this->delegate?->applicationWillFinishLaunching($this);
             $responder = $this->instantiateInitialResponder();
-            $responder->isProtectedContentAvailable = $this->isProtectedContentAvailable;
             if (!$responder->allowedMethods->containsElement($this->request->httpMethod)) {
                 throw new MethodNotAllowedException();
             }
+            $authentication = $this->authentication;
             if ($this->request->httpMethod != HTTPRequestMethod::options) {
-                if (!$responder->isEqual($this->authentication) && !$responder->isProtectedContentAvailable && !$this->authentication->isValid()) {
+                if (!$responder->isProtectedContentAvailable && $authentication && !$responder->isEqual($authentication) && !$authentication->isValid()) {
                     throw new UnauthorizedException();
                 }
                 if ($this->request->httpMethod != HTTPRequestMethod::get) {
-                    $viewContext->transactionAuthor = $this->authentication->username();
+                    $viewContext->transactionAuthor = $authentication?->username();
                 }
             }
             $this->delegate?->applicationDidFinishLaunching($this);

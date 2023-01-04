@@ -13,7 +13,7 @@ use Sabatier\Foundation\URLFileTypeMappings;
 
 class ResourceManager extends Responder
 {
-    private readonly URL $url;
+    public readonly URL $url;
 
     public function __construct()
     {

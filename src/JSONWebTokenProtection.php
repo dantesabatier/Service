@@ -32,7 +32,7 @@ class JSONWebTokenProtection extends Protection
         parent::__construct();
         $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::options]);
         $this->token = (($string = $this->request->valueForHttpHeaderField("Authorization")) && ($index = strpos($string, " ")) && ($hash = trim(substring_from_index($string, $index))) && count(explode(".", $hash)) == 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment["APPLICATION_TOKEN_KEY"] ?? fatal_error("Environment variable \"APPLICATION_TOKEN_KEY\" cannot be null"), null, $hash, $this->request->url->host) : null;
-        $this->authenticationMethod = (($string = $this->request->valueForHttpHeaderField("Authorization")) && ($index = strpos($string, " ")) && ($authenticationMethod = substring_to_index($string, $index))) ? $authenticationMethod : null;
+        $this->method = (($string = $this->request->valueForHttpHeaderField("Authorization")) && ($index = strpos($string, " ")) && ($method = substring_to_index($string, $index))) ? $method : null;
         $this->isProtectedContentAvailable = $this->token?->isValid === true;
         $this->username = $this->token?->payload?->username;
     }
@@ -50,8 +50,8 @@ class JSONWebTokenProtection extends Protection
         $entityName = $environment["APPLICATION_USERS_ENTITY_NAME"] ?? fatal_error("Environment variable \"APPLICATION_USERS_ENTITY_NAME\" cannot be null");
         /** @var int $validity */
         $validity = $environment["APPLICATION_TOKEN_VALIDITY"] ?? 8;
-        $authenticationMethod = $this->authenticationMethod;
-        if ($authenticationMethod != "Bearer") {
+        $method = $this->method;
+        if ($method != "Bearer") {
             throw new UnauthorizedException();
         }
         /** @var array<string, string> $body */

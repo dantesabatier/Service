@@ -220,16 +220,17 @@ class Application extends Responder
             });
             $this->delegate?->applicationWillFinishLaunching($this);
             $responder = $this->instantiateInitialResponder();
+            $responder->isProtectedContentAvailable = $this->isProtectedContentAvailable;
             if (!$responder->allowedMethods->containsElement($this->request->httpMethod)) {
                 throw new MethodNotAllowedException();
             }
             if ($this->request->httpMethod != HTTPRequestMethod::options) {
-                $protection = $this->protectionSpace;
-                if (!$responder->isProtectedContentAvailable && !$responder->isEqual($protection) && !$protection->isProtectedContentAvailable) {
+                $protectionSpace = $this->protectionSpace;
+                if (!$responder->isProtectedContentAvailable && !$responder->isEqual($protectionSpace) && !$protectionSpace->isProtectedContentAvailable) {
                     throw new UnauthorizedException();
                 }
                 if ($this->request->httpMethod != HTTPRequestMethod::get) {
-                    $viewContext->transactionAuthor = $protection->username;
+                    $viewContext->transactionAuthor = $protectionSpace->username;
                 }
             }
             $this->delegate?->applicationDidFinishLaunching($this);

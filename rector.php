@@ -31,8 +31,8 @@ return static function (RectorConfig $rectorConfig): void {
             __DIR__ . "/src/Service.php",
         ],
         ReadOnlyPropertyRector::class => [
-            __DIR__ . "src/Action.php",
-            __DIR__ . "src/Endpoint.php",
+            __DIR__ . "/src/Action.php",
+            __DIR__ . "/src/Endpoint.php",
         ],
         ReturnNeverTypeRector::class,
         NullToStrictStringFuncCallArgRector::class,

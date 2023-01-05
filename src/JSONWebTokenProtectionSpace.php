@@ -14,6 +14,7 @@ use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Foundation\ProcessInfo;
+use const Sabatier\Foundation\NotFound;
 use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\substring_from_index;
 use function Sabatier\Foundation\substring_to_index;
@@ -30,12 +31,10 @@ class JSONWebTokenProtectionSpace extends ProtectionSpace
     public function __construct()
     {
         parent::__construct();
-        $authentication = $this->request->valueForHttpHeaderField("Authorization") ?? throw new UnauthorizedException();
-        if (!($authenticationIndex = strpos($authentication, " "))) {
-            throw new UnauthorizedException();
-        }
-        $this->authenticationMethod = substring_to_index($authentication, $authenticationIndex);
-        $this->token = (($hash = trim(substring_from_index($authentication, $authenticationIndex))) && count(explode(".", $hash)) == 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment["APPLICATION_TOKEN_KEY"] ?? fatal_error("Environment variable \"APPLICATION_TOKEN_KEY\" cannot be null"), null, $hash, $this->request->url->host) : null;
+        $authentication = $this->request->valueForHttpHeaderField("Authorization");
+        $authenticationIndex = $authentication ? (int)strpos($authentication, " ") : NotFound;
+        $this->authenticationMethod = $authentication ? substring_to_index($authentication, $authenticationIndex) : null;
+        $this->token = $authentication && (($hash = trim(substring_from_index($authentication, $authenticationIndex))) && count(explode(".", $hash)) == 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment["APPLICATION_TOKEN_KEY"] ?? fatal_error("Environment variable \"APPLICATION_TOKEN_KEY\" cannot be null"), null, $hash, $this->request->url->host) : null;
         $this->username = $this->token?->payload?->username;
         $this->isProtectedContentAvailable = (bool)$this->token?->isValid;
         $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::options]);

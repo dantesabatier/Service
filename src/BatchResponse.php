@@ -22,7 +22,7 @@ class BatchResponse extends HTTPURLResponse implements IteratorAggregate
 
     public function __construct(URL $url, private readonly ArrayClass $fetchRequestResults, private readonly FetchRequest $fetchRequest)
     {
-        parent::__construct($url, HTTPStatusCode::ok, null, new Dictionary(["Content-Type" => "text/plain; charset=utf-8", "Transfer-Encoding" => "chunked"]));
+        parent::__construct($url, headerFields: new Dictionary(["Content-Type" => "text/plain; charset=utf-8", "Transfer-Encoding" => "chunked"]));
         $this->count = (int)ceil($this->fetchRequestResults->count() / max($this->fetchRequest->fetchBatchSize, 1));
         $this->isEmpty = $this->count === 0;
     }

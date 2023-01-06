@@ -91,7 +91,7 @@ class Application extends Responder
             $this->$name = $delegate;
             return $this->$name;
         } elseif ($name == "protectionSpace") {
-            $this->$name = new JSONWebTokenProtectionSpace();
+            $this->$name = new BearerProtectionSpace();
             return $this->$name;
         } elseif ($name == "persistentSpace") {
             $this->$name = new PersistentSpace();

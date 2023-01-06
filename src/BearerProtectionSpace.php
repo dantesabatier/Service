@@ -14,15 +14,12 @@ use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Foundation\ProcessInfo;
-use const Sabatier\Foundation\NotFound;
 use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\substring_from_index;
-use function Sabatier\Foundation\substring_to_index;
 
 /** @internal */
-class JSONWebTokenProtectionSpace extends ProtectionSpace
+class BearerProtectionSpace extends ProtectionSpace
 {
-    public string $defaultAuthenticationMethod = self::authenticationMethodBearer;
     private ?JSONWebToken $token;
 
     /**
@@ -31,13 +28,15 @@ class JSONWebTokenProtectionSpace extends ProtectionSpace
     public function __construct()
     {
         parent::__construct();
-        $authentication = $this->request->valueForHttpHeaderField("Authorization");
-        $authenticationIndex = $authentication ? (int)strpos($authentication, " ") : NotFound;
-        $this->authenticationMethod = $authentication ? substring_to_index($authentication, $authenticationIndex) : null;
-        $this->token = $authentication && (($hash = trim(substring_from_index($authentication, $authenticationIndex))) && count(explode(".", $hash)) == 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment["APPLICATION_TOKEN_KEY"] ?? fatal_error("Environment variable \"APPLICATION_TOKEN_KEY\" cannot be null"), null, $hash, $this->request->url->host) : null;
+        $this->defaultAuthenticationMethod = self::authenticationMethodBearer;
+        if ($this->authenticationMethod != $this->defaultAuthenticationMethod) {
+            throw new UnauthorizedException();
+        }
+        $this->token = ($authentication = $this->request->valueForHttpHeaderField("Authorization")) && ($authenticationIndex = (int)strpos($authentication, " ")) && (($hash = trim(substring_from_index($authentication, $authenticationIndex))) && count(explode(".", $hash)) == 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment["APPLICATION_TOKEN_KEY"] ?? fatal_error("Environment variable \"APPLICATION_TOKEN_KEY\" cannot be null"), null, $hash, $this->request->url->host) : null;
         $this->username = $this->token?->payload?->username;
         $this->isProtectedContentAvailable = (bool)$this->token?->isValid;
         $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::options]);
+        $this->contentType = "application/json; charset=utf-8";
     }
 
     /**
@@ -53,9 +52,6 @@ class JSONWebTokenProtectionSpace extends ProtectionSpace
         $entityName = $environment["APPLICATION_USERS_ENTITY_NAME"] ?? fatal_error("Environment variable \"APPLICATION_USERS_ENTITY_NAME\" cannot be null");
         /** @var int $validity */
         $validity = $environment["APPLICATION_TOKEN_VALIDITY"] ?? 8;
-        if ($this->authenticationMethod != $this->defaultAuthenticationMethod) {
-            throw new UnauthorizedException();
-        }
         /** @var array<string, string> $body */
         $body = json_decode($this->request->httpBody ?? "[]", true, 512, JSON_THROW_ON_ERROR);
         if (!$body) {
@@ -81,7 +77,6 @@ class JSONWebTokenProtectionSpace extends ProtectionSpace
         $this->username = $this->token->payload?->username;
         $this->isProtectedContentAvailable = $this->token->isValid;
         $this->content = json_encode($this->token, JSON_THROW_ON_ERROR);
-        $this->contentType = "application/json; charset=utf-8";
     }
 
     /**
@@ -109,7 +104,6 @@ class JSONWebTokenProtectionSpace extends ProtectionSpace
             throw new NotFoundException();
         }
         $this->content = json_encode($user, JSON_PRESERVE_ZERO_FRACTION);
-        $this->contentType = "application/json; charset=utf-8";
     }
 
     /**
@@ -119,6 +113,5 @@ class JSONWebTokenProtectionSpace extends ProtectionSpace
     public function logout(): void
     {
         $this->content = json_encode(true, JSON_THROW_ON_ERROR);
-        $this->contentType = "application/json; charset=utf-8";
     }
 }

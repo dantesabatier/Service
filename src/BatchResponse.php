@@ -6,7 +6,6 @@ use IteratorAggregate;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
-use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
 use Sabatier\Foundation\URL;
 use Traversable;

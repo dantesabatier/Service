@@ -225,12 +225,11 @@ class Application extends Responder
                 throw new MethodNotAllowedException();
             }
             if ($this->request->httpMethod != HTTPRequestMethod::options) {
-                $protectionSpace = $this->protectionSpace;
-                if (!$responder->isProtectedContentAvailable && !$responder->isEqual($protectionSpace) && !$protectionSpace->isProtectedContentAvailable) {
+                if (!$responder->isProtectedContentAvailable && !$responder->isEqual($this->protectionSpace) && !$this->protectionSpace->isProtectedContentAvailable) {
                     throw new UnauthorizedException();
                 }
                 if ($this->request->httpMethod != HTTPRequestMethod::get) {
-                    $viewContext->transactionAuthor = $protectionSpace->username;
+                    $viewContext->transactionAuthor = $this->protectionSpace->username;
                 }
             }
             $this->delegate?->applicationDidFinishLaunching($this);

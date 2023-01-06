@@ -17,21 +17,21 @@ function jwt_compare(string $wt1, string $wt2): int
  */
 function jwt_validate(string $jwt, string $pk, ?string $iss = null): bool
 {
-    $isValid = false;
-    if (string_contains($jwt, ".")) {
-        $components = explode(".", $jwt);
-        if (count($components) === 3) {
-            [$header, $payload, $signature] = $components;
-            $unsigned = sprintf("%s.%s", $header, $payload);
-            $signed = base64_encode(hash_hmac("sha256", $unsigned, $pk, true));
-            $isValid = $signature === $signed;
-            if ($isValid && ($obj = json_decode(base64_decode($payload), null, 512, JSON_THROW_ON_ERROR))) {
-                $date = new Date();
-                $isValid = !(((property_exists($obj, "nbf") && $obj->nbf > $date->timeIntervalSinceReferenceDate) || (property_exists($obj, "exp") && $obj->exp < $date->timeIntervalSinceReferenceDate) || (property_exists($obj, "iss") && $obj->iss !== $iss)));
-            }
-        }
+    if (!string_contains($jwt, ".")) {
+        return false;
     }
-    return $isValid;
+    $components = explode(".", $jwt);
+    if (count($components) !== 3) {
+        return false;
+    }
+    [$header, $payload, $signature] = $components;
+    $unsigned = sprintf("%s.%s", $header, $payload);
+    $signed = base64_encode(hash_hmac("sha256", $unsigned, $pk, true));
+    if ($signature !== $signed || !($obj = json_decode(base64_decode($payload), null, 512, JSON_THROW_ON_ERROR))) {
+        return false;
+    };
+    $date = new Date();
+    return !(((property_exists($obj, "nbf") && $obj->nbf > $date->timeIntervalSinceReferenceDate) || (property_exists($obj, "exp") && $obj->exp < $date->timeIntervalSinceReferenceDate) || (property_exists($obj, "iss") && $obj->iss !== $iss)));
 }
 
 /**
@@ -52,9 +52,9 @@ function jwt_generate(object|array $payload, string $pk): string
 function jwt_payload(string $jwt, string $pk, ?string $iss = null, ?bool $validated = null): ?object
 {
     $validated ??= jwt_validate($jwt, $pk, $iss);
-    if ($validated) {
-        [, $payload,] = explode(".", $jwt);
-        return json_decode(base64_decode($payload), null, 512, JSON_THROW_ON_ERROR);
+    if (!$validated) {
+        return null;
     }
-    return null;
+    [, $payload,] = explode(".", $jwt);
+    return json_decode(base64_decode($payload), null, 512, JSON_THROW_ON_ERROR);
 }

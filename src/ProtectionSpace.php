@@ -2,6 +2,8 @@
 
 namespace Sabatier\Service;
 
+use Sabatier\Foundation\Networking\HTTPRequestMethod;
+
 use function Sabatier\Foundation\substring_to_index;
 
 abstract class ProtectionSpace extends Responder
@@ -15,6 +17,8 @@ abstract class ProtectionSpace extends Responder
     public function __construct()
     {
         parent::__construct();
-        $this->authenticationMethod = ($authentication = $this->request->valueForHttpHeaderField("Authorization")) && ($authenticationIndex = (int)strpos($authentication, " ")) ? substring_to_index($authentication, $authenticationIndex) : null;
+        if ($this->request->httpMethod != HTTPRequestMethod::options) {
+            $this->authenticationMethod = ($authentication = $this->request->valueForHttpHeaderField("Authorization")) && ($authenticationIndex = (int)strpos($authentication, " ")) ? substring_to_index($authentication, $authenticationIndex) : null;
+        }
     }
 }

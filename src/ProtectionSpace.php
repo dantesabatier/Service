@@ -17,8 +17,6 @@ abstract class ProtectionSpace extends Responder
     public function __construct()
     {
         parent::__construct();
-        if ($this->request->httpMethod != HTTPRequestMethod::options) {
-            $this->authenticationMethod = ($authentication = $this->request->valueForHttpHeaderField("Authorization")) && ($authenticationIndex = (int)strpos($authentication, " ")) ? substring_to_index($authentication, $authenticationIndex) : null;
-        }
+        $this->authenticationMethod = $this->request->httpMethod != HTTPRequestMethod::options && ($authentication = $this->request->valueForHttpHeaderField("Authorization")) && ($authenticationIndex = (int)strpos($authentication, " ")) ? substring_to_index($authentication, $authenticationIndex) : null;
     }
 }

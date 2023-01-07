@@ -56,9 +56,6 @@ class BearerProtectionSpace extends ProtectionSpace
         $validity = $environment["APPLICATION_TOKEN_VALIDITY"] ?? 8;
         /** @var array<string, string> $body */
         $body = json_decode($this->request->httpBody ?? "[]", true, 512, JSON_THROW_ON_ERROR);
-        if (!$body) {
-            throw new BadRequestException();
-        }
         /** @var string|null $username */
         $username = $body["username"] ?? null;
         /** @var string|null $password */

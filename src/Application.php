@@ -14,6 +14,8 @@ use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
+use Sabatier\Foundation\Networking\URLCredentialStorage;
+use Sabatier\Foundation\Networking\URLProtectionSpace;
 use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\ProcessInfo;
@@ -39,7 +41,7 @@ class Application extends Responder
     public readonly PersistentContainer $persistentContainer;
     /** @var ApplicationDelegate|null The delegate of the app object. */
     public ?ApplicationDelegate $delegate = null;
-    public ProtectionSpace $protectionSpace;
+    public Protection $protection;
     private readonly PersistentSpace $persistentSpace;
     private readonly ResourceManager $resourceManager;
 
@@ -49,7 +51,7 @@ class Application extends Responder
         unset($this->request);
         unset($this->persistentContainer);
         unset($this->delegate);
-        unset($this->protectionSpace);
+        unset($this->protection);
         unset($this->persistentSpace);
         unset($this->resourceManager);
     }
@@ -90,7 +92,7 @@ class Application extends Responder
             }
             $this->$name = $delegate;
             return $this->$name;
-        } elseif ($name == "protectionSpace") {
+        } elseif ($name == "protection") {
             $this->$name = new BearerProtectionSpace();
             return $this->$name;
         } elseif ($name == "persistentSpace") {
@@ -148,7 +150,7 @@ class Application extends Responder
                 }
             }
         }
-        foreach ([$this->protectionSpace, $this->persistentSpace, $this->resourceManager] as $responder) {
+        foreach ([$this->protection, $this->persistentSpace, $this->resourceManager] as $responder) {
             if ($responder->isFirstResponder()) {
                 return $responder;
             }
@@ -224,11 +226,11 @@ class Application extends Responder
                 throw new MethodNotAllowedException();
             }
             if ($this->request->httpMethod != HTTPRequestMethod::options) {
-                if (!$responder->isProtectedContentAvailable && !$responder->isEqual($this->protectionSpace) && !$this->protectionSpace->isProtectedContentAvailable) {
+                if (!$responder->isProtectedContentAvailable && !$responder->isEqual($this->protection) && !$this->protection->isProtectedContentAvailable) {
                     throw new UnauthorizedException();
                 }
                 if ($this->request->httpMethod != HTTPRequestMethod::get) {
-                    $viewContext->transactionAuthor = $this->protectionSpace->username;
+                    $viewContext->transactionAuthor = $this->protection->credential?->user;
                 }
             }
             $this->delegate?->applicationDidFinishLaunching($this);
@@ -246,9 +248,12 @@ class Application extends Responder
             if ($value = $this->request->valueForHttpHeaderField("Access-Control-Request-Headers")) {
                 $headerFields["Access-Control-Allow-Headers"] = $value;
             }
+            if (($space = URLProtectionSpace::create($response)) && ($credential = URLCredentialStorage::shared()->defaultCredential($space))) {
+                error_log($credential->user);
+            }
             $this->send($response, $responder->content);
         } catch (Throwable $throwable) {
-            $response = $throwable instanceof InvalidRequestException ? new HTTPURLResponse($this->request->url, (int)$throwable->getCode(), null, $throwable instanceof UnauthorizedException ? new Dictionary(["WWW-Authenticate" => "{$this->protectionSpace->defaultAuthenticationMethod} realm=\"{$this->request->url->host}\""]) : null) : new HTTPURLResponse($this->request->url, HTTPStatusCode::internalServerError);
+            $response = $throwable instanceof InvalidRequestException ? new HTTPURLResponse($this->request->url, (int)$throwable->getCode(), null, $throwable instanceof UnauthorizedException ? new Dictionary(["WWW-Authenticate" => "{$this->protection->scheme} realm=\"{$this->protection->space->realm}\""]) : null) : new HTTPURLResponse($this->request->url, HTTPStatusCode::internalServerError);
             $content = $this->delegate?->applicationWillFail($this, $response, $throwable);
             if ($content instanceof View) {
                 $content = $content->render();

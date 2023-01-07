@@ -248,9 +248,6 @@ class Application extends Responder
             if ($value = $this->request->valueForHttpHeaderField("Access-Control-Request-Headers")) {
                 $headerFields["Access-Control-Allow-Headers"] = $value;
             }
-            if (($space = URLProtectionSpace::create($response)) && ($credential = URLCredentialStorage::shared()->defaultCredential($space))) {
-                error_log($credential->user);
-            }
             $this->send($response, $responder->content);
         } catch (Throwable $throwable) {
             $response = $throwable instanceof InvalidRequestException ? new HTTPURLResponse($this->request->url, (int)$throwable->getCode(), null, $throwable instanceof UnauthorizedException ? new Dictionary(["WWW-Authenticate" => "{$this->protection->scheme} realm=\"{$this->protection->space->realm}\""]) : null) : new HTTPURLResponse($this->request->url, HTTPStatusCode::internalServerError);

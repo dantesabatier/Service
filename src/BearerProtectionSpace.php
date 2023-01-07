@@ -29,16 +29,11 @@ class BearerProtectionSpace extends ProtectionSpace
     {
         parent::__construct();
         $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::options]);
-        if ($this->request->httpMethod != HTTPRequestMethod::options) {
-            $this->contentType = "application/json; charset=utf-8";
-            $this->defaultAuthenticationMethod = self::authenticationMethodBearer;
-            if ($this->authenticationMethod != $this->defaultAuthenticationMethod) {
-                throw new UnauthorizedException();
-            }
-            $this->token = ($authentication = $this->request->valueForHttpHeaderField("Authorization")) && ($authenticationIndex = (int)strpos($authentication, " ")) && (($hash = trim(substring_from_index($authentication, $authenticationIndex))) && count(explode(".", $hash)) == 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment["APPLICATION_TOKEN_KEY"] ?? fatal_error("Environment variable \"APPLICATION_TOKEN_KEY\" cannot be null"), null, $hash, $this->request->url->host) : null;
-            $this->username = $this->token?->payload?->username;
-            $this->isProtectedContentAvailable = (bool)$this->token?->isValid;
-        }
+        $this->contentType = "application/json; charset=utf-8";
+        $this->defaultAuthenticationMethod = self::authenticationMethodBearer;
+        $this->token = $this->request->httpMethod != HTTPRequestMethod::options && ($authentication = $this->request->valueForHttpHeaderField("Authorization")) && ($authenticationIndex = (int)strpos($authentication, " ")) && (($hash = trim(substring_from_index($authentication, $authenticationIndex))) && count(explode(".", $hash)) == 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment["APPLICATION_TOKEN_KEY"] ?? fatal_error("Environment variable \"APPLICATION_TOKEN_KEY\" cannot be null"), null, $hash, $this->request->url->host) : null;
+        $this->username = $this->token?->payload?->username;
+        $this->isProtectedContentAvailable = (bool)$this->token?->isValid;
     }
 
     /**
@@ -54,6 +49,9 @@ class BearerProtectionSpace extends ProtectionSpace
         $entityName = $environment["APPLICATION_USERS_ENTITY_NAME"] ?? fatal_error("Environment variable \"APPLICATION_USERS_ENTITY_NAME\" cannot be null");
         /** @var int $validity */
         $validity = $environment["APPLICATION_TOKEN_VALIDITY"] ?? 8;
+        if ($this->authenticationMethod != $this->defaultAuthenticationMethod) {
+            throw new UnauthorizedException();
+        }
         /** @var array<string, string> $body */
         $body = json_decode($this->request->httpBody ?? "[]", true, 512, JSON_THROW_ON_ERROR);
         /** @var string|null $username */

@@ -14,8 +14,6 @@ use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
-use Sabatier\Foundation\Networking\URLCredentialStorage;
-use Sabatier\Foundation\Networking\URLProtectionSpace;
 use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\ProcessInfo;

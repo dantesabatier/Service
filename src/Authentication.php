@@ -6,11 +6,10 @@ use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\Networking\URLProtectionSpace;
-use function Sabatier\Foundation\string_is_equal;
-use const Sabatier\Foundation\Networking\URLAuthenticationMethodDefault;
 use function Sabatier\Foundation\array_first;
 use function Sabatier\Foundation\string_has_suffix;
 use function Sabatier\Foundation\substring_to_index;
+use const Sabatier\Foundation\Networking\URLAuthenticationMethodDefault;
 
 abstract class Authentication extends Responder
 {

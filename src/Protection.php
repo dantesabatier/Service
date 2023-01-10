@@ -26,7 +26,7 @@ abstract class Protection extends Responder
             $authorization = $this->request->valueForHttpHeaderField("Authorization") ?? throw new UnauthorizedException();
             $scheme = substring_to_index($authorization, (int)strpos($authorization, " "));
             $authenticationMethod = array_first(URLProtectionSpace::authenticationMethods, fn(string $authenticationMethod): bool => string_has_suffix($authenticationMethod, $scheme, CompareOptions::caseInsensitive)) ?? URLAuthenticationMethodDefault;
-            $this->space = new URLProtectionSpace($host, $url->port, realm: $host, authenticationMethod: $authenticationMethod);
+            $this->space = new URLProtectionSpace($host, $url->port ?? 80, realm: $host, authenticationMethod: $authenticationMethod);
         } else {
             $this->space = new URLProtectionSpace($host);
         }

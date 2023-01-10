@@ -91,7 +91,7 @@ class Application extends Responder
             $this->$name = $delegate;
             return $this->$name;
         } elseif ($name == "protection") {
-            $this->$name = new BearerProtectionSpace();
+            $this->$name = new BearerProtection();
             return $this->$name;
         } elseif ($name == "persistentSpace") {
             $this->$name = new PersistentSpace();

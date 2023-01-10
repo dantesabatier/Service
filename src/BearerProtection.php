@@ -20,7 +20,7 @@ use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\substring_from_index;
 
 /** @internal */
-class BearerProtectionSpace extends Protection
+class BearerProtection extends Protection
 {
     public string $scheme = "Bearer";
     private ?JSONWebToken $token;

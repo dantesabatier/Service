@@ -6,12 +6,13 @@ use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\Networking\URLProtectionSpace;
+use function Sabatier\Foundation\string_is_equal;
 use const Sabatier\Foundation\Networking\URLAuthenticationMethodDefault;
 use function Sabatier\Foundation\array_first;
 use function Sabatier\Foundation\string_has_suffix;
 use function Sabatier\Foundation\substring_to_index;
 
-abstract class Protection extends Responder
+abstract class Authentication extends Responder
 {
     public string $scheme = "Basic";
     public readonly URLProtectionSpace $space;
@@ -23,8 +24,11 @@ abstract class Protection extends Responder
         $url = $this->request->url;
         $host = $url->host ?? throw new BadRequestException();
         if ($this->request->httpMethod != HTTPRequestMethod::options) {
-            $authorization = $this->request->valueForHttpHeaderField("Authorization") ?? throw new UnauthorizedException();
-            $scheme = substring_to_index($authorization, (int)strpos($authorization, " "));
+            $authorizationValue = $this->request->valueForHttpHeaderField("Authorization") ?? throw new UnauthorizedException();
+            $scheme = substring_to_index($authorizationValue, (int)strpos($authorizationValue, " "));
+            if (!string_is_equal($scheme, $this->scheme)) {
+                throw new UnauthorizedException();
+            }
             $authenticationMethod = array_first(URLProtectionSpace::authenticationMethods, fn(string $authenticationMethod): bool => string_has_suffix($authenticationMethod, $scheme, CompareOptions::caseInsensitive)) ?? URLAuthenticationMethodDefault;
             $this->space = new URLProtectionSpace($host, $url->port ?? 80, realm: $host, authenticationMethod: $authenticationMethod);
         } else {

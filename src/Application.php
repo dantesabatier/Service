@@ -39,7 +39,7 @@ class Application extends Responder
     public readonly PersistentContainer $persistentContainer;
     /** @var ApplicationDelegate|null The delegate of the app object. */
     public ?ApplicationDelegate $delegate = null;
-    public Protection $protection;
+    public Authentication $authentication;
     private readonly PersistentSpace $persistentSpace;
     private readonly ResourceManager $resourceManager;
 
@@ -49,7 +49,7 @@ class Application extends Responder
         unset($this->request);
         unset($this->persistentContainer);
         unset($this->delegate);
-        unset($this->protection);
+        unset($this->authentication);
         unset($this->persistentSpace);
         unset($this->resourceManager);
     }
@@ -90,8 +90,8 @@ class Application extends Responder
             }
             $this->$name = $delegate;
             return $this->$name;
-        } elseif ($name == "protection") {
-            $this->$name = new BearerProtection();
+        } elseif ($name == "authentication") {
+            $this->$name = new BearerAuthentication();
             return $this->$name;
         } elseif ($name == "persistentSpace") {
             $this->$name = new PersistentSpace();
@@ -148,7 +148,7 @@ class Application extends Responder
                 }
             }
         }
-        foreach ([$this->protection, $this->persistentSpace, $this->resourceManager] as $responder) {
+        foreach ([$this->authentication, $this->persistentSpace, $this->resourceManager] as $responder) {
             if ($responder->isFirstResponder()) {
                 return $responder;
             }
@@ -224,11 +224,11 @@ class Application extends Responder
                 throw new MethodNotAllowedException();
             }
             if ($this->request->httpMethod != HTTPRequestMethod::options) {
-                if (!$responder->isProtectedContentAvailable && !$responder->isEqual($this->protection) && !$this->protection->isProtectedContentAvailable) {
+                if (!$responder->isProtectedContentAvailable && !$responder->isEqual($this->authentication) && !$this->authentication->isProtectedContentAvailable) {
                     throw new UnauthorizedException();
                 }
                 if ($this->request->httpMethod != HTTPRequestMethod::get) {
-                    $viewContext->transactionAuthor = $this->protection->credential?->user;
+                    $viewContext->transactionAuthor = $this->authentication->credential?->user;
                 }
             }
             $this->delegate?->applicationDidFinishLaunching($this);
@@ -248,7 +248,7 @@ class Application extends Responder
             }
             $this->send($response, $responder->content);
         } catch (Throwable $throwable) {
-            $response = $throwable instanceof InvalidRequestException ? new HTTPURLResponse($this->request->url, (int)$throwable->getCode(), null, $throwable instanceof UnauthorizedException ? new Dictionary(["WWW-Authenticate" => "{$this->protection->scheme} realm=\"{$this->protection->space->realm}\""]) : null) : new HTTPURLResponse($this->request->url, HTTPStatusCode::internalServerError);
+            $response = $throwable instanceof InvalidRequestException ? new HTTPURLResponse($this->request->url, (int)$throwable->getCode(), null, $throwable instanceof UnauthorizedException ? new Dictionary(["WWW-Authenticate" => "{$this->authentication->scheme} realm=\"{$this->authentication->space->realm}\""]) : null) : new HTTPURLResponse($this->request->url, HTTPStatusCode::internalServerError);
             $content = $this->delegate?->applicationWillFail($this, $response, $throwable);
             if ($content instanceof View) {
                 $content = $content->render();

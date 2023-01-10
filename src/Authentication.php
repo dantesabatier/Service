@@ -26,9 +26,6 @@ abstract class Authentication extends Responder
         if ($this->request->httpMethod != HTTPRequestMethod::options) {
             $authorizationValue = $this->request->valueForHttpHeaderField("Authorization") ?? throw new UnauthorizedException();
             $scheme = substring_to_index($authorizationValue, (int)strpos($authorizationValue, " "));
-            if (!string_is_equal($scheme, $this->scheme)) {
-                throw new UnauthorizedException();
-            }
             $authenticationMethod = array_first(URLProtectionSpace::authenticationMethods, fn(string $authenticationMethod): bool => string_has_suffix($authenticationMethod, $scheme, CompareOptions::caseInsensitive)) ?? URLAuthenticationMethodDefault;
             $this->space = new URLProtectionSpace($host, $url->port ?? 80, realm: $host, authenticationMethod: $authenticationMethod);
         } else {

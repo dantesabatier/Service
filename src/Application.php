@@ -36,9 +36,9 @@ class Application extends Responder
 {
     private static ?Application $shared = null;
     public readonly URLRequest $request;
-    public readonly PersistentContainer $persistentContainer;
     /** @var ApplicationDelegate|null The delegate of the app object. */
     public ?ApplicationDelegate $delegate = null;
+    public readonly PersistentContainer $persistentContainer;
     public Authentication $authentication;
     private readonly PersistentSpace $persistentSpace;
     private readonly ResourceManager $resourceManager;
@@ -47,8 +47,8 @@ class Application extends Responder
     {
         parent::__construct();
         unset($this->request);
-        unset($this->persistentContainer);
         unset($this->delegate);
+        unset($this->persistentContainer);
         unset($this->authentication);
         unset($this->persistentSpace);
         unset($this->resourceManager);
@@ -65,6 +65,18 @@ class Application extends Responder
             }
             $this->$name = $request;
             return $this->$name;
+        } elseif ($name == "delegate") {
+            $delegate = null;
+            if (($principalClass = Bundle::main()->principalClass) && isset(class_implements($principalClass)[ApplicationDelegate::class])) {
+                /** @var class-string<ApplicationDelegate> $delegateClass */
+                $delegateClass = $principalClass;
+                if (is_subclass_of($delegateClass, ObjectClass::class)) {
+                    $delegateClass::initialize();
+                }
+                $delegate = new $delegateClass();
+            }
+            $this->$name = $delegate;
+            return $this->$name;
         } elseif ($name == "persistentContainer") {
             $persistentContainer = new PersistentContainer(Bundle::main()->object(kCFBundleNameKey));
             if ($description = $persistentContainer->persistentStoreDescriptions->first()) {
@@ -77,18 +89,6 @@ class Application extends Responder
                 }
             });
             $this->$name = $persistentContainer;
-            return $this->$name;
-        } elseif ($name == "delegate") {
-            $delegate = null;
-            if (($principalClass = Bundle::main()->principalClass) && isset(class_implements($principalClass)[ApplicationDelegate::class])) {
-                /** @var class-string<ApplicationDelegate> $delegateClass */
-                $delegateClass = $principalClass;
-                if (is_subclass_of($delegateClass, ObjectClass::class)) {
-                    $delegateClass::initialize();
-                }
-                $delegate = new $delegateClass();
-            }
-            $this->$name = $delegate;
             return $this->$name;
         } elseif ($name == "authentication") {
             $this->$name = new BearerAuthentication();
@@ -212,14 +212,15 @@ class Application extends Responder
     public function run(): void
     {
         try {
+            $delegate = $this->delegate;
             ProcessInfo::processInfo()->processName = $this->persistentContainer->name;
             $viewContext = $this->persistentContainer->viewContext;
             $viewContext->name = $this->persistentContainer->name;
-            register_shutdown_function(function (): bool {
-                $this->delegate?->applicationWillTerminate($this);
+            register_shutdown_function(function () use ($delegate): bool {
+                $delegate?->applicationWillTerminate($this);
                 return true;
             });
-            $this->delegate?->applicationWillFinishLaunching($this);
+            $delegate?->applicationWillFinishLaunching($this);
             $responder = $this->instantiateInitialResponder();
             $responder->isProtectedContentAvailable = $this->isProtectedContentAvailable;
             if (!$responder->allowedMethods->containsElement($this->request->httpMethod)) {
@@ -233,7 +234,7 @@ class Application extends Responder
                     $viewContext->transactionAuthor = $this->authentication->credential?->user;
                 }
             }
-            $this->delegate?->applicationDidFinishLaunching($this);
+            $delegate?->applicationDidFinishLaunching($this);
             $response = $responder->response();
             $headerFields = $response->allHeaderFields;
             $headerFields["Content-Type"] = $responder->contentType;

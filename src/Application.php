@@ -148,13 +148,10 @@ class Application extends Responder
                 }
             }
         }
-        foreach ([$this->authentication, $this->persistentSpace, $this->resourceManager] as $responder) {
+        foreach ([$this, $this->authentication, $this->persistentSpace, $this->resourceManager] as $responder) {
             if ($responder->isFirstResponder()) {
                 return $responder;
             }
-        }
-        if ($this->request->url->path == "/") {
-            return $this;
         }
         throw new NotFoundException();
     }
@@ -205,6 +202,11 @@ class Application extends Responder
         ob_end_flush();
         header("Content-Length: " . ob_get_length());
         ob_end_flush();
+    }
+
+    public function isFirstResponder(): bool
+    {
+        return $this->request->url->path === "/";
     }
 
     public function run(): void

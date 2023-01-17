@@ -3,7 +3,6 @@
 namespace Sabatier\Service;
 
 use Sabatier\Foundation\CompareOptions;
-use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\Networking\URLProtectionSpace;
 use function Sabatier\Foundation\array_first;

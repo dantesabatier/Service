@@ -47,7 +47,7 @@ abstract class Responder extends ObjectClass
             "request" => Application::shared()->request,
             "serialization" => (($string = $this->request->valueForHttpHeaderField("serialization")) && ($array = json_decode($string, true))) ? Dictionary::dictionaryWithArray($array) : null,
             "managedObjectContext" => Application::shared()->persistentContainer->viewContext,
-            "allowedMethods" => new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::head, HTTPRequestMethod::options]),
+            "allowedMethods" => new ArrayClass([HTTPRequestMethod::head, HTTPRequestMethod::options, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::put, HTTPRequestMethod::delete]),
             default => $this->valueForUndefinedKey($name)
         };
     }

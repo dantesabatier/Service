@@ -43,7 +43,6 @@ class PersistentSpace extends Responder
         parent::__construct();
         unset($this->fetchRequest);
         unset($this->entity);
-        $this->allowedMethods = new ArrayClass([HTTPRequestMethod::head, HTTPRequestMethod::options, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::put, HTTPRequestMethod::delete]);
     }
 
     /**

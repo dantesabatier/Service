@@ -6,7 +6,7 @@ class NativeRenderer extends Renderer
 {
     public function render(string $name, object|array $context): string
     {
-        $path = $this->bundle->url($name, "php")?->path ?? throw new NotFoundException("Unable to load template \"$name\"");
+        $path = $this->bundle->url($name, "php")?->path ?? throw new NotFoundException("Template \"$name\" does not exists");
         $context = (array)$context;
         extract($context);
         ob_start();

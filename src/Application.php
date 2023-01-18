@@ -217,7 +217,9 @@ class Application extends Responder
             });
             $delegate?->applicationWillFinishLaunching($this);
             $responder = $this->instantiateInitialResponder();
-            $responder->isProtectedContentAvailable = $this->isProtectedContentAvailable;
+            if ($this->isProtectedContentAvailable) {
+                $responder->isProtectedContentAvailable = $this->isProtectedContentAvailable;
+            }
             if (!$responder->allowedMethods->containsElement($this->request->httpMethod)) {
                 throw new MethodNotAllowedException();
             }

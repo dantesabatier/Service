@@ -10,6 +10,7 @@ use const Sabatier\Foundation\kCFBundleShortVersionStringKey;
 use const Sabatier\Foundation\kCFBundleVersionKey;
 
 /** @internal */
+#[Endpoint("/")]
 class Home extends ViewController
 {
     #[Outlet]
@@ -28,10 +29,5 @@ class Home extends ViewController
         $this->copyright = $this->bundle->object(kCFBundleHumanReadableCopyright);
         $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::head, HTTPRequestMethod::options]);
         $this->isProtectedContentAvailable = true;
-    }
-
-    public function isFirstResponder(): bool
-    {
-        return $this->request->url->path === "/";
     }
 }

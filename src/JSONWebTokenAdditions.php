@@ -5,7 +5,6 @@ namespace Sabatier\Service;
 use JsonException;
 use Sabatier\Foundation\Date;
 use function Sabatier\Foundation\string_compare;
-use function Sabatier\Foundation\string_contains;
 
 function jwt_compare(string $wt1, string $wt2): int
 {
@@ -17,7 +16,7 @@ function jwt_compare(string $wt1, string $wt2): int
  */
 function jwt_validate(string $jwt, string $pk, ?string $iss = null): bool
 {
-    if (!string_contains($jwt, ".")) {
+    if (!str_contains($jwt, ".")) {
         return false;
     }
     $components = explode(".", $jwt);

@@ -28,7 +28,6 @@ use Sabatier\Foundation\SortDescriptor;
 use Sabatier\Foundation\URLComponents;
 use Sabatier\Foundation\URLQueryItem;
 use function Sabatier\Foundation\string_begins_with;
-use function Sabatier\Foundation\string_contains;
 use function Sabatier\Foundation\string_is_equal;
 use const Sabatier\CoreData\XMLStoreType;
 
@@ -163,7 +162,7 @@ class PersistentSpace extends Responder
                 if ($method != HTTPRequestMethod::delete) {
                     $contentType = $request->valueForHttpHeaderField("Content-Type") ?? throw new BadRequestException();
                     $mediaType = $contentType;
-                    if (string_contains($contentType, ";")) {
+                    if (str_contains($contentType, ";")) {
                         [$mediaType,] = explode(";", $contentType);
                     }
                     $supportedMediaTypes = new ArrayClass(["application/json", "application/x-www-form-urlencoded", "multipart/form-data"]);

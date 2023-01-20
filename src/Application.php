@@ -217,11 +217,11 @@ class Application extends Responder
             });
             $delegate?->applicationWillFinishLaunching($this);
             $responder = $this->instantiateInitialResponder();
-            if ($this->isProtectedContentAvailable) {
-                $responder->isProtectedContentAvailable = $this->isProtectedContentAvailable;
-            }
             if (!$responder->allowedMethods->containsElement($this->request->httpMethod)) {
                 throw new MethodNotAllowedException();
+            }
+            if (!$responder->isProtectedContentAvailable) {
+                $responder->isProtectedContentAvailable = $this->isProtectedContentAvailable;
             }
             if ($this->request->httpMethod != HTTPRequestMethod::options) {
                 if (!$responder->isProtectedContentAvailable && !$responder->isEqual($this->authentication) && !$this->authentication->isProtectedContentAvailable) {

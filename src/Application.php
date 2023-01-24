@@ -164,7 +164,10 @@ class Application extends Responder
         };
         $headerFields = $response->allHeaderFields;
         if ($isEmpty) {
-            $headerFields->removeAll(fn(mixed $e, string $k): bool => $k === "Content-Type" || $k === "Content-Length");
+            $headerFields->removeAll(fn(mixed $e, string $k): bool => match ($k) {
+                "Content-Type", "Content-Length", "Content-Disposition" => true,
+                default => false
+            });
         }
         header(sprintf("%s %s %s", $response->httpVersion, $response->statusCode, HTTPURLResponse::localizedString($response->statusCode)));
         if ($response instanceof BatchResponse) {

@@ -116,53 +116,26 @@ class Application extends Responder
         return static::$shared;
     }
 
-    private function instantiateInitialResponder(): Responder
-    {
-        if ($delegate = $this->delegate) {
-            $reflectionClass = new ReflectionClass($delegate);
-            $namespaceName = $reflectionClass->getNamespaceName();
-            $fileManager = FileManager::default();
-            $baseURL = Bundle::main()->bundleURL->appendingPathComponent("src");
-            $directories = ["Responders", "ViewControllers"];
-            foreach ($directories as $directory) {
-                $directoryURL = $baseURL->appendingPathComponent($directory);
-                if (!$fileManager->fileExists($directoryURL->path)) {
-                    continue;
-                }
-                $urls = $fileManager->contentsOfDirectory($directoryURL, null, DirectoryEnumerationOptions::skipsHiddenFiles);
-                foreach ($urls as $url) {
-                    if (!string_is_equal($url->pathExtension, "php", CompareOptions::caseInsensitive)) {
-                        continue;
-                    }
-                    $filePath = $url->path;
-                    /** @psalm-suppress UnresolvableInclude */
-                    require_once $filePath;
-                    $responderClass = "$namespaceName\\$directoryURL->lastPathComponent\\{$fileManager->displayName($filePath)}";
-                    if (!class_exists($responderClass) || !is_subclass_of($responderClass, Responder::class)) {
-                        continue;
-                    }
-                    $responder = new $responderClass();
-                    if ($responder->isFirstResponder()) {
-                        return $responder;
-                    }
-                }
-            }
-        }
-        foreach ([new Home(), $this->authentication, $this->persistentSpace, $this->resourceManager] as $responder) {
-            if ($responder->isFirstResponder()) {
-                return $responder;
-            }
-        }
-        throw new NotFoundException();
-    }
-
-    private function send(HTTPURLResponse $response, ?string $content): void
+    private function send(HTTPURLResponse $response, ?string $content, ?string $contentType = null, ?int $contentLength = null, ?string $contentDisposition = null): void
     {
         $isEmpty = match ($response->statusCode) {
             HTTPStatusCode::created, HTTPStatusCode::noContent, HTTPStatusCode::resetContent, HTTPStatusCode::notModified => true,
             default => $response instanceof BatchResponse ? $response->isEmpty : empty($content)
         };
         $headerFields = $response->allHeaderFields;
+        $headerFields["Content-Type"] = $contentType;
+        $headerFields["Content-Length"] = $contentLength;
+        $headerFields["Content-Disposition"] = $contentDisposition;
+        if ($value = $this->request->valueForHttpHeaderField("Origin")) {
+            $headerFields["Access-Control-Allow-Origin"] = $value;
+            $headerFields["Access-Control-Allow-Credentials"] = true;
+        }
+        if ($value = $this->request->valueForHttpHeaderField("Access-Control-Request-Method")) {
+            $headerFields["Access-Control-Allow-Methods"] = $value;
+        }
+        if ($value = $this->request->valueForHttpHeaderField("Access-Control-Request-Headers")) {
+            $headerFields["Access-Control-Allow-Headers"] = $value;
+        }
         if ($isEmpty) {
             $headerFields->removeAll(fn(mixed $e, string $k): bool => match ($k) {
                 "Content-Type", "Content-Length", "Content-Disposition" => true,
@@ -207,6 +180,46 @@ class Application extends Responder
         ob_end_flush();
     }
 
+    private function instantiateInitialResponder(): Responder
+    {
+        if ($delegate = $this->delegate) {
+            $reflectionClass = new ReflectionClass($delegate);
+            $namespaceName = $reflectionClass->getNamespaceName();
+            $fileManager = FileManager::default();
+            $baseURL = Bundle::main()->bundleURL->appendingPathComponent("src");
+            $directories = ["Responders", "ViewControllers"];
+            foreach ($directories as $directory) {
+                $directoryURL = $baseURL->appendingPathComponent($directory);
+                if (!$fileManager->fileExists($directoryURL->path)) {
+                    continue;
+                }
+                $urls = $fileManager->contentsOfDirectory($directoryURL, null, DirectoryEnumerationOptions::skipsHiddenFiles);
+                foreach ($urls as $url) {
+                    if (!string_is_equal($url->pathExtension, "php", CompareOptions::caseInsensitive)) {
+                        continue;
+                    }
+                    $filePath = $url->path;
+                    /** @psalm-suppress UnresolvableInclude */
+                    require_once $filePath;
+                    $responderClass = "$namespaceName\\$directoryURL->lastPathComponent\\{$fileManager->displayName($filePath)}";
+                    if (!class_exists($responderClass) || !is_subclass_of($responderClass, Responder::class)) {
+                        continue;
+                    }
+                    $responder = new $responderClass();
+                    if ($responder->isFirstResponder()) {
+                        return $responder;
+                    }
+                }
+            }
+        }
+        foreach ([new Home(), $this->authentication, $this->persistentSpace, $this->resourceManager] as $responder) {
+            if ($responder->isFirstResponder()) {
+                return $responder;
+            }
+        }
+        throw new NotFoundException();
+    }
+
     public function run(): void
     {
         try {
@@ -235,21 +248,7 @@ class Application extends Responder
                 }
             }
             $delegate?->applicationDidFinishLaunching($this);
-            $response = $responder->response();
-            $headerFields = $response->allHeaderFields;
-            $headerFields["Content-Type"] = $responder->contentType;
-            $headerFields["Content-Disposition"] = $responder->contentDisposition;
-            if ($value = $this->request->valueForHttpHeaderField("Origin")) {
-                $headerFields["Access-Control-Allow-Origin"] = $value;
-                $headerFields["Access-Control-Allow-Credentials"] = true;
-            }
-            if ($value = $this->request->valueForHttpHeaderField("Access-Control-Request-Method")) {
-                $headerFields["Access-Control-Allow-Methods"] = $value;
-            }
-            if ($value = $this->request->valueForHttpHeaderField("Access-Control-Request-Headers")) {
-                $headerFields["Access-Control-Allow-Headers"] = $value;
-            }
-            $this->send($response, $responder->content);
+            $this->send($responder->response(), $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition);
         } catch (Throwable $throwable) {
             $response = $throwable instanceof InvalidRequestException ? new HTTPURLResponse($this->request->url, (int)$throwable->getCode(), null, $throwable instanceof UnauthorizedException ? new Dictionary(["WWW-Authenticate" => "{$this->authentication->scheme} realm=\"{$this->authentication->space->realm}\""]) : null) : new HTTPURLResponse($this->request->url, HTTPStatusCode::internalServerError);
             $content = $this->delegate?->applicationWillFail($this, $response, $throwable);

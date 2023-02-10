@@ -27,6 +27,7 @@ abstract class Responder extends ObjectClass
     public ArrayClass $allowedMethods;
     public ?string $content = null;
     public ?string $contentType = null;
+    public ?int $contentLength = null;
     public ?string $contentDisposition = null;
     public bool $isProtectedContentAvailable = false;
 

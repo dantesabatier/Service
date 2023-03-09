@@ -33,7 +33,7 @@ class BearerAuthentication extends Authentication
         $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::options]);
         $this->contentType = "application/json; charset=utf-8";
         $this->scheme = "Bearer";
-        $this->token = ($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) && ($authenticationIndex = (int)strpos($authorizationValue, " ")) && (($hash = trim(substring_from_index($authorizationValue, $authenticationIndex))) && count(explode(".", $hash)) == 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment["APPLICATION_TOKEN_KEY"] ?? fatal_error("Environment variable \"APPLICATION_TOKEN_KEY\" cannot be null"), null, $hash, $this->request->url->host) : null;
+        $this->token = ($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) && ($authenticationIndex = (int)strpos($authorizationValue, " ")) && (($hash = trim(substring_from_index($authorizationValue, $authenticationIndex))) && count(explode(".", $hash)) == 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment["ApplicationJWTKey"] ?? fatal_error("Environment variable \"ApplicationJWTKey\" cannot be null"), null, $hash, $this->request->url->host) : null;
         $this->credential = ($username = $this->token?->payload?->username) ? new URLCredential($username) : null;
         $this->isProtectedContentAvailable = (bool)$this->token?->isValid;
     }
@@ -46,11 +46,11 @@ class BearerAuthentication extends Authentication
     {
         $environment = ProcessInfo::processInfo()->environment;
         /** @var string $key */
-        $key = $environment["APPLICATION_TOKEN_KEY"] ?? fatal_error("Environment variable \"APPLICATION_TOKEN_KEY\" cannot be null");
+        $key = $environment["ApplicationJWTKey"] ?? fatal_error("Environment variable \"ApplicationJWTKey\" cannot be null");
         /** @var string $entityName */
-        $entityName = $environment["APPLICATION_USERS_ENTITY_NAME"] ?? fatal_error("Environment variable \"APPLICATION_USERS_ENTITY_NAME\" cannot be null");
+        $entityName = $environment["ApplicationUserEntityName"] ?? fatal_error("Environment variable \"ApplicationUserEntityName\" cannot be null");
         /** @var int $validity */
-        $validity = $environment["APPLICATION_TOKEN_VALIDITY"] ?? 8;
+        $validity = $environment["ApplicationJWTValidity"] ?? 8;
         if ($this->space->authenticationMethod != URLAuthenticationMethodHTTPBearer) {
             throw new UnauthorizedException();
         }
@@ -86,7 +86,7 @@ class BearerAuthentication extends Authentication
     {
         $environment = ProcessInfo::processInfo()->environment;
         /** @var string $entityName */
-        $entityName = $environment["APPLICATION_USERS_ENTITY_NAME"] ?? fatal_error("Environment variable \"APPLICATION_USERS_ENTITY_NAME\" cannot be null");
+        $entityName = $environment["ApplicationUserEntityName"] ?? fatal_error("Environment variable \"ApplicationUserEntityName\" cannot be null");
         if (!($username = $this->credential?->user)) {
             throw new UnauthorizedException();
         }

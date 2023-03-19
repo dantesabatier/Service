@@ -29,7 +29,7 @@ interface ApplicationDelegate
      * @param Throwable $throwable The throwable object that was used to construct the response.
      * @return View|string|null The content of the response about to be sent.
      */
-    public function applicationWillFail(Application $application, HTTPURLResponse $response, Throwable $throwable): View|string|null;
+    public function applicationWillFail(Application $application, HTTPURLResponse &$response, Throwable $throwable): View|string|null;
 
     /**
      * Tells the delegate when the app is about to terminate.

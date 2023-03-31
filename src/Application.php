@@ -63,6 +63,23 @@ class Application extends Responder
             if ($value = $request->valueForHttpHeaderField("X-Http-Method-Override")) {
                 $request->httpMethod = $value;
             }
+            $request->httpBody = (function (): ?string {
+                $httpBody = null;
+                if ($request->httpMethod !== HTTPRequestMethod::trace) {
+                    $contentType = $request->valueForHttpHeaderField("Content-Type") ?? "text/plain";
+                    if (string_has_prefix($contentType, "application/x-www-form-urlencoded", CompareOptions::caseInsensitive)) {
+                        parse_str(urldecode(file_get_contents("php://input")), $body);
+                        if (!empty($body)) {
+                            $httpBody = json_encode($body);
+                        }
+                    } elseif (string_has_prefix($contentType, "multipart/form-data", CompareOptions::caseInsensitive)) {
+                        $httpBody = json_encode(empty($_FILES) ? $_POST : $_FILES);
+                    } else {
+                        $httpBody = file_get_contents("php://input");
+                    }
+                }
+                return empty($httpBody) ? null : $httpBody;
+            })();
             $this->$name = $request;
             return $this->$name;
         } elseif ($name == "delegate") {

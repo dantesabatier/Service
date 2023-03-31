@@ -24,6 +24,7 @@ use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\getallheaders;
 use function Sabatier\Foundation\human_readable_value;
 use function Sabatier\Foundation\request_url;
+use function Sabatier\Foundation\string_has_prefix;
 use function Sabatier\Foundation\string_is_equal;
 use const Sabatier\CoreData\PersistentHistoryTrackingKey;
 use const Sabatier\CoreData\PersistentStoreRemoteChangeNotificationPostOptionKey;
@@ -63,7 +64,7 @@ class Application extends Responder
             if ($value = $request->valueForHttpHeaderField("X-Http-Method-Override")) {
                 $request->httpMethod = $value;
             }
-            $request->httpBody = (function (): ?string {
+            $request->httpBody = (function () use ($request): ?string {
                 $httpBody = null;
                 if ($request->httpMethod !== HTTPRequestMethod::trace) {
                     $contentType = $request->valueForHttpHeaderField("Content-Type") ?? "text/plain";

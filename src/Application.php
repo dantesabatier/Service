@@ -63,18 +63,19 @@ class Application extends Responder
             $request->httpMethod = $request->valueForHttpHeaderField("X-Http-Method-Override") ?? $_SERVER["REQUEST_METHOD"] ?? HTTPRequestMethod::get;
             $request->httpBody = match ($request->httpMethod) {
                 HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::delete, HTTPRequestMethod::patch => (function () use ($request): ?string {
+                    $httpBody = null;
                     $contentType = $request->valueForHttpHeaderField("Content-Type") ?? "text/plain";
                     if (string_has_prefix($contentType, "application/x-www-form-urlencoded", CompareOptions::caseInsensitive)) {
                         parse_str(urldecode(file_get_contents("php://input")), $result);
-                        if (empty($result)) {
-                            return null;
+                        if (!empty($result)) {
+                            $httpBody = json_encode($result);
                         }
-                        return json_encode($result);
                     } elseif (string_has_prefix($contentType, "multipart/form-data", CompareOptions::caseInsensitive)) {
-                        return json_encode(empty($_FILES) ? $_POST : $_FILES);
+                        $httpBody = json_encode(empty($_FILES) ? $_POST : $_FILES);
                     } else {
-                        return file_get_contents("php://input");
+                        $httpBody = file_get_contents("php://input");
                     }
+                    return empty($httpBody) ? null : $httpBody;
                 })(),
                 default => null
             };

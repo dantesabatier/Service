@@ -59,11 +59,8 @@ class Application extends Responder
     {
         if ($name == "request") {
             $request = new URLRequest(new URL(request_url()));
-            $request->httpMethod = $_SERVER["REQUEST_METHOD"] ?? HTTPRequestMethod::get;
+            $request->httpMethod = $request->valueForHttpHeaderField("X-Http-Method-Override") ?? $_SERVER["REQUEST_METHOD"] ?? HTTPRequestMethod::get;
             $request->allHTTPHeaderFields = new Dictionary(getallheaders());
-            if ($value = $request->valueForHttpHeaderField("X-Http-Method-Override")) {
-                $request->httpMethod = $value;
-            }
             $request->httpBody = match ($request->httpMethod) {
                 HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::delete, HTTPRequestMethod::patch => (function () use ($request): ?string {
                     $contentType = $request->valueForHttpHeaderField("Content-Type") ?? "text/plain";

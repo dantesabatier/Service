@@ -133,11 +133,9 @@ class PersistentSpace extends Responder
     public function response(): HTTPURLResponse
     {
         $context = $this->managedObjectContext;
-        $entity = $this->entity;
         $request = $this->request;
-        $method = $request->httpMethod;
         $statusCode = HTTPStatusCode::ok;
-        switch ($method) {
+        switch ($request->httpMethod) {
             case HTTPRequestMethod::get:
             case HTTPRequestMethod::head:
                 $fetchRequest = $this->fetchRequest;
@@ -150,7 +148,7 @@ class PersistentSpace extends Responder
                     return new BatchResponse($request->url, $fetchRequestResult, $fetchRequest);
                 }
                 $content = json_encode($fetchRequestResult, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
-                if ($method == HTTPRequestMethod::get) {
+                if ($request->httpMethod == HTTPRequestMethod::get) {
                     $this->content = $content;
                     $this->contentType = "application/json; charset=utf-8";
                 }
@@ -159,7 +157,7 @@ class PersistentSpace extends Responder
             case HTTPRequestMethod::put:
             case HTTPRequestMethod::patch:
             case HTTPRequestMethod::delete:
-                if ($method != HTTPRequestMethod::delete) {
+                if ($request->httpMethod !== HTTPRequestMethod::delete) {
                     $contentType = $request->valueForHttpHeaderField("Content-Type") ?? throw new BadRequestException();
                     $mediaType = $contentType;
                     if (str_contains($contentType, ";")) {
@@ -183,14 +181,14 @@ class PersistentSpace extends Responder
                 $keyedValues = Dictionary::dictionaryWithArray($body);
                 $objectID = $keyedValues["objectID"];
                 if ($objectID === null) {
-                    if ($method != HTTPRequestMethod::post) {
+                    if ($request->httpMethod != HTTPRequestMethod::post) {
                         throw new BadRequestException("Bad request, objectID cannot be null");
                     }
                 } else {
                     $objectID = (int)$objectID;
-                    $store = $context->persistentStoreCoordinator?->persistentStores?->first(fn(PersistentStore $store): bool => $store->type == XMLStoreType);
+                    $store = $context->persistentStoreCoordinator?->persistentStores?->first(fn(PersistentStore $store): bool => $store->type === XMLStoreType);
                     if ($store instanceof AtomicStore) {
-                        $objectID = $store->objectID($entity, $objectID);
+                        $objectID = $store->objectID($this->entity, $objectID);
                     }
                     /** @var FetchRequest<ManagedObject> $fetchRequest */
                     $fetchRequest = new FetchRequest();
@@ -202,13 +200,13 @@ class PersistentSpace extends Responder
                     $object = $context->fetch($fetchRequest)->first();
                 }
                 if (!$object instanceof ManagedObject) {
-                    if ($method != HTTPRequestMethod::post) {
+                    if ($request->httpMethod !== HTTPRequestMethod::post) {
                         throw new NotFoundException("Not found, object doesn't exists");
                     }
-                } elseif ($method == HTTPRequestMethod::post) {
+                } elseif ($request->httpMethod === HTTPRequestMethod::post) {
                     throw new ConflictException("Conflict, object exists");
                 }
-                if ($method == HTTPRequestMethod::delete) {
+                if ($request->httpMethod === HTTPRequestMethod::delete) {
                     /** @psalm-suppress PossiblyNullArgument */
                     $context->delete($object);
                     $context->save();
@@ -218,7 +216,7 @@ class PersistentSpace extends Responder
                     if (($password = $keyedValues["password"]) && !string_begins_with($password, "\$2[abxy]", CompareOptions::quoted)) {
                         $keyedValues["password"] = password_hash($password, PASSWORD_BCRYPT, ["cost" => 12]);
                     }
-                    $object ??= EntityDescription::insertNewObject($entity->name, $context);
+                    $object ??= EntityDescription::insertNewObject($this->entity->name, $context);
                     $object->setValuesForKeys($keyedValues);
                     $context->save();
                     $this->content = json_encode($object->serialized($this->serialization), JSON_PRESERVE_ZERO_FRACTION);

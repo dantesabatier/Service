@@ -64,23 +64,23 @@ class Application extends Responder
             if ($value = $request->valueForHttpHeaderField("X-Http-Method-Override")) {
                 $request->httpMethod = $value;
             }
-            $request->httpBody = (function () use ($request): ?string {
-                $httpBody = null;
-                if ($request->httpMethod !== HTTPRequestMethod::trace) {
+            $request->httpBody = match ($request->httpMethod) {
+                HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::delete, HTTPRequestMethod::patch => (function () use ($request): ?string {
                     $contentType = $request->valueForHttpHeaderField("Content-Type") ?? "text/plain";
                     if (string_has_prefix($contentType, "application/x-www-form-urlencoded", CompareOptions::caseInsensitive)) {
-                        parse_str(urldecode(file_get_contents("php://input")), $body);
-                        if (!empty($body)) {
-                            $httpBody = json_encode($body);
+                        parse_str(urldecode(file_get_contents("php://input")), $result);
+                        if (empty($result)) {
+                            return null;
                         }
+                        return json_encode($result);
                     } elseif (string_has_prefix($contentType, "multipart/form-data", CompareOptions::caseInsensitive)) {
-                        $httpBody = json_encode(empty($_FILES) ? $_POST : $_FILES);
+                        return json_encode(empty($_FILES) ? $_POST : $_FILES);
                     } else {
-                        $httpBody = file_get_contents("php://input");
+                        return file_get_contents("php://input");
                     }
-                }
-                return empty($httpBody) ? null : $httpBody;
-            })();
+                })(),
+                default => null
+            };
             $this->$name = $request;
             return $this->$name;
         } elseif ($name == "delegate") {
@@ -257,11 +257,11 @@ class Application extends Responder
             if (!$responder->isProtectedContentAvailable) {
                 $responder->isProtectedContentAvailable = $this->isProtectedContentAvailable;
             }
-            if ($this->request->httpMethod != HTTPRequestMethod::options) {
+            if ($this->request->httpMethod !== HTTPRequestMethod::options) {
                 if (!$responder->isProtectedContentAvailable && !$responder->isEqual($this->authentication) && !$this->authentication->isProtectedContentAvailable) {
                     throw new UnauthorizedException();
                 }
-                if ($this->request->httpMethod != HTTPRequestMethod::get) {
+                if ($this->request->httpMethod !== HTTPRequestMethod::get) {
                     $viewContext->transactionAuthor = $this->authentication->credential?->user;
                 }
             }

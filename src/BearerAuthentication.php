@@ -23,9 +23,6 @@ use function Sabatier\Foundation\substring_from_index;
 class BearerAuthentication extends Authentication
 {
     private ?JSONWebToken $token;
-    private readonly string $key;
-    private readonly int $validity;
-    private readonly string $entityName;
 
     /**
      * @throws Exception
@@ -36,11 +33,7 @@ class BearerAuthentication extends Authentication
         $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::options]);
         $this->contentType = "application/json; charset=utf-8";
         $this->scheme = "Bearer";
-        $environment = ProcessInfo::processInfo()->environment;
-        $this->key = $environment["ApplicationJWTKey"] ?? fatal_error("Environment variable \"ApplicationJWTKey\" cannot be null");
-        $this->validity = (int)($environment["ApplicationJWTValidity"] ?? 8);
-        $this->entityName = $environment["ApplicationUserEntityName"] ?? fatal_error("Environment variable \"ApplicationUserEntityName\" cannot be null");
-        $this->token = ($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) && ($authenticationIndex = (int)strpos($authorizationValue, " ")) && (($hash = trim(substring_from_index($authorizationValue, $authenticationIndex))) && count(explode(".", $hash)) == 3) ? new JSONWebToken($this->key, null, $hash, $this->request->url->host) : null;
+        $this->token = ($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) && ($authenticationIndex = (int)strpos($authorizationValue, " ")) && (($hash = trim(substring_from_index($authorizationValue, $authenticationIndex))) && count(explode(".", $hash)) == 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment["ApplicationJWTKey"] ?? fatal_error("Environment variable \"ApplicationJWTKey\" cannot be null"), null, $hash, $this->request->url->host) : null;
         $this->credential = ($username = $this->token?->payload?->username) ? new URLCredential($username) : null;
         $this->isProtectedContentAvailable = (bool)$this->token?->isValid;
     }
@@ -51,6 +44,12 @@ class BearerAuthentication extends Authentication
     #[Action("/Authenticate")]
     public function authenticate(): void
     {
+        $environment = ProcessInfo::processInfo()->environment;
+        /** @var string $key */
+        $key = $environment["ApplicationJWTKey"] ?? fatal_error("Environment variable \"ApplicationJWTKey\" cannot be null");
+        /** @var string $entityName */
+        $entityName = $environment["ApplicationUserEntityName"] ?? fatal_error("Environment variable \"ApplicationUserEntityName\" cannot be null");
+        $validity = (int)($environment["ApplicationJWTValidity"] ?? 8);
         if ($this->space->authenticationMethod !== URLAuthenticationMethodHTTPBearer) {
             throw new UnauthorizedException();
         }
@@ -65,14 +64,14 @@ class BearerAuthentication extends Authentication
         }
         /** @var FetchRequest<ManagedObject> $fetchRequest */
         $fetchRequest = new FetchRequest();
-        $fetchRequest->entity = EntityDescription::entity($this->entityName, $this->managedObjectContext);
+        $fetchRequest->entity = EntityDescription::entity($entityName, $this->managedObjectContext);
         $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($username));
         $fetchRequest->propertiesToFetch = new ArrayClass(["username", "password"]); // @phpstan-ignore-line
         if (!($user = $this->managedObjectContext->fetch($fetchRequest)->first()?->serialized($this->serialization)) || !password_verify($password, $user->valueForKey("password"))) {
             throw new UnauthorizedException();
         }
         $date = new Date();
-        $this->token = new JSONWebToken($this->key, ["iat" => $date->timeIntervalSinceReferenceDate, "jti" => base64_encode(random_bytes(16)), "iss" => $this->request->url->host, "nbf" => $date->timeIntervalSinceReferenceDate, "exp" => $date->addingTimeInterval(60 * 60 * $this->validity)->timeIntervalSinceReferenceDate, "username" => $username], null, $this->request->url->host);
+        $this->token = new JSONWebToken($key, ["iat" => $date->timeIntervalSinceReferenceDate, "jti" => base64_encode(random_bytes(16)), "iss" => $this->request->url->host, "nbf" => $date->timeIntervalSinceReferenceDate, "exp" => $date->addingTimeInterval(60 * 60 * $validity)->timeIntervalSinceReferenceDate, "username" => $username], null, $this->request->url->host);
         $this->credential = new URLCredential($username, $password);
         $this->isProtectedContentAvailable = $this->token->isValid;
         $this->content = json_encode($this->token, JSON_THROW_ON_ERROR);

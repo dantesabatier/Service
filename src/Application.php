@@ -28,7 +28,10 @@ use function Sabatier\Foundation\string_has_prefix;
 use function Sabatier\Foundation\string_is_equal;
 use const Sabatier\CoreData\PersistentHistoryTrackingKey;
 use const Sabatier\CoreData\PersistentStoreRemoteChangeNotificationPostOptionKey;
+use const Sabatier\Foundation\CocoaErrorDomain;
 use const Sabatier\Foundation\kCFBundleNameKey;
+use const Sabatier\Foundation\LocalizedDescriptionKey;
+use const Sabatier\Foundation\LocalizedFailureReasonErrorKey;
 
 /**
  * An object that manages an app’s main url request and resources used by all of that app’s objects.
@@ -267,11 +270,8 @@ class Application extends Responder
             $this->send($responder->response(), $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition);
         } catch (Throwable $throwable) {
             $response = $throwable instanceof InvalidRequestException ? new HTTPURLResponse($this->request->url, (int)$throwable->getCode(), null, $throwable instanceof UnauthorizedException ? new Dictionary(["WWW-Authenticate" => "{$this->authentication->scheme} realm=\"{$this->authentication->space->realm}\""]) : null) : new HTTPURLResponse($this->request->url, HTTPStatusCode::internalServerError);
-            $content = $this->delegate?->applicationWillFail($this, $response, $throwable->getMessage());
-            if ($content instanceof View) {
-                $content = $content->render();
-            }
-            $this->send($response, $content);
+            $error = $this->delegate?->applicationWillPresentError($this, new Error(CocoaErrorDomain, $response->statusCode, new Dictionary([LocalizedDescriptionKey => HTTPURLResponse::localizedString($response->statusCode), LocalizedFailureReasonErrorKey => $throwable->getMessage()])));
+            $this->send($response, $error->description());
         }
     }
 

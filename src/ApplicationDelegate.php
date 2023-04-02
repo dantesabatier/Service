@@ -2,7 +2,7 @@
 
 namespace Sabatier\Service;
 
-use Sabatier\Foundation\Networking\HTTPURLResponse;
+use Sabatier\Foundation\Error;
 
 /**
  * A set of methods to manage shared behaviors for your app.
@@ -21,18 +21,17 @@ interface ApplicationDelegate
      */
     public function applicationDidFinishLaunching(Application $application): void;
 
-    /** 
-     * Provides an opportunity to modify the content of the response about to be sent.
+    /**
+     * Returns an error for the app to display to the user.
      * @param Application $application The application object associated with the delegate.
-     * @param HTTPURLResponse $response The response about to be sent.
-     * @param string $reason The reason of the failure.
-     * @return View|string|null The content of the response about to be sent.
+     * @param Error $error The error object that is used to construct the error message. Your implementation of this method can return a new Error object or the same one in this parameter.
+     * @return Error The error object to display.
      */
-    public function applicationWillFail(Application $application, HTTPURLResponse &$response, string $reason): View|string|null;
+    public function applicationWillPresentError(Application $application, Error $error): Error;
 
     /**
      * Tells the delegate when the app is about to terminate.
-     * 
+     *
      * Your delegate can use this method to perform any final cleanup before the app terminates. The app will terminate after this method returns.
      * @param Application $application The singleton app object.
      */

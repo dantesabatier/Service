@@ -181,7 +181,7 @@ class PersistentSpace extends Responder
                 $keyedValues = Dictionary::dictionaryWithArray($body);
                 $objectID = $keyedValues["objectID"];
                 if ($objectID === null) {
-                    if ($request->httpMethod != HTTPRequestMethod::post) {
+                    if ($request->httpMethod !== HTTPRequestMethod::post) {
                         throw new BadRequestException("Bad request, objectID cannot be null");
                     }
                 } else {

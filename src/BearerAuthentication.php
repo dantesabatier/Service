@@ -51,7 +51,7 @@ class BearerAuthentication extends Authentication
         $entityName = $environment["ApplicationUserEntityName"] ?? fatal_error("Environment variable \"ApplicationUserEntityName\" cannot be null");
         /** @var int $validity */
         $validity = $environment["ApplicationJWTValidity"] ?? 8;
-        if ($this->space->authenticationMethod != URLAuthenticationMethodHTTPBearer) {
+        if ($this->space->authenticationMethod !== URLAuthenticationMethodHTTPBearer) {
             throw new UnauthorizedException();
         }
         /** @var array<string, string> $body */

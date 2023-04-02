@@ -33,7 +33,7 @@ class BearerAuthentication extends Authentication
         $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::options]);
         $this->contentType = "application/json; charset=utf-8";
         $this->scheme = "Bearer";
-        $this->token = ($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) && ($authenticationIndex = (int)strpos($authorizationValue, " ")) && (($hash = trim(substring_from_index($authorizationValue, $authenticationIndex))) && count(explode(".", $hash)) == 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment["ApplicationJWTKey"] ?? fatal_error("Environment variable \"ApplicationJWTKey\" cannot be null"), null, $hash, $this->request->url->host) : null;
+        $this->token = ($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) && ($authenticationIndex = (int)strpos($authorizationValue, " ")) && (($hash = trim(substring_from_index($authorizationValue, $authenticationIndex))) && count(explode(".", $hash)) == 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment["APPLICATION_JWT_KEY"] ?? fatal_error("Environment variable \"APPLICATION_JWT_KEY\" cannot be null"), null, $hash, $this->request->url->host) : null;
         $this->credential = ($username = $this->token?->payload?->username) ? new URLCredential($username) : null;
         $this->isProtectedContentAvailable = (bool)$this->token?->isValid;
     }
@@ -44,12 +44,6 @@ class BearerAuthentication extends Authentication
     #[Action("/Authenticate")]
     public function authenticate(): void
     {
-        $environment = ProcessInfo::processInfo()->environment;
-        /** @var string $key */
-        $key = $environment["ApplicationJWTKey"] ?? fatal_error("Environment variable \"ApplicationJWTKey\" cannot be null");
-        /** @var string $entityName */
-        $entityName = $environment["ApplicationUserEntityName"] ?? fatal_error("Environment variable \"ApplicationUserEntityName\" cannot be null");
-        $validity = (int)($environment["ApplicationJWTValidity"] ?? 8);
         if ($this->space->authenticationMethod !== URLAuthenticationMethodHTTPBearer) {
             throw new UnauthorizedException();
         }
@@ -62,6 +56,12 @@ class BearerAuthentication extends Authentication
         if (!$username || !$password) {
             throw new BadRequestException();
         }
+        $environment = ProcessInfo::processInfo()->environment;
+        /** @var string $key */
+        $key = $environment["APPLICATION_JWT_KEY"] ?? fatal_error("Environment variable \"APPLICATION_JWT_KEY\" cannot be null");
+        /** @var string $entityName */
+        $entityName = $environment["APPLICATION_USER_ENTITY_NAME"] ?? fatal_error("Environment variable \"APPLICATION_USER_ENTITY_NAME\" cannot be null");
+        $validity = (int)($environment["APPLICATION_JWT_VALIDITY"] ?? 8);
         /** @var FetchRequest<ManagedObject> $fetchRequest */
         $fetchRequest = new FetchRequest();
         $fetchRequest->entity = EntityDescription::entity($entityName, $this->managedObjectContext);
@@ -83,12 +83,12 @@ class BearerAuthentication extends Authentication
     #[Action("/Me", HTTPRequestMethod::get)]
     public function me(): void
     {
-        $environment = ProcessInfo::processInfo()->environment;
-        /** @var string $entityName */
-        $entityName = $environment["ApplicationUserEntityName"] ?? fatal_error("Environment variable \"ApplicationUserEntityName\" cannot be null");
         if (!($username = $this->credential?->user)) {
             throw new UnauthorizedException();
         }
+        $environment = ProcessInfo::processInfo()->environment;
+        /** @var string $entityName */
+        $entityName = $environment["APPLICATION_USER_ENTITY_NAME"] ?? fatal_error("Environment variable \"APPLICATION_USER_ENTITY_NAME\" cannot be null");
         /** @var Dictionary<mixed> $serialization */
         $serialization = $this->serialization ?? new Dictionary();
         $serialization["username"] = AttributeType::string;

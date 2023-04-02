@@ -267,7 +267,7 @@ class Application extends Responder
             $this->send($responder->response(), $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition);
         } catch (Throwable $throwable) {
             $response = $throwable instanceof InvalidRequestException ? new HTTPURLResponse($this->request->url, (int)$throwable->getCode(), null, $throwable instanceof UnauthorizedException ? new Dictionary(["WWW-Authenticate" => "{$this->authentication->scheme} realm=\"{$this->authentication->space->realm}\""]) : null) : new HTTPURLResponse($this->request->url, HTTPStatusCode::internalServerError);
-            $content = $this->delegate?->applicationWillFail($this, $response, $throwable);
+            $content = $this->delegate?->applicationWillFail($this, $response, $throwable->getMessage());
             if ($content instanceof View) {
                 $content = $content->render();
             }

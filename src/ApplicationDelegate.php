@@ -3,7 +3,6 @@
 namespace Sabatier\Service;
 
 use Sabatier\Foundation\Networking\HTTPURLResponse;
-use Throwable;
 
 /**
  * A set of methods to manage shared behaviors for your app.
@@ -26,10 +25,10 @@ interface ApplicationDelegate
      * Provides an opportunity to modify the content of the response about to be sent.
      * @param Application $application The application object associated with the delegate.
      * @param HTTPURLResponse $response The response about to be sent.
-     * @param Throwable $throwable The throwable object that was used to construct the response.
+     * @param string $reason The failure reason.
      * @return View|string|null The content of the response about to be sent.
      */
-    public function applicationWillFail(Application $application, HTTPURLResponse $response, Throwable $throwable): View|string|null;
+    public function applicationWillFail(Application $application, HTTPURLResponse &$response, string $reason): View|string|null;
 
     /**
      * Tells the delegate when the app is about to terminate.

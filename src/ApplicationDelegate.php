@@ -25,7 +25,7 @@ interface ApplicationDelegate
      * Provides an opportunity to modify the content of the response about to be sent.
      * @param Application $application The application object associated with the delegate.
      * @param HTTPURLResponse $response The response about to be sent.
-     * @param string $reason The failure reason.
+     * @param string $reason The reason of the failure.
      * @return View|string|null The content of the response about to be sent.
      */
     public function applicationWillFail(Application $application, HTTPURLResponse &$response, string $reason): View|string|null;

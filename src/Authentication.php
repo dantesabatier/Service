@@ -12,14 +12,13 @@ use const Sabatier\Foundation\Networking\URLAuthenticationMethodDefault;
 
 abstract class Authentication extends Responder
 {
-    public readonly AuthenticationScheme $scheme;
-    public readonly URLProtectionSpace $space;
+    public AuthenticationScheme $scheme = AuthenticationScheme::basic;
     public ?URLCredential $credential = null;
+    public readonly URLProtectionSpace $space;
 
     public function __construct()
     {
         parent::__construct();
-        $this->scheme = ($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) ? AuthenticationScheme::tryFrom(substring_to_index($authorizationValue, (int)strpos($authorizationValue, " "))) ?? AuthenticationScheme::basic : AuthenticationScheme::basic;
-        $this->space = new URLProtectionSpace((string)$this->request->url->host, (int)$this->request->url->port, protocol: $this->request->url->scheme, realm: $this->request->url->host, authenticationMethod: (array_first(URLProtectionSpace::authenticationMethods, fn(string $authenticationMethod): bool => string_has_suffix($authenticationMethod, $this->scheme->value, CompareOptions::caseInsensitive)) ?? URLAuthenticationMethodDefault));
+        $this->space = new URLProtectionSpace((string)$this->request->url->host, (int)$this->request->url->port, protocol: $this->request->url->scheme, realm: $this->request->url->host, authenticationMethod: ($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) ? (array_first(URLProtectionSpace::authenticationMethods, fn(string $authenticationMethod): bool => string_has_suffix($authenticationMethod, substring_to_index($authorizationValue, (int)strpos($authorizationValue, " ")), CompareOptions::caseInsensitive)) ?? URLAuthenticationMethodDefault) : URLAuthenticationMethodDefault);
     }
 }

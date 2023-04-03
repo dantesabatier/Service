@@ -88,7 +88,7 @@ class BearerAuthentication extends Authentication
         }
         $environment = ProcessInfo::processInfo()->environment;
         /** @var string $entityName */
-        $entityName = $environment["APPLICATION_USER_ENTITY_NAME"] ?? fatal_error("Environment variable \"APPLICATION_USER_ENTITY_NAME\" cannot be null");
+        $entityName = $environment["APPLICATION_USER_ENTITY_NAME"] ?? "User";
         /** @var Dictionary<mixed> $serialization */
         $serialization = $this->serialization ?? new Dictionary();
         $serialization["username"] = AttributeType::string;

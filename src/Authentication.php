@@ -12,9 +12,9 @@ use const Sabatier\Foundation\Networking\URLAuthenticationMethodDefault;
 
 abstract class Authentication extends Responder
 {
-    public string $scheme = "Basic";
-    public readonly URLProtectionSpace $space;
+    public AuthenticationScheme $scheme = AuthenticationScheme::basic;
     public ?URLCredential $credential = null;
+    public readonly URLProtectionSpace $space;
 
     public function __construct()
     {

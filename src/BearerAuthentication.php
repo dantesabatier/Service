@@ -15,7 +15,6 @@ use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Foundation\ProcessInfo;
-use const Sabatier\Foundation\Networking\URLAuthenticationMethodHTTPBearer;
 use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\substring_from_index;
 
@@ -31,8 +30,7 @@ class BearerAuthentication extends Authentication
     {
         parent::__construct();
         $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::options]);
-        $this->scheme = AuthenticationScheme::bearer;
-        $this->token = ($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) && ($authenticationIndex = (int)strpos($authorizationValue, " ")) && (($hash = trim(substring_from_index($authorizationValue, $authenticationIndex))) && count(explode(".", $hash)) == 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment["APPLICATION_JWT_KEY"] ?? fatal_error("Environment variable \"APPLICATION_JWT_KEY\" cannot be null"), null, $hash, $this->request->url->host) : null;
+        $this->token = $this->scheme === AuthenticationScheme::bearer && ($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) && ($authenticationIndex = (int)strpos($authorizationValue, " ")) && (($hash = trim(substring_from_index($authorizationValue, $authenticationIndex))) && count(explode(".", $hash)) == 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment["APPLICATION_JWT_KEY"] ?? "", null, $hash, $this->request->url->host) : null;
         $this->credential = ($username = $this->token?->payload?->username) ? new URLCredential($username) : null;
         $this->isProtectedContentAvailable = (bool)$this->token?->isValid;
     }
@@ -43,7 +41,7 @@ class BearerAuthentication extends Authentication
     #[Action("/Authenticate")]
     public function authenticate(): void
     {
-        if ($this->space->authenticationMethod !== URLAuthenticationMethodHTTPBearer) {
+        if ($this->scheme !== AuthenticationScheme::bearer) {
             throw new UnauthorizedException();
         }
         /** @var array<string, string> $body */

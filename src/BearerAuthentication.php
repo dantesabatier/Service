@@ -31,8 +31,7 @@ class BearerAuthentication extends Authentication
     {
         parent::__construct();
         $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::options]);
-        $this->contentType = "application/json; charset=utf-8";
-        $this->scheme = "Bearer";
+        $this->scheme = AuthenticationScheme::bearer;
         $this->token = ($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) && ($authenticationIndex = (int)strpos($authorizationValue, " ")) && (($hash = trim(substring_from_index($authorizationValue, $authenticationIndex))) && count(explode(".", $hash)) == 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment["APPLICATION_JWT_KEY"] ?? fatal_error("Environment variable \"APPLICATION_JWT_KEY\" cannot be null"), null, $hash, $this->request->url->host) : null;
         $this->credential = ($username = $this->token?->payload?->username) ? new URLCredential($username) : null;
         $this->isProtectedContentAvailable = (bool)$this->token?->isValid;
@@ -75,6 +74,7 @@ class BearerAuthentication extends Authentication
         $this->credential = new URLCredential($username, $password);
         $this->isProtectedContentAvailable = $this->token->isValid;
         $this->content = json_encode($this->token, JSON_THROW_ON_ERROR);
+        $this->contentType = "application/json; charset=utf-8";
     }
 
     /**
@@ -102,6 +102,7 @@ class BearerAuthentication extends Authentication
             throw new NotFoundException();
         }
         $this->content = json_encode($user, JSON_PRESERVE_ZERO_FRACTION);
+        $this->contentType = "application/json; charset=utf-8";
     }
 
     /**
@@ -111,5 +112,6 @@ class BearerAuthentication extends Authentication
     public function logout(): void
     {
         $this->content = json_encode(true, JSON_THROW_ON_ERROR);
+        $this->contentType = "application/json; charset=utf-8";
     }
 }

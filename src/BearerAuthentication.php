@@ -16,7 +16,6 @@ use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Foundation\ProcessInfo;
 use const Sabatier\Foundation\Networking\URLAuthenticationMethodHTTPBearer;
-use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\substring_from_index;
 
 /** @internal */

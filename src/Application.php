@@ -31,7 +31,6 @@ use const Sabatier\CoreData\PersistentStoreRemoteChangeNotificationPostOptionKey
 use const Sabatier\Foundation\kCFBundleNameKey;
 use const Sabatier\Foundation\LocalizedDescriptionKey;
 use const Sabatier\Foundation\LocalizedFailureReasonErrorKey;
-use const Sabatier\Foundation\LocalizedRecoverySuggestionErrorKey;
 use const Sabatier\Foundation\URLErrorBadServerResponse;
 use const Sabatier\Foundation\URLErrorDomain;
 
@@ -233,10 +232,14 @@ class Application extends Responder
                 }
             }
         }
-        foreach ([new Home(), $this->authentication, $this->persistentSpace, $this->resourceManager] as $responder) {
+        foreach ([$this->authentication, $this->persistentSpace, $this->resourceManager] as $responder) {
             if ($responder->isFirstResponder()) {
                 return $responder;
             }
+        }
+        $responder = new Home();
+        if ($responder->isFirstResponder()) {
+            return $responder;
         }
         throw new NotFoundException();
     }

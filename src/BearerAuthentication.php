@@ -15,8 +15,8 @@ use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Foundation\ProcessInfo;
-use const Sabatier\Foundation\Networking\URLAuthenticationMethodHTTPBearer;
 use function Sabatier\Foundation\substring_from_index;
+use const Sabatier\Foundation\Networking\URLAuthenticationMethodHTTPBearer;
 
 /** @internal */
 class BearerAuthentication extends Authentication
@@ -31,7 +31,7 @@ class BearerAuthentication extends Authentication
         parent::__construct();
         $this->scheme = AuthenticationScheme::bearer;
         $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::options]);
-        $this->token = $this->space->authenticationMethod === URLAuthenticationMethodHTTPBearer && ($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) && ($authenticationIndex = (int)strpos($authorizationValue, " ")) && (($hash = trim(substring_from_index($authorizationValue, $authenticationIndex))) && count(explode(".", $hash)) == 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment["APPLICATION_JWT_KEY"] ?? "", null, $hash, $this->request->url->host) : null;
+        $this->token = $this->space->authenticationMethod === URLAuthenticationMethodHTTPBearer && ($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) && ($authenticationIndex = (int)strpos($authorizationValue, " ")) && (($hash = trim(substring_from_index($authorizationValue, $authenticationIndex))) && count(explode(".", $hash)) === 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment["APPLICATION_JWT_KEY"] ?? "", null, $hash, $this->request->url->host) : null;
         $this->credential = ($username = $this->token?->payload?->username) ? new URLCredential($username) : null;
         $this->isProtectedContentAvailable = (bool)$this->token?->isValid;
     }

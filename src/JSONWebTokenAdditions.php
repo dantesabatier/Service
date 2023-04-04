@@ -4,12 +4,6 @@ namespace Sabatier\Service;
 
 use JsonException;
 use Sabatier\Foundation\Date;
-use function Sabatier\Foundation\string_compare;
-
-function jwt_compare(string $wt1, string $wt2): int
-{
-    return string_compare($wt1, $wt2);
-}
 
 /**
  * @throws JsonException
@@ -36,11 +30,11 @@ function jwt_validate(string $jwt, string $pk, ?string $iss = null): bool
 /**
  * @throws JsonException
  */
-function jwt_generate(object|array $payload, string $pk): string
+function jwt_encode(object|array $value, string $pk): string
 {
     $header = base64_encode(json_encode(["alg" => "HS256", "typ" => "JWT"]));
-    $payload = base64_encode(json_encode((array)$payload, JSON_THROW_ON_ERROR));
-    $unsigned = sprintf("%s.%s", $header, $payload);
+    $value = base64_encode(json_encode((array)$value, JSON_THROW_ON_ERROR));
+    $unsigned = sprintf("%s.%s", $header, $value);
     $signed = base64_encode(hash_hmac("sha256", $unsigned, $pk, true));
     return sprintf("%s.%s", $unsigned, $signed);
 }
@@ -48,7 +42,7 @@ function jwt_generate(object|array $payload, string $pk): string
 /**
  * @throws JsonException
  */
-function jwt_payload(string $jwt, string $pk, ?string $iss = null, ?bool $validated = null): ?object
+function jwt_decode(string $jwt, string $pk, ?string $iss = null, ?bool $validated = null): ?object
 {
     $validated ??= jwt_validate($jwt, $pk, $iss);
     if (!$validated) {

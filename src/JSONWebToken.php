@@ -38,9 +38,9 @@ class JSONWebToken extends ObjectClass
     public function __get(string $name)
     {
         return $this->$name = match ($name) {
-            "tokenString" => jwt_generate((object)$this->payload, $this->key),
+            "tokenString" => jwt_encode((object)$this->payload, $this->key),
             "isValid" => jwt_validate($this->tokenString, $this->key, $this->issuer),
-            "payload" => jwt_payload($this->tokenString, $this->key, $this->issuer, $this->isValid),
+            "payload" => jwt_decode($this->tokenString, $this->key, $this->issuer, $this->isValid),
             default => $this->valueForUndefinedKey($name)
         };
     }

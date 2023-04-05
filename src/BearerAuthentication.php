@@ -21,8 +21,6 @@ use const Sabatier\Foundation\Networking\URLAuthenticationMethodHTTPBearer;
 /** @internal */
 class BearerAuthentication extends Authentication
 {
-    private ?JSONWebToken $token;
-
     /**
      * @throws Exception
      */
@@ -31,9 +29,8 @@ class BearerAuthentication extends Authentication
         parent::__construct();
         $this->scheme = AuthenticationScheme::bearer;
         $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::options]);
-        $this->token = $this->space->authenticationMethod === URLAuthenticationMethodHTTPBearer && ($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) && ($authenticationIndex = (int)strpos($authorizationValue, " ")) && (($hash = trim(substring_from_index($authorizationValue, $authenticationIndex))) && count(explode(".", $hash)) === 3) ? new JSONWebToken(ProcessInfo::processInfo()->environment["APPLICATION_JWT_KEY"] ?? "", null, $hash, $this->request->url->host) : null;
-        $this->credential = ($username = $this->token?->payload?->username) ? new URLCredential($username) : null;
-        $this->isProtectedContentAvailable = (bool)$this->token?->isValid;
+        $this->credential = $this->space->authenticationMethod === URLAuthenticationMethodHTTPBearer && ($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) && ($authenticationIndex = (int)strpos($authorizationValue, " ")) && (($hash = trim(substring_from_index($authorizationValue, $authenticationIndex))) && count(explode(".", $hash)) === 3) && ($payload = (new JWTDecoder(ProcessInfo::processInfo()->environment["APPLICATION_JWT_KEY"] ?? "", $this->request->url->host))->decode($hash)) ? new URLCredential($payload["username"]) : null;
+        $this->isProtectedContentAvailable = $this->credential !== null;
     }
 
     /**
@@ -69,10 +66,11 @@ class BearerAuthentication extends Authentication
             throw new UnauthorizedException();
         }
         $date = new Date();
-        $this->token = new JSONWebToken($key, ["iat" => $date->timeIntervalSinceReferenceDate, "jti" => base64_encode(random_bytes(16)), "iss" => $this->request->url->host, "nbf" => $date->timeIntervalSinceReferenceDate, "exp" => $date->addingTimeInterval(60 * 60 * $validity)->timeIntervalSinceReferenceDate, "username" => $username], null, $this->request->url->host);
+        $encoder = new JWTEncoder($key);
+        $content = json_encode($encoder->encode(["iat" => $date->timeIntervalSinceReferenceDate, "jti" => base64_encode(random_bytes(16)), "iss" => $this->request->url->host, "nbf" => $date->timeIntervalSinceReferenceDate, "exp" => $date->addingTimeInterval(60 * 60 * $validity)->timeIntervalSinceReferenceDate, "username" => $username]), JSON_THROW_ON_ERROR);
         $this->credential = new URLCredential($username, $password);
-        $this->isProtectedContentAvailable = $this->token->isValid;
-        $this->content = json_encode($this->token, JSON_THROW_ON_ERROR);
+        $this->isProtectedContentAvailable = true;
+        $this->content = $content;
         $this->contentType = "application/json; charset=utf-8";
     }
 

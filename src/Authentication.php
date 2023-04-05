@@ -23,12 +23,12 @@ abstract class Authentication extends Responder
     public function __construct()
     {
         parent::__construct();
-        $host = $this->request->url->host;
-        $authorizationView = (string)$this->request->valueForHttpHeaderField("Authorization");
-        $index = (int)strpos($authorizationView, " ");
-        $credentials = trim(substring_from_index($authorizationView, $index));
-        $this->authenticationScheme = AuthenticationScheme::tryFrom(substring_to_index($authorizationView, $index));
-        $this->space = new URLProtectionSpace((string)$host, (int)$this->request->url->port, protocol: $this->request->url->scheme, realm: $host, authenticationMethod: $this->authenticationMethod() ?? URLAuthenticationMethodDefault);
+        $authorizationValue = (string)$this->request->valueForHttpHeaderField("Authorization");
+        $index = (int)strpos($authorizationValue, " ");
+        $scheme = trim(substring_to_index($authorizationValue, $index));
+        $credentials = trim(substring_from_index($authorizationValue, $index));
+        $this->authenticationScheme = AuthenticationScheme::tryFrom($scheme);
+        $this->space = new URLProtectionSpace((string)$this->request->url->host, (int)$this->request->url->port, protocol: $this->request->url->scheme, realm: $this->request->url->host, authenticationMethod: $this->authenticationMethod() ?? URLAuthenticationMethodDefault);
         $this->credential = match ($this->authenticationScheme) {
             AuthenticationScheme::basic => (function () use ($credentials): ?URLCredential {
                 $components = explode(":", base64_decode($credentials));
@@ -38,13 +38,13 @@ abstract class Authentication extends Responder
                 [$user, $password] = $components;
                 return new URLCredential($user, $password);
             })(),
-            AuthenticationScheme::bearer => (function () use ($host, $credentials): ?URLCredential {
+            AuthenticationScheme::bearer => (function () use ($credentials): ?URLCredential {
                 if (count(explode(".", $credentials)) !== 3) {
                     return null;
                 }
                 $environment = ProcessInfo::processInfo()->environment;
                 $key = $environment["JWT_KEY"] ?? "";
-                $decoder = new JWTDecoder($key, $host);
+                $decoder = new JWTDecoder($key, $this->space->realm);
                 try {
                     if (!($username = $decoder->decode($credentials)["username"])) {
                         return null;

@@ -29,10 +29,7 @@
   "autoload": {
     "psr-4": {
       "Sabatier\\Service\\": "src"
-    },
-    "files": [
-      "src/JSONWebTokenAdditions.php"
-    ]
+    }
   },
   "autoload-dev": {
     "psr-4": {

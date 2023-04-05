@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use Exception;
 use Sabatier\Foundation\Date;
 
 readonly class JWTDecoder
@@ -29,12 +30,15 @@ readonly class JWTDecoder
         return !(((property_exists($obj, "nbf") && $obj->nbf > $date->timeIntervalSinceReferenceDate) || (property_exists($obj, "exp") && $obj->exp < $date->timeIntervalSinceReferenceDate) || (property_exists($obj, "iss") && $obj->iss !== $this->issuer)));
     }
 
-    public function decode(string $data): ?array
+    /**
+     * @throws Exception
+     */
+    public function decode(string $data): array
     {
         if (!$this->validate($data)) {
-            return null;
+            throw new Exception();
         }
         [, $payload,] = explode(".", $data);
-        return json_decode(base64_decode($payload), true);
+        return json_decode(base64_decode($payload), true, 512, JSON_THROW_ON_ERROR);
     }
 }

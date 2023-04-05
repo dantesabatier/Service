@@ -11,26 +11,19 @@ use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
-use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Foundation\ProcessInfo;
-use function Sabatier\Foundation\substring_from_index;
 use const Sabatier\Foundation\Networking\URLAuthenticationMethodHTTPBearer;
 
 /** @internal */
 class BearerAuthentication extends Authentication
 {
-    /**
-     * @throws Exception
-     */
     public function __construct()
     {
         parent::__construct();
         $this->scheme = AuthenticationScheme::bearer;
         $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::options]);
-        $this->credential = $this->space->authenticationMethod === URLAuthenticationMethodHTTPBearer && ($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) && ($authenticationIndex = (int)strpos($authorizationValue, " ")) && (($hash = trim(substring_from_index($authorizationValue, $authenticationIndex))) && count(explode(".", $hash)) === 3) && ($payload = (new JWTDecoder(ProcessInfo::processInfo()->environment["APPLICATION_JWT_KEY"] ?? "", $this->request->url->host))->decode($hash)) && ($username = $payload["username"]) ? new URLCredential($username) : null;
-        $this->isProtectedContentAvailable = $this->credential !== null;
     }
 
     /**
@@ -68,8 +61,6 @@ class BearerAuthentication extends Authentication
         $date = new Date();
         $encoder = new JWTEncoder($key);
         $content = json_encode($encoder->encode(["iat" => $date->timeIntervalSinceReferenceDate, "jti" => base64_encode(random_bytes(16)), "iss" => $this->request->url->host, "nbf" => $date->timeIntervalSinceReferenceDate, "exp" => $date->addingTimeInterval(60 * 60 * $validity)->timeIntervalSinceReferenceDate, "username" => $username]), JSON_THROW_ON_ERROR);
-        $this->credential = new URLCredential($username, $password);
-        $this->isProtectedContentAvailable = true;
         $this->content = $content;
         $this->contentType = "application/json; charset=utf-8";
     }

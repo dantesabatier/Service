@@ -19,12 +19,7 @@ use const Sabatier\Foundation\Networking\URLAuthenticationMethodHTTPBearer;
 /** @internal */
 class BearerAuthentication extends Authentication
 {
-    public function __construct()
-    {
-        parent::__construct();
-        $this->scheme = AuthenticationScheme::bearer;
-        $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::options]);
-    }
+    public AuthenticationScheme $scheme = AuthenticationScheme::bearer;
 
     /**
      * @throws Exception

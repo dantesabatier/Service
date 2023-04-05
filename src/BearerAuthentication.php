@@ -46,10 +46,10 @@ class BearerAuthentication extends Authentication
         }
         $environment = ProcessInfo::processInfo()->environment;
         /** @var string $key */
-        $key = $environment["APPLICATION_JWT_KEY"] ?? "";
+        $key = $environment["JWT_KEY"] ?? "";
         /** @var string $entityName */
-        $entityName = $environment["APPLICATION_USER_ENTITY_NAME"] ?? "User";
-        $validity = (int)($environment["APPLICATION_JWT_VALIDITY"] ?? 8);
+        $entityName = $environment["USER_ENTITY_NAME"] ?? "User";
+        $validity = (int)($environment["JWT_VALIDITY"] ?? 8);
         /** @var FetchRequest<ManagedObject> $fetchRequest */
         $fetchRequest = new FetchRequest();
         $fetchRequest->entity = EntityDescription::entity($entityName, $this->managedObjectContext);
@@ -60,7 +60,8 @@ class BearerAuthentication extends Authentication
         }
         $date = new Date();
         $encoder = new JWTEncoder($key);
-        $content = json_encode($encoder->encode(["iat" => $date->timeIntervalSinceReferenceDate, "jti" => base64_encode(random_bytes(16)), "iss" => $this->request->url->host, "nbf" => $date->timeIntervalSinceReferenceDate, "exp" => $date->addingTimeInterval(60 * 60 * $validity)->timeIntervalSinceReferenceDate, "username" => $username]), JSON_THROW_ON_ERROR);
+        $token = $encoder->encode(["iat" => $date->timeIntervalSinceReferenceDate, "jti" => base64_encode(random_bytes(16)), "iss" => $this->request->url->host, "nbf" => $date->timeIntervalSinceReferenceDate, "exp" => $date->addingTimeInterval(60 * 60 * $validity)->timeIntervalSinceReferenceDate, "username" => $username]);
+        $content = json_encode($token, JSON_THROW_ON_ERROR);
         $this->content = $content;
         $this->contentType = "application/json; charset=utf-8";
     }
@@ -76,7 +77,7 @@ class BearerAuthentication extends Authentication
         }
         $environment = ProcessInfo::processInfo()->environment;
         /** @var string $entityName */
-        $entityName = $environment["APPLICATION_USER_ENTITY_NAME"] ?? "User";
+        $entityName = $environment["USER_ENTITY_NAME"] ?? "User";
         /** @var Dictionary<mixed> $serialization */
         $serialization = $this->serialization ?? new Dictionary();
         $serialization["username"] = AttributeType::string;

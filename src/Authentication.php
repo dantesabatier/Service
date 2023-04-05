@@ -18,7 +18,6 @@ abstract class Authentication extends Responder
     public AuthenticationScheme $scheme = AuthenticationScheme::basic;
     public readonly ?URLCredential $credential;
     public readonly URLProtectionSpace $space;
-    private readonly ?AuthenticationScheme $authenticationScheme;
 
     public function __construct()
     {
@@ -27,9 +26,14 @@ abstract class Authentication extends Responder
         $index = (int)strpos($authorizationValue, " ");
         $scheme = trim(substring_to_index($authorizationValue, $index));
         $credentials = trim(substring_from_index($authorizationValue, $index));
-        $this->authenticationScheme = AuthenticationScheme::tryFrom($scheme);
-        $this->space = new URLProtectionSpace((string)$this->request->url->host, (int)$this->request->url->port, protocol: $this->request->url->scheme, realm: $this->request->url->host, authenticationMethod: $this->authenticationMethod() ?? URLAuthenticationMethodDefault);
-        $this->credential = match ($this->authenticationScheme) {
+        $authenticationScheme = AuthenticationScheme::tryFrom($scheme);
+        $authenticationMethod = (function () use ($authenticationScheme): ?string {
+            if (!$authenticationScheme) {
+                return null;
+            }
+            return array_first(URLProtectionSpace::authenticationMethods, fn(string $authenticationMethod): bool => string_has_suffix($authenticationMethod, $authenticationScheme->value, CompareOptions::caseInsensitive));
+        })() ?? URLAuthenticationMethodDefault;
+        $credential = match ($authenticationScheme) {
             AuthenticationScheme::basic => (function () use ($credentials): ?URLCredential {
                 $components = explode(":", base64_decode($credentials));
                 if (count($components) !== 2) {
@@ -44,7 +48,7 @@ abstract class Authentication extends Responder
                 }
                 $environment = ProcessInfo::processInfo()->environment;
                 $key = $environment["JWT_KEY"] ?? "";
-                $decoder = new JWTDecoder($key, $this->space->realm);
+                $decoder = new JWTDecoder($key, $this->request->url->host);
                 try {
                     if (!($username = $decoder->decode($credentials)["username"])) {
                         return null;
@@ -56,14 +60,8 @@ abstract class Authentication extends Responder
             })(),
             default => null
         };
+        $this->space = new URLProtectionSpace((string)$this->request->url->host, (int)$this->request->url->port, null, $this->request->url->scheme, $this->request->url->host, $authenticationMethod);
+        $this->credential = $credential;
         $this->isProtectedContentAvailable = $this->credential !== null;
-    }
-
-    private function authenticationMethod(): ?string
-    {
-        if (!($authenticationScheme = $this->authenticationScheme)) {
-            return null;
-        }
-        return array_first(URLProtectionSpace::authenticationMethods, fn(string $authenticationMethod): bool => string_has_suffix($authenticationMethod, $authenticationScheme->value, CompareOptions::caseInsensitive));
     }
 }

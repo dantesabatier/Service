@@ -15,7 +15,6 @@
   ],
   "require": {
     "php": "^8.2",
-    "ext-fileinfo": "*",
     "ext-mbstring": "*",
     "sabatier/foundation": "^1.0-dev",
     "sabatier/coredata": "^1.0-dev"
@@ -29,11 +28,6 @@
   "autoload": {
     "psr-4": {
       "Sabatier\\Service\\": "src"
-    }
-  },
-  "autoload-dev": {
-    "psr-4": {
-      "Sabatier\\Service\\Test\\": "tests"
     }
   },
   "extra": {

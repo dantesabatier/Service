@@ -279,7 +279,7 @@ class Application extends Responder
                     return null;
                 }
                 $authentication = $this->authentication;
-                $realm = $authentication->space->realm;
+                $realm = $authentication->space->realm ?? "";
                 $scheme = $authentication->scheme;
                 $challenge = "$scheme->value realm=\"$realm\"";
                 $challenge .= match ($scheme) {
@@ -293,7 +293,7 @@ class Application extends Responder
                 $userInfo[LocalizedFailureReasonErrorKey] = $failureReason;
             }
             $error = $this->delegate?->applicationWillPresentError($this, new Error(URLErrorDomain, URLErrorBadServerResponse, $userInfo));
-            $this->send($response, $error->description());
+            $this->send($response, $error?->description());
         }
     }
 

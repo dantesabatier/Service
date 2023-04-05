@@ -177,7 +177,7 @@ class PersistentSpace extends Responder
                     });
                 }
                 $object = null;
-                /** @var Dictionary<mixed> $keyedValues */
+                /** @var Dictionary $keyedValues */
                 $keyedValues = Dictionary::dictionaryWithArray($body);
                 $objectID = $keyedValues["objectID"];
                 if ($objectID === null) {

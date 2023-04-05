@@ -73,7 +73,7 @@ class BearerAuthentication extends Authentication
         $environment = ProcessInfo::processInfo()->environment;
         /** @var string $entityName */
         $entityName = $environment["USER_ENTITY_NAME"] ?? "User";
-        /** @var Dictionary<mixed> $serialization */
+        /** @var Dictionary $serialization */
         $serialization = $this->serialization ?? new Dictionary();
         $serialization["username"] = AttributeType::string;
         $serialization->removeValueForKey("password");

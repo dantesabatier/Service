@@ -3,7 +3,9 @@
 namespace Sabatier\Service;
 
 use Exception;
+use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\CompareOptions;
+use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\Networking\URLProtectionSpace;
 use Sabatier\Foundation\ProcessInfo;
@@ -63,5 +65,6 @@ abstract class Authentication extends Responder
         $this->space = new URLProtectionSpace((string)$this->request->url->host, (int)$this->request->url->port, null, $this->request->url->scheme, $this->request->url->host, $authenticationMethod);
         $this->credential = $credential;
         $this->isProtectedContentAvailable = $this->credential !== null;
+        $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::options]);
     }
 }

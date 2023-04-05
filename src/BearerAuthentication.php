@@ -29,7 +29,7 @@ class BearerAuthentication extends Authentication
         parent::__construct();
         $this->scheme = AuthenticationScheme::bearer;
         $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::options]);
-        $this->credential = $this->space->authenticationMethod === URLAuthenticationMethodHTTPBearer && ($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) && ($authenticationIndex = (int)strpos($authorizationValue, " ")) && (($hash = trim(substring_from_index($authorizationValue, $authenticationIndex))) && count(explode(".", $hash)) === 3) && ($payload = (new JWTDecoder(ProcessInfo::processInfo()->environment["APPLICATION_JWT_KEY"] ?? "", $this->request->url->host))->decode($hash)) ? new URLCredential($payload["username"]) : null;
+        $this->credential = $this->space->authenticationMethod === URLAuthenticationMethodHTTPBearer && ($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) && ($authenticationIndex = (int)strpos($authorizationValue, " ")) && (($hash = trim(substring_from_index($authorizationValue, $authenticationIndex))) && count(explode(".", $hash)) === 3) && ($payload = (new JWTDecoder(ProcessInfo::processInfo()->environment["APPLICATION_JWT_KEY"] ?? "", $this->request->url->host))->decode($hash)) && ($username = $payload["username"]) ? new URLCredential($username) : null;
         $this->isProtectedContentAvailable = $this->credential !== null;
     }
 

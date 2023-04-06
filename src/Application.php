@@ -43,8 +43,8 @@ class Application extends Responder
     public readonly URLRequest $request;
     /** @var ApplicationDelegate|null The delegate of the app object. */
     public ?ApplicationDelegate $delegate = null;
-    public readonly PersistentContainer $persistentContainer;
     public Authentication $authentication;
+    public readonly PersistentContainer $persistentContainer;
     private readonly PersistentSpace $persistentSpace;
     private readonly ResourceManager $resourceManager;
 

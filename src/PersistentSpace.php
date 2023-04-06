@@ -144,6 +144,7 @@ class PersistentSpace extends Responder
                     FetchRequestResultType::dictionaryResultType => $context->fetch($fetchRequest),
                     FetchRequestResultType::countResultType => new Dictionary(["count" => $context->count($fetchRequest)])
                 };
+                /** @psalm-suppress TypeDoesNotContainType */
                 if ($fetchRequestResult instanceof BatchFaultingArray) {
                     return new BatchResponse($request->url, $fetchRequestResult, $fetchRequest);
                 }

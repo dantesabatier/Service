@@ -45,20 +45,14 @@ abstract class Authentication extends Responder
                 return new URLCredential($user, $password);
             })(),
             AuthenticationScheme::bearer => (function () use ($credentials): ?URLCredential {
-                if (count(explode(".", $credentials)) !== 3) {
-                    return null;
-                }
                 $environment = ProcessInfo::processInfo()->environment;
                 $key = $environment["JWT_KEY"] ?? "";
+                /** @psalm-suppress PossiblyNullArgument */
                 $decoder = new JWTDecoder($key, $this->request->url->host);
-                try {
-                    if (!($username = $decoder->decode($credentials)["username"])) {
-                        return null;
-                    }
-                    return new URLCredential($username);
-                } catch (Exception) {
+                if (!($decoded = $decoder->decode($credentials)) || !($username = $decoded["username"])) {
                     return null;
                 }
+                return new URLCredential($username);
             })(),
             default => null
         };

@@ -299,7 +299,6 @@ class Application extends Responder
 
     /**
      * Terminates the receiver.
-     * @return never
      */
     public function terminate(): never
     {

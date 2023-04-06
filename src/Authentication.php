@@ -28,15 +28,7 @@ abstract class Authentication extends Responder
         $scheme = trim(substring_to_index($authorizationValue, $index));
         $credentials = trim(substring_from_index($authorizationValue, $index));
         $authenticationScheme = AuthenticationScheme::tryFrom($scheme);
-        $authenticationMethod = (function () use ($authenticationScheme): ?string {
-            if (!$authenticationScheme) {
-                return null;
-            }
-            return array_first(URLProtectionSpace::authenticationMethods, fn(string $authenticationMethod): bool => string_has_suffix($authenticationMethod, $authenticationScheme->value, CompareOptions::caseInsensitive));
-        })() ?? URLAuthenticationMethodDefault;
-        $processInfo = ProcessInfo::processInfo();
-        $environment = $processInfo->environment;
-        $credential = match ($authenticationScheme) {
+        $this->credential = match ($authenticationScheme) {
             AuthenticationScheme::basic => (function () use ($credentials): ?URLCredential {
                 $components = explode(":", base64_decode($credentials));
                 if (count($components) !== 2) {
@@ -45,7 +37,9 @@ abstract class Authentication extends Responder
                 [$username, $password] = $components;
                 return new URLCredential($username, $password);
             })(),
-            AuthenticationScheme::bearer => (function () use ($environment, $credentials): ?URLCredential {
+            AuthenticationScheme::bearer => (function () use ($credentials): ?URLCredential {
+                $processInfo = ProcessInfo::processInfo();
+                $environment = $processInfo->environment;
                 /** @var string $key */
                 $key = $environment["JWT_KEY"] ?? "";
                 $decoder = new JWTDecoder($key, $this->request->url->host);
@@ -57,8 +51,12 @@ abstract class Authentication extends Responder
             })(),
             default => null
         };
+        $this->space = new URLProtectionSpace((string)$this->request->url->host, (int)$this->request->url->port, null, $this->request->url->scheme, $this->request->url->host, (function () use ($authenticationScheme): ?string {
+            if (!$authenticationScheme) {
+                return null;
+            }
+            return array_first(URLProtectionSpace::authenticationMethods, fn(string $authenticationMethod): bool => string_has_suffix($authenticationMethod, $authenticationScheme->value, CompareOptions::caseInsensitive));
+        })() ?? URLAuthenticationMethodDefault);
         $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::options]);
-        $this->credential = $credential;
-        $this->space = new URLProtectionSpace((string)$this->request->url->host, (int)$this->request->url->port, null, $this->request->url->scheme, $this->request->url->host, $authenticationMethod);
     }
 }

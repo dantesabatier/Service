@@ -2,8 +2,6 @@
 
 namespace Sabatier\Service;
 
-use Exception;
-
 readonly class JWTEncoder
 {
     public function __construct(private string $key)

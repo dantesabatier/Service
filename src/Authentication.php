@@ -2,7 +2,6 @@
 
 namespace Sabatier\Service;
 
-use Exception;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;

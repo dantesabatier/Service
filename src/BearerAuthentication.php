@@ -39,7 +39,8 @@ class BearerAuthentication extends Authentication
         if (!$username || !$password) {
             throw new BadRequestException();
         }
-        $environment = ProcessInfo::processInfo()->environment;
+        $processInfo = ProcessInfo::processInfo();
+        $environment = $processInfo->environment;
         /** @var string $key */
         $key = $environment["JWT_KEY"] ?? "";
         /** @var string $entityName */

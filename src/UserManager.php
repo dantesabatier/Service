@@ -18,9 +18,9 @@ readonly class UserManager
     /**
      * @param class-string<T> $type
      * @param ManagedObjectContext $context
-     * @param Dictionary $serialization
+     * @param Dictionary|null $serialization
      */
-    public function __construct(private string $type, private ManagedObjectContext $context, private Dictionary $serialization)
+    public function __construct(private string $type, private ManagedObjectContext $context, private ?Dictionary $serialization = null)
     {
     }
 

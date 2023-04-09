@@ -43,7 +43,7 @@ class Authentication extends Responder
             $this->$name = array_first(URLProtectionSpace::authenticationMethods, fn(string $authenticationMethod): bool => string_has_suffix($authenticationMethod, $this->scheme->value, CompareOptions::caseInsensitive)) ?? URLAuthenticationMethodDefault;
             return $this->$name;
         } elseif ($name == "isProtectedContentAvailable") {
-            $this->$name = ($credential = $this->authorization?->credential) && ($user = $this->authorization?->user) && password_verify($credential->password, $user->valueForKey("password"));
+            $this->$name = $this->authorization?->isValid ?? false;
             return $this->$name;
         } else {
             return parent::__get($name);
@@ -53,7 +53,7 @@ class Authentication extends Responder
     #[Action("/Login")]
     public function login(): void
     {
-        $this->isProtectedContentAvailable ?: throw new UnauthorizedException();
+        $this->authorization?->isValid ?: throw new UnauthorizedException();
         /** @var ManagedObject $user */
         $user = $this->authorization?->user;
         $this->content = json_encode($user, JSON_PRESERVE_ZERO_FRACTION);

@@ -12,9 +12,9 @@ readonly class Authorization
 {
     public ?URLCredential $credential;
     /** @var Dictionary<string> */
-    public Dictionary $parameters;
+    private Dictionary $parameters;
 
-    public function __construct(public AuthenticationScheme $scheme, public string $parametersView)
+    public function __construct(private AuthenticationScheme $scheme, private string $parametersView)
     {
         unset($this->credential);
         unset($this->parameters);
@@ -51,6 +51,28 @@ readonly class Authorization
                 };
             })(),
             default => throw new UndefinedKeyException("<Authorization is not key value coding compliant for the key \"$name\"")
+        };
+    }
+
+    public function perform(Authentication $authentication): bool
+    {
+        if (!($credential = $authentication->credential) || !($user = $authentication->user)) {
+            return false;
+        }
+        $password = $user->valueForKey("password");
+        return match ($this->scheme) {
+            AuthenticationScheme::basic => password_verify((string)$credential->password, $password),
+            AuthenticationScheme::digest => (function () use ($authentication, $password): bool {
+                $parameters = $this->parameters;
+                if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"])) {
+                    return false;
+                }
+                $A1 = md5("$username:{$authentication->request->url->host}:$password");
+                $A2 = md5("{$authentication->request->httpMethod}:$uri");
+                $validResponse = md5("$A1:$nonce:$nc:$cnonce:$qop:$A2");
+                return $parameters["response"] === $validResponse;
+            })(),
+            default => false
         };
     }
 }

@@ -3,6 +3,7 @@
 namespace Sabatier\Service;
 
 use DateTimeInterface;
+use Exception;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPCookie;
@@ -11,6 +12,8 @@ use Sabatier\Foundation\Networking\HTTPCookieStorage;
 use Sabatier\Foundation\Networking\HTTPCookieStringPolicy;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
 use Sabatier\Foundation\Networking\URLCredential;
+use Sabatier\Foundation\Predicates\ComparisonPredicate;
+use Sabatier\Foundation\Predicates\Expression;
 use function Sabatier\Foundation\human_readable_value;
 use function Sabatier\Foundation\substring_from_index;
 use function Sabatier\Foundation\substring_to_index;
@@ -51,31 +54,17 @@ class Authentication extends Responder
                 }
                 /** @var class-string<ManagedObject> $type */
                 $type = "App\Model\User";
-                $manager = new UserManager($type, $this->managedObjectContext, $this->serialization);
-                return $manager->fetch($username);
+                $fetchRequest = $type::fetchRequest();
+                $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($username));
+                try {
+                    return $this->managedObjectContext->fetch($fetchRequest)->first()?->serialized($this->serialization);
+                } catch (Exception) {
+                    return null;
+                }
             })();
             return $this->$name;
         } elseif ($name == "isProtectedContentAvailable") {
-            $this->$name = (function (): bool {
-                if (!($credential = $this->credential) || !($user = $this->user)) {
-                    return false;
-                }
-                $password = $user->valueForKey("password");
-                return match ($this->scheme) {
-                    AuthenticationScheme::basic => password_verify((string)$credential->password, $password),
-                    AuthenticationScheme::digest => (function () use ($password): bool {
-                        $parameters = $this->authorization->parameters;
-                        if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"])) {
-                            return false;
-                        }
-                        $A1 = md5("$username:{$this->request->url->host}:$password");
-                        $A2 = md5("{$this->request->httpMethod}:$uri");
-                        $validResponse = md5("$A1:$nonce:$nc:$cnonce:$qop:$A2");
-                        return $parameters["response"] === $validResponse;
-                    })(),
-                    default => false
-                };
-            })();
+            $this->$name = $this->authorization->perform($this);
             return $this->$name;
         } else {
             return parent::__get($name);

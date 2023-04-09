@@ -58,6 +58,7 @@ class Application extends Responder
         unset($this->resourceManager);
     }
 
+    /** @suppress PHP0418 */
     public function __get(string $name)
     {
         if ($name == "request") {

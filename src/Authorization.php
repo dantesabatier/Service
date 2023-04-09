@@ -24,10 +24,10 @@ readonly class Authorization
     {
         return $this->$name = match ($name) {
             "parameters" => (new ArrayClass(explode(",", $this->parametersView)))->reduce(new Dictionary(), function (Dictionary $result, string $e): Dictionary {
-                $components = array_map(fn(string $e): string => trim($e), explode("=", $e));
+                $components = explode("=", $e);
                 if (count($components) === 2) {
                     [$name, $value] = $components;
-                    $result[$name] = $value;
+                    $result[trim($name)] = trim($value);
                 }
                 return $result;
             }),

@@ -24,7 +24,6 @@ use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\getallheaders;
 use function Sabatier\Foundation\human_readable_value;
 use function Sabatier\Foundation\request_url;
-use function Sabatier\Foundation\string_has_prefix;
 use function Sabatier\Foundation\string_is_equal;
 use const Sabatier\CoreData\PersistentHistoryTrackingKey;
 use const Sabatier\CoreData\PersistentStoreRemoteChangeNotificationPostOptionKey;
@@ -67,18 +66,15 @@ class Application extends Responder
             $request->httpMethod = $request->valueForHttpHeaderField("X-Http-Method-Override") ?? $_SERVER["REQUEST_METHOD"] ?? HTTPRequestMethod::get;
             $request->httpBody = match ($request->httpMethod) {
                 HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::delete, HTTPRequestMethod::patch => (function () use ($request): ?string {
-                    $httpBody = null;
                     $contentType = $request->valueForHttpHeaderField("Content-Type") ?? "text/plain";
-                    if (string_has_prefix($contentType, "application/x-www-form-urlencoded", CompareOptions::caseInsensitive)) {
-                        parse_str(urldecode(file_get_contents("php://input")), $result);
-                        if (!empty($result)) {
-                            $httpBody = json_encode($result);
-                        }
-                    } elseif (string_has_prefix($contentType, "multipart/form-data", CompareOptions::caseInsensitive)) {
-                        $httpBody = json_encode(empty($_FILES) ? $_POST : $_FILES);
-                    } else {
-                        $httpBody = file_get_contents("php://input");
+                    $mediaType = $contentType;
+                    if (str_contains($contentType, ";")) {
+                        [$mediaType,] = explode(";", $contentType);
                     }
+                    $httpBody = match ($mediaType) {
+                        "application/x-www-form-urlencoded", "application/json" => file_get_contents("php://input"),
+                        default => null
+                    };
                     return empty($httpBody) ? null : $httpBody;
                 })(),
                 default => null
@@ -111,7 +107,7 @@ class Application extends Responder
             $this->$name = $persistentContainer;
             return $this->$name;
         } elseif ($name == "authentication") {
-            $this->$name = new BearerAuthentication();
+            $this->$name = new Authentication();
             return $this->$name;
         } elseif ($name == "persistentSpace") {
             $this->$name = new PersistentSpace();
@@ -140,7 +136,7 @@ class Application extends Responder
     {
         $isEmpty = match ($response->statusCode) {
             HTTPStatusCode::created, HTTPStatusCode::noContent, HTTPStatusCode::resetContent, HTTPStatusCode::notModified => true,
-            default => $response instanceof BatchResponse ? $response->isEmpty : empty($content)
+            default => $response instanceof HTTPURLBatchResponse ? $response->isEmpty : empty($content)
         };
         $headerFields = $response->allHeaderFields;
         $headerFields["Content-Type"] = $contentType;
@@ -163,7 +159,7 @@ class Application extends Responder
             });
         }
         header(sprintf("%s %s %s", $response->httpVersion, $response->statusCode, HTTPURLResponse::localizedString($response->statusCode)));
-        if ($response instanceof BatchResponse) {
+        if ($response instanceof HTTPURLBatchResponse) {
             flush();
             header_register_callback(function () use ($headerFields) {
                 foreach ($headerFields as $key => $value) {
@@ -264,11 +260,11 @@ class Application extends Responder
                 $responder->isProtectedContentAvailable = $this->isProtectedContentAvailable;
             }
             if ($this->request->httpMethod !== HTTPRequestMethod::options) {
-                if (!$responder->isProtectedContentAvailable && !$responder->isEqual($this->authentication) && !$this->authentication->isProtectedContentAvailable) {
+                if (!$responder->isProtectedContentAvailable && !$responder instanceof Authentication && !$this->authentication->isProtectedContentAvailable) {
                     throw new UnauthorizedException();
                 }
-                if ($this->request->httpMethod !== HTTPRequestMethod::get) {
-                    $viewContext->transactionAuthor = $this->authentication->credential?->user;
+                if ($this->request->httpMethod !== HTTPRequestMethod::get && $responder instanceof PersistentSpace) {
+                    $viewContext->transactionAuthor = $this->authentication->authorization?->credential?->user;
                 }
             }
             $delegate?->applicationDidFinishLaunching($this);
@@ -279,7 +275,7 @@ class Application extends Responder
                     return null;
                 }
                 $authentication = $this->authentication;
-                $realm = $authentication->space->realm ?? "";
+                $realm = $authentication->request->url->host ?? "";
                 $scheme = $authentication->scheme;
                 $challenge = "$scheme->value realm=\"$realm\"";
                 $challenge .= match ($scheme) {
@@ -292,8 +288,9 @@ class Application extends Responder
             if ($failureReason = $throwable->getMessage()) {
                 $userInfo[LocalizedFailureReasonErrorKey] = $failureReason;
             }
+            //TODO: present the error
             $error = $this->delegate?->applicationWillPresentError($this, new Error(URLErrorDomain, URLErrorBadServerResponse, $userInfo));
-            $this->send($response, $error?->description());
+            $this->send($response, $error?->localizedDescription);
         }
     }
 

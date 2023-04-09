@@ -1,6 +1,4 @@
-<?php
-
-/** @noinspection PhpInternalEntityUsedInspection */
+<?php /** @noinspection PhpInternalEntityUsedInspection */
 
 namespace Sabatier\Service;
 

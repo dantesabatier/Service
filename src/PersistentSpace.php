@@ -1,6 +1,4 @@
-<?php
-
-/** @noinspection PhpInternalEntityUsedInspection */
+<?php /** @noinspection PhpInternalEntityUsedInspection */
 
 namespace Sabatier\Service;
 
@@ -146,7 +144,7 @@ class PersistentSpace extends Responder
                 };
                 /** @psalm-suppress TypeDoesNotContainType */
                 if ($fetchRequestResult instanceof BatchFaultingArray) {
-                    return new BatchResponse($request->url, $fetchRequestResult, $fetchRequest);
+                    return new HTTPURLBatchResponse($request->url, $fetchRequestResult, $fetchRequest);
                 }
                 $content = json_encode($fetchRequestResult, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
                 if ($request->httpMethod == HTTPRequestMethod::get) {
@@ -158,29 +156,35 @@ class PersistentSpace extends Responder
             case HTTPRequestMethod::put:
             case HTTPRequestMethod::patch:
             case HTTPRequestMethod::delete:
+                $contentType = $request->valueForHttpHeaderField("Content-Type") ?? "text/plain";
+                $mediaType = $contentType;
+                if (str_contains($contentType, ";")) {
+                    [$mediaType,] = explode(";", $contentType);
+                }
                 if ($request->httpMethod !== HTTPRequestMethod::delete) {
-                    $contentType = $request->valueForHttpHeaderField("Content-Type") ?? throw new BadRequestException();
-                    $mediaType = $contentType;
-                    if (str_contains($contentType, ";")) {
-                        [$mediaType,] = explode(";", $contentType);
-                    }
-                    $supportedMediaTypes = new ArrayClass(["application/json", "application/x-www-form-urlencoded", "multipart/form-data"]);
+                    $supportedMediaTypes = new ArrayClass(["application/x-www-form-urlencoded", "multipart/form-data", "application/json"]);
                     if (!$supportedMediaTypes->contains(fn(string $supportedMediaType): bool => string_is_equal($supportedMediaType, $mediaType, CompareOptions::caseInsensitive))) {
                         throw new UnsupportedMediaTypeException();
                     }
                 }
-                if (!($body = json_decode($request->httpBody ?? "[]", true, 512, JSON_THROW_ON_ERROR))) {
-                    $components = new URLComponents($this->request->url->absoluteString);
-                    $items = $components->queryItems ?? throw new BadRequestException("Bad request, body cannot be null");
-                    $body = $items->reduce([], function (array &$result, URLQueryItem $item): array {
-                        $result[$item->name] = $item->value;
+                /** @var array<string, mixed> $body */
+                $body = match ($mediaType) {
+                    "application/x-www-form-urlencoded" => (function () use ($request): array {
+                        parse_str(urldecode((string)$request->httpBody), $result);
                         return $result;
-                    });
+                    })(),
+                    "multipart/form-data" => $_POST,
+                    "application/json" => json_decode($request->httpBody ?? "[]") ?? [],
+                    default => []
+                };
+                if ($request->httpMethod !== HTTPRequestMethod::post) {
+                    $components = new URLComponents($this->request->url->absoluteString);
+                    if ($item = $components->queryItems?->first(fn(URLQueryItem $item): bool => $item->name === "objectID")) {
+                        $body[$item->name] = $item->value;
+                    }
                 }
                 $object = null;
-                /** @var Dictionary $keyedValues */
-                $keyedValues = Dictionary::dictionaryWithArray($body);
-                $objectID = $keyedValues["objectID"];
+                $objectID = $body["objectID"] ?? null;
                 if ($objectID === null) {
                     if ($request->httpMethod !== HTTPRequestMethod::post) {
                         throw new BadRequestException("Bad request, objectID cannot be null");
@@ -213,6 +217,8 @@ class PersistentSpace extends Responder
                     $context->save();
                     $statusCode = HTTPStatusCode::noContent;
                 } else {
+                    /** @var Dictionary $keyedValues */
+                    $keyedValues = Dictionary::dictionaryWithArray($body);
                     /** @noinspection SpellCheckingInspection */
                     if (($password = $keyedValues["password"]) && !string_begins_with($password, "\$2[abxy]", CompareOptions::quoted)) {
                         $keyedValues["password"] = password_hash($password, PASSWORD_BCRYPT, ["cost" => 12]);

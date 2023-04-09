@@ -55,8 +55,8 @@ class PersistentSpace extends Responder
             $fetchRequest->entity = $this->entity;
             $components = new URLComponents($this->request->url->absoluteString);
             if ($queryItems = $components->queryItems) {
-                if ($queryItem = $queryItems->first(fn(URLQueryItem $queryItem): bool => string_is_equal($queryItem->name, "fetchRequest", CompareOptions::caseInsensitive))) {
-                    if (($value = $queryItem->value) && ($json = base64_decode($value)) && ($decoded = json_decode($json, null, 512, JSON_THROW_ON_ERROR))) {
+                if ($item = $queryItems->first(fn(URLQueryItem $item): bool => string_is_equal($item->name, "fetchRequest", CompareOptions::caseInsensitive))) {
+                    if (($value = $item->value) && ($json = base64_decode($value)) && ($decoded = json_decode($json, null, 512, JSON_THROW_ON_ERROR))) {
                         if (property_exists($decoded, "predicate")) {
                             $predicate = $decoded->predicate;
                             if (property_exists($predicate, "format")) {
@@ -108,7 +108,7 @@ class PersistentSpace extends Responder
                         }
                     }
                 } else {
-                    $predicates = $queryItems->map(fn(URLQueryItem $queryItem): ComparisonPredicate => new ComparisonPredicate(Expression::expressionForKeyPath($queryItem->name), Expression::expressionForConstantValue($queryItem->value)));
+                    $predicates = $queryItems->map(fn(URLQueryItem $item): ComparisonPredicate => new ComparisonPredicate(Expression::expressionForKeyPath($item->name), Expression::expressionForConstantValue($item->value)));
                     /** @psalm-suppress InvalidArgument */
                     $fetchRequest->predicate = $predicates->count() > 1 ? CompoundPredicate::andPredicateWithSubpredicates($predicates) : $predicates->first();
                 }
@@ -147,7 +147,7 @@ class PersistentSpace extends Responder
                     return new HTTPURLBatchResponse($request->url, $fetchRequestResult, $fetchRequest);
                 }
                 $content = json_encode($fetchRequestResult, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
-                if ($request->httpMethod == HTTPRequestMethod::get) {
+                if ($request->httpMethod === HTTPRequestMethod::get) {
                     $this->content = $content;
                     $this->contentType = "application/json; charset=utf-8";
                 }

@@ -24,6 +24,7 @@ readonly class Authorization
         unset($this->isValid);
     }
 
+    /** @suppress PHP0410 */
     public function __get(string $name)
     {
         return $this->$name = match ($name) {
@@ -63,6 +64,7 @@ readonly class Authorization
                         if ($parameters["response"] !== $validResponse) {
                             return null;
                         }
+                        /** @psalm-suppress NoValue */
                         $this->user = $user;
                         return new URLCredential($username, $password);
                     })(),
@@ -80,11 +82,16 @@ readonly class Authorization
         };
     }
 
-    private function fetch(string $username): ?ManagedObject
+    /**
+     * @template T of ManagedObject
+     * @param string $username
+     * @return T|null
+     */
+    public function fetch(string $username)
     {
         $application = Application::shared();
         $context = $application->persistentContainer->viewContext;
-        /** @var class-string<ManagedObject> $managedObjectClass */
+        /** @var class-string<T> $managedObjectClass */
         $managedObjectClass = "App\Model\User";
         $fetchRequest = $managedObjectClass::fetchRequest();
         $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($username));

@@ -51,7 +51,7 @@ class Authentication extends Responder
                 }
                 /** @var class-string<ManagedObject> $type */
                 $type = "App\Model\User";
-                $manager = new UserManager($type, $this->managedObjectContext);
+                $manager = new UserManager($type, $this->managedObjectContext, $this->serialization);
                 return $manager->fetch($username);
             })();
             return $this->$name;

@@ -5,6 +5,7 @@ namespace Sabatier\Service;
 use Exception;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
+use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
 
@@ -17,8 +18,9 @@ readonly class UserManager
     /**
      * @param class-string<T> $type
      * @param ManagedObjectContext $context
+     * @param Dictionary $serialization
      */
-    public function __construct(private string $type, private ManagedObjectContext $context)
+    public function __construct(private string $type, private ManagedObjectContext $context, private Dictionary $serialization)
     {
     }
 
@@ -32,7 +34,7 @@ readonly class UserManager
         $fetchRequest = $type::fetchRequest();
         $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($username));
         try {
-            return $this->context->fetch($fetchRequest)->first();
+            return $this->context->fetch($fetchRequest)->first()?->serialized($this->serialization);
         } catch (Exception) {
             return null;
         }

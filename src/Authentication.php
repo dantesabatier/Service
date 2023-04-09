@@ -4,46 +4,78 @@ namespace Sabatier\Service;
 
 use DateTimeInterface;
 use Sabatier\CoreData\ManagedObject;
-use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPCookie;
 use Sabatier\Foundation\Networking\HTTPCookiePropertyKey;
 use Sabatier\Foundation\Networking\HTTPCookieStorage;
 use Sabatier\Foundation\Networking\HTTPCookieStringPolicy;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
-use Sabatier\Foundation\Networking\URLProtectionSpace;
-use function Sabatier\Foundation\array_first;
+use Sabatier\Foundation\Networking\URLCredential;
 use function Sabatier\Foundation\human_readable_value;
-use function Sabatier\Foundation\string_has_suffix;
 use function Sabatier\Foundation\substring_from_index;
 use function Sabatier\Foundation\substring_to_index;
-use const Sabatier\Foundation\Networking\URLAuthenticationMethodDefault;
 
 class Authentication extends Responder
 {
     public AuthenticationScheme $scheme = AuthenticationScheme::basic;
-    public readonly ?Authorization $authorization;
-    public readonly string $method;
+
+    public readonly ?URLCredential $credential;
+    public readonly ?ManagedObject $user;
+    private readonly Authorization $authorization;
     private ?HTTPCookie $cookie = null;
 
     public function __construct()
     {
         parent::__construct();
+        unset($this->credential);
+        unset($this->user);
         unset($this->authorization);
-        unset($this->method);
         unset($this->isProtectedContentAvailable);
     }
 
     public function __get(string $name)
     {
         if ($name == "authorization") {
-            $this->$name = ($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) && ($index = strpos($authorizationValue, " ")) && (($scheme = trim(substring_to_index($authorizationValue, $index)))) && ($parametersView = trim(substring_from_index($authorizationValue, $index))) && ($scheme = AuthenticationScheme::tryFrom($scheme)) && $scheme === $this->scheme ? new Authorization($scheme, $parametersView) : null;
+            if (!($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) || !($index = strpos($authorizationValue, " ")) || !(($scheme = trim(substring_to_index($authorizationValue, $index)))) || !($parametersView = trim(substring_from_index($authorizationValue, $index))) || !($scheme = AuthenticationScheme::tryFrom($scheme)) || $scheme !== $this->scheme) {
+                return null;
+            }
+            $this->$name = new Authorization($scheme, $parametersView);
             return $this->$name;
-        } elseif ($name == "method") {
-            $this->$name = array_first(URLProtectionSpace::authenticationMethods, fn(string $authenticationMethod): bool => string_has_suffix($authenticationMethod, $this->scheme->value, CompareOptions::caseInsensitive)) ?? URLAuthenticationMethodDefault;
+        } elseif ($name == "credential") {
+            $this->$name = $this->authorization->credential;
+            return $this->$name;
+        } elseif ($name == "user") {
+            $this->$name = (function (): ?ManagedObject {
+                if (!($username = $this->credential?->user)) {
+                    return null;
+                }
+                /** @var class-string<ManagedObject> $type */
+                $type = "App\Model\User";
+                $manager = new UserManager($type, $this->managedObjectContext);
+                return $manager->fetch($username);
+            })();
             return $this->$name;
         } elseif ($name == "isProtectedContentAvailable") {
-            $this->$name = $this->authorization?->isValid ?? false;
+            $this->$name = (function (): bool {
+                if (!($credential = $this->credential) || !($user = $this->user)) {
+                    return false;
+                }
+                $password = $user->valueForKey("password");
+                return match ($this->scheme) {
+                    AuthenticationScheme::basic => password_verify((string)$credential->password, $password),
+                    AuthenticationScheme::digest => (function () use ($password): bool {
+                        $parameters = $this->authorization->parameters;
+                        if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"])) {
+                            return false;
+                        }
+                        $A1 = md5("$username:{$this->request->url->host}:$password");
+                        $A2 = md5("{$this->request->httpMethod}:$uri");
+                        $validResponse = md5("$A1:$nonce:$nc:$cnonce:$qop:$A2");
+                        return $parameters["response"] === $validResponse;
+                    })(),
+                    default => false
+                };
+            })();
             return $this->$name;
         } else {
             return parent::__get($name);
@@ -53,9 +85,9 @@ class Authentication extends Responder
     #[Action("/Login")]
     public function login(): void
     {
-        $this->authorization?->isValid ?: throw new UnauthorizedException();
+        $this->isProtectedContentAvailable ?: throw new UnauthorizedException();
         /** @var ManagedObject $user */
-        $user = $this->authorization?->user;
+        $user = $this->user;
         $this->content = json_encode($user, JSON_PRESERVE_ZERO_FRACTION);
         $this->contentType = "application/json";
         $this->cookie = new HTTPCookie(new Dictionary([

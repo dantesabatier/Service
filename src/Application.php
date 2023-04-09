@@ -265,7 +265,7 @@ class Application extends Responder
                     throw new UnauthorizedException();
                 }
                 if ($this->request->httpMethod !== HTTPRequestMethod::get && $responder instanceof PersistentSpace) {
-                    $viewContext->transactionAuthor = $this->authentication->authorization?->credential?->user;
+                    $viewContext->transactionAuthor = $this->authentication->credential?->user;
                 }
             }
             $delegate?->applicationDidFinishLaunching($this);

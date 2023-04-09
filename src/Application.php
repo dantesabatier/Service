@@ -289,7 +289,6 @@ class Application extends Responder
             if ($failureReason = $throwable->getMessage()) {
                 $userInfo[LocalizedFailureReasonErrorKey] = $failureReason;
             }
-            //TODO: present the error
             $error = $this->delegate?->applicationWillPresentError($this, new Error(URLErrorDomain, URLErrorBadServerResponse, $userInfo));
             $this->send($response, $error?->localizedDescription);
         }

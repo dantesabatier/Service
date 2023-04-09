@@ -24,7 +24,7 @@ class Authentication extends Responder
 
     public readonly ?URLCredential $credential;
     public readonly ?ManagedObject $user;
-    private readonly Authorization $authorization;
+    private readonly ?Authorization $authorization;
     private ?HTTPCookie $cookie = null;
 
     public function __construct()
@@ -45,7 +45,7 @@ class Authentication extends Responder
             $this->$name = new Authorization($scheme, $parametersView);
             return $this->$name;
         } elseif ($name == "credential") {
-            $this->$name = $this->authorization->credential;
+            $this->$name = $this->authorization?->credential;
             return $this->$name;
         } elseif ($name == "user") {
             $this->$name = (function (): ?ManagedObject {
@@ -64,7 +64,7 @@ class Authentication extends Responder
             })();
             return $this->$name;
         } elseif ($name == "isProtectedContentAvailable") {
-            $this->$name = $this->authorization->perform($this);
+            $this->$name = $this->authorization?->perform($this) ?? false;
             return $this->$name;
         } else {
             return parent::__get($name);

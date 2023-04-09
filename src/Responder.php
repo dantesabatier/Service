@@ -39,9 +39,6 @@ abstract class Responder extends ObjectClass
         unset($this->allowedMethods);
     }
 
-    /**
-     * @throws Exception
-     */
     public function __get(string $name)
     {
         return $this->$name = match ($name) {

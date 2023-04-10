@@ -15,16 +15,13 @@ use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
 use function Sabatier\Foundation\human_readable_value;
-use function Sabatier\Foundation\substring_from_index;
-use function Sabatier\Foundation\substring_to_index;
 
 class Authentication extends Responder
 {
     public AuthenticationScheme $scheme = AuthenticationScheme::basic;
-
     public readonly ?URLCredential $credential;
     public readonly ?ManagedObject $user;
-    private readonly ?Authorization $authorization;
+    private readonly Authorization $authorization;
     private ?HTTPCookie $cookie = null;
 
     public function __construct()
@@ -39,13 +36,10 @@ class Authentication extends Responder
     public function __get(string $name)
     {
         if ($name == "authorization") {
-            if (!($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) || !($index = strpos($authorizationValue, " ")) || !(($scheme = trim(substring_to_index($authorizationValue, $index)))) || !($parametersView = trim(substring_from_index($authorizationValue, $index))) || !($scheme = AuthenticationScheme::tryFrom($scheme)) || $scheme !== $this->scheme) {
-                return null;
-            }
-            $this->$name = new Authorization($scheme, $parametersView);
+            $this->$name = new Authorization((string)$this->request->valueForHttpHeaderField("Authorization"));
             return $this->$name;
         } elseif ($name == "credential") {
-            $this->$name = $this->authorization?->credential;
+            $this->$name = $this->authorization->credential;
             return $this->$name;
         } elseif ($name == "user") {
             $this->$name = (function (): ?ManagedObject {
@@ -64,7 +58,29 @@ class Authentication extends Responder
             })();
             return $this->$name;
         } elseif ($name == "isProtectedContentAvailable") {
-            $this->$name = $this->authorization?->perform($this) ?? false;
+            $this->$name = (function (): bool {
+                if ($this->request->valueForHttpHeaderField("Cookie")) {
+                    return true;
+                }
+                if (!($credential = $this->credential) || !($user = $this->user)) {
+                    return false;
+                }
+                $password = $user->valueForKey("password");
+                return match ($this->scheme) {
+                    AuthenticationScheme::basic => password_verify((string)$credential->password, $password),
+                    AuthenticationScheme::digest => (function () use ($password): bool {
+                        $parameters = $this->authorization->parameters;
+                        if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"])) {
+                            return false;
+                        }
+                        $A1 = md5("$username:{$this->request->url->host}:$password");
+                        $A2 = md5("{$this->request->httpMethod}:$uri");
+                        $validResponse = md5("$A1:$nonce:$nc:$cnonce:$qop:$A2");
+                        return $parameters["response"] === $validResponse;
+                    })(),
+                    default => false
+                };
+            })();
             return $this->$name;
         } else {
             return parent::__get($name);
@@ -77,9 +93,7 @@ class Authentication extends Responder
         $this->isProtectedContentAvailable ?: throw new UnauthorizedException();
         /** @var ManagedObject $user */
         $user = $this->user;
-        $this->content = json_encode($user, JSON_PRESERVE_ZERO_FRACTION);
-        $this->contentType = "application/json";
-        $this->cookie = new HTTPCookie(new Dictionary([
+        $cookie = new HTTPCookie(new Dictionary([
             HTTPCookiePropertyKey::name => "objectID",
             HTTPCookiePropertyKey::value => $user->objectID->referenceObject,
             HTTPCookiePropertyKey::domain => $this->request->url->host,
@@ -89,6 +103,10 @@ class Authentication extends Responder
             HTTPCookiePropertyKey::sameSitePolicy => HTTPCookieStringPolicy::sameSiteLax,
             HTTPCookiePropertyKey::httpOnly => "TRUE"
         ]));
+        $this->content = json_encode($user, JSON_PRESERVE_ZERO_FRACTION);
+        $this->contentType = "application/json";
+        $this->cookie = $cookie;
+        session_set_cookie_params($cookie->properties[HTTPCookiePropertyKey::maximumAge], $cookie->path, $cookie->domain, $cookie->isSecure, $cookie->isHTTPOnly);
     }
 
     #[Action("/Logout")]

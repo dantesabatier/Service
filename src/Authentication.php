@@ -14,6 +14,7 @@ use Sabatier\Foundation\Networking\HTTPURLResponse;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
+use function Sabatier\Foundation\human_readable_value;
 use function Sabatier\Foundation\substring_from_index;
 use function Sabatier\Foundation\substring_to_index;
 
@@ -104,7 +105,7 @@ class Authentication extends Responder
             HTTPCookiePropertyKey::name => "objectID",
             HTTPCookiePropertyKey::value => $user->objectID->referenceObject,
             HTTPCookiePropertyKey::domain => $this->request->url->host,
-            HTTPCookiePropertyKey::path => $this->request->url->path,
+            HTTPCookiePropertyKey::path => $this->request->url->deletingLastPathComponent()->path,
             HTTPCookiePropertyKey::version => 1,
             HTTPCookiePropertyKey::maximumAge => 60 * 60 * 8,
             HTTPCookiePropertyKey::sameSitePolicy => HTTPCookieStringPolicy::sameSiteLax,
@@ -142,7 +143,7 @@ class Authentication extends Responder
                 HTTPCookiePropertyKey::maximumAge => $cookie->properties[HTTPCookiePropertyKey::maximumAge],
                 HTTPCookiePropertyKey::originURL => $cookie->properties[HTTPCookiePropertyKey::originURL]
             ]);
-            $headerFields["Set-Cookie"] = $properties->mapValues(fn(mixed $value, string $key): string => $key . (is_bool($value) ? "" : "=$value"))->values->join("; ");
+            $headerFields["Set-Cookie"] = $properties->mapValues(fn(mixed $value, string $key): string => $key . ($value === true ? "" : ("=" . human_readable_value($value))))->values->join("; ");
         }
         return new HTTPURLResponse($this->request->url, headerFields: $headerFields);
     }

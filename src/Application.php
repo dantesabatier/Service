@@ -244,19 +244,16 @@ class Application extends Responder
     public function run(): void
     {
         try {
-            $delegate = $this->delegate;
             ProcessInfo::processInfo()->processName = $this->persistentContainer->name;
             $viewContext = $this->persistentContainer->viewContext;
             $viewContext->name = $this->persistentContainer->name;
+            $delegate = $this->delegate;
             register_shutdown_function(function () use ($delegate): bool {
                 $delegate?->applicationWillTerminate($this);
                 return true;
             });
             $delegate?->applicationWillFinishLaunching($this);
             $responder = $this->instantiateInitialResponder();
-            if (!$responder->allowedMethods->containsElement($this->request->httpMethod)) {
-                throw new MethodNotAllowedException();
-            }
             if (!$responder->isProtectedContentAvailable) {
                 $responder->isProtectedContentAvailable = $this->isProtectedContentAvailable;
             }
@@ -268,8 +265,9 @@ class Application extends Responder
                     $viewContext->transactionAuthor = $this->authentication->credential?->user;
                 }
             }
+            $response = $responder->response();
             $delegate?->applicationDidFinishLaunching($this);
-            $this->send($responder->response(), $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition);
+            $this->send($response, $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition);
         } catch (Throwable $throwable) {
             $response = $throwable instanceof InvalidRequestException ? new HTTPURLResponse($this->request->url, $throwable->getCode(), null, (function () use ($throwable): ?Dictionary {
                 if (!$throwable instanceof UnauthorizedException) {

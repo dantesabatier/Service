@@ -2,6 +2,8 @@
 
 namespace Sabatier\Service;
 
+use Sabatier\Foundation\ArrayClass;
+use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\UndefinedKeyException;
 
@@ -9,19 +11,27 @@ use Sabatier\Foundation\UndefinedKeyException;
 readonly class Authorization
 {
     public ?URLCredential $credential;
+    /** @var Dictionary<string> */
+    public Dictionary $parameters;
 
-    public function __construct(private RequestHeaderField $headerField)
+    public function __construct(public string $scheme, public string $rawValue)
     {
         unset($this->credential);
+        unset($this->parameters);
     }
 
     public function __get(string $name)
     {
         return $this->$name = match ($name) {
+            "parameters" => (new ArrayClass(explode(",", $this->rawValue)))->reduce(new Dictionary(), function (Dictionary $result, string $e): Dictionary {
+                $components = explode("=", $e, 2);
+                $result[trim($components[0])] = count($components) > 1 ? trim($components[1]) : "";
+                return $result;
+            }),
             "credential" => (function (): ?URLCredential {
-                return match (AuthenticationScheme::tryFrom($this->headerField->name)) {
+                return match (AuthenticationScheme::tryFrom($this->scheme)) {
                     AuthenticationScheme::basic => (function (): ?URLCredential {
-                        $components = explode(":", base64_decode($this->headerField->value));
+                        $components = explode(":", base64_decode($this->rawValue));
                         if (count($components) !== 2) {
                             return null;
                         }
@@ -29,7 +39,7 @@ readonly class Authorization
                         return new URLCredential($username, $password);
                     })(),
                     AuthenticationScheme::digest => (function (): ?URLCredential {
-                        if (!($username = $this->headerField->parameters["username"])) {
+                        if (!($username = $this->parameters["username"])) {
                             return null;
                         }
                         return new URLCredential($username);

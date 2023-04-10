@@ -28,25 +28,23 @@ readonly class Authorization
                 $result[trim($components[0])] = count($components) > 1 ? trim($components[1]) : "";
                 return $result;
             }),
-            "credential" => (function (): ?URLCredential {
-                return match (AuthenticationScheme::tryFrom($this->scheme)) {
-                    AuthenticationScheme::basic => (function (): ?URLCredential {
-                        $components = explode(":", base64_decode($this->rawValue));
-                        if (count($components) !== 2) {
-                            return null;
-                        }
-                        [$username, $password] = $components;
-                        return new URLCredential($username, $password);
-                    })(),
-                    AuthenticationScheme::digest => (function (): ?URLCredential {
-                        if (!($username = $this->parameters["username"])) {
-                            return null;
-                        }
-                        return new URLCredential($username);
-                    })(),
-                    default => null
-                };
-            })(),
+            "credential" => match (AuthenticationScheme::from($this->scheme)) {
+                AuthenticationScheme::basic => (function (): ?URLCredential {
+                    $components = explode(":", base64_decode($this->rawValue));
+                    if (count($components) !== 2) {
+                        return null;
+                    }
+                    [$username, $password] = $components;
+                    return new URLCredential($username, $password);
+                })(),
+                AuthenticationScheme::digest => (function (): ?URLCredential {
+                    if (!($username = $this->parameters["username"])) {
+                        return null;
+                    }
+                    return new URLCredential($username);
+                })(),
+                default => null
+            },
             default => throw new UndefinedKeyException("<Authorization is not key value coding compliant for the key \"$name\"")
         };
     }

@@ -105,7 +105,7 @@ class Authentication extends Responder
             HTTPCookiePropertyKey::name => "objectID",
             HTTPCookiePropertyKey::value => $user->objectID->referenceObject,
             HTTPCookiePropertyKey::domain => $this->request->url->host,
-            HTTPCookiePropertyKey::path => $this->request->url->deletingLastPathComponent()->path,
+            HTTPCookiePropertyKey::path => "/",
             HTTPCookiePropertyKey::version => 1,
             HTTPCookiePropertyKey::maximumAge => 60 * 60 * 8,
             HTTPCookiePropertyKey::sameSitePolicy => HTTPCookieStringPolicy::sameSiteLax,

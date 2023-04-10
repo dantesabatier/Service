@@ -14,7 +14,8 @@ use Sabatier\Foundation\Networking\HTTPURLResponse;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
-use function Sabatier\Foundation\human_readable_value;
+use function Sabatier\Foundation\substring_from_index;
+use function Sabatier\Foundation\substring_to_index;
 
 class Authentication extends Responder
 {
@@ -36,7 +37,11 @@ class Authentication extends Responder
     public function __get(string $name)
     {
         if ($name == "authorization") {
-            $this->$name = new Authorization(new RequestHeaderField((string)$this->request->valueForHttpHeaderField("Authorization")));
+            $authorizationValue = (string)$this->request->valueForHttpHeaderField("Authorization");
+            $index = (int)strpos($authorizationValue, " ");
+            $scheme = trim(substring_to_index($authorizationValue, $index));
+            $rawValue = trim(substring_from_index($authorizationValue, $index));
+            $this->$name = new Authorization($scheme, $rawValue);
             return $this->$name;
         } elseif ($name == "credential") {
             $this->$name = $this->authorization->credential;
@@ -59,7 +64,7 @@ class Authentication extends Responder
             return $this->$name;
         } elseif ($name == "isProtectedContentAvailable") {
             $this->$name = (function (): bool {
-                if ($this->request->valueForHttpHeaderField("Cookie")) {
+                if (HTTPCookieStorage::shared()->cookies($this->request->url)?->contains(fn(HTTPCookie $cookie): bool => $cookie->name === "ObjectID")) {
                     return true;
                 }
                 if (!($credential = $this->credential) || !($user = $this->user)) {
@@ -103,24 +108,15 @@ class Authentication extends Responder
             HTTPCookiePropertyKey::sameSitePolicy => HTTPCookieStringPolicy::sameSiteLax,
             HTTPCookiePropertyKey::httpOnly => "TRUE"
         ]));
+        $this->cookie = $cookie;
         $this->content = json_encode($user, JSON_PRESERVE_ZERO_FRACTION);
         $this->contentType = "application/json";
-        $this->cookie = $cookie;
-        session_set_cookie_params($cookie->properties[HTTPCookiePropertyKey::maximumAge], $cookie->path, $cookie->domain, $cookie->isSecure, $cookie->isHTTPOnly);
     }
 
     #[Action("/Logout")]
     public function logout(): void
     {
-        if (!($cookie = $this->request->valueForHttpHeaderField("Cookie"))) {
-            return;
-        }
-        $components = explode("=", $cookie);
-        if (count($components) !== 2) {
-            return;
-        }
-        [$name, $value] = $components;
-        if (!($cookie = HTTPCookieStorage::shared()->cookies($this->request->url)?->first(fn(HTTPCookie $cookie): bool => $cookie->name === $name && $cookie->value === $value))) {
+        if (!($cookie = HTTPCookieStorage::shared()->cookies($this->request->url)?->first(fn(HTTPCookie $cookie): bool => $cookie->name === "ObjectID"))) {
             return;
         }
         HTTPCookieStorage::shared()->deleteCookie($cookie);
@@ -144,7 +140,7 @@ class Authentication extends Responder
                 HTTPCookiePropertyKey::maximumAge => $cookie->properties[HTTPCookiePropertyKey::maximumAge],
                 HTTPCookiePropertyKey::originURL => $cookie->properties[HTTPCookiePropertyKey::originURL]
             ]);
-            $headerFields["Set-Cookie"] = $properties->mapValues(fn(mixed $value, string $key): string => sprintf("%s=%s", $key, human_readable_value($value)))->values->join("; ");
+            $headerFields["Set-Cookie"] = $properties->mapValues(fn(mixed $value, string $key): string => $key . (is_bool($value) ? "" : "=$value"))->values->join("; ");
         }
         return new HTTPURLResponse($this->request->url, headerFields: $headerFields);
     }

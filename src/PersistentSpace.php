@@ -156,27 +156,18 @@ class PersistentSpace extends Responder
             case HTTPRequestMethod::put:
             case HTTPRequestMethod::patch:
             case HTTPRequestMethod::delete:
-                $contentType = $request->valueForHttpHeaderField("Content-Type") ?? "text/plain";
-                $mediaType = $contentType;
-                if (str_contains($contentType, ";")) {
-                    [$mediaType,] = explode(";", $contentType);
-                }
                 if ($request->httpMethod !== HTTPRequestMethod::delete) {
+                    $contentType = $request->valueForHttpHeaderField("Content-Type") ?? "text/plain";
+                    $mediaType = $contentType;
+                    if (str_contains($contentType, ";")) {
+                        [$mediaType,] = explode(";", $contentType);
+                    }
                     $supportedMediaTypes = new ArrayClass(["application/x-www-form-urlencoded", "multipart/form-data", "application/json"]);
                     if (!$supportedMediaTypes->contains(fn(string $supportedMediaType): bool => string_is_equal($supportedMediaType, $mediaType, CompareOptions::caseInsensitive))) {
                         throw new UnsupportedMediaTypeException();
                     }
                 }
-                /** @var array<string, mixed> $body */
-                $body = match ($mediaType) {
-                    "application/x-www-form-urlencoded" => (function () use ($request): array {
-                        parse_str(urldecode((string)$request->httpBody), $result);
-                        return $result;
-                    })(),
-                    "multipart/form-data" => $_POST,
-                    "application/json" => json_decode($request->httpBody ?? "[]") ?? [],
-                    default => []
-                };
+                $body = $request->getParsedBody();
                 if ($request->httpMethod !== HTTPRequestMethod::post) {
                     $components = new URLComponents($this->request->url->absoluteString);
                     if ($item = $components->queryItems?->first(fn(URLQueryItem $item): bool => $item->name === "objectID")) {

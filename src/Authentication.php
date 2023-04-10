@@ -22,7 +22,7 @@ class Authentication extends Responder
     public AuthenticationScheme $scheme = AuthenticationScheme::basic;
     public readonly ?URLCredential $credential;
     public readonly ?ManagedObject $user;
-    private readonly Authorization $authorization;
+    private readonly ?Authorization $authorization;
     private ?HTTPCookie $cookie = null;
 
     public function __construct()
@@ -37,14 +37,15 @@ class Authentication extends Responder
     public function __get(string $name)
     {
         if ($name == "authorization") {
-            $authorizationValue = (string)$this->request->valueForHttpHeaderField("Authorization");
-            $index = (int)strpos($authorizationValue, " ");
-            $scheme = trim(substring_to_index($authorizationValue, $index));
-            $rawValue = trim(substring_from_index($authorizationValue, $index));
-            $this->$name = new Authorization($scheme, $rawValue);
+            $this->$name = (function (): ?Authorization {
+                if (!($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) || !($index = strpos($authorizationValue, " ")) || !($scheme = trim(substring_to_index($authorizationValue, $index))) || !($rawValue = trim(substring_from_index($authorizationValue, $index))) || $scheme !== $this->scheme->value) {
+                    return null;
+                }
+                return new Authorization($scheme, $rawValue);
+            })();
             return $this->$name;
         } elseif ($name == "credential") {
-            $this->$name = $this->authorization->credential;
+            $this->$name = $this->authorization?->credential;
             return $this->$name;
         } elseif ($name == "user") {
             $this->$name = (function (): ?ManagedObject {
@@ -74,7 +75,8 @@ class Authentication extends Responder
                 return match ($this->scheme) {
                     AuthenticationScheme::basic => password_verify((string)$credential->password, $password),
                     AuthenticationScheme::digest => (function () use ($password): bool {
-                        $parameters = $this->authorization->parameters;
+                        /** @var Dictionary<string> $parameters */
+                        $parameters = $this->authorization?->parameters;
                         if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"])) {
                             return false;
                         }

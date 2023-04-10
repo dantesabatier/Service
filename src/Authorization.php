@@ -14,7 +14,7 @@ readonly class Authorization
     /** @var Dictionary<string> */
     public Dictionary $parameters;
 
-    public function __construct(private HeaderField $headerField)
+    public function __construct(private RequestHeaderField $headerField)
     {
         unset($this->parameters);
         unset($this->credential);

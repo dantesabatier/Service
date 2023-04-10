@@ -36,7 +36,7 @@ class Authentication extends Responder
     public function __get(string $name)
     {
         if ($name == "authorization") {
-            $this->$name = new Authorization(new HeaderField((string)$this->request->valueForHttpHeaderField("Authorization")));
+            $this->$name = new Authorization(new RequestHeaderField((string)$this->request->valueForHttpHeaderField("Authorization")));
             return $this->$name;
         } elseif ($name == "credential") {
             $this->$name = $this->authorization->credential;

@@ -6,7 +6,7 @@ use function Sabatier\Foundation\substring_from_index;
 use function Sabatier\Foundation\substring_to_index;
 
 /** @internal */
-readonly class HeaderField
+readonly class RequestHeaderField
 {
     public string $name;
     public string $value;

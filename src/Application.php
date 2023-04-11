@@ -201,50 +201,59 @@ class Application extends Responder
         ob_end_flush();
     }
 
-    private function instantiateInitialResponder(): Responder
+    private function mainResponder(): ?Responder
     {
-        if (!($responder = (function (): ?Responder {
-            if ($delegate = $this->delegate) {
-                $reflectionClass = new ReflectionClass($delegate);
-                $namespaceName = $reflectionClass->getNamespaceName();
-                $fileManager = FileManager::default();
-                $baseURL = Bundle::main()->bundleURL->appendingPathComponent("src");
-                $directories = ["Responders", "ViewControllers"];
-                foreach ($directories as $directory) {
-                    $directoryURL = $baseURL->appendingPathComponent($directory);
-                    if (!$fileManager->fileExists($directoryURL->path)) {
-                        continue;
-                    }
-                    $urls = $fileManager->contentsOfDirectory($directoryURL, null, DirectoryEnumerationOptions::skipsHiddenFiles);
-                    foreach ($urls as $url) {
-                        if (!string_is_equal($url->pathExtension, "php", CompareOptions::caseInsensitive)) {
-                            continue;
-                        }
-                        $filePath = $url->path;
-                        /** @psalm-suppress UnresolvableInclude */
-                        require_once $filePath;
-                        $responderClass = "$namespaceName\\$directoryURL->lastPathComponent\\{$fileManager->displayName($filePath)}";
-                        if (!class_exists($responderClass) || !is_subclass_of($responderClass, Responder::class)) {
-                            continue;
-                        }
-                        $responder = new $responderClass();
-                        if ($responder->isFirstResponder()) {
-                            return $responder;
-                        }
-                    }
-                }
+        if (!($delegate = $this->delegate)) {
+            return null;
+        }
+        $reflectionClass = new ReflectionClass($delegate);
+        $namespaceName = $reflectionClass->getNamespaceName();
+        $fileManager = FileManager::default();
+        $baseURL = Bundle::main()->bundleURL->appendingPathComponent("src");
+        $directories = ["Responders", "ViewControllers"];
+        foreach ($directories as $directory) {
+            $directoryURL = $baseURL->appendingPathComponent($directory);
+            if (!$fileManager->fileExists($directoryURL->path)) {
+                continue;
             }
-            foreach ([$this->authentication, $this->persistentSpace, $this->resourceManager] as $responder) {
+            $urls = $fileManager->contentsOfDirectory($directoryURL, null, DirectoryEnumerationOptions::skipsHiddenFiles);
+            foreach ($urls as $url) {
+                if (!string_is_equal($url->pathExtension, "php", CompareOptions::caseInsensitive)) {
+                    continue;
+                }
+                $filePath = $url->path;
+                /** @psalm-suppress UnresolvableInclude */
+                require_once $filePath;
+                $responderClass = "$namespaceName\\$directoryURL->lastPathComponent\\{$fileManager->displayName($filePath)}";
+                if (!class_exists($responderClass) || !is_subclass_of($responderClass, Responder::class)) {
+                    continue;
+                }
+                $responder = new $responderClass();
                 if ($responder->isFirstResponder()) {
                     return $responder;
                 }
             }
-            $responder = new Home();
+        }
+        return null;
+    }
+
+    private function privateResponder(): ?Responder
+    {
+        foreach ([$this->authentication, $this->persistentSpace, $this->resourceManager] as $responder) {
             if ($responder->isFirstResponder()) {
                 return $responder;
             }
-            return null;
-        })())) {
+        }
+        $responder = new Home();
+        if ($responder->isFirstResponder()) {
+            return $responder;
+        }
+        return null;
+    }
+
+    private function instantiateInitialResponder(): Responder
+    {
+        if (!($responder = $this->mainResponder()) && !($responder = $this->privateResponder())) {
             throw new NotFoundException();
         }
         if (!$responder->isProtectedContentAvailable) {

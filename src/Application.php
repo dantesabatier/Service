@@ -334,7 +334,8 @@ class Application extends Responder
                 $userInfo[LocalizedFailureReasonErrorKey] = $failureReason;
             }
             $error = $this->delegate?->applicationWillPresentError($this, new Error(URLErrorDomain, URLErrorBadServerResponse, $userInfo));
-            $this->send($response, $error?->localizedDescription);
+            $content = $error ? sprintf("%s %s", $error->localizedDescription, $error->localizedFailureReason ?? "($error->domain error $error->code.)") : null;
+            $this->send($response, $content);
         }
     }
 

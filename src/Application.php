@@ -21,7 +21,6 @@ use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Foundation\SearchPathDirectory;
-use Sabatier\Foundation\Set;
 use Sabatier\Foundation\URL;
 use Sabatier\Foundation\UserDefaults;
 use Throwable;
@@ -325,7 +324,7 @@ class Application extends Responder
                 $scheme = $authentication->scheme;
                 $challenge = "$scheme->value realm=\"$realm\"";
                 $challenge .= match ($scheme) {
-                    AuthenticationScheme::digest => sprintf(", uri=\"%s\", qop=\"auth\", nonce=\"%s\", opaque=\"%s\"", $this->request->url->absoluteString, uniqid(), md5($realm)),
+                    AuthenticationScheme::digest => sprintf(", uri=\"%s\", qop=\"auth\", nonce=\"%s\", opaque=\"%s\" algorithm=\"SHA-256\"", $this->request->url->absoluteString, uniqid(), base64_encode($realm)),
                     default => ""
                 };
                 return new Dictionary(["WWW-Authenticate" => $challenge]);

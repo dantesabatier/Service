@@ -72,9 +72,9 @@ class Authentication extends Responder
                                 if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"])) {
                                     return false;
                                 }
-                                $A1 = md5("$username:{$this->request->url->host}:$password");
-                                $A2 = md5("{$this->request->httpMethod}:$uri");
-                                $response = md5("$A1:$nonce:$nc:$cnonce:$qop:$A2");
+                                $A1 = hash("sha256", "$username:{$this->request->url->host}:$password");
+                                $A2 = hash("sha256", "{$this->request->httpMethod}:$uri");
+                                $response = hash("sha256", "$A1:$nonce:$nc:$cnonce:$qop:$A2");
                                 return $parameters["response"] === $response;
                             })(),
                             default => false

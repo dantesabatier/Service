@@ -58,27 +58,27 @@ class Authentication extends Responder
             })();
             return $this->$name;
         } elseif ($name == "isProtectedContentAvailable") {
-            $this->$name = $this->request->httpMethod === HTTPRequestMethod::options ?: isset($_SESSION["user"]) ?: (function (): bool {
-                if (!($credential = $this->credential) || !($user = $this->user)) {
-                    return false;
-                }
-                $password = $user->valueForKey("password");
-                return match ($this->scheme) {
-                    AuthenticationScheme::basic => password_verify((string)$credential->password, $password),
-                    AuthenticationScheme::digest => (function () use ($password): bool {
-                        /** @var Dictionary<string> $parameters */
-                        $parameters = $this->authorization?->parameters;
-                        if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"])) {
+            $this->$name = $this->request->httpMethod === HTTPRequestMethod::options || (isset($_SESSION["user"]) || (function (): bool {
+                        if (!($credential = $this->credential) || !($user = $this->user)) {
                             return false;
                         }
-                        $A1 = md5("$username:{$this->request->url->host}:$password");
-                        $A2 = md5("{$this->request->httpMethod}:$uri");
-                        $validResponse = md5("$A1:$nonce:$nc:$cnonce:$qop:$A2");
-                        return $parameters["response"] === $validResponse;
-                    })(),
-                    default => false
-                };
-            })();
+                        $password = $user->valueForKey("password");
+                        return match ($this->scheme) {
+                            AuthenticationScheme::basic => password_verify((string)$credential->password, $password),
+                            AuthenticationScheme::digest => (function () use ($password): bool {
+                                /** @var Dictionary<string> $parameters */
+                                $parameters = $this->authorization?->parameters;
+                                if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"])) {
+                                    return false;
+                                }
+                                $A1 = md5("$username:{$this->request->url->host}:$password");
+                                $A2 = md5("{$this->request->httpMethod}:$uri");
+                                $validResponse = md5("$A1:$nonce:$nc:$cnonce:$qop:$A2");
+                                return $parameters["response"] === $validResponse;
+                            })(),
+                            default => false
+                        };
+                    })());
             return $this->$name;
         } else {
             return parent::__get($name);

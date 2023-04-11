@@ -5,7 +5,6 @@ namespace Sabatier\Service;
 use Exception;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\Dictionary;
-use Sabatier\Foundation\Networking\HTTPCookie;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
@@ -19,7 +18,6 @@ class Authentication extends Responder
     public readonly ?URLCredential $credential;
     public readonly ?ManagedObject $user;
     private readonly ?Authorization $authorization;
-    private ?HTTPCookie $cookie = null;
 
     public function __construct()
     {

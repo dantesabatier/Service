@@ -5,6 +5,7 @@ namespace Sabatier\Service;
 enum AuthenticationScheme: string
 {
     case basic = "Basic";
+    case bearer = "Bearer";
     case digest = "Digest";
     case hoba = "HOBA";
     case mutual = "Mutual";
@@ -12,5 +13,4 @@ enum AuthenticationScheme: string
     case vapid = "VAPID";
     case scram = "SCRAM";
     case aws = "AWS4-HMAC-SHA256";
-    case bearer = "Bearer";
 }

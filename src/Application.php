@@ -5,18 +5,22 @@ namespace Sabatier\Service;
 use ReflectionClass;
 use Sabatier\CoreData\PersistentContainer;
 use Sabatier\CoreData\PersistentStoreDescription;
+use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\DirectoryEnumerationOptions;
 use Sabatier\Foundation\Error;
 use Sabatier\Foundation\FileManager;
+use Sabatier\Foundation\Networking\HTTPCookiePropertyKey;
+use Sabatier\Foundation\Networking\HTTPCookieStringPolicy;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
 use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\ProcessInfo;
+use Sabatier\Foundation\SearchPathDirectory;
 use Sabatier\Foundation\URL;
 use Sabatier\Foundation\UserDefaults;
 use Throwable;
@@ -146,6 +150,7 @@ class Application extends Responder
         if ($value = $this->request->valueForHttpHeaderField("Origin")) {
             $headerFields["Access-Control-Allow-Origin"] = $value;
             $headerFields["Access-Control-Allow-Credentials"] = true;
+            $headerFields["Vary"] = "Origin";
         }
         if ($value = $this->request->valueForHttpHeaderField("Access-Control-Request-Method")) {
             $headerFields["Access-Control-Allow-Methods"] = $value;
@@ -199,73 +204,94 @@ class Application extends Responder
 
     private function instantiateInitialResponder(): Responder
     {
-        if ($delegate = $this->delegate) {
-            $reflectionClass = new ReflectionClass($delegate);
-            $namespaceName = $reflectionClass->getNamespaceName();
-            $fileManager = FileManager::default();
-            $baseURL = Bundle::main()->bundleURL->appendingPathComponent("src");
-            $directories = ["Responders", "ViewControllers"];
-            foreach ($directories as $directory) {
-                $directoryURL = $baseURL->appendingPathComponent($directory);
-                if (!$fileManager->fileExists($directoryURL->path)) {
-                    continue;
-                }
-                $urls = $fileManager->contentsOfDirectory($directoryURL, null, DirectoryEnumerationOptions::skipsHiddenFiles);
-                foreach ($urls as $url) {
-                    if (!string_is_equal($url->pathExtension, "php", CompareOptions::caseInsensitive)) {
+        if (!($responder = (function (): ?Responder {
+            if ($delegate = $this->delegate) {
+                $reflectionClass = new ReflectionClass($delegate);
+                $namespaceName = $reflectionClass->getNamespaceName();
+                $fileManager = FileManager::default();
+                $baseURL = Bundle::main()->bundleURL->appendingPathComponent("src");
+                $directories = ["Responders", "ViewControllers"];
+                foreach ($directories as $directory) {
+                    $directoryURL = $baseURL->appendingPathComponent($directory);
+                    if (!$fileManager->fileExists($directoryURL->path)) {
                         continue;
                     }
-                    $filePath = $url->path;
-                    /** @psalm-suppress UnresolvableInclude */
-                    require_once $filePath;
-                    $responderClass = "$namespaceName\\$directoryURL->lastPathComponent\\{$fileManager->displayName($filePath)}";
-                    if (!class_exists($responderClass) || !is_subclass_of($responderClass, Responder::class)) {
-                        continue;
-                    }
-                    $responder = new $responderClass();
-                    if ($responder->isFirstResponder()) {
-                        return $responder;
+                    $urls = $fileManager->contentsOfDirectory($directoryURL, null, DirectoryEnumerationOptions::skipsHiddenFiles);
+                    foreach ($urls as $url) {
+                        if (!string_is_equal($url->pathExtension, "php", CompareOptions::caseInsensitive)) {
+                            continue;
+                        }
+                        $filePath = $url->path;
+                        /** @psalm-suppress UnresolvableInclude */
+                        require_once $filePath;
+                        $responderClass = "$namespaceName\\$directoryURL->lastPathComponent\\{$fileManager->displayName($filePath)}";
+                        if (!class_exists($responderClass) || !is_subclass_of($responderClass, Responder::class)) {
+                            continue;
+                        }
+                        $responder = new $responderClass();
+                        if ($responder->isFirstResponder()) {
+                            return $responder;
+                        }
                     }
                 }
             }
-        }
-        foreach ([$this->authentication, $this->persistentSpace, $this->resourceManager] as $responder) {
+            foreach ([$this->authentication, $this->persistentSpace, $this->resourceManager] as $responder) {
+                if ($responder->isFirstResponder()) {
+                    return $responder;
+                }
+            }
+            $responder = new Home();
             if ($responder->isFirstResponder()) {
                 return $responder;
             }
+            return null;
+        })())) {
+            throw new NotFoundException();
         }
-        $responder = new Home();
-        if ($responder->isFirstResponder()) {
-            return $responder;
+        if (!$responder->isProtectedContentAvailable) {
+            $responder->isProtectedContentAvailable = $this->isProtectedContentAvailable;
         }
-        throw new NotFoundException();
+        if ($this->request->httpMethod !== HTTPRequestMethod::options) {
+            if (!$responder->isProtectedContentAvailable && !$responder instanceof Authentication && !$this->authentication->isProtectedContentAvailable) {
+                throw new UnauthorizedException();
+            }
+            if ($this->request->httpMethod !== HTTPRequestMethod::get && $responder instanceof PersistentSpace) {
+                $this->persistentContainer->viewContext->transactionAuthor = $this->authentication->credential?->user;
+            }
+        }
+        return $responder;
     }
 
     public function run(): void
     {
         try {
-            ProcessInfo::processInfo()->processName = $this->persistentContainer->name;
+            $processInfo = ProcessInfo::processInfo();
+            $processInfo->processName = $this->persistentContainer->name;
             $viewContext = $this->persistentContainer->viewContext;
-            $viewContext->name = $this->persistentContainer->name;
+            $viewContext->name = $processInfo->processName;
             $delegate = $this->delegate;
             register_shutdown_function(function () use ($delegate): bool {
                 $delegate?->applicationWillTerminate($this);
                 return true;
             });
             $delegate?->applicationWillFinishLaunching($this);
-            $responder = $this->instantiateInitialResponder();
-            if (!$responder->isProtectedContentAvailable) {
-                $responder->isProtectedContentAvailable = $this->isProtectedContentAvailable;
-            }
             if ($this->request->httpMethod !== HTTPRequestMethod::options) {
-                if (!$responder->isProtectedContentAvailable && !$responder instanceof Authentication && !$this->authentication->isProtectedContentAvailable) {
-                    throw new UnauthorizedException();
-                }
-                if ($this->request->httpMethod !== HTTPRequestMethod::get && $responder instanceof PersistentSpace) {
-                    $viewContext->transactionAuthor = $this->authentication->credential?->user;
-                }
+                session_set_cookie_params([
+                    HTTPCookiePropertyKey::lifetime => 60 * 60 * 8,
+                    HTTPCookiePropertyKey::path => "/",
+                    HTTPCookiePropertyKey::domain => $this->request->url->host,
+                    HTTPCookiePropertyKey::secure => true,
+                    HTTPCookiePropertyKey::httpOnly => true,
+                    HTTPCookiePropertyKey::sameSitePolicy => HTTPCookieStringPolicy::sameSiteLax,
+                ]);
+                session_save_path(FileManager::default()->url(SearchPathDirectory::applicationSupportDirectory)->appendingPathComponent($processInfo->processName)->path);
+                session_start();
             }
+            $responder = $this->instantiateInitialResponder();
             $response = $responder->response();
+            if ($this->request->httpMethod !== HTTPRequestMethod::options) {
+                session_write_close();
+            }
             $delegate?->applicationDidFinishLaunching($this);
             $this->send($response, $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition);
         } catch (Throwable $throwable) {

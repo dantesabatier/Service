@@ -161,6 +161,7 @@ class Application extends Responder
         }
         if ($value = $this->request->valueForHttpHeaderField("Access-Control-Request-Headers")) {
             $requestHeaders = new ArrayClass(explode(",", $value));
+            /** @var ArrayClass<string> $allowedHeaders */
             $allowedHeaders = new ArrayClass(["Content-Type", "Serialization", "Authorization"]);
             foreach ($requestHeaders as $requestHeader) {
                 if (!$allowedHeaders->contains(fn(string $allowedHeader): bool => string_is_equal($allowedHeader, $requestHeader, CompareOptions::caseInsensitive))) {

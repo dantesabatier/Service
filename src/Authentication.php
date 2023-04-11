@@ -74,8 +74,8 @@ class Authentication extends Responder
                                 }
                                 $A1 = md5("$username:{$this->request->url->host}:$password");
                                 $A2 = md5("{$this->request->httpMethod}:$uri");
-                                $validResponse = md5("$A1:$nonce:$nc:$cnonce:$qop:$A2");
-                                return $parameters["response"] === $validResponse;
+                                $response = md5("$A1:$nonce:$nc:$cnonce:$qop:$A2");
+                                return $parameters["response"] === $response;
                             })(),
                             default => false
                         };

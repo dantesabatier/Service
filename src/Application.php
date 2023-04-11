@@ -148,14 +148,14 @@ class Application extends Responder
         $headerFields["Content-Type"] = $contentType;
         $headerFields["Content-Length"] = $contentLength;
         $headerFields["Content-Disposition"] = $contentDisposition;
-        if ($value = $this->request->valueForHttpHeaderField("Origin")) {
-            $headerFields["Access-Control-Allow-Origin"] = $value;
+        if ($origin = $this->request->valueForHttpHeaderField("Origin")) {
+            $headerFields["Access-Control-Allow-Origin"] = $origin;
             $headerFields["Access-Control-Allow-Credentials"] = true;
             $headerFields["Vary"] = "Origin";
         }
-        if ($method = $this->request->valueForHttpHeaderField("Access-Control-Request-Method")) {
-            if (!$allowedMethods->contains(fn(string $allowedMethod): bool => string_is_equal($allowedMethod, $method, CompareOptions::caseInsensitive))) {
-                $allowedMethods->append($method);
+        if ($requestMethod = $this->request->valueForHttpHeaderField("Access-Control-Request-Method")) {
+            if (!$allowedMethods->contains(fn(string $allowedMethod): bool => string_is_equal($allowedMethod, $requestMethod, CompareOptions::caseInsensitive))) {
+                $allowedMethods->append($requestMethod);
             }
             $headerFields["Access-Control-Allow-Methods"] = $allowedMethods->join(", ");
         }

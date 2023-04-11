@@ -56,12 +56,11 @@ abstract class Responder extends ObjectClass
      */
     public function isFirstResponder(): bool
     {
-        $request = $this->request;
-        $path = $request->url->path;
+        $path = $this->request->url->path;
         $reflectionClass = new ReflectionClass($this);
         foreach ($reflectionClass->getAttributes(Endpoint::class) as $attribute) {
             $endpoint = $attribute->newInstance();
-            if ($endpoint->path === $path) {
+            if ($endpoint->path === $path && $this->request->httpMethod === HTTPRequestMethod::get) {
                 return true;
             }
         }
@@ -69,7 +68,7 @@ abstract class Responder extends ObjectClass
             foreach ($method->getAttributes(Action::class) as $attribute) {
                 $action = $attribute->newInstance();
                 if ($action->path === $path) {
-                    if ($request->httpMethod === $action->method) {
+                    if ($this->request->httpMethod === $action->method) {
                         $this->perform($method->name);
                     }
                     return true;

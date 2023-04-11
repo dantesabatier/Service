@@ -5,7 +5,6 @@ namespace Sabatier\Service;
 use ReflectionClass;
 use Sabatier\CoreData\PersistentContainer;
 use Sabatier\CoreData\PersistentStoreDescription;
-use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Dictionary;
@@ -265,10 +264,9 @@ class Application extends Responder
     public function run(): void
     {
         try {
-            $processInfo = ProcessInfo::processInfo();
-            $processInfo->processName = $this->persistentContainer->name;
+            ProcessInfo::processInfo()->processName = $this->persistentContainer->name;
             $viewContext = $this->persistentContainer->viewContext;
-            $viewContext->name = $processInfo->processName;
+            $viewContext->name = $this->persistentContainer->name;
             $delegate = $this->delegate;
             register_shutdown_function(function () use ($delegate): bool {
                 $delegate?->applicationWillTerminate($this);
@@ -284,7 +282,7 @@ class Application extends Responder
                     HTTPCookiePropertyKey::httpOnly => true,
                     HTTPCookiePropertyKey::sameSitePolicy => HTTPCookieStringPolicy::sameSiteLax,
                 ]);
-                session_save_path(FileManager::default()->url(SearchPathDirectory::applicationSupportDirectory)->appendingPathComponent($processInfo->processName)->path);
+                session_save_path(FileManager::default()->url(SearchPathDirectory::applicationSupportDirectory)->appendingPathComponent($this->persistentContainer->name)->path);
                 session_start();
             }
             $responder = $this->instantiateInitialResponder();

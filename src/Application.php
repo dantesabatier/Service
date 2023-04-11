@@ -286,12 +286,11 @@ class Application extends Responder
                 session_start();
             }
             $responder = $this->instantiateInitialResponder();
-            $response = $responder->response();
             if ($this->request->httpMethod !== HTTPRequestMethod::options) {
                 session_write_close();
             }
             $delegate?->applicationDidFinishLaunching($this);
-            $this->send($response, $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition);
+            $this->send($responder->response(), $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition);
         } catch (Throwable $throwable) {
             $response = $throwable instanceof InvalidRequestException ? new HTTPURLResponse($this->request->url, $throwable->getCode(), null, (function () use ($throwable): ?Dictionary {
                 if (!$throwable instanceof UnauthorizedException) {

@@ -146,7 +146,7 @@ class PersistentSpace extends Responder
                 };
                 /** @psalm-suppress TypeDoesNotContainType */
                 if ($fetchRequestResult instanceof BatchFaultingArray) {
-                    return new HTTPURLBatchResponse($request->url, $fetchRequestResult, $fetchRequest);
+                    return new BatchResponse($request->url, $fetchRequestResult, $fetchRequest);
                 }
                 $content = json_encode($fetchRequestResult, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
                 if ($request->httpMethod === HTTPRequestMethod::get) {

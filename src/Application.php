@@ -142,7 +142,7 @@ class Application extends Responder
     {
         $isEmpty = match ($response->statusCode) {
             HTTPStatusCode::created, HTTPStatusCode::noContent, HTTPStatusCode::resetContent, HTTPStatusCode::notModified => true,
-            default => $response instanceof HTTPURLBatchResponse ? $response->isEmpty : empty($content)
+            default => $response instanceof BatchResponse ? $response->isEmpty : empty($content)
         };
         $headerFields = $response->allHeaderFields;
         $headerFields["Content-Type"] = $contentType;
@@ -177,7 +177,7 @@ class Application extends Responder
             });
         }
         header(sprintf("%s %s %s", $response->httpVersion, $response->statusCode, HTTPURLResponse::localizedString($response->statusCode)));
-        if ($response instanceof HTTPURLBatchResponse) {
+        if ($response instanceof BatchResponse) {
             flush();
             header_register_callback(function () use ($headerFields) {
                 foreach ($headerFields as $key => $value) {

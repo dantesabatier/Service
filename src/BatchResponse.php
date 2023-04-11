@@ -14,7 +14,7 @@ use Traversable;
  * @template-implements IteratorAggregate<string>
  * @internal
  */
-class HTTPURLBatchResponse extends HTTPURLResponse implements IteratorAggregate
+class BatchResponse extends HTTPURLResponse implements IteratorAggregate
 {
     public readonly int $count;
     public readonly bool $isEmpty;

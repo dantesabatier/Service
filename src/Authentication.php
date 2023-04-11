@@ -90,7 +90,7 @@ class Authentication extends Responder
                     })());
             return $this->$name;
         } elseif ($name == "allowedMethods") {
-            $this->$name = new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::get, HTTPRequestMethod::post]);
+            $this->$name = new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
             return $this->$name;
         } else {
             return parent::__get($name);

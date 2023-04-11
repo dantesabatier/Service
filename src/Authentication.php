@@ -16,9 +16,9 @@ use function Sabatier\Foundation\substring_to_index;
 class Authentication extends Responder
 {
     public AuthenticationScheme $scheme = AuthenticationScheme::basic;
-    public readonly string $challenge;
     public readonly ?URLCredential $credential;
     public readonly ?ManagedObject $user;
+    public readonly string $challenge;
     private readonly ?Authorization $authorization;
 
     public function __construct()
@@ -33,13 +33,7 @@ class Authentication extends Responder
 
     public function __get(string $name)
     {
-        if ($name == "challenge") {
-            $this->$name = "{$this->scheme->value} realm=\"{$this->request->url->host}\"" . match ($this->scheme) {
-                    AuthenticationScheme::digest => sprintf(", uri=\"%s\", qop=\"auth\", nonce=\"%s\", opaque=\"%s\" algorithm=\"SHA-256\"", $this->request->url->absoluteString, uniqid(), base64_encode((string)$this->request->url->host)),
-                    default => ""
-                };
-            return $this->$name;
-        } elseif ($name == "authorization") {
+        if ($name == "authorization") {
             $this->$name = (function (): ?Authorization {
                 if (!($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) || !($index = strpos($authorizationValue, " ")) || !($scheme = trim(substring_to_index($authorizationValue, $index))) || !($rawValue = trim(substring_from_index($authorizationValue, $index))) || $scheme !== $this->scheme->value) {
                     return null;
@@ -65,6 +59,12 @@ class Authentication extends Responder
                     return null;
                 }
             })();
+            return $this->$name;
+        } elseif ($name == "challenge") {
+            $this->$name = "{$this->scheme->value} realm=\"{$this->request->url->host}\"" . match ($this->scheme) {
+                    AuthenticationScheme::digest => sprintf(", uri=\"%s\", qop=\"auth\", nonce=\"%s\", opaque=\"%s\" algorithm=\"SHA-256\"", $this->request->url->absoluteString, uniqid(), base64_encode((string)$this->request->url->host)),
+                    default => ""
+                };
             return $this->$name;
         } elseif ($name == "isProtectedContentAvailable") {
             $this->$name = $this->request->httpMethod === HTTPRequestMethod::options || (isset($_SESSION["user"]) || (function (): bool {

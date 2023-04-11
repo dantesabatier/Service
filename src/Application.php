@@ -274,6 +274,7 @@ class Application extends Responder
             });
             $delegate?->applicationWillFinishLaunching($this);
             if ($this->request->httpMethod !== HTTPRequestMethod::options) {
+                /** @psalm-suppress InvalidArgument */
                 session_set_cookie_params([
                     HTTPCookiePropertyKey::lifetime => 60 * 60 * 8,
                     HTTPCookiePropertyKey::path => "/",

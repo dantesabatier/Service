@@ -180,7 +180,7 @@ class PersistentSpace extends Responder
                 $objectID = $body["objectID"] ?? null;
                 if ($objectID === null) {
                     if ($request->httpMethod !== HTTPRequestMethod::post) {
-                        throw new BadRequestException("Bad request, objectID cannot be null");
+                        throw new BadRequestException("objectID cannot be null");
                     }
                 } else {
                     $objectID = (int)$objectID;
@@ -199,10 +199,10 @@ class PersistentSpace extends Responder
                 }
                 if (!$object instanceof ManagedObject) {
                     if ($request->httpMethod !== HTTPRequestMethod::post) {
-                        throw new NotFoundException("Not found, object doesn't exists");
+                        throw new NotFoundException();
                     }
                 } elseif ($request->httpMethod === HTTPRequestMethod::post) {
-                    throw new ConflictException("Conflict, object exists");
+                    throw new ConflictException();
                 }
                 if ($request->httpMethod === HTTPRequestMethod::delete) {
                     /** @psalm-suppress PossiblyNullArgument */

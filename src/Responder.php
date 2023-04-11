@@ -56,22 +56,25 @@ abstract class Responder extends ObjectClass
      */
     public function isFirstResponder(): bool
     {
+        $attemptProceedingWithDefaultImplementation = fn(): bool => $this->allowedMethods->containsElement($this
+            ->request->httpMethod) ?: throw new MethodNotAllowedException();
         $path = $this->request->url->path;
         $reflectionClass = new ReflectionClass($this);
         foreach ($reflectionClass->getAttributes(Endpoint::class) as $attribute) {
             $endpoint = $attribute->newInstance();
             if ($endpoint->path === $path && $this->request->httpMethod === HTTPRequestMethod::get) {
-                return true;
+                return $attemptProceedingWithDefaultImplementation();
             }
         }
         foreach ($reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
             foreach ($method->getAttributes(Action::class) as $attribute) {
                 $action = $attribute->newInstance();
                 if ($action->path === $path) {
+                    $ok = $attemptProceedingWithDefaultImplementation();
                     if ($this->request->httpMethod === $action->method) {
                         $this->perform($method->name);
                     }
-                    return true;
+                    return $ok;
                 }
             }
         }

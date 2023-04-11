@@ -5,6 +5,7 @@ namespace Sabatier\Service;
 use ReflectionClass;
 use Sabatier\CoreData\PersistentContainer;
 use Sabatier\CoreData\PersistentStoreDescription;
+use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Dictionary;
@@ -20,6 +21,7 @@ use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Foundation\SearchPathDirectory;
+use Sabatier\Foundation\Set;
 use Sabatier\Foundation\URL;
 use Sabatier\Foundation\UserDefaults;
 use Throwable;
@@ -136,7 +138,7 @@ class Application extends Responder
         return static::$shared;
     }
 
-    private function send(HTTPURLResponse $response, ?string $content, ?string $contentType = null, ?int $contentLength = null, ?string $contentDisposition = null): never
+    private function send(HTTPURLResponse $response, ?string $content, ?string $contentType = null, ?int $contentLength = null, ?string $contentDisposition = null, ArrayClass $allowedMethods = new ArrayClass()): never
     {
         $isEmpty = match ($response->statusCode) {
             HTTPStatusCode::created, HTTPStatusCode::noContent, HTTPStatusCode::resetContent, HTTPStatusCode::notModified => true,
@@ -151,11 +153,21 @@ class Application extends Responder
             $headerFields["Access-Control-Allow-Credentials"] = true;
             $headerFields["Vary"] = "Origin";
         }
-        if ($value = $this->request->valueForHttpHeaderField("Access-Control-Request-Method")) {
-            $headerFields["Access-Control-Allow-Methods"] = $value;
+        if ($method = $this->request->valueForHttpHeaderField("Access-Control-Request-Method")) {
+            if (!$allowedMethods->contains(fn(string $allowedMethod): bool => string_is_equal($allowedMethod, $method, CompareOptions::caseInsensitive))) {
+                $allowedMethods->append($method);
+            }
+            $headerFields["Access-Control-Allow-Methods"] = $allowedMethods->join(", ");
         }
         if ($value = $this->request->valueForHttpHeaderField("Access-Control-Request-Headers")) {
-            $headerFields["Access-Control-Allow-Headers"] = $value;
+            $requestHeaders = new ArrayClass(explode(",", $value));
+            $allowedHeaders = new ArrayClass(["Content-Type", "Serialization", "Authorization"]);
+            foreach ($requestHeaders as $requestHeader) {
+                if (!$allowedHeaders->contains(fn(string $allowedHeader): bool => string_is_equal($allowedHeader, $requestHeader, CompareOptions::caseInsensitive))) {
+                    $allowedHeaders->append($requestHeader);
+                }
+            }
+            $headerFields["Access-Control-Allow-Headers"] = $allowedHeaders->join(", ");
         }
         if ($isEmpty) {
             $headerFields->removeAll(fn(mixed $e, string $k): bool => match ($k) {
@@ -301,7 +313,7 @@ class Application extends Responder
                 session_write_close();
             }
             $delegate?->applicationDidFinishLaunching($this);
-            $this->send($responder->response(), $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition);
+            $this->send($responder->response(), $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition, $responder->allowedMethods);
         } catch (Throwable $throwable) {
             $response = $throwable instanceof InvalidRequestException ? new HTTPURLResponse($this->request->url, $throwable->getCode(), null, (function () use ($throwable): ?Dictionary {
                 if (!$throwable instanceof UnauthorizedException) {

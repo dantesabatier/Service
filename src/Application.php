@@ -136,7 +136,7 @@ class Application extends Responder
         return static::$shared;
     }
 
-    private function send(HTTPURLResponse $response, ?string $content, ?string $contentType = null, ?int $contentLength = null, ?string $contentDisposition = null): void
+    private function send(HTTPURLResponse $response, ?string $content, ?string $contentType = null, ?int $contentLength = null, ?string $contentDisposition = null): never
     {
         $isEmpty = match ($response->statusCode) {
             HTTPStatusCode::created, HTTPStatusCode::noContent, HTTPStatusCode::resetContent, HTTPStatusCode::notModified => true,
@@ -199,6 +199,7 @@ class Application extends Responder
         ob_end_flush();
         header("Content-Length: " . ob_get_length());
         ob_end_flush();
+        die();
     }
 
     private function mainResponder(): ?Responder

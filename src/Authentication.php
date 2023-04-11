@@ -46,13 +46,12 @@ class Authentication extends Responder
                 if (!($username = $this->credential?->user)) {
                     return null;
                 }
-                $context = $this->managedObjectContext;
                 /** @var class-string<ManagedObject> $type */
                 $type = "App\Model\User";
                 $fetchRequest = $type::fetchRequest();
                 $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($username));
                 try {
-                    return $context->fetch($fetchRequest)->first()?->serialized($this->serialization);
+                    return $this->managedObjectContext->fetch($fetchRequest)->first()?->serialized($this->serialization);
                 } catch (Exception) {
                     return null;
                 }

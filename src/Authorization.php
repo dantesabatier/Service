@@ -14,7 +14,7 @@ readonly class Authorization
     /** @var Dictionary<string> */
     public Dictionary $parameters;
 
-    public function __construct(public string $scheme, public string $rawValue)
+    public function __construct(public string $scheme, public string $challenge)
     {
         unset($this->credential);
         unset($this->parameters);
@@ -23,14 +23,14 @@ readonly class Authorization
     public function __get(string $name)
     {
         return $this->$name = match ($name) {
-            "parameters" => (new ArrayClass(explode(",", $this->rawValue)))->reduce(new Dictionary(), function (Dictionary $result, string $e): Dictionary {
+            "parameters" => (new ArrayClass(explode(",", $this->challenge)))->reduce(new Dictionary(), function (Dictionary $result, string $e): Dictionary {
                 $components = explode("=", $e, 2);
                 $result[trim($components[0])] = count($components) > 1 ? trim($components[1]) : "";
                 return $result;
             }),
             "credential" => match (AuthenticationScheme::from($this->scheme)) {
                 AuthenticationScheme::basic => (function (): ?URLCredential {
-                    $components = explode(":", base64_decode($this->rawValue));
+                    $components = explode(":", base64_decode($this->challenge));
                     if (count($components) !== 2) {
                         return null;
                     }

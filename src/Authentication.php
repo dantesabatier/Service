@@ -17,7 +17,7 @@ class Authentication extends Responder
 {
     public AuthenticationScheme $scheme = AuthenticationScheme::basic;
     /** @internal */
-    public readonly string $challenge;
+    public readonly string $responseChallenge;
     public readonly ?URLCredential $credential;
     public readonly ?ManagedObject $user;
     private readonly ?Authorization $authorization;
@@ -25,7 +25,7 @@ class Authentication extends Responder
     public function __construct()
     {
         parent::__construct();
-        unset($this->challenge);
+        unset($this->responseChallenge);
         unset($this->credential);
         unset($this->user);
         unset($this->authorization);
@@ -34,7 +34,7 @@ class Authentication extends Responder
 
     public function __get(string $name)
     {
-        if ($name == "challenge") {
+        if ($name == "responseChallenge") {
             $this->$name = "{$this->scheme->value} realm=\"{$this->request->url->host}\"" . match ($this->scheme) {
                     AuthenticationScheme::digest => sprintf(", uri=\"%s\", qop=\"auth\", nonce=\"%s\", opaque=\"%s\"", $this->request->url->absoluteString, uniqid(), base64_encode((string)$this->request->url->host)),
                     default => ""

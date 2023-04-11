@@ -62,7 +62,7 @@ class Authentication extends Responder
             return $this->$name;
         } elseif ($name == "challenge") {
             $this->$name = "{$this->scheme->value} realm=\"{$this->request->url->host}\"" . match ($this->scheme) {
-                    AuthenticationScheme::digest => sprintf(", uri=\"%s\", qop=\"auth\", nonce=\"%s\", opaque=\"%s\"", $this->request->url->absoluteString, uniqid(), base64_encode((string)$this->request->url->host)),
+                    AuthenticationScheme::digest => sprintf(", uri=\"%s\", qop=\"auth\", nonce=\"%s\", opaque=\"%s\" algorithm=\"SHA-256\"", $this->request->url->absoluteString, uniqid(), base64_encode((string)$this->request->url->host)),
                     default => ""
                 };
             return $this->$name;
@@ -80,12 +80,14 @@ class Authentication extends Responder
                                 if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"])) {
                                     return false;
                                 }
-                                $algorithm = $parameters["algorithm"] ?? "SHA-256";
-                                $algo = match ($algorithm) {
+                                if (!($algo = match ($parameters["algorithm"] ?? "SHA-256") {
                                     "SHA-512-256" => "sha512",
                                     "MD5" => "md5",
-                                    default => "SHA-256"
-                                };
+                                    "SHA-256" => "sha256",
+                                    default => null
+                                })) {
+                                    return false;
+                                }
                                 $A1 = hash($algo, "$username:{$this->request->url->host}:$password");
                                 $A2 = hash($algo, "{$this->request->httpMethod}:$uri");
                                 $response = hash($algo, "$A1:$nonce:$nc:$cnonce:$qop:$A2");

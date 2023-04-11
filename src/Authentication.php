@@ -89,7 +89,6 @@ class Authentication extends Responder
     public function login(): void
     {
         $this->isProtectedContentAvailable ?: throw new UnauthorizedException();
-        session_regenerate_id();
         /** @var ManagedObject $user */
         $user = $this->user;
         $_SESSION["user"] = $user->objectID->referenceObject;

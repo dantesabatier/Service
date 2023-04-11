@@ -83,7 +83,8 @@ class Authentication extends Responder
                                 $algorithm = $parameters["algorithm"] ?? "SHA-256";
                                 $algo = match ($algorithm) {
                                     "SHA-512-256" => "sha512",
-                                    default => strtolower(str_replace("-", "", $algorithm))
+                                    "MD5" => "md5",
+                                    default => "SHA-256"
                                 };
                                 $A1 = hash($algo, "$username:{$this->request->url->host}:$password");
                                 $A2 = hash($algo, "{$this->request->httpMethod}:$uri");

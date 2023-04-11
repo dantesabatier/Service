@@ -4,6 +4,7 @@ namespace Sabatier\Service;
 
 use Exception;
 use Sabatier\CoreData\ManagedObject;
+use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLCredential;
@@ -80,6 +81,9 @@ class Authentication extends Responder
                         };
                     })());
             return $this->$name;
+        } elseif ($name == "allowedMethods") {
+            $this->$name = new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::get, HTTPRequestMethod::post]);
+            return $this->$name;
         } else {
             return parent::__get($name);
         }
@@ -88,9 +92,9 @@ class Authentication extends Responder
     #[Action("/Login")]
     public function login(): void
     {
-        $this->isProtectedContentAvailable ?: throw new UnauthorizedException();
-        /** @var ManagedObject $user */
-        $user = $this->user;
+        if (!$this->isProtectedContentAvailable || !($user = $this->user)) {
+            throw new UnauthorizedException();
+        }
         $_SESSION["user"] = $user->objectID->referenceObject;
         $this->content = json_encode($user, JSON_PRESERVE_ZERO_FRACTION);
         $this->contentType = "application/json";

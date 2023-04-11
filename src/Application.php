@@ -315,20 +315,7 @@ class Application extends Responder
             $delegate?->applicationDidFinishLaunching($this);
             $this->send($responder->response(), $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition, $responder->allowedMethods);
         } catch (Throwable $throwable) {
-            $response = $throwable instanceof InvalidRequestException ? new HTTPURLResponse($this->request->url, $throwable->getCode(), null, (function () use ($throwable): ?Dictionary {
-                if (!$throwable instanceof UnauthorizedException) {
-                    return null;
-                }
-                $authentication = $this->authentication;
-                $realm = $authentication->request->url->host ?? "";
-                $scheme = $authentication->scheme;
-                $challenge = "$scheme->value realm=\"$realm\"";
-                $challenge .= match ($scheme) {
-                    AuthenticationScheme::digest => sprintf(", uri=\"%s\", qop=\"auth\", nonce=\"%s\", opaque=\"%s\" algorithm=\"SHA-256\"", $this->request->url->absoluteString, uniqid(), base64_encode($realm)),
-                    default => ""
-                };
-                return new Dictionary(["WWW-Authenticate" => $challenge]);
-            })()) : new HTTPURLResponse($this->request->url, HTTPStatusCode::internalServerError);
+            $response = $throwable instanceof InvalidRequestException ? new HTTPURLResponse($this->request->url, $throwable->getCode(), null, $throwable instanceof UnauthorizedException ? new Dictionary(["WWW-Authenticate" => $this->authentication->challenge]) : null) : new HTTPURLResponse($this->request->url, HTTPStatusCode::internalServerError);
             $userInfo = new Dictionary([LocalizedDescriptionKey => HTTPURLResponse::localizedString($response->statusCode)]);
             if ($failureReason = $throwable->getMessage()) {
                 $userInfo[LocalizedFailureReasonErrorKey] = $failureReason;

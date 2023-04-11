@@ -80,14 +80,14 @@ class Authentication extends Responder
                                 if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"])) {
                                     return false;
                                 }
-                                $algo = match ($parameters["algorithm"]) {
+                                $algorithm = match ($parameters["algorithm"]) {
                                     "SHA-512-256" => "sha512",
                                     "SHA-256" => "sha256",
                                     default => "md5"
                                 };
-                                $A1 = hash($algo, "$username:{$this->request->url->host}:$password");
-                                $A2 = hash($algo, "{$this->request->httpMethod}:$uri");
-                                $response = hash($algo, "$A1:$nonce:$nc:$cnonce:$qop:$A2");
+                                $A1 = hash($algorithm, "$username:{$this->request->url->host}:$password");
+                                $A2 = hash($algorithm, "{$this->request->httpMethod}:$uri");
+                                $response = hash($algorithm, "$A1:$nonce:$nc:$cnonce:$qop:$A2");
                                 return $parameters["response"] === $response;
                             })(),
                             default => false

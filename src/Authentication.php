@@ -70,6 +70,7 @@ class Authentication extends Responder
                             AuthenticationScheme::basic => password_verify((string)$credential->password, $password),
                             AuthenticationScheme::digest => (function () use ($password): bool {
                                 //FIXME: if password is a hash response comparison will fail
+                                /** @noinspection SpellCheckingInspection */
                                 if (string_begins_with($password, "\$2[abxy]", CompareOptions::quoted)) {
                                     return false;
                                 }

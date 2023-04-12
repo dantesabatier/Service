@@ -25,7 +25,7 @@ readonly class Authorization
         return $this->$name = match ($name) {
             "parameters" => (new ArrayClass(explode(",", $this->challenge)))->reduce(new Dictionary(), function (Dictionary $result, string $e): Dictionary {
                 $components = explode("=", $e, 2);
-                $result[trim($components[0])] = count($components) > 1 ? trim($components[1]) : "";
+                $result[trim($components[0])] = count($components) > 1 ? trim($components[1], " \"'") : "";
                 return $result;
             }),
             "credential" => match (AuthenticationScheme::from($this->name)) {

@@ -5,19 +5,19 @@ namespace Sabatier\Service;
 use Exception;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
+use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
+use function Sabatier\Foundation\string_begins_with;
 use function Sabatier\Foundation\substring_from_index;
 use function Sabatier\Foundation\substring_to_index;
 
 class Authentication extends Responder
 {
     public AuthenticationScheme $scheme = AuthenticationScheme::basic;
-    /** @internal */
-    public readonly string $responseChallenge;
     public readonly ?URLCredential $credential;
     public readonly ?ManagedObject $user;
     private readonly ?Authorization $authorization;
@@ -25,7 +25,6 @@ class Authentication extends Responder
     public function __construct()
     {
         parent::__construct();
-        unset($this->responseChallenge);
         unset($this->credential);
         unset($this->user);
         unset($this->authorization);
@@ -34,13 +33,7 @@ class Authentication extends Responder
 
     public function __get(string $name)
     {
-        if ($name == "responseChallenge") {
-            $this->$name = "{$this->scheme->value} realm=\"{$this->request->url->host}\"" . match ($this->scheme) {
-                    AuthenticationScheme::digest => sprintf(", uri=\"%s\", qop=\"auth\", nonce=\"%s\", opaque=\"%s\"", $this->request->url->absoluteString, uniqid(), base64_encode((string)$this->request->url->host)),
-                    default => ""
-                };
-            return $this->$name;
-        } elseif ($name == "authorization") {
+        if ($name == "authorization") {
             $this->$name = (function (): ?Authorization {
                 if (!($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) || !($index = strpos($authorizationValue, " ")) || !($scheme = trim(substring_to_index($authorizationValue, $index))) || !($rawValue = trim(substring_from_index($authorizationValue, $index))) || $scheme !== $this->scheme->value) {
                     return null;
@@ -76,19 +69,24 @@ class Authentication extends Responder
                         return match ($this->scheme) {
                             AuthenticationScheme::basic => password_verify((string)$credential->password, $password),
                             AuthenticationScheme::digest => (function () use ($password): bool {
+                                //FIXME: if password is a hash response comparison will fail
+                                if (string_begins_with($password, "\$2[abxy]", CompareOptions::quoted)) {
+                                    return false;
+                                }
                                 /** @var Dictionary<string> $parameters */
                                 $parameters = $this->authorization?->parameters;
                                 if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"])) {
                                     return false;
                                 }
+                                $realm = $this->request->url->host;
                                 $algorithm = match ($parameters["algorithm"]) {
                                     "SHA-512-256" => "sha512",
                                     "SHA-256" => "sha256",
                                     default => "md5"
                                 };
-                                $A1 = hash($algorithm, "$username:{$this->request->url->host}:$password");
-                                $A2 = hash($algorithm, "{$this->request->httpMethod}:$uri");
-                                $response = hash($algorithm, "$A1:$nonce:$nc:$cnonce:$qop:$A2");
+                                $HA1 = hash($algorithm, "$username:$realm:$password");
+                                $HA2 = hash($algorithm, "{$this->request->httpMethod}:$uri");
+                                $response = hash($algorithm, "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
                                 return $parameters["response"] === $response;
                             })(),
                             default => false

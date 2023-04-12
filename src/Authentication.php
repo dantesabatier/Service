@@ -69,25 +69,19 @@ class Authentication extends Responder
                         return match ($this->scheme) {
                             AuthenticationScheme::basic => password_verify((string)$credential->password, $password),
                             AuthenticationScheme::digest => (function () use ($password): bool {
-                                //FIXME: if password is a hash response comparison will fail
                                 /** @noinspection SpellCheckingInspection */
                                 if (string_begins_with($password, "\$2[abxy]", CompareOptions::quoted)) {
                                     return false;
                                 }
                                 /** @var Dictionary<string> $parameters */
                                 $parameters = $this->authorization?->parameters;
-                                if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"])) {
+                                if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"]) || ($parameters["algorithm"] !== "SHA-256")) {
                                     return false;
                                 }
                                 $realm = $this->request->url->host;
-                                $algorithm = match ($parameters["algorithm"]) {
-                                    "SHA-512-256" => "sha512",
-                                    "SHA-256" => "sha256",
-                                    default => "md5"
-                                };
-                                $HA1 = hash($algorithm, "$username:$realm:$password");
-                                $HA2 = hash($algorithm, "{$this->request->httpMethod}:$uri");
-                                $response = hash($algorithm, "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
+                                $HA1 = hash("sha256", "$username:$realm:$password");
+                                $HA2 = hash("sha256", "{$this->request->httpMethod}:$uri");
+                                $response = hash("sha256", "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
                                 return $parameters["response"] === $response;
                             })(),
                             default => false

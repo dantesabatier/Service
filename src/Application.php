@@ -5,6 +5,7 @@ namespace Sabatier\Service;
 use ReflectionClass;
 use Sabatier\CoreData\PersistentContainer;
 use Sabatier\CoreData\PersistentStoreDescription;
+use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Dictionary;
@@ -124,7 +125,7 @@ class Application extends Responder
             return $this->$name;
         } elseif ($name == "sessionSaveURL") {
             $this->$name = (function (): URL {
-                $sessionSaveURL = FileManager::default()->url(SearchPathDirectory::applicationSupportDirectory)->appendingPathComponent(Bundle::main()->object(kCFBundleNameKey));
+                $sessionSaveURL = FileManager::default()->url(SearchPathDirectory::cachesDirectory)->appendingPathComponent(Bundle::main()->bundleIdentifier ?? ProcessInfo::processInfo()->processName);
                 if (!FileManager::default()->fileExists($sessionSaveURL->path)) {
                     FileManager::default()->createDirectory($sessionSaveURL, true);
                 }
@@ -250,47 +251,37 @@ class Application extends Responder
         return null;
     }
 
-    private function privateResponder(): ?Responder
+    private function internalResponder(): ?Responder
     {
-        foreach ([$this->authentication, $this->persistentSpace, $this->resourceManager] as $responder) {
-            if ($responder->isFirstResponder()) {
-                return $responder;
-            }
-        }
-        $responder = new Home();
-        if ($responder->isFirstResponder()) {
-            return $responder;
-        }
-        return null;
+        return (new ArrayClass([$this->authentication, $this->persistentSpace, $this->resourceManager, new Home()]))->first(fn(Responder $responder): bool => $responder->isFirstResponder());
     }
 
     private function instantiateInitialResponder(): Responder
     {
-        if (!($responder = $this->mainResponder()) && !($responder = $this->privateResponder())) {
+        if (!($responder = $this->mainResponder()) && !($responder = $this->internalResponder())) {
             throw new NotFoundException();
         }
         if (!$responder->isProtectedContentAvailable) {
             $responder->isProtectedContentAvailable = $this->isProtectedContentAvailable;
         }
-        if ($responder !== $this->authentication) {
-            if (!$responder->isProtectedContentAvailable && !$this->authentication->isProtectedContentAvailable) {
-                throw new UnauthorizedException();
-            }
-            $this->persistentContainer->viewContext->transactionAuthor = match ($this->request->httpMethod) {
-                HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $_SESSION["user"],
-                default => null
-            };
+        if ($responder === $this->authentication) {
+            return $responder;
         }
+        if (!$responder->isProtectedContentAvailable && !$this->authentication->isProtectedContentAvailable) {
+            throw new UnauthorizedException();
+        }
+        $this->persistentContainer->viewContext->transactionAuthor = match ($this->request->httpMethod) {
+            HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $_SESSION["user"],
+            default => null
+        };
         return $responder;
     }
 
     public function run(): void
     {
         try {
-            $processInfo = ProcessInfo::processInfo();
-            $processInfo->processName = $this->persistentContainer->name;
-            $viewContext = $this->persistentContainer->viewContext;
-            $viewContext->name = $processInfo->processName;
+            ProcessInfo::processInfo()->processName = $this->persistentContainer->name;
+            $this->persistentContainer->viewContext->name = $this->persistentContainer->name;
             $delegate = $this->delegate;
             register_shutdown_function(function () use ($delegate): bool {
                 $delegate?->applicationWillTerminate($this);
@@ -302,7 +293,7 @@ class Application extends Responder
                 default => unsafe_value(function (): Responder {
                     /** @psalm-suppress InvalidArgument */
                     session_set_cookie_params([
-                        HTTPCookiePropertyKey::lifetime => 60 * 60 * 8,
+                        HTTPCookiePropertyKey::lifetime => 0,
                         HTTPCookiePropertyKey::path => "/",
                         HTTPCookiePropertyKey::domain => $this->request->url->host,
                         HTTPCookiePropertyKey::secure => true,

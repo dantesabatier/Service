@@ -5,7 +5,6 @@ namespace Sabatier\Service;
 use ReflectionClass;
 use Sabatier\CoreData\PersistentContainer;
 use Sabatier\CoreData\PersistentStoreDescription;
-use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Dictionary;
@@ -29,6 +28,7 @@ use function Sabatier\Foundation\getallheaders;
 use function Sabatier\Foundation\human_readable_value;
 use function Sabatier\Foundation\request_url;
 use function Sabatier\Foundation\string_is_equal;
+use function Sabatier\Foundation\unsafe_value;
 use const Sabatier\CoreData\PersistentHistoryTrackingKey;
 use const Sabatier\CoreData\PersistentStoreRemoteChangeNotificationPostOptionKey;
 use const Sabatier\Foundation\kCFBundleNameKey;
@@ -50,6 +50,7 @@ class Application extends Responder
     public readonly PersistentContainer $persistentContainer;
     private readonly PersistentSpace $persistentSpace;
     private readonly ResourceManager $resourceManager;
+    private readonly URL $sessionSaveURL;
 
     final public function __construct()
     {
@@ -60,6 +61,7 @@ class Application extends Responder
         unset($this->authentication);
         unset($this->persistentSpace);
         unset($this->resourceManager);
+        unset($this->sessionSaveURL);
     }
 
     /** @suppress PHP0418 */
@@ -120,6 +122,15 @@ class Application extends Responder
         } elseif ($name == "resourceManager") {
             $this->$name = new ResourceManager();
             return $this->$name;
+        } elseif ($name == "sessionSaveURL") {
+            $this->$name = (function (): URL {
+                $sessionSaveURL = FileManager::default()->url(SearchPathDirectory::applicationSupportDirectory)->appendingPathComponent(Bundle::main()->object(kCFBundleNameKey));
+                if (!FileManager::default()->fileExists($sessionSaveURL->path)) {
+                    FileManager::default()->createDirectory($sessionSaveURL, true);
+                }
+                return $sessionSaveURL;
+            })();
+            return $this->$name;
         } else {
             return parent::__get($name);
         }
@@ -137,7 +148,7 @@ class Application extends Responder
         return static::$shared;
     }
 
-    private function send(HTTPURLResponse $response, ?string $content, ?string $contentType = null, ?int $contentLength = null, ?string $contentDisposition = null, ArrayClass $allowedMethods = new ArrayClass()): never
+    private function send(HTTPURLResponse $response, ?string $content, ?string $contentType = null, ?int $contentLength = null, ?string $contentDisposition = null): never
     {
         $isEmpty = match ($response->statusCode) {
             HTTPStatusCode::created, HTTPStatusCode::noContent, HTTPStatusCode::resetContent, HTTPStatusCode::notModified => true,
@@ -152,22 +163,11 @@ class Application extends Responder
             $headerFields["Access-Control-Allow-Credentials"] = true;
             $headerFields["Vary"] = "Origin";
         }
-        if ($requestMethod = $this->request->valueForHttpHeaderField("Access-Control-Request-Method")) {
-            if (!$allowedMethods->contains(fn(string $allowedMethod): bool => string_is_equal($allowedMethod, $requestMethod, CompareOptions::caseInsensitive))) {
-                $allowedMethods->append($requestMethod);
-            }
-            $headerFields["Access-Control-Allow-Methods"] = $allowedMethods->join(", ");
+        if ($value = $this->request->valueForHttpHeaderField("Access-Control-Request-Method")) {
+            $headerFields["Access-Control-Allow-Methods"] = $value;
         }
         if ($value = $this->request->valueForHttpHeaderField("Access-Control-Request-Headers")) {
-            $requestHeaders = new ArrayClass(explode(",", $value));
-            /** @var ArrayClass<string> $allowedHeaders */
-            $allowedHeaders = new ArrayClass(["Content-Type", "Serialization", "Authorization"]);
-            foreach ($requestHeaders as $requestHeader) {
-                if (!$allowedHeaders->contains(fn(string $allowedHeader): bool => string_is_equal($allowedHeader, $requestHeader, CompareOptions::caseInsensitive))) {
-                    $allowedHeaders->append($requestHeader);
-                }
-            }
-            $headerFields["Access-Control-Allow-Headers"] = $allowedHeaders->join(", ");
+            $headerFields["Access-Control-Allow-Headers"] = $value;
         }
         if ($isEmpty) {
             $headerFields->removeAll(fn(mixed $e, string $k): bool => match ($k) {
@@ -272,13 +272,14 @@ class Application extends Responder
         if (!$responder->isProtectedContentAvailable) {
             $responder->isProtectedContentAvailable = $this->isProtectedContentAvailable;
         }
-        if ($this->request->httpMethod !== HTTPRequestMethod::options) {
-            if (!$responder->isProtectedContentAvailable && !$responder instanceof Authentication && !$this->authentication->isProtectedContentAvailable) {
+        if ($responder !== $this->authentication) {
+            if (!$responder->isProtectedContentAvailable && !$this->authentication->isProtectedContentAvailable) {
                 throw new UnauthorizedException();
             }
-            if ($this->request->httpMethod !== HTTPRequestMethod::get && $responder instanceof PersistentSpace) {
-                $this->persistentContainer->viewContext->transactionAuthor = $this->authentication->credential?->user;
-            }
+            $this->persistentContainer->viewContext->transactionAuthor = match ($this->request->httpMethod) {
+                HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $_SESSION["user"],
+                default => null
+            };
         }
         return $responder;
     }
@@ -286,34 +287,37 @@ class Application extends Responder
     public function run(): void
     {
         try {
-            ProcessInfo::processInfo()->processName = $this->persistentContainer->name;
+            $processInfo = ProcessInfo::processInfo();
+            $processInfo->processName = $this->persistentContainer->name;
             $viewContext = $this->persistentContainer->viewContext;
-            $viewContext->name = $this->persistentContainer->name;
+            $viewContext->name = $processInfo->processName;
             $delegate = $this->delegate;
             register_shutdown_function(function () use ($delegate): bool {
                 $delegate?->applicationWillTerminate($this);
                 return true;
             });
             $delegate?->applicationWillFinishLaunching($this);
-            if ($this->request->httpMethod !== HTTPRequestMethod::options) {
-                /** @psalm-suppress InvalidArgument */
-                session_set_cookie_params([
-                    HTTPCookiePropertyKey::lifetime => 60 * 60 * 8,
-                    HTTPCookiePropertyKey::path => "/",
-                    HTTPCookiePropertyKey::domain => $this->request->url->host,
-                    HTTPCookiePropertyKey::secure => true,
-                    HTTPCookiePropertyKey::httpOnly => true,
-                    HTTPCookiePropertyKey::sameSitePolicy => HTTPCookieStringPolicy::sameSiteLax,
-                ]);
-                session_save_path(FileManager::default()->url(SearchPathDirectory::applicationSupportDirectory)->appendingPathComponent($this->persistentContainer->name)->path);
-                session_start();
-            }
-            $responder = $this->instantiateInitialResponder();
-            if ($this->request->httpMethod !== HTTPRequestMethod::options) {
-                session_write_close();
-            }
+            $responder = match ($this->request->httpMethod) {
+                HTTPRequestMethod::options => $this,
+                default => unsafe_value(function (): Responder {
+                    /** @psalm-suppress InvalidArgument */
+                    session_set_cookie_params([
+                        HTTPCookiePropertyKey::lifetime => 60 * 60 * 8,
+                        HTTPCookiePropertyKey::path => "/",
+                        HTTPCookiePropertyKey::domain => $this->request->url->host,
+                        HTTPCookiePropertyKey::secure => true,
+                        HTTPCookiePropertyKey::httpOnly => true,
+                        HTTPCookiePropertyKey::sameSitePolicy => HTTPCookieStringPolicy::sameSiteLax,
+                    ]);
+                    session_save_path($this->sessionSaveURL->path);
+                    session_start();
+                    $responder = $this->instantiateInitialResponder();
+                    session_write_close();
+                    return $responder;
+                })
+            };
             $delegate?->applicationDidFinishLaunching($this);
-            $this->send($responder->response(), $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition, $responder->allowedMethods);
+            $this->send($responder->response(), $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition);
         } catch (Throwable $throwable) {
             $response = $throwable instanceof InvalidRequestException ? new HTTPURLResponse($this->request->url, $throwable->getCode(), null, $throwable instanceof UnauthorizedException ? new Dictionary(["WWW-Authenticate" => "{$this->authentication->scheme->value} realm=\"{$this->request->url->host}\"" . match ($this->authentication->scheme) {
                     AuthenticationScheme::digest => sprintf(", uri=\"%s\", algorithm=\"%s\", nonce=\"%s\", qop=\"%s\", opaque=\"%s\"", $this->request->url->path, "SHA-256", ProcessInfo::processInfo()->globallyUniqueString, "auth", base64_encode((string)$this->request->url->host)),

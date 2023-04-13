@@ -27,7 +27,6 @@ use Sabatier\Foundation\Predicates\Predicate;
 use Sabatier\Foundation\SortDescriptor;
 use Sabatier\Foundation\URLComponents;
 use Sabatier\Foundation\URLQueryItem;
-use function Sabatier\Foundation\string_begins_with;
 use function Sabatier\Foundation\string_is_equal;
 use const Sabatier\CoreData\XMLStoreType;
 
@@ -212,10 +211,6 @@ class PersistentSpace extends Responder
                 } else {
                     /** @var Dictionary $keyedValues */
                     $keyedValues = Dictionary::dictionaryWithArray($body);
-                    /** @noinspection SpellCheckingInspection */
-                    if (($password = $keyedValues["password"]) && !string_begins_with($password, "\$2[abxy]", CompareOptions::quoted)) {
-                        $keyedValues["password"] = password_hash($password, PASSWORD_BCRYPT, ["cost" => 12]);
-                    }
                     $object ??= EntityDescription::insertNewObject($this->entity->name, $context);
                     $object->setValuesForKeys($keyedValues);
                     $context->save();

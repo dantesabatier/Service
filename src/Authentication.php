@@ -5,13 +5,11 @@ namespace Sabatier\Service;
 use Exception;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
-use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
-use function Sabatier\Foundation\string_begins_with;
 use function Sabatier\Foundation\substring_from_index;
 use function Sabatier\Foundation\substring_to_index;
 
@@ -20,7 +18,10 @@ class Authentication extends Responder
     public AuthenticationScheme $scheme = AuthenticationScheme::basic;
     public readonly ?URLCredential $credential;
     public readonly ?ManagedObject $user;
-    private readonly ?Authorization $authorization;
+    /** @var array{string, string} */
+    private readonly array $authorization;
+    /** @var Dictionary<string> */
+    private Dictionary $parameters;
 
     public function __construct()
     {
@@ -34,21 +35,44 @@ class Authentication extends Responder
     public function __get(string $name)
     {
         if ($name == "authorization") {
-            $this->$name = (function (): ?Authorization {
-                if (!($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) || !($index = strpos($authorizationValue, " ")) || !($scheme = trim(substring_to_index($authorizationValue, $index))) || !($rawValue = trim(substring_from_index($authorizationValue, $index))) || $scheme !== $this->scheme->value) {
-                    return null;
+            /** @psalm-suppress PropertyTypeCoercion */
+            $this->$name = (function (): array {
+                if (!($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) || !($index = strpos($authorizationValue, " ")) || !($scheme = trim(substring_to_index($authorizationValue, $index))) || !($value = trim(substring_from_index($authorizationValue, $index))) || $scheme !== $this->scheme->value) {
+                    return [$this->scheme->value, ""];
                 }
-                return new Authorization($scheme, $rawValue);
+                return [$scheme, $value];
+            })();
+            return $this->$name;
+        } elseif ($name == "parameters") {
+            $this->$name = (function (): Dictionary {
+                [, $value] = $this->authorization;
+                preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $value, $matches);
+                return new Dictionary(array_combine($matches[1], $matches[2]));
             })();
             return $this->$name;
         } elseif ($name == "credential") {
-            $this->$name = $this->authorization?->credential;
+            [$scheme, $value] = $this->authorization;
+            $this->$name = match (AuthenticationScheme::from($scheme)) {
+                AuthenticationScheme::basic => (function () use ($value): ?URLCredential {
+                    $components = explode(":", base64_decode($value));
+                    if (count($components) !== 2) {
+                        return null;
+                    }
+                    [$username, $password] = $components;
+                    return new URLCredential($username, $password);
+                })(),
+                AuthenticationScheme::digest => (function (): ?URLCredential {
+                    if (!($username = $this->parameters["username"])) {
+                        return null;
+                    }
+                    return new URLCredential($username);
+                })(),
+                default => null
+            };
             return $this->$name;
         } elseif ($name == "user") {
             $this->$name = (function (): ?ManagedObject {
-                if (!($username = $this->credential?->user)) {
-                    return null;
-                }
+                $username = $this->credential?->user ?? $_SESSION["user"];
                 /** @var class-string<ManagedObject> $type */
                 $type = "App\Model\User";
                 $fetchRequest = $type::fetchRequest();
@@ -61,20 +85,15 @@ class Authentication extends Responder
             })();
             return $this->$name;
         } elseif ($name == "isProtectedContentAvailable") {
-            $this->$name = $this->request->httpMethod === HTTPRequestMethod::options || (isset($_SESSION["user"]) || (function (): bool {
+            $this->$name = $this->request->httpMethod === HTTPRequestMethod::options || (!empty($_SESSION["user"]) || (function (): bool {
                         if (!($credential = $this->credential) || !($user = $this->user)) {
                             return false;
                         }
                         $password = $user->valueForKey("password");
                         return match ($this->scheme) {
-                            AuthenticationScheme::basic => password_verify((string)$credential->password, $password),
+                            AuthenticationScheme::basic => $credential->password === $password,
                             AuthenticationScheme::digest => (function () use ($password): bool {
-                                /** @noinspection SpellCheckingInspection */
-                                if (string_begins_with($password, "\$2[abxy]", CompareOptions::quoted)) {
-                                    return false;
-                                }
-                                /** @var Dictionary<string> $parameters */
-                                $parameters = $this->authorization?->parameters;
+                                $parameters = $this->parameters;
                                 if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"]) || ($parameters["algorithm"] !== "SHA-256")) {
                                     return false;
                                 }
@@ -99,11 +118,9 @@ class Authentication extends Responder
     #[Action("/Login")]
     public function login(): void
     {
-        if (!$this->isProtectedContentAvailable || !($user = $this->user)) {
-            throw new UnauthorizedException();
-        }
-        $_SESSION["user"] = $user->objectID->referenceObject;
-        $this->content = json_encode($user, JSON_PRESERVE_ZERO_FRACTION);
+        $this->isProtectedContentAvailable ?: throw new UnauthorizedException();
+        $_SESSION["user"] = $this->user?->valueForKey("username");
+        $this->content = json_encode($this->user, JSON_PRESERVE_ZERO_FRACTION);
         $this->contentType = "application/json";
     }
 

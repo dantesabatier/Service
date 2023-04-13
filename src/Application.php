@@ -70,7 +70,7 @@ class Application extends Responder
 
     public function __destruct()
     {
-        if (!session_get_cookie_params()[HTTPCookiePropertyKey::lifetime] || !($sessionID = session_id())) {
+        if (!($timeInterval = session_get_cookie_params()[HTTPCookiePropertyKey::lifetime]) || !($sessionID = session_id())) {
             return;
         }
         $remove = function(URL $url): void{
@@ -94,7 +94,8 @@ class Application extends Responder
             }
             /** @var Date $creationDate */
             $creationDate = $resourceValues->creationDate;
-            if ($creationDate->timeIntervalSinceNow < 0) {
+            $creationDate->addTimeInterval($timeInterval);
+            if ($creationDate->timeIntervalSinceNow > 0) {
                 continue;
             }
             $remove($url);

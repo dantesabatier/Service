@@ -327,6 +327,7 @@ class Application extends Responder
             $responder = match ($this->request->httpMethod) {
                 HTTPRequestMethod::options => $this,
                 default => unsafe_value(function (): Responder {
+                    /** @psalm-suppress InvalidArgument */
                     session_set_cookie_params([
                         HTTPCookiePropertyKey::lifetime => 60 * 60 * 8,
                         HTTPCookiePropertyKey::path => "/",

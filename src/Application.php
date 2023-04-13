@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use Exception;
 use ReflectionClass;
 use Sabatier\CoreData\PersistentContainer;
 use Sabatier\CoreData\PersistentStoreDescription;
@@ -70,35 +71,33 @@ class Application extends Responder
 
     public function __destruct()
     {
+        /** @noinspection PhpArrayKeyDoesNotMatchArrayShapeInspection */
         if (!($timeInterval = session_get_cookie_params()[HTTPCookiePropertyKey::lifetime]) || !($sessionID = session_id())) {
             return;
         }
-        $remove = function(URL $url): void{
-            try {
-                FileManager::default()->removeItem($url);
-            } catch (Exception) {
-            }
-        };
         $keys = new ArrayClass([URLResourceKey::creationDateKey, URLResourceKey::nameKey]);
         $urls = FileManager::default()->contentsOfDirectory($this->sessionSaveURL);
         foreach ($urls as $url) {
-            $resourceValues = $url->resourceValues(new Set($keys));
-            /** @var string $name */
-            $name = $resourceValues->name;
-            if (!str_starts_with($name, "sess_")) {
-                continue;
+            try {
+                $resourceValues = $url->resourceValues(new Set($keys));
+                /** @var string $name */
+                $name = $resourceValues->name;
+                if (!str_starts_with($name, "sess_")) {
+                    continue;
+                }
+                if (!str_ends_with($name, $sessionID)) {
+                    FileManager::default()->removeItem($url);
+                    continue;
+                }
+                /** @var Date $creationDate */
+                $creationDate = $resourceValues->creationDate;
+                $creationDate->addTimeInterval($timeInterval);
+                if ($creationDate->timeIntervalSinceNow > 0) {
+                    continue;
+                }
+                FileManager::default()->removeItem($url);
+            } catch (Exception) {
             }
-            if (!str_ends_with($name, $sessionID)) {
-                $remove($url);
-                continue;
-            }
-            /** @var Date $creationDate */
-            $creationDate = $resourceValues->creationDate;
-            $creationDate->addTimeInterval($timeInterval);
-            if ($creationDate->timeIntervalSinceNow > 0) {
-                continue;
-            }
-            $remove($url);
         }
     }
 

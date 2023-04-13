@@ -8,6 +8,7 @@ use Sabatier\CoreData\PersistentStoreDescription;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\CompareOptions;
+use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\DirectoryEnumerationOptions;
 use Sabatier\Foundation\Error;
@@ -21,7 +22,9 @@ use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Foundation\SearchPathDirectory;
+use Sabatier\Foundation\Set;
 use Sabatier\Foundation\URL;
+use Sabatier\Foundation\URLResourceKey;
 use Sabatier\Foundation\UserDefaults;
 use Throwable;
 use function Sabatier\Foundation\fatal_error;
@@ -63,6 +66,39 @@ class Application extends Responder
         unset($this->persistentSpace);
         unset($this->resourceManager);
         unset($this->sessionSaveURL);
+    }
+
+    public function __destruct()
+    {
+        if (!session_get_cookie_params()[HTTPCookiePropertyKey::lifetime] || !($sessionID = session_id())) {
+            return;
+        }
+        $remove = function(URL $url): void{
+            try {
+                FileManager::default()->removeItem($url);
+            } catch (Exception) {
+            }
+        };
+        $keys = new ArrayClass([URLResourceKey::creationDateKey, URLResourceKey::nameKey]);
+        $urls = FileManager::default()->contentsOfDirectory($this->sessionSaveURL);
+        foreach ($urls as $url) {
+            $resourceValues = $url->resourceValues(new Set($keys));
+            /** @var string $name */
+            $name = $resourceValues->name;
+            if (!str_starts_with($name, "sess_")) {
+                continue;
+            }
+            if (!str_ends_with($name, $sessionID)) {
+                $remove($url);
+                continue;
+            }
+            /** @var Date $creationDate */
+            $creationDate = $resourceValues->creationDate;
+            if ($creationDate->timeIntervalSinceNow < 0) {
+                continue;
+            }
+            $remove($url);
+        }
     }
 
     /** @suppress PHP0418 */
@@ -291,9 +327,8 @@ class Application extends Responder
             $responder = match ($this->request->httpMethod) {
                 HTTPRequestMethod::options => $this,
                 default => unsafe_value(function (): Responder {
-                    /** @psalm-suppress InvalidArgument */
                     session_set_cookie_params([
-                        HTTPCookiePropertyKey::lifetime => 0,
+                        HTTPCookiePropertyKey::lifetime => 60 * 60 * 8,
                         HTTPCookiePropertyKey::path => "/",
                         HTTPCookiePropertyKey::domain => $this->request->url->host,
                         HTTPCookiePropertyKey::secure => true,

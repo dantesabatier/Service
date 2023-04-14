@@ -5,11 +5,13 @@ namespace Sabatier\Service;
 use Exception;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
+use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
+use function Sabatier\Foundation\string_begins_with;
 use function Sabatier\Foundation\substring_from_index;
 use function Sabatier\Foundation\substring_to_index;
 
@@ -90,19 +92,21 @@ class Authentication extends Responder
                             return false;
                         }
                         $password = $user->valueForKey("password");
+                        /** @noinspection SpellCheckingInspection */
+                        $isHash = string_begins_with($password, "\$2[abxy]", CompareOptions::quoted);
                         return match ($this->scheme) {
-                            AuthenticationScheme::basic => $credential->password === $password,
-                            AuthenticationScheme::digest => (function () use ($password): bool {
-                                $parameters = $this->parameters;
-                                if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"]) || ($parameters["algorithm"] !== "SHA-256")) {
-                                    return false;
-                                }
-                                $realm = $this->request->url->host;
-                                $HA1 = hash("sha256", "$username:$realm:$password");
-                                $HA2 = hash("sha256", "{$this->request->httpMethod}:$uri");
-                                $response = hash("sha256", "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
-                                return $parameters["response"] === $response;
-                            })(),
+                            AuthenticationScheme::basic => $isHash ? password_verify((string)$credential->password, $password) : $credential->password === $password,
+                            AuthenticationScheme::digest => !$isHash && (function () use ($password): bool {
+                                    $parameters = $this->parameters;
+                                    if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"]) || ($parameters["algorithm"] !== "SHA-256")) {
+                                        return false;
+                                    }
+                                    $realm = $this->request->url->host;
+                                    $HA1 = hash("sha256", "$username:$realm:$password");
+                                    $HA2 = hash("sha256", "{$this->request->httpMethod}:$uri");
+                                    $response = hash("sha256", "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
+                                    return $parameters["response"] === $response;
+                                })(),
                             default => false
                         };
                     })());

@@ -58,9 +58,10 @@ abstract class Responder extends ObjectClass
     {
         $attemptProceedingWithDefaultImplementation = fn(): bool => $this->allowedMethods->containsElement($this
             ->request->httpMethod) ?: throw new MethodNotAllowedException();
-        $path = $this->request->url->path;
+        $request = $this->request;
+        $path = $request->url->path;
         $reflectionClass = new ReflectionClass($this);
-        switch ($this->request->httpMethod) {
+        switch ($request->httpMethod) {
             case HTTPRequestMethod::get:
             case HTTPRequestMethod::head:
                 foreach ($reflectionClass->getAttributes(Endpoint::class) as $attribute) {
@@ -79,7 +80,7 @@ abstract class Responder extends ObjectClass
                         $action = $attribute->newInstance();
                         if ($action->path === $path) {
                             $ok = $attemptProceedingWithDefaultImplementation();
-                            if ($this->request->httpMethod === $action->method) {
+                            if ($request->httpMethod === $action->method) {
                                 $this->perform($method->name);
                             }
                             return $ok;

@@ -60,23 +60,35 @@ abstract class Responder extends ObjectClass
             ->request->httpMethod) ?: throw new MethodNotAllowedException();
         $path = $this->request->url->path;
         $reflectionClass = new ReflectionClass($this);
-        foreach ($reflectionClass->getAttributes(Endpoint::class) as $attribute) {
-            $endpoint = $attribute->newInstance();
-            if ($endpoint->path === $path && $this->request->httpMethod === HTTPRequestMethod::get) {
-                return $attemptProceedingWithDefaultImplementation();
-            }
-        }
-        foreach ($reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
-            foreach ($method->getAttributes(Action::class) as $attribute) {
-                $action = $attribute->newInstance();
-                if ($action->path === $path) {
-                    $ok = $attemptProceedingWithDefaultImplementation();
-                    if ($this->request->httpMethod === $action->method) {
-                        $this->perform($method->name);
+        switch ($this->request->httpMethod) {
+            case HTTPRequestMethod::get:
+            case HTTPRequestMethod::head:
+                foreach ($reflectionClass->getAttributes(Endpoint::class) as $attribute) {
+                    $endpoint = $attribute->newInstance();
+                    if ($endpoint->path === $path) {
+                        return $attemptProceedingWithDefaultImplementation();
                     }
-                    return $ok;
                 }
-            }
+                break;
+            case HTTPRequestMethod::post:
+            case HTTPRequestMethod::put:
+            case HTTPRequestMethod::patch:
+            case HTTPRequestMethod::delete:
+                foreach ($reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
+                    foreach ($method->getAttributes(Action::class) as $attribute) {
+                        $action = $attribute->newInstance();
+                        if ($action->path === $path) {
+                            $ok = $attemptProceedingWithDefaultImplementation();
+                            if ($this->request->httpMethod === $action->method) {
+                                $this->perform($method->name);
+                            }
+                            return $ok;
+                        }
+                    }
+                }
+                break;
+            default:
+                break;
         }
         return false;
     }

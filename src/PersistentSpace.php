@@ -147,9 +147,8 @@ class PersistentSpace extends Responder
                 if ($fetchRequestResult instanceof BatchFaultingArray) {
                     return new BatchResponse($request->url, $fetchRequestResult, $fetchRequest);
                 }
-                $content = json_encode($fetchRequestResult, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
                 if ($request->httpMethod === HTTPRequestMethod::get) {
-                    $this->content = $content;
+                    $this->content = json_encode($fetchRequestResult, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
                     $this->contentType = "application/json; charset=utf-8";
                 }
                 break;

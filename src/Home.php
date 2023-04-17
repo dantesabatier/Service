@@ -27,7 +27,7 @@ class Home extends ViewController
         $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::head, HTTPRequestMethod::options]);
         $this->isProtectedContentAvailable = true;
     }
-    
+
     public function viewWillLoad(): void
     {
         $bundle = Bundle::main();

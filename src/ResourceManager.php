@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 /** @noinspection PhpInternalEntityUsedInspection */
 
@@ -33,15 +33,16 @@ class ResourceManager extends Responder
         switch ($this->request->httpMethod) {
             case HTTPRequestMethod::get:
             case HTTPRequestMethod::head:
-                if ($content = FileManager::default()->contents($this->resourceURL->path)) {
-                    if (($contentType = URLFileTypeMappings::shared()->mimeType($this->resourceURL->pathExtension)) && ($encoding = mb_detect_encoding($content))) {
-                        $contentType .= "; charset=$encoding";
-                    }
-                    $this->contentType = $contentType;
-                    if ($this->request->httpMethod === HTTPRequestMethod::get) {
-                        $this->content = $content;
-                    }
-                    $this->contentDisposition = "inline; filename={$this->resourceURL->lastPathComponent}";
+                if (!($content = FileManager::default()->contents($this->resourceURL->path))) {
+                    throw new NotFoundException();
+                }
+                if (($contentType = URLFileTypeMappings::shared()->mimeType($this->resourceURL->pathExtension)) && ($encoding = mb_detect_encoding($content))) {
+                    $contentType .= "; charset=$encoding";
+                }
+                $this->contentType = $contentType;
+                $this->contentDisposition = "inline; filename={$this->resourceURL->lastPathComponent}";
+                if ($this->request->httpMethod === HTTPRequestMethod::get) {
+                    $this->content = $content;
                 }
                 break;
             case HTTPRequestMethod::options:

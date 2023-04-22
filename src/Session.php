@@ -2,15 +2,11 @@
 
 namespace Sabatier\Service;
 
-use ArrayAccess;
 use Exception;
-use JetBrains\PhpStorm\ExpectedValues;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Date;
 use Sabatier\Foundation\FileManager;
-use Sabatier\Foundation\Networking\HTTPCookiePropertyKey;
-use Sabatier\Foundation\Networking\HTTPCookieStringPolicy;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Foundation\SearchPathDirectory;
@@ -21,26 +17,30 @@ use function Sabatier\Foundation\unsafe_value;
 
 /**
  * An object-oriented wrapper for a session.
- * @property-read string|null $id
- * @property-read SessionStatus $status
- * @property string|null $user
- * @implements ArrayAccess<string, mixed>
+ * @property-read string $id The session id.
+ * @property string $name The session name.
+ * @property-read SessionStatus $status The session status.
+ * @property-read int $duration
  */
-class Session extends ObjectClass implements ArrayAccess
+class Session extends ObjectClass
 {
+    /** @var URL The session save url. */
     public URL $saveURL;
 
-    public function __construct(public readonly string $domain, public readonly string $path = "/", public readonly int $lifetime = 0, public readonly bool $isSecure = true, public readonly bool $isHTTPOnly = true, #[ExpectedValues(valuesFromClass: HTTPCookieStringPolicy::class)] public readonly string $sameSitePolicy = HTTPCookieStringPolicy::sameSiteLax)
+    /**
+     * @param array{domain?: null|string, httponly?: bool|null, lifetime?: int|null, path?: null|string, samesite?: null|string, secure?: bool|null} $cookieParameters The session cookie parameters.
+     */
+    public function __construct(public readonly array $cookieParameters)
     {
         unset($this->saveURL);
     }
 
     public function __destruct()
     {
-        /** @noinspection PhpArrayKeyDoesNotMatchArrayShapeInspection */
-        if (!($timeInterval = session_get_cookie_params()[HTTPCookiePropertyKey::lifetime]) || !($sessionID = session_id())) {
+        if (!($duration = $this->duration)) {
             return;
         }
+        $id = $this->id;
         $keys = new ArrayClass([URLResourceKey::creationDateKey, URLResourceKey::nameKey]);
         $urls = FileManager::default()->contentsOfDirectory($this->saveURL);
         foreach ($urls as $url) {
@@ -51,13 +51,13 @@ class Session extends ObjectClass implements ArrayAccess
                 if (!str_starts_with($name, "sess_")) {
                     continue;
                 }
-                if (!str_ends_with($name, $sessionID)) {
+                if (!str_ends_with($name, $id)) {
                     FileManager::default()->removeItem($url);
                     continue;
                 }
                 /** @var Date $creationDate */
                 $creationDate = $resourceValues->creationDate;
-                $creationDate->addTimeInterval($timeInterval);
+                $creationDate->addTimeInterval($duration);
                 if ($creationDate->timeIntervalSinceNow > 0) {
                     continue;
                 }
@@ -72,29 +72,33 @@ class Session extends ObjectClass implements ArrayAccess
      */
     public function __get(string $name)
     {
-        if ($name == "saveURL") {
+        if ($name == "id") {
+            return unsafe_value(fn(): string => session_id());
+        } elseif ($name == "name") {
+            return unsafe_value(fn(): string => session_name());
+        } elseif ($name == "duration") {
+            return unsafe_value(fn(): int => session_get_cookie_params()["lifetime"]);
+        } elseif ($name == "saveURL") {
             $saveURL = FileManager::default()->url(SearchPathDirectory::cachesDirectory)->appendingPathComponent(Bundle::main()->bundleIdentifier ?? ProcessInfo::processInfo()->processName);
             if (!FileManager::default()->fileExists($saveURL->path)) {
                 FileManager::default()->createDirectory($saveURL, true);
             }
             $this->$name = $saveURL;
             return $this->$name;
-        } elseif ($name == "id") {
-            if (!($id = session_id())) {
-                return null;
-            }
-            return $id;
         } elseif ($name == "status") {
             return SessionStatus::from(session_status());
         } else {
-            return $this->valueForKey($name);
+            return $this->valueForUndefinedKey($name);
         }
     }
 
+    /**
+     * @throws Exception
+     */
     public function __set(string $name, mixed $value): void
     {
-        if ($name == "user") {
-            $this->setValueForKey($value, $name);
+        if ($name == "name") {
+            unsafe_value(fn(): bool => session_name($value));
         } else {
             $this->setValueForUndefinedKey($value, $name);
         }
@@ -102,12 +106,16 @@ class Session extends ObjectClass implements ArrayAccess
 
     public function valueForKey(string $key): mixed
     {
-        return $this->offsetGet($key);
+        return $_SESSION[$key] ?? null;
     }
 
     public function setValueForKey(mixed $value, string $key): void
     {
-        $this->offsetSet($value, $key);
+        if ($value === null) {
+            unset($_SESSION[$key]);
+        } else {
+            $_SESSION[$key] = $value;
+        }
     }
 
     /**
@@ -117,15 +125,7 @@ class Session extends ObjectClass implements ArrayAccess
     public function start(): void
     {
         unsafe_value(function (): bool {
-            /** @psalm-suppress InvalidArgument */
-            session_set_cookie_params([
-                HTTPCookiePropertyKey::domain => $this->domain,
-                HTTPCookiePropertyKey::path => $this->path,
-                HTTPCookiePropertyKey::lifetime => $this->lifetime,
-                HTTPCookiePropertyKey::secure => $this->isSecure,
-                HTTPCookiePropertyKey::httpOnly => $this->isHTTPOnly,
-                HTTPCookiePropertyKey::sameSitePolicy => $this->sameSitePolicy,
-            ]);
+            session_set_cookie_params($this->cookieParameters);
             session_save_path($this->saveURL->path);
             return session_start();
         });
@@ -165,47 +165,5 @@ class Session extends ObjectClass implements ArrayAccess
     public function regenerateID(): void
     {
         unsafe_value(fn(): bool => session_regenerate_id());
-    }
-
-    /**
-     * @param string $offset
-     * @return bool
-     */
-    public function offsetExists(mixed $offset): bool
-    {
-        return isset($_SESSION[$offset]);
-    }
-
-    /**
-     * @param string $offset
-     * @return mixed
-     */
-    public function offsetGet(mixed $offset): mixed
-    {
-        return $_SESSION[$offset] ?? null;
-    }
-
-    /**
-     * @param string $offset
-     * @param mixed $value
-     */
-    public function offsetSet(mixed $offset, mixed $value): void
-    {
-        if ($value === null) {
-            $this->offsetUnset($offset);
-            return;
-        }
-        $_SESSION[$offset] = $value;
-    }
-
-    /**
-     * @param string $offset
-     */
-    public function offsetUnset(mixed $offset): void
-    {
-        if (!$this->offsetExists($offset)) {
-            return;
-        }
-        unset($_SESSION[$offset]);
     }
 }

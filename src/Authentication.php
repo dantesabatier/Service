@@ -77,7 +77,7 @@ class Authentication extends Responder
             return $this->$name;
         } elseif ($name == "user") {
             $this->$name = (function (): ?ManagedObject {
-                if (!($username = $this->credential?->user ?? Application::shared()->session->user)) {
+                if (!($username = $this->credential?->user ?? Application::shared()->session->valueForKey("user"))) {
                     return null;
                 }
                 /** @var class-string<ManagedObject> $type */
@@ -92,7 +92,7 @@ class Authentication extends Responder
             })();
             return $this->$name;
         } elseif ($name == "isProtectedContentAvailable") {
-            $this->$name = $this->request->httpMethod === HTTPRequestMethod::options || (!empty(Application::shared()->session->user) || (function (): bool {
+            $this->$name = $this->request->httpMethod === HTTPRequestMethod::options || (!empty(Application::shared()->session->valueForKey("user")) || (function (): bool {
                         if (!($credential = $this->credential) || !($user = $this->user)) {
                             return false;
                         }
@@ -133,7 +133,7 @@ class Authentication extends Responder
         $this->isProtectedContentAvailable ?: throw new UnauthorizedException();
         $session = Application::shared()->session;
         $session->regenerateID();
-        $session->user = $this->user?->valueForKey("username");
+        $session->setValueForKey($this->user?->valueForKey("username"), "user");
         $this->content = json_encode($this->user, JSON_PRESERVE_ZERO_FRACTION);
         $this->contentType = "application/json";
     }
@@ -142,6 +142,6 @@ class Authentication extends Responder
     public function logout(): void
     {
         $session = Application::shared()->session;
-        $session->user = null;
+        $session->setValueForKey(null, "user");
     }
 }

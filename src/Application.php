@@ -12,6 +12,7 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\DirectoryEnumerationOptions;
 use Sabatier\Foundation\Error;
 use Sabatier\Foundation\FileManager;
+use Sabatier\Foundation\Networking\HTTPCookieStringPolicy;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
@@ -26,7 +27,6 @@ use function Sabatier\Foundation\getallheaders;
 use function Sabatier\Foundation\human_readable_value;
 use function Sabatier\Foundation\request_url;
 use function Sabatier\Foundation\string_is_equal;
-use function Sabatier\Foundation\unsafe_value;
 use const Sabatier\CoreData\PersistentHistoryTrackingKey;
 use const Sabatier\CoreData\PersistentStoreRemoteChangeNotificationPostOptionKey;
 use const Sabatier\Foundation\kCFBundleNameKey;
@@ -87,7 +87,8 @@ class Application extends Responder
             $this->$name = $request;
             return $this->$name;
         } elseif ($name == "session") {
-            $this->$name = new Session((string)$this->request->url->host, lifetime: 60 * 60 * 8);
+            /** @noinspection SpellCheckingInspection */
+            $this->$name = new Session(["lifetime" => 60 * 60 * 8, "path" => "/", "domain" => $this->request->url->host, "secure" => true, "httponly" => true, "samesite" => HTTPCookieStringPolicy::sameSiteLax]);
             return $this->$name;
         } elseif ($name == "delegate") {
             $delegate = null;
@@ -262,7 +263,7 @@ class Application extends Responder
             throw new UnauthorizedException();
         }
         $this->persistentContainer->viewContext->transactionAuthor = match ($this->request->httpMethod) {
-            HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $this->session->user,
+            HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $this->session->valueForKey("user"),
             default => null
         };
         return $responder;
@@ -281,13 +282,13 @@ class Application extends Responder
             $delegate?->applicationWillFinishLaunching($this);
             $responder = match ($this->request->httpMethod) {
                 HTTPRequestMethod::options => $this,
-                default => unsafe_value(function (): Responder {
+                default => (function (): Responder {
                     $session = $this->session;
                     $session->start();
                     $responder = $this->instantiateInitialResponder();
                     $session->commit();
                     return $responder;
-                })
+                })()
             };
             $delegate?->applicationDidFinishLaunching($this);
             $this->send($responder->response(), $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition);

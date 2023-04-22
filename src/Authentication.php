@@ -77,7 +77,7 @@ class Authentication extends Responder
             return $this->$name;
         } elseif ($name == "user") {
             $this->$name = (function (): ?ManagedObject {
-                if (!($username = $this->credential?->user ?? Application::shared()->session["user"])) {
+                if (!($username = $this->credential?->user ?? Application::shared()->session->user)) {
                     return null;
                 }
                 /** @var class-string<ManagedObject> $type */

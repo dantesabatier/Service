@@ -27,7 +27,7 @@ class Session extends ObjectClass
     /** @var URL The session save url. */
     public URL $saveURL;
 
-    public function __construct(public readonly CookieParameters $cookieParameters)
+    public function __construct(public CookieParameters $cookieParameters)
     {
         unset($this->saveURL);
     }
@@ -47,6 +47,9 @@ class Session extends ObjectClass
                 }
                 if (!str_ends_with($name, $id)) {
                     FileManager::default()->removeItem($url);
+                    continue;
+                }
+                if (!$lifetime) {
                     continue;
                 }
                 /** @var Date $creationDate */
@@ -89,7 +92,9 @@ class Session extends ObjectClass
      */
     public function __set(string $name, mixed $value): void
     {
-        if ($name == "name") {
+        if ($name == "saveURL") {
+            $this->$name = $value;
+        } elseif ($name == "name") {
             unsafe_value(fn(): string => session_name($value));
         } else {
             $this->setValueForUndefinedKey($value, $name);

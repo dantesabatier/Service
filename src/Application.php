@@ -215,7 +215,7 @@ class Application extends Responder
         header(sprintf("%s %s %s", $response->httpVersion, $response->statusCode, HTTPURLResponse::localizedString($response->statusCode)));
         if ($response instanceof BatchResponse) {
             flush();
-            header_register_callback(function () use ($headerFields) {
+            header_register_callback(function () use ($headerFields): void {
                 foreach ($headerFields as $key => $value) {
                     header(sprintf("%s: %s", $key, human_readable_value($value)));
                     flush();

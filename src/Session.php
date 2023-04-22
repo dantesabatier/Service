@@ -22,14 +22,14 @@ use function Sabatier\Foundation\unsafe_value;
  */
 class Session implements ArrayAccess
 {
-    public URL $sessionSaveURL;
+    public URL $saveURL;
 
     /**
      * @param array<string, mixed> $cookieParams
      */
     public function __construct(public readonly array $cookieParams)
     {
-        unset($this->sessionSaveURL);
+        unset($this->saveURL);
     }
 
     public function __destruct()
@@ -39,7 +39,7 @@ class Session implements ArrayAccess
             return;
         }
         $keys = new ArrayClass([URLResourceKey::creationDateKey, URLResourceKey::nameKey]);
-        $urls = FileManager::default()->contentsOfDirectory($this->sessionSaveURL);
+        $urls = FileManager::default()->contentsOfDirectory($this->saveURL);
         foreach ($urls as $url) {
             try {
                 $resourceValues = $url->resourceValues(new Set($keys));
@@ -69,12 +69,12 @@ class Session implements ArrayAccess
      */
     public function __get(string $name)
     {
-        if ($name == "sessionSaveURL") {
-            $sessionSaveURL = FileManager::default()->url(SearchPathDirectory::cachesDirectory)->appendingPathComponent(Bundle::main()->bundleIdentifier ?? ProcessInfo::processInfo()->processName);
-            if (!FileManager::default()->fileExists($sessionSaveURL->path)) {
-                FileManager::default()->createDirectory($sessionSaveURL, true);
+        if ($name == "saveURL") {
+            $saveURL = FileManager::default()->url(SearchPathDirectory::cachesDirectory)->appendingPathComponent(Bundle::main()->bundleIdentifier ?? ProcessInfo::processInfo()->processName);
+            if (!FileManager::default()->fileExists($saveURL->path)) {
+                FileManager::default()->createDirectory($saveURL, true);
             }
-            $this->$name = $sessionSaveURL;
+            $this->$name = $saveURL;
             return $this->$name;
         } elseif ($name == "status") {
             return SessionStatus::from(session_status());
@@ -91,7 +91,7 @@ class Session implements ArrayAccess
         unsafe_value(function (): bool {
             /** @psalm-suppress ArgumentTypeCoercion */
             session_set_cookie_params($this->cookieParams);
-            session_save_path($this->sessionSaveURL->path);
+            session_save_path($this->saveURL->path);
             return session_start();
         });
     }

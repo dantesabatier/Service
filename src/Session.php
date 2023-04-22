@@ -20,6 +20,7 @@ use Sabatier\Foundation\URLResourceKey;
 use function Sabatier\Foundation\unsafe_value;
 
 /**
+ * An object-oriented wrapper for a session.
  * @property-read string|null $id
  * @property-read SessionStatus $status
  * @property string|null $user

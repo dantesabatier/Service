@@ -3,8 +3,10 @@
 namespace Sabatier\Service;
 
 use Exception;
+use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Date;
+use Sabatier\Foundation\DirectoryEnumerationOptions;
 use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\ProcessInfo;
@@ -36,10 +38,11 @@ class Session extends ObjectClass
     {
         $id = $this->id;
         $lifetime = $this->cookieParameters->lifetime;
-        $urls = FileManager::default()->contentsOfDirectory($this->saveURL);
+        $keys = new Set([URLResourceKey::creationDateKey, URLResourceKey::nameKey]);
+        $urls = FileManager::default()->contentsOfDirectory($this->saveURL, new ArrayClass($keys), DirectoryEnumerationOptions::skipsHiddenFiles);
         foreach ($urls as $url) {
             try {
-                $resourceValues = $url->resourceValues(new Set([URLResourceKey::creationDateKey, URLResourceKey::nameKey]));
+                $resourceValues = $url->resourceValues($keys);
                 /** @var string $name */
                 $name = $resourceValues->name;
                 if (!str_starts_with($name, "sess_")) {

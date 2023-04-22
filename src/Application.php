@@ -89,14 +89,14 @@ class Application extends Responder
             $this->$name = $request;
             return $this->$name;
         } elseif ($name == "session") {
-            $this->$name = new Session(new Dictionary([
+            $this->$name = new Session([
                 HTTPCookiePropertyKey::lifetime => 60 * 60 * 8,
                 HTTPCookiePropertyKey::path => "/",
                 HTTPCookiePropertyKey::domain => $this->request->url->host,
                 HTTPCookiePropertyKey::secure => true,
                 HTTPCookiePropertyKey::httpOnly => true,
                 HTTPCookiePropertyKey::sameSitePolicy => HTTPCookieStringPolicy::sameSiteLax,
-            ]));
+            ]);
             return $this->$name;
         } elseif ($name == "delegate") {
             $delegate = null;

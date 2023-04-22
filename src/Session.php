@@ -7,7 +7,6 @@ use Exception;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Date;
-use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\Networking\HTTPCookiePropertyKey;
 use Sabatier\Foundation\ProcessInfo;
@@ -19,12 +18,16 @@ use function Sabatier\Foundation\unsafe_value;
 
 /**
  * @property-read SessionState $state
+ * @implements ArrayAccess<string, mixed>
  */
 class Session implements ArrayAccess
 {
     public URL $sessionSaveURL;
 
-    public function __construct(public readonly Dictionary $cookieParams)
+    /**
+     * @param array<string, mixed> $cookieParams
+     */
+    public function __construct(public readonly array $cookieParams)
     {
         unset($this->sessionSaveURL);
     }
@@ -86,7 +89,8 @@ class Session implements ArrayAccess
     public function start(): void
     {
         unsafe_value(function (): bool {
-            session_set_cookie_params($this->cookieParams->toArray());
+            /** @psalm-suppress ArgumentTypeCoercion */
+            session_set_cookie_params($this->cookieParams);
             session_save_path($this->sessionSaveURL->path);
             return session_start();
         });
@@ -100,25 +104,40 @@ class Session implements ArrayAccess
         unsafe_value(fn(): bool => session_write_close());
     }
 
+    /**
+     * @param string $offset
+     * @return bool
+     */
     public function offsetExists(mixed $offset): bool
     {
         return isset($_SESSION[$offset]);
     }
 
+    /**
+     * @param string $offset
+     * @return mixed
+     */
     public function offsetGet(mixed $offset): mixed
     {
         return $_SESSION[$offset] ?? null;
     }
 
+    /**
+     * @param string $offset
+     * @param mixed $value
+     */
     public function offsetSet(mixed $offset, mixed $value): void
     {
         if ($value === null) {
-            unset($_SESSION[$offset]);
+            $this->offsetUnset($offset);
             return;
         }
         $_SESSION[$offset] = $value;
     }
 
+    /**
+     * @param string $offset
+     */
     public function offsetUnset(mixed $offset): void
     {
         if (!$this->offsetExists($offset)) {

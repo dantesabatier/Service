@@ -2,7 +2,7 @@
 
 namespace Sabatier\Service;
 
-enum SessionState: int
+enum SessionStatus: int
 {
     case disabled = 0;
     case none = 1;

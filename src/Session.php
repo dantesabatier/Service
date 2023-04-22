@@ -17,7 +17,7 @@ use Sabatier\Foundation\URLResourceKey;
 use function Sabatier\Foundation\unsafe_value;
 
 /**
- * @property-read SessionState $state
+ * @property-read SessionStatus $status
  * @implements ArrayAccess<string, mixed>
  */
 class Session implements ArrayAccess
@@ -76,8 +76,8 @@ class Session implements ArrayAccess
             }
             $this->$name = $sessionSaveURL;
             return $this->$name;
-        } elseif ($name == "state") {
-            return SessionState::from(session_status());
+        } elseif ($name == "status") {
+            return SessionStatus::from(session_status());
         } else {
             return $this[$name];
         }

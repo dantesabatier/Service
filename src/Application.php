@@ -43,8 +43,8 @@ use const Sabatier\Foundation\URLErrorDomain;
 class Application extends Responder
 {
     private static ?Application $shared = null;
-    public readonly Session $session;
     public readonly URLRequest $request;
+    public readonly Session $session;
     /** @var ApplicationDelegate|null The delegate of the app object. */
     public ?ApplicationDelegate $delegate = null;
     public Authentication $authentication;
@@ -55,8 +55,8 @@ class Application extends Responder
     final public function __construct()
     {
         parent::__construct();
-        unset($this->session);
         unset($this->request);
+        unset($this->session);
         unset($this->delegate);
         unset($this->persistentContainer);
         unset($this->authentication);

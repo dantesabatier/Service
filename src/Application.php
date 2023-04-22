@@ -41,8 +41,6 @@ class Application extends Responder
 {
     private static ?Application $shared = null;
     public readonly URLRequest $request;
-    /** @deprecated */
-    public Session $session;
     /** @var ApplicationDelegate|null The delegate of the app object. */
     public ?ApplicationDelegate $delegate = null;
     public Authentication $authentication;

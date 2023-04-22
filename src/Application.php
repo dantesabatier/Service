@@ -2,14 +2,12 @@
 
 namespace Sabatier\Service;
 
-use Exception;
 use ReflectionClass;
 use Sabatier\CoreData\PersistentContainer;
 use Sabatier\CoreData\PersistentStoreDescription;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\CompareOptions;
-use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\DirectoryEnumerationOptions;
 use Sabatier\Foundation\Error;
@@ -22,10 +20,7 @@ use Sabatier\Foundation\Networking\HTTPURLResponse;
 use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\ProcessInfo;
-use Sabatier\Foundation\SearchPathDirectory;
-use Sabatier\Foundation\Set;
 use Sabatier\Foundation\URL;
-use Sabatier\Foundation\URLResourceKey;
 use Sabatier\Foundation\UserDefaults;
 use Throwable;
 use function Sabatier\Foundation\fatal_error;
@@ -48,6 +43,7 @@ use const Sabatier\Foundation\URLErrorDomain;
 class Application extends Responder
 {
     private static ?Application $shared = null;
+    public readonly Session $session;
     public readonly URLRequest $request;
     /** @var ApplicationDelegate|null The delegate of the app object. */
     public ?ApplicationDelegate $delegate = null;
@@ -55,50 +51,17 @@ class Application extends Responder
     public readonly PersistentContainer $persistentContainer;
     private readonly PersistentSpace $persistentSpace;
     private readonly ResourceManager $resourceManager;
-    private readonly URL $sessionSaveURL;
 
     final public function __construct()
     {
         parent::__construct();
+        unset($this->session);
         unset($this->request);
         unset($this->delegate);
         unset($this->persistentContainer);
         unset($this->authentication);
         unset($this->persistentSpace);
         unset($this->resourceManager);
-        unset($this->sessionSaveURL);
-    }
-
-    public function __destruct()
-    {
-        /** @noinspection PhpArrayKeyDoesNotMatchArrayShapeInspection */
-        if (!($timeInterval = session_get_cookie_params()[HTTPCookiePropertyKey::lifetime]) || !($sessionID = session_id())) {
-            return;
-        }
-        $keys = new ArrayClass([URLResourceKey::creationDateKey, URLResourceKey::nameKey]);
-        $urls = FileManager::default()->contentsOfDirectory($this->sessionSaveURL);
-        foreach ($urls as $url) {
-            try {
-                $resourceValues = $url->resourceValues(new Set($keys));
-                /** @var string $name */
-                $name = $resourceValues->name;
-                if (!str_starts_with($name, "sess_")) {
-                    continue;
-                }
-                if (!str_ends_with($name, $sessionID)) {
-                    FileManager::default()->removeItem($url);
-                    continue;
-                }
-                /** @var Date $creationDate */
-                $creationDate = $resourceValues->creationDate;
-                $creationDate->addTimeInterval($timeInterval);
-                if ($creationDate->timeIntervalSinceNow > 0) {
-                    continue;
-                }
-                FileManager::default()->removeItem($url);
-            } catch (Exception) {
-            }
-        }
     }
 
     /** @suppress PHP0418 */
@@ -124,6 +87,16 @@ class Application extends Responder
                 default => null
             };
             $this->$name = $request;
+            return $this->$name;
+        } elseif ($name == "session") {
+            $this->$name = new Session(new Dictionary([
+                HTTPCookiePropertyKey::lifetime => 60 * 60 * 8,
+                HTTPCookiePropertyKey::path => "/",
+                HTTPCookiePropertyKey::domain => $this->request->url->host,
+                HTTPCookiePropertyKey::secure => true,
+                HTTPCookiePropertyKey::httpOnly => true,
+                HTTPCookiePropertyKey::sameSitePolicy => HTTPCookieStringPolicy::sameSiteLax,
+            ]));
             return $this->$name;
         } elseif ($name == "delegate") {
             $delegate = null;
@@ -158,15 +131,6 @@ class Application extends Responder
             return $this->$name;
         } elseif ($name == "resourceManager") {
             $this->$name = new ResourceManager();
-            return $this->$name;
-        } elseif ($name == "sessionSaveURL") {
-            $this->$name = (function (): URL {
-                $sessionSaveURL = FileManager::default()->url(SearchPathDirectory::cachesDirectory)->appendingPathComponent(Bundle::main()->bundleIdentifier ?? ProcessInfo::processInfo()->processName);
-                if (!FileManager::default()->fileExists($sessionSaveURL->path)) {
-                    FileManager::default()->createDirectory($sessionSaveURL, true);
-                }
-                return $sessionSaveURL;
-            })();
             return $this->$name;
         } else {
             return parent::__get($name);
@@ -307,7 +271,7 @@ class Application extends Responder
             throw new UnauthorizedException();
         }
         $this->persistentContainer->viewContext->transactionAuthor = match ($this->request->httpMethod) {
-            HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $_SESSION["user"] ?? null,
+            HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $this->session["user"],
             default => null
         };
         return $responder;
@@ -327,19 +291,10 @@ class Application extends Responder
             $responder = match ($this->request->httpMethod) {
                 HTTPRequestMethod::options => $this,
                 default => unsafe_value(function (): Responder {
-                    /** @psalm-suppress InvalidArgument */
-                    session_set_cookie_params([
-                        HTTPCookiePropertyKey::lifetime => 60 * 60 * 8,
-                        HTTPCookiePropertyKey::path => "/",
-                        HTTPCookiePropertyKey::domain => $this->request->url->host,
-                        HTTPCookiePropertyKey::secure => true,
-                        HTTPCookiePropertyKey::httpOnly => true,
-                        HTTPCookiePropertyKey::sameSitePolicy => HTTPCookieStringPolicy::sameSiteLax,
-                    ]);
-                    session_save_path($this->sessionSaveURL->path);
-                    session_start();
+                    $session = $this->session;
+                    $session->start();
                     $responder = $this->instantiateInitialResponder();
-                    session_write_close();
+                    $session->close();
                     return $responder;
                 })
             };

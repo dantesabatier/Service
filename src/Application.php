@@ -285,7 +285,7 @@ class Application extends Responder
                     $session = $this->session;
                     $session->start();
                     $responder = $this->instantiateInitialResponder();
-                    $session->close();
+                    $session->commit();
                     return $responder;
                 })
             };

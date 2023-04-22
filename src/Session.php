@@ -20,6 +20,7 @@ use Sabatier\Foundation\URLResourceKey;
 use function Sabatier\Foundation\unsafe_value;
 
 /**
+ * @property-read string|null $id
  * @property-read SessionStatus $status
  * @property string|null $user
  * @implements ArrayAccess<string, mixed>
@@ -77,6 +78,11 @@ class Session extends ObjectClass implements ArrayAccess
             }
             $this->$name = $saveURL;
             return $this->$name;
+        } elseif ($name == "id") {
+            if (!($id = session_id())) {
+                return null;
+            }
+            return $id;
         } elseif ($name == "status") {
             return SessionStatus::from(session_status());
         } else {
@@ -104,6 +110,7 @@ class Session extends ObjectClass implements ArrayAccess
     }
 
     /**
+     * Initialize session data
      * @throws Exception
      */
     public function start(): void
@@ -124,11 +131,39 @@ class Session extends ObjectClass implements ArrayAccess
     }
 
     /**
+     * Write session data and end session
      * @throws Exception
      */
-    public function close(): void
+    public function commit(): void
     {
-        unsafe_value(fn(): bool => session_write_close());
+        unsafe_value(fn(): bool => session_commit());
+    }
+
+    /**
+     * Re-initialize session with original values
+     * @throws Exception
+     */
+    public function reset(): void
+    {
+        unsafe_value(fn(): bool => session_reset());
+    }
+
+    /**
+     * Discard changes and finish session
+     * @throws Exception
+     */
+    public function invalidate(): void
+    {
+        unsafe_value(fn(): bool => session_abort());
+    }
+
+    /**
+     * Update the current session id with a newly generated one
+     * @throws Exception
+     */
+    public function regenerateID(): void
+    {
+        unsafe_value(fn(): bool => session_regenerate_id());
     }
 
     /**

@@ -124,12 +124,15 @@ class Authentication extends Responder
         }
     }
 
+    /**
+     * @throws Exception
+     */
     #[Action("/Login")]
     public function login(): void
     {
         $this->isProtectedContentAvailable ?: throw new UnauthorizedException();
-        session_regenerate_id();
         $session = Application::shared()->session;
+        $session->regenerateID();
         $session->user = $this->user?->valueForKey("username");
         $this->content = json_encode($this->user, JSON_PRESERVE_ZERO_FRACTION);
         $this->contentType = "application/json";

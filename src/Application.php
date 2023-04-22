@@ -42,6 +42,7 @@ class Application extends Responder
 {
     private static ?Application $shared = null;
     public readonly URLRequest $request;
+    /** @deprecated */
     public Session $session;
     /** @var ApplicationDelegate|null The delegate of the app object. */
     public ?ApplicationDelegate $delegate = null;
@@ -54,7 +55,6 @@ class Application extends Responder
     {
         parent::__construct();
         unset($this->request);
-        unset($this->session);
         unset($this->delegate);
         unset($this->persistentContainer);
         unset($this->authentication);
@@ -85,10 +85,6 @@ class Application extends Responder
                 default => null
             };
             $this->$name = $request;
-            return $this->$name;
-        } elseif ($name == "session") {
-            /** @noinspection SpellCheckingInspection */
-            $this->$name = new Session(["lifetime" => 60 * 60 * 8, "path" => "/", "domain" => $this->request->url->host, "secure" => true, "httponly" => true, "samesite" => HTTPCookieStringPolicy::sameSiteLax]);
             return $this->$name;
         } elseif ($name == "delegate") {
             $delegate = null;
@@ -263,7 +259,7 @@ class Application extends Responder
             throw new UnauthorizedException();
         }
         $this->persistentContainer->viewContext->transactionAuthor = match ($this->request->httpMethod) {
-            HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $this->session->valueForKey("user"),
+            HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => Session::shared()->valueForKey("user"),
             default => null
         };
         return $responder;
@@ -283,7 +279,7 @@ class Application extends Responder
             $responder = match ($this->request->httpMethod) {
                 HTTPRequestMethod::options => $this,
                 default => (function (): Responder {
-                    $session = $this->session;
+                    $session = Session::shared();
                     $session->start();
                     $responder = $this->instantiateInitialResponder();
                     $session->commit();

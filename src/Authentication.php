@@ -77,7 +77,7 @@ class Authentication extends Responder
             return $this->$name;
         } elseif ($name == "user") {
             $this->$name = (function (): ?ManagedObject {
-                if (!($username = $this->credential?->user ?? Application::shared()->session->valueForKey("user"))) {
+                if (!($username = $this->credential?->user ?? Session::shared()->valueForKey("user"))) {
                     return null;
                 }
                 /** @var class-string<ManagedObject> $type */
@@ -92,7 +92,7 @@ class Authentication extends Responder
             })();
             return $this->$name;
         } elseif ($name == "isProtectedContentAvailable") {
-            $this->$name = $this->request->httpMethod === HTTPRequestMethod::options || (!empty(Application::shared()->session->valueForKey("user")) || (function (): bool {
+            $this->$name = $this->request->httpMethod === HTTPRequestMethod::options || (!empty(Session::shared()->valueForKey("user")) || (function (): bool {
                         if (!($credential = $this->credential) || !($user = $this->user)) {
                             return false;
                         }
@@ -131,7 +131,7 @@ class Authentication extends Responder
     public function login(): void
     {
         $this->isProtectedContentAvailable ?: throw new UnauthorizedException();
-        $session = Application::shared()->session;
+        $session = Session::shared();
         $session->regenerateID();
         $session->setValueForKey($this->user?->valueForKey("username"), "user");
         $this->content = json_encode($this->user, JSON_PRESERVE_ZERO_FRACTION);
@@ -141,7 +141,6 @@ class Authentication extends Responder
     #[Action("/Logout")]
     public function logout(): void
     {
-        $session = Application::shared()->session;
-        $session->setValueForKey(null, "user");
+        Session::shared()->setValueForKey(null, "user");
     }
 }

@@ -3,7 +3,6 @@
 namespace Sabatier\Service;
 
 use Exception;
-use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Date;
 use Sabatier\Foundation\FileManager;
@@ -20,32 +19,27 @@ use function Sabatier\Foundation\unsafe_value;
  * @property-read string $id The session id.
  * @property string $name The session name.
  * @property-read SessionStatus $status The session status.
- * @property-read int $duration
+ * @psalm-consistent-constructor
  */
 class Session extends ObjectClass
 {
+    private static ?Session $shared = null;
     /** @var URL The session save url. */
     public URL $saveURL;
 
-    /**
-     * @param array{domain?: null|string, httponly?: bool|null, lifetime?: int|null, path?: null|string, samesite?: null|string, secure?: bool|null} $cookieParameters The session cookie parameters.
-     */
-    public function __construct(public readonly array $cookieParameters)
+    public function __construct(public readonly CookieParameters $cookieParameters)
     {
         unset($this->saveURL);
     }
 
     public function __destruct()
     {
-        if (!($duration = $this->duration)) {
-            return;
-        }
         $id = $this->id;
-        $keys = new ArrayClass([URLResourceKey::creationDateKey, URLResourceKey::nameKey]);
+        $lifetime = $this->cookieParameters->lifetime;
         $urls = FileManager::default()->contentsOfDirectory($this->saveURL);
         foreach ($urls as $url) {
             try {
-                $resourceValues = $url->resourceValues(new Set($keys));
+                $resourceValues = $url->resourceValues(new Set([URLResourceKey::creationDateKey, URLResourceKey::nameKey]));
                 /** @var string $name */
                 $name = $resourceValues->name;
                 if (!str_starts_with($name, "sess_")) {
@@ -57,7 +51,7 @@ class Session extends ObjectClass
                 }
                 /** @var Date $creationDate */
                 $creationDate = $resourceValues->creationDate;
-                $creationDate->addTimeInterval($duration);
+                $creationDate->addTimeInterval($lifetime);
                 if ($creationDate->timeIntervalSinceNow > 0) {
                     continue;
                 }
@@ -76,8 +70,8 @@ class Session extends ObjectClass
             return unsafe_value(fn(): string => session_id());
         } elseif ($name == "name") {
             return unsafe_value(fn(): string => session_name());
-        } elseif ($name == "duration") {
-            return unsafe_value(fn(): int => session_get_cookie_params()["lifetime"]);
+        } elseif ($name == "status") {
+            return SessionStatus::from(session_status());
         } elseif ($name == "saveURL") {
             $saveURL = FileManager::default()->url(SearchPathDirectory::cachesDirectory)->appendingPathComponent(Bundle::main()->bundleIdentifier ?? ProcessInfo::processInfo()->processName);
             if (!FileManager::default()->fileExists($saveURL->path)) {
@@ -85,8 +79,6 @@ class Session extends ObjectClass
             }
             $this->$name = $saveURL;
             return $this->$name;
-        } elseif ($name == "status") {
-            return SessionStatus::from(session_status());
         } else {
             return $this->valueForUndefinedKey($name);
         }
@@ -98,10 +90,18 @@ class Session extends ObjectClass
     public function __set(string $name, mixed $value): void
     {
         if ($name == "name") {
-            unsafe_value(fn(): bool => session_name($value));
+            unsafe_value(fn(): string => session_name($value));
         } else {
             $this->setValueForUndefinedKey($value, $name);
         }
+    }
+
+    public static function shared(): Session
+    {
+        if (static::$shared === null) {
+            static::$shared = new static(CookieParameters::default());
+        }
+        return static::$shared;
     }
 
     public function valueForKey(string $key): mixed
@@ -125,7 +125,7 @@ class Session extends ObjectClass
     public function start(): void
     {
         unsafe_value(function (): bool {
-            session_set_cookie_params($this->cookieParameters);
+            session_set_cookie_params($this->cookieParameters->allValues);
             session_save_path($this->saveURL->path);
             return session_start();
         });

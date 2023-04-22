@@ -4,11 +4,14 @@ namespace Sabatier\Service;
 
 use ArrayAccess;
 use Exception;
+use JetBrains\PhpStorm\ExpectedValues;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Date;
 use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\Networking\HTTPCookiePropertyKey;
+use Sabatier\Foundation\Networking\HTTPCookieStringPolicy;
+use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Foundation\SearchPathDirectory;
 use Sabatier\Foundation\Set;
@@ -18,16 +21,14 @@ use function Sabatier\Foundation\unsafe_value;
 
 /**
  * @property-read SessionStatus $status
+ * @property string|null $user
  * @implements ArrayAccess<string, mixed>
  */
-class Session implements ArrayAccess
+class Session extends ObjectClass implements ArrayAccess
 {
     public URL $saveURL;
 
-    /**
-     * @param array<string, mixed> $cookieParams
-     */
-    public function __construct(public readonly array $cookieParams)
+    public function __construct(public readonly string $domain, public readonly string $path = "/", public readonly int $lifetime = 0, public readonly bool $isSecure = true, public readonly bool $isHTTPOnly = true, #[ExpectedValues(valuesFromClass: HTTPCookieStringPolicy::class)] public readonly string $sameSitePolicy = HTTPCookieStringPolicy::sameSiteLax)
     {
         unset($this->saveURL);
     }
@@ -79,8 +80,27 @@ class Session implements ArrayAccess
         } elseif ($name == "status") {
             return SessionStatus::from(session_status());
         } else {
-            return $this[$name];
+            return $this->valueForKey($name);
         }
+    }
+
+    public function __set(string $name, mixed $value): void
+    {
+        if ($name == "user") {
+            $this->setValueForKey($value, $name);
+        } else {
+            $this->setValueForUndefinedKey($value, $name);
+        }
+    }
+
+    public function valueForKey(string $key): mixed
+    {
+        return $this->offsetGet($key);
+    }
+
+    public function setValueForKey(mixed $value, string $key): void
+    {
+        $this->offsetSet($value, $key);
     }
 
     /**
@@ -89,8 +109,15 @@ class Session implements ArrayAccess
     public function start(): void
     {
         unsafe_value(function (): bool {
-            /** @psalm-suppress ArgumentTypeCoercion */
-            session_set_cookie_params($this->cookieParams);
+            /** @psalm-suppress InvalidArgument */
+            session_set_cookie_params([
+                HTTPCookiePropertyKey::domain => $this->domain,
+                HTTPCookiePropertyKey::path => $this->path,
+                HTTPCookiePropertyKey::lifetime => $this->lifetime,
+                HTTPCookiePropertyKey::secure => $this->isSecure,
+                HTTPCookiePropertyKey::httpOnly => $this->isHTTPOnly,
+                HTTPCookiePropertyKey::sameSitePolicy => $this->sameSitePolicy,
+            ]);
             session_save_path($this->saveURL->path);
             return session_start();
         });

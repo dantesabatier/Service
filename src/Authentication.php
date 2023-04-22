@@ -10,7 +10,10 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
+use Sabatier\Foundation\Predicates\ComparisonPredicateModifier;
+use Sabatier\Foundation\Predicates\ComparisonPredicateOptions;
 use Sabatier\Foundation\Predicates\Expression;
+use Sabatier\Foundation\Predicates\PredicateOperatorType;
 use function Sabatier\Foundation\string_begins_with;
 use function Sabatier\Foundation\substring_from_index;
 use function Sabatier\Foundation\substring_to_index;
@@ -74,11 +77,13 @@ class Authentication extends Responder
             return $this->$name;
         } elseif ($name == "user") {
             $this->$name = (function (): ?ManagedObject {
-                $username = $this->credential?->user ?? $_SESSION["user"];
+                if (!($username = $this->credential?->user ?? Application::shared()->session["user"])) {
+                    return null;
+                }
                 /** @var class-string<ManagedObject> $type */
                 $type = "App\Model\User";
                 $fetchRequest = $type::fetchRequest();
-                $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($username));
+                $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($username), PredicateOperatorType::like, ComparisonPredicateModifier::direct, ComparisonPredicateOptions::caseInsensitive | ComparisonPredicateOptions::diacriticInsensitive);
                 try {
                     return $this->managedObjectContext->fetch($fetchRequest)->first()?->serialized($this->serialization);
                 } catch (Exception) {
@@ -87,7 +92,7 @@ class Authentication extends Responder
             })();
             return $this->$name;
         } elseif ($name == "isProtectedContentAvailable") {
-            $this->$name = $this->request->httpMethod === HTTPRequestMethod::options || (!empty($_SESSION["user"]) || (function (): bool {
+            $this->$name = $this->request->httpMethod === HTTPRequestMethod::options || (!empty(Application::shared()->session->user) || (function (): bool {
                         if (!($credential = $this->credential) || !($user = $this->user)) {
                             return false;
                         }
@@ -124,7 +129,8 @@ class Authentication extends Responder
     {
         $this->isProtectedContentAvailable ?: throw new UnauthorizedException();
         session_regenerate_id();
-        $_SESSION["user"] = $this->user?->valueForKey("username");
+        $session = Application::shared()->session;
+        $session->user = $this->user?->valueForKey("username");
         $this->content = json_encode($this->user, JSON_PRESERVE_ZERO_FRACTION);
         $this->contentType = "application/json";
     }
@@ -132,6 +138,7 @@ class Authentication extends Responder
     #[Action("/Logout")]
     public function logout(): void
     {
-        unset($_SESSION["user"]);
+        $session = Application::shared()->session;
+        $session->user = null;
     }
 }

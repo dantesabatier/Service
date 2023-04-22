@@ -12,8 +12,6 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\DirectoryEnumerationOptions;
 use Sabatier\Foundation\Error;
 use Sabatier\Foundation\FileManager;
-use Sabatier\Foundation\Networking\HTTPCookiePropertyKey;
-use Sabatier\Foundation\Networking\HTTPCookieStringPolicy;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
@@ -44,7 +42,7 @@ class Application extends Responder
 {
     private static ?Application $shared = null;
     public readonly URLRequest $request;
-    public readonly Session $session;
+    public Session $session;
     /** @var ApplicationDelegate|null The delegate of the app object. */
     public ?ApplicationDelegate $delegate = null;
     public Authentication $authentication;
@@ -89,14 +87,7 @@ class Application extends Responder
             $this->$name = $request;
             return $this->$name;
         } elseif ($name == "session") {
-            $this->$name = new Session([
-                HTTPCookiePropertyKey::lifetime => 60 * 60 * 8,
-                HTTPCookiePropertyKey::path => "/",
-                HTTPCookiePropertyKey::domain => $this->request->url->host,
-                HTTPCookiePropertyKey::secure => true,
-                HTTPCookiePropertyKey::httpOnly => true,
-                HTTPCookiePropertyKey::sameSitePolicy => HTTPCookieStringPolicy::sameSiteLax,
-            ]);
+            $this->$name = new Session((string)$this->request->url->host, lifetime: 60 * 60 * 8);
             return $this->$name;
         } elseif ($name == "delegate") {
             $delegate = null;
@@ -271,7 +262,7 @@ class Application extends Responder
             throw new UnauthorizedException();
         }
         $this->persistentContainer->viewContext->transactionAuthor = match ($this->request->httpMethod) {
-            HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $this->session["user"],
+            HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $this->session->user,
             default => null
         };
         return $responder;

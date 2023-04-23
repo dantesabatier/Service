@@ -13,7 +13,9 @@ use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Foundation\SearchPathDirectory;
 use Sabatier\Foundation\Set;
 use Sabatier\Foundation\URL;
+use Sabatier\Foundation\URLComponents;
 use Sabatier\Foundation\URLResourceKey;
+use function Sabatier\Foundation\request_url;
 use function Sabatier\Foundation\unsafe_value;
 
 /**
@@ -79,8 +81,8 @@ class Session extends ObjectClass
         } elseif ($name == "status") {
             return SessionStatus::from(session_status());
         } elseif ($name == "cookieParameters") {
-            $this->$name = CookieParameters::default();
-            return $this->name;
+            $this->$name = new CookieParameters((string)(new URLComponents(request_url()))->host);
+            return $this->$name;
         } elseif ($name == "saveURL") {
             $saveURL = FileManager::default()->url(SearchPathDirectory::cachesDirectory)->appendingPathComponent(Bundle::main()->bundleIdentifier ?? ProcessInfo::processInfo()->processName);
             if (!FileManager::default()->fileExists($saveURL->path)) {
@@ -98,7 +100,7 @@ class Session extends ObjectClass
      */
     public function __set(string $name, mixed $value): void
     {
-        if ($name == "saveURL") {
+        if ($name == "saveURL" || $name == "cookieParameters") {
             $this->$name = $value;
         } elseif ($name == "name") {
             unsafe_value(fn(): string => session_name($value));

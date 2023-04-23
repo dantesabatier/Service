@@ -21,16 +21,16 @@ use function Sabatier\Foundation\unsafe_value;
  * @property-read string $id The session id.
  * @property string $name The session name.
  * @property-read SessionStatus $status The session status.
- * @psalm-consistent-constructor
  */
 class Session extends ObjectClass
 {
-    private static ?Session $shared = null;
+    public CookieParameters $cookieParameters;
     /** @var URL The session save url. */
     public URL $saveURL;
 
-    public function __construct(public CookieParameters $cookieParameters)
+    public function __construct()
     {
+        unset($this->cookieParameters);
         unset($this->saveURL);
     }
 
@@ -78,6 +78,9 @@ class Session extends ObjectClass
             return unsafe_value(fn(): string => session_name());
         } elseif ($name == "status") {
             return SessionStatus::from(session_status());
+        } elseif ($name == "cookieParameters") {
+            $this->$name = CookieParameters::default();
+            return $this->name;
         } elseif ($name == "saveURL") {
             $saveURL = FileManager::default()->url(SearchPathDirectory::cachesDirectory)->appendingPathComponent(Bundle::main()->bundleIdentifier ?? ProcessInfo::processInfo()->processName);
             if (!FileManager::default()->fileExists($saveURL->path)) {
@@ -102,14 +105,6 @@ class Session extends ObjectClass
         } else {
             $this->setValueForUndefinedKey($value, $name);
         }
-    }
-
-    public static function shared(): Session
-    {
-        if (static::$shared === null) {
-            static::$shared = new static(CookieParameters::default());
-        }
-        return static::$shared;
     }
 
     public function valueForKey(string $key): mixed

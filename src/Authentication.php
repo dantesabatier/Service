@@ -5,7 +5,6 @@ namespace Sabatier\Service;
 use Exception;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
-use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLCredential;
@@ -14,7 +13,7 @@ use Sabatier\Foundation\Predicates\ComparisonPredicateModifier;
 use Sabatier\Foundation\Predicates\ComparisonPredicateOptions;
 use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Foundation\Predicates\PredicateOperatorType;
-use function Sabatier\Foundation\string_begins_with;
+use function Sabatier\Foundation\is_password;
 use function Sabatier\Foundation\substring_from_index;
 use function Sabatier\Foundation\substring_to_index;
 
@@ -77,7 +76,7 @@ class Authentication extends Responder
             return $this->$name;
         } elseif ($name == "user") {
             $this->$name = (function (): ?ManagedObject {
-                if (!($username = $this->credential?->user ?? Session::shared()->valueForKey("user"))) {
+                if (!($username = $this->credential?->user ?? Application::shared()->session->valueForKey("user"))) {
                     return null;
                 }
                 /** @var class-string<ManagedObject> $type */
@@ -92,29 +91,27 @@ class Authentication extends Responder
             })();
             return $this->$name;
         } elseif ($name == "isProtectedContentAvailable") {
-            $this->$name = $this->request->httpMethod === HTTPRequestMethod::options || (!empty(Session::shared()->valueForKey("user")) || (function (): bool {
-                        if (!($credential = $this->credential) || !($user = $this->user)) {
-                            return false;
-                        }
-                        $password = $user->valueForKey("password");
-                        /** @noinspection SpellCheckingInspection */
-                        $isHash = string_begins_with($password, "\$2[abxy]", CompareOptions::quoted);
-                        return match ($this->scheme) {
-                            AuthenticationScheme::basic => $isHash ? password_verify((string)$credential->password, $password) : $credential->password === $password,
-                            AuthenticationScheme::digest => !$isHash && (function () use ($password): bool {
-                                    $parameters = $this->parameters;
-                                    if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"]) || ($parameters["algorithm"] !== "SHA-256")) {
-                                        return false;
-                                    }
-                                    $realm = $this->request->url->host;
-                                    $HA1 = hash("sha256", "$username:$realm:$password");
-                                    $HA2 = hash("sha256", "{$this->request->httpMethod}:$uri");
-                                    $response = hash("sha256", "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
-                                    return $parameters["response"] === $response;
-                                })(),
-                            default => false
-                        };
-                    })());
+            $this->$name = $this->request->httpMethod === HTTPRequestMethod::options || Application::shared()->session->valueForKey("user") !== null || (function (): bool {
+                    if (!($credential = $this->credential) || !($user = $this->user)) {
+                        return false;
+                    }
+                    $password = $user->valueForKey("password");
+                    return match ($this->scheme) {
+                        AuthenticationScheme::basic => is_password($password) ? password_verify((string)$credential->password, $password) : $credential->password === $password,
+                        AuthenticationScheme::digest => !is_password($password) && (function () use ($password): bool {
+                                $parameters = $this->parameters;
+                                if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"]) || ($parameters["algorithm"] !== "SHA-256")) {
+                                    return false;
+                                }
+                                $realm = $this->request->url->host;
+                                $HA1 = hash("sha256", "$username:$realm:$password");
+                                $HA2 = hash("sha256", "{$this->request->httpMethod}:$uri");
+                                $response = hash("sha256", "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
+                                return $parameters["response"] === $response;
+                            })(),
+                        default => false
+                    };
+                })();
             return $this->$name;
         } elseif ($name == "allowedMethods") {
             $this->$name = new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
@@ -131,7 +128,7 @@ class Authentication extends Responder
     public function login(): void
     {
         $this->isProtectedContentAvailable ?: throw new UnauthorizedException();
-        $session = Session::shared();
+        $session = Application::shared()->session;
         $session->regenerateID();
         $session->setValueForKey($this->user?->valueForKey("username"), "user");
         $this->content = json_encode($this->user, JSON_PRESERVE_ZERO_FRACTION);
@@ -141,6 +138,7 @@ class Authentication extends Responder
     #[Action("/Logout")]
     public function logout(): void
     {
-        Session::shared()->setValueForKey(null, "user");
+        $session = Application::shared()->session;
+        $session->setValueForKey(null, "user");
     }
 }

@@ -168,10 +168,10 @@ class PersistentSpace extends Responder
                     }
                 }
                 $body = $request->getParsedBody();
-                if ($request->httpMethod !== HTTPRequestMethod::post) {
+                if ($request->httpMethod !== HTTPRequestMethod::post && !isset($body["objectID"])) {
                     $components = new URLComponents($this->request->url->absoluteString);
                     if ($item = $components->queryItems?->first(fn(URLQueryItem $item): bool => $item->name === "objectID")) {
-                        $body[$item->name] = $item->value;
+                        $body[$item->name] = (int)$item->value;
                     }
                 }
                 $object = null;
@@ -181,7 +181,6 @@ class PersistentSpace extends Responder
                         throw new BadRequestException("objectID cannot be null");
                     }
                 } else {
-                    $objectID = (int)$objectID;
                     $store = $context->persistentStoreCoordinator?->persistentStores?->first(fn(PersistentStore $store): bool => $store->type === XMLStoreType);
                     if ($store instanceof AtomicStore) {
                         $objectID = $store->objectID($this->entity, $objectID);

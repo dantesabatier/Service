@@ -78,7 +78,7 @@ class Session extends ObjectClass
         } elseif ($name == "name") {
             return unsafe_value(fn(): string => session_name());
         } elseif ($name == "status") {
-            return SessionStatus::from(session_status());
+            return SessionStatus::from(unsafe_value(fn(): int => session_status()));
         } elseif ($name == "cookieParameters") {
             $this->$name = new CookieParameters((string)parse_url(request_url(), PHP_URL_HOST));
             return $this->$name;

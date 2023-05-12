@@ -83,7 +83,7 @@ class Session extends ObjectClass
             $this->$name = new CookieParameters((string)parse_url(request_url(), PHP_URL_HOST));
             return $this->$name;
         } elseif ($name == "saveURL") {
-            $saveURL = FileManager::default()->url(SearchPathDirectory::cachesDirectory)->appendingPathComponent(Bundle::main()->bundleIdentifier ?? ProcessInfo::processInfo()->processName);
+            $saveURL = FileManager::default()->url(SearchPathDirectory::cachesDirectory)->appendingPathComponent(Bundle::main()->bundleIdentifier ?? ProcessInfo::processInfo()->processName)->appendingPathComponent("Session");
             if (!FileManager::default()->fileExists($saveURL->path)) {
                 FileManager::default()->createDirectory($saveURL, true);
             }

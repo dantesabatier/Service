@@ -7,11 +7,13 @@ use ReflectionClass;
 use ReflectionMethod;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
+use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
 use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Foundation\ObjectClass;
+use function Sabatier\Foundation\string_is_equal;
 
 /**
  * An abstract interface for responding to and handling url requests.
@@ -66,7 +68,7 @@ abstract class Responder extends ObjectClass
             case HTTPRequestMethod::head:
                 foreach ($reflectionClass->getAttributes(Endpoint::class) as $attribute) {
                     $endpoint = $attribute->newInstance();
-                    if ($endpoint->path === $path) {
+                    if (string_is_equal($path, $endpoint->path ?? "/{$reflectionClass->getShortName()}", CompareOptions::caseInsensitive)) {
                         return $attemptProceedingWithDefaultImplementation();
                     }
                 }
@@ -76,12 +78,13 @@ abstract class Responder extends ObjectClass
             case HTTPRequestMethod::patch:
             case HTTPRequestMethod::delete:
                 foreach ($reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
+                    $name = $method->name;
                     foreach ($method->getAttributes(Action::class) as $attribute) {
                         $action = $attribute->newInstance();
-                        if ($action->path === $path) {
+                        if (string_is_equal($path, $action->path ?? "/$name", CompareOptions::caseInsensitive)) {
                             $ok = $attemptProceedingWithDefaultImplementation();
                             if ($request->httpMethod === $action->method) {
-                                $this->perform($method->name);
+                                $this->perform($name);
                             }
                             return $ok;
                         }

@@ -7,7 +7,7 @@ use Attribute;
 #[Attribute(Attribute::TARGET_CLASS)]
 readonly class Endpoint
 {
-    public function __construct(public string $path)
+    public function __construct(public ?string $path = null)
     {
     }
 }

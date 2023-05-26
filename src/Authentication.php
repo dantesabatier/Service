@@ -124,7 +124,7 @@ class Authentication extends Responder
     /**
      * @throws Exception
      */
-    #[Action("/Login")]
+    #[Action()]
     public function login(): void
     {
         $this->isProtectedContentAvailable ?: throw new UnauthorizedException();
@@ -135,7 +135,7 @@ class Authentication extends Responder
         $this->contentType = "application/json";
     }
 
-    #[Action("/Logout")]
+    #[Action()]
     public function logout(): void
     {
         $session = Application::shared()->session;

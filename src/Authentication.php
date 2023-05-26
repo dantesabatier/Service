@@ -19,6 +19,8 @@ use function Sabatier\Foundation\substring_to_index;
 
 class Authentication extends Responder
 {
+    /** @var class-string<ManagedObject> $userClass */
+    public static string $userClass = "App\Model\User";
     public AuthenticationScheme $scheme = AuthenticationScheme::basic;
     public readonly ?URLCredential $credential;
     public readonly ?ManagedObject $user;
@@ -79,9 +81,8 @@ class Authentication extends Responder
                 if (!($username = $this->credential?->user ?? Application::shared()->session->valueForKey("user"))) {
                     return null;
                 }
-                /** @var class-string<ManagedObject> $type */
-                $type = "App\Model\User";
-                $fetchRequest = $type::fetchRequest();
+                $class = self::$userClass;
+                $fetchRequest = $class::fetchRequest();
                 $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($username), PredicateOperatorType::like, ComparisonPredicateModifier::direct, ComparisonPredicateOptions::caseInsensitive | ComparisonPredicateOptions::diacriticInsensitive);
                 try {
                     return $this->managedObjectContext->fetch($fetchRequest)->first()?->serialized($this->serialization);

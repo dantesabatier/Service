@@ -9,7 +9,7 @@ use Sabatier\Foundation\Networking\HTTPRequestMethod;
 #[Attribute(Attribute::TARGET_METHOD)]
 readonly class Action
 {
-    public function __construct(public string $path, #[ExpectedValues(valuesFromClass: HTTPRequestMethod::class)] public string $method = HTTPRequestMethod::post)
+    public function __construct(#[ExpectedValues(valuesFromClass: HTTPRequestMethod::class)] public string $method = HTTPRequestMethod::post, public ?string $path = null)
     {
     }
 }

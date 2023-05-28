@@ -78,13 +78,13 @@ abstract class Responder extends ObjectClass
             case HTTPRequestMethod::patch:
             case HTTPRequestMethod::delete:
                 foreach ($reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
-                    $name = $method->name;
+                    $selector = $method->name;
                     foreach ($method->getAttributes(Action::class) as $attribute) {
                         $action = $attribute->newInstance();
-                        if (string_is_equal($path, $action->path ?? "/$name", CompareOptions::caseInsensitive)) {
+                        if (string_is_equal($path, $action->path ?? "/$selector", CompareOptions::caseInsensitive)) {
                             $ok = $attemptProceedingWithDefaultImplementation();
                             if ($request->httpMethod === $action->method) {
-                                $this->perform($name);
+                                $this->perform($selector);
                             }
                             return $ok;
                         }

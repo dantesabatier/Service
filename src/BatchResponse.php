@@ -11,7 +11,7 @@ use Sabatier\Foundation\URL;
 use Traversable;
 
 /**
- * @template-implements IteratorAggregate<string>
+ * @template-implements IteratorAggregate<int, string>
  * @internal
  */
 class BatchResponse extends HTTPURLResponse implements IteratorAggregate

@@ -41,7 +41,6 @@ class Authentication extends Responder
     public function __get(string $name)
     {
         if ($name == "authorization") {
-            /** @psalm-suppress PropertyTypeCoercion */
             $this->$name = (function (): array {
                 if (!($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) || !($index = strpos($authorizationValue, " ")) || !($scheme = trim(substring_to_index($authorizationValue, $index))) || !($value = trim(substring_from_index($authorizationValue, $index))) || $scheme !== $this->scheme->value) {
                     return [$this->scheme->value, ""];

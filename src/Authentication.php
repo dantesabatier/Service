@@ -80,6 +80,7 @@ class Authentication extends Responder
                 if (!($username = $this->credential?->user ?? Application::shared()->session->valueForKey("user"))) {
                     return null;
                 }
+                /** @var class-string<ManagedObject> $class */
                 $class = self::$userClass;
                 $fetchRequest = $class::fetchRequest();
                 $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($username), PredicateOperatorType::like, ComparisonPredicateModifier::direct, ComparisonPredicateOptions::caseInsensitive | ComparisonPredicateOptions::diacriticInsensitive);
@@ -124,7 +125,7 @@ class Authentication extends Responder
     /**
      * @throws Exception
      */
-    #[Action()]
+    #[Action]
     public function login(): void
     {
         $this->isProtectedContentAvailable ?: throw new UnauthorizedException();
@@ -135,7 +136,7 @@ class Authentication extends Responder
         $this->contentType = "application/json";
     }
 
-    #[Action()]
+    #[Action]
     public function logout(): void
     {
         $session = Application::shared()->session;

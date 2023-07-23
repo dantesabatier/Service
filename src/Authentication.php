@@ -80,9 +80,9 @@ class Authentication extends Responder
                 if (!($username = $this->credential?->user ?? Application::shared()->session->valueForKey("user"))) {
                     return null;
                 }
-                /** @var class-string<ManagedObject> $class */
-                $class = self::$userClass;
-                $fetchRequest = $class::fetchRequest();
+                /** @var class-string<ManagedObject> $userClass */
+                $userClass = self::$userClass;
+                $fetchRequest = $userClass::fetchRequest();
                 $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($username), PredicateOperatorType::like, ComparisonPredicateModifier::direct, ComparisonPredicateOptions::caseInsensitive | ComparisonPredicateOptions::diacriticInsensitive);
                 try {
                     return $this->managedObjectContext->fetch($fetchRequest)->first()?->serialized($this->serialization);

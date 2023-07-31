@@ -16,8 +16,8 @@
   "require": {
     "php": "^8.2",
     "ext-mbstring": "*",
-    "sabatier/foundation": "^1.0-dev",
-    "sabatier/coredata": "^1.0-dev"
+    "sabatier/foundation": "@dev",
+    "sabatier/coredata": "@dev"
   },
   "config": {
     "platform": {
@@ -34,5 +34,15 @@
     "branch-alias": {
       "dev-master": "1.0-dev"
     }
-  }
+  },
+  "repositories": [
+    {
+      "type": "path",
+      "url": "../Foundation"
+    },
+    {
+      "type": "path",
+      "url": "../CoreData"
+    }
+  ]
 }

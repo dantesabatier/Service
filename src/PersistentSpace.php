@@ -76,8 +76,7 @@ class PersistentSpace extends Responder
                         }
                         if (property_exists($decoded, "propertiesToFetch")) {
                             /** @psalm-suppress InvalidPropertyAssignmentValue */
-                            $fetchRequest->propertiesToFetch = /** @phpstan-ignore-line */
-                                (new ArrayClass($decoded->propertiesToFetch))->compactMap(function (mixed $element): ExpressionDescription|string|null {
+                            $fetchRequest->propertiesToFetch = (new ArrayClass($decoded->propertiesToFetch))->compactMap(function (mixed $element): ExpressionDescription|string|null {
                                     if (is_string($element)) {
                                         return $element;
                                     } elseif (is_object($element)) {

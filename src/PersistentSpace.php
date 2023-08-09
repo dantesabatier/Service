@@ -207,7 +207,7 @@ class PersistentSpace extends Responder
                     $context->save();
                     $statusCode = HTTPStatusCode::noContent;
                 } else {
-                    /** @var Dictionary $keyedValues */
+                    /** @var Dictionary<mixed> $keyedValues */
                     $keyedValues = Dictionary::dictionaryWithArray($body);
                     $object ??= EntityDescription::insertNewObject($this->entity->name, $context);
                     $object->setValuesForKeys($keyedValues);

@@ -77,24 +77,24 @@ class PersistentSpace extends Responder
                         if (property_exists($decoded, "propertiesToFetch")) {
                             /** @psalm-suppress InvalidPropertyAssignmentValue */
                             $fetchRequest->propertiesToFetch = (new ArrayClass($decoded->propertiesToFetch))->compactMap(function (mixed $element): ExpressionDescription|string|null {
-                                    if (is_string($element)) {
-                                        return $element;
-                                    } elseif (is_object($element)) {
-                                        if (property_exists($element, "name") && property_exists($element, "expression")) {
-                                            $expression = $element->expression;
-                                            if (property_exists($expression, "format")) {
-                                                $expressionDescription = new ExpressionDescription();
-                                                $expressionDescription->name = $element->name;
-                                                $expressionDescription->expression = Expression::expressionWithFormat($expression->format, ArrayClass::arrayWithArray($expression->arguments ?? []));
-                                                if (property_exists($expression, "expressionResultType")) {
-                                                    $expressionDescription->expressionResultType = AttributeType::from($expression->expressionResultType);
-                                                }
-                                                return $expressionDescription;
+                                if (is_string($element)) {
+                                    return $element;
+                                } elseif (is_object($element)) {
+                                    if (property_exists($element, "name") && property_exists($element, "expression")) {
+                                        $expression = $element->expression;
+                                        if (property_exists($expression, "format")) {
+                                            $expressionDescription = new ExpressionDescription();
+                                            $expressionDescription->name = $element->name;
+                                            $expressionDescription->expression = Expression::expressionWithFormat($expression->format, ArrayClass::arrayWithArray($expression->arguments ?? []));
+                                            if (property_exists($expression, "expressionResultType")) {
+                                                $expressionDescription->expressionResultType = AttributeType::from($expression->expressionResultType);
                                             }
+                                            return $expressionDescription;
                                         }
                                     }
-                                    return null;
-                                });
+                                }
+                                return null;
+                            });
                         }
                         $fetchRequest->returnsDistinctResults = $decoded->returnsDistinctResults ?? false;
                         if (property_exists($decoded, "propertiesToGroupBy")) {

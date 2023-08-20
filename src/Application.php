@@ -166,6 +166,7 @@ class Application extends Responder
                 default => false
             });
         }
+        header_remove();
         header(sprintf("%s %s %s", $response->httpVersion, $response->statusCode, HTTPURLResponse::localizedString($response->statusCode)));
         if ($response instanceof BatchResponse) {
             flush();

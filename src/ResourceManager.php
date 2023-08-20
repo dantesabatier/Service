@@ -40,7 +40,6 @@ class ResourceManager extends Responder
                     $contentType .= "; charset=$encoding";
                 }
                 $this->contentType = $contentType;
-                $this->contentDisposition = "inline; filename={$this->resourceURL->lastPathComponent}";
                 if ($this->request->httpMethod === HTTPRequestMethod::get) {
                     $this->content = $content;
                 }

@@ -14,6 +14,7 @@ use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\FetchRequestResultType;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\PersistentStore;
+use Sabatier\CoreData\SQLEntity;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Dictionary;
@@ -23,6 +24,7 @@ use Sabatier\Foundation\Networking\HTTPURLResponse;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\CompoundPredicate;
 use Sabatier\Foundation\Predicates\Expression;
+use Sabatier\Foundation\Predicates\ExpressionType;
 use Sabatier\Foundation\Predicates\Predicate;
 use Sabatier\Foundation\SortDescriptor;
 use Sabatier\Foundation\URLComponents;
@@ -137,6 +139,25 @@ class PersistentSpace extends Responder
             case HTTPRequestMethod::get:
             case HTTPRequestMethod::head:
                 $fetchRequest = $this->fetchRequest;
+                if ($predicate = $fetchRequest->predicate) {
+                    $store = $this->managedObjectContext->persistentStoreCoordinator?->persistentStores?->first(fn(PersistentStore $store): bool => $store->type === XMLStoreType);
+                    if ($store instanceof AtomicStore) {
+                        $fn = function (CompoundPredicate|ComparisonPredicate|Predicate $predicate) use ($store, &$fn): CompoundPredicate|ComparisonPredicate {
+                            if ($predicate instanceof ComparisonPredicate) {
+                                $expressions = new ArrayClass([$predicate->rightExpression, $predicate->leftExpression]);
+                                if (($keyPathExpression = $expressions->first(fn(Expression $e): bool => $e->expressionType === ExpressionType::keyPath && $e->keyPath() === SQLEntity::primaryKeyName)) && ($constantValueExpression = $expressions->first(fn(Expression $e): bool => !$e->isEqual($keyPathExpression)))) {
+                                    $objectID = $store->objectID($this->entity, $constantValueExpression->constantValue());
+                                    return new ComparisonPredicate($keyPathExpression, Expression::expressionForConstantValue($objectID), $predicate->predicateOperatorType, $predicate->comparisonPredicateModifier, $predicate->options);
+                                }
+                                return $predicate;
+                            }
+                            /** @psalm-suppress all */
+                            return new CompoundPredicate($predicate->compoundPredicateType, $predicate->subpredicates->map(fn(CompoundPredicate|ComparisonPredicate $subpredicate): CompoundPredicate|ComparisonPredicate => $fn($subpredicate)));
+                        };
+                        /** @psalm-suppress ArgumentTypeCoercion */
+                        $fetchRequest->predicate = $fn($predicate);
+                    }
+                }
                 $fetchRequestResult = match ($fetchRequest->resultType) {
                     FetchRequestResultType::managedObjectResultType, FetchRequestResultType::managedObjectIDResultType,
                     FetchRequestResultType::dictionaryResultType => $context->fetch($fetchRequest),
@@ -187,7 +208,7 @@ class PersistentSpace extends Responder
                     /** @var FetchRequest<ManagedObject> $fetchRequest */
                     $fetchRequest = new FetchRequest();
                     $fetchRequest->entity = $this->entity;
-                    $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("objectID"), Expression::expressionForConstantValue($objectID));
+                    $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath(SQLEntity::primaryKeyName), Expression::expressionForConstantValue($objectID));
                     if ($serialization = $this->serialization) {
                         $fetchRequest->serialization = $serialization;
                     }

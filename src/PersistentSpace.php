@@ -35,6 +35,7 @@ use const Sabatier\CoreData\XMLStoreType;
 /** @internal */
 class PersistentSpace extends Responder
 {
+    private readonly ?PersistentStore $store;
     private readonly EntityDescription $entity;
     private readonly FetchRequest $fetchRequest;
 
@@ -43,6 +44,7 @@ class PersistentSpace extends Responder
         parent::__construct();
         unset($this->fetchRequest);
         unset($this->entity);
+        unset($this->store);
     }
 
     /**
@@ -50,7 +52,10 @@ class PersistentSpace extends Responder
      */
     public function __get(string $name)
     {
-        if ($name == "entity") {
+        if ($name == "store") {
+            $this->$name = $this->managedObjectContext->persistentStoreCoordinator?->persistentStores?->first(fn(PersistentStore $store): bool => $store->type === XMLStoreType);
+            return $this->$name;
+        } elseif ($name == "entity") {
             $this->$name = $this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel?->entitiesByName?->valueForKey($this->request->url->lastPathComponent) ?? throw new NotFoundException("Unable to load entity \"{$this->request->url->lastPathComponent}\"");
             return $this->$name;
         } elseif ($name == "fetchRequest") {
@@ -140,7 +145,7 @@ class PersistentSpace extends Responder
             case HTTPRequestMethod::head:
                 $fetchRequest = $this->fetchRequest;
                 if ($predicate = $fetchRequest->predicate) {
-                    $store = $this->managedObjectContext->persistentStoreCoordinator?->persistentStores?->first(fn(PersistentStore $store): bool => $store->type === XMLStoreType);
+                    $store = $this->store;
                     if ($store instanceof AtomicStore) {
                         $fn = function (CompoundPredicate|ComparisonPredicate|Predicate $predicate) use ($store, &$fn): CompoundPredicate|ComparisonPredicate {
                             if ($predicate instanceof ComparisonPredicate) {
@@ -201,7 +206,7 @@ class PersistentSpace extends Responder
                         throw new BadRequestException("objectID cannot be null");
                     }
                 } else {
-                    $store = $context->persistentStoreCoordinator?->persistentStores?->first(fn(PersistentStore $store): bool => $store->type === XMLStoreType);
+                    $store = $this->store;
                     if ($store instanceof AtomicStore) {
                         $objectID = $store->objectID($this->entity, $objectID);
                     }

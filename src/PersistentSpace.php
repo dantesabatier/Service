@@ -151,8 +151,7 @@ class PersistentSpace extends Responder
                             if ($predicate instanceof ComparisonPredicate) {
                                 $expressions = new ArrayClass([$predicate->rightExpression, $predicate->leftExpression]);
                                 if (($keyPathExpression = $expressions->first(fn(Expression $e): bool => $e->expressionType === ExpressionType::keyPath && $e->keyPath() === SQLEntity::primaryKeyName)) && ($constantValueExpression = $expressions->first(fn(Expression $e): bool => !$e->isEqual($keyPathExpression)))) {
-                                    $objectID = $store->objectID($this->entity, $constantValueExpression->constantValue());
-                                    return new ComparisonPredicate($keyPathExpression, Expression::expressionForConstantValue($objectID), $predicate->predicateOperatorType, $predicate->comparisonPredicateModifier, $predicate->options);
+                                    return new ComparisonPredicate($keyPathExpression, Expression::expressionForConstantValue($store->objectID($this->entity, $constantValueExpression->constantValue())), $predicate->predicateOperatorType, $predicate->comparisonPredicateModifier, $predicate->options);
                                 }
                                 return $predicate;
                             }

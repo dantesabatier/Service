@@ -5,6 +5,7 @@
 namespace Sabatier\Service;
 
 use Exception;
+use Sabatier\CoreData\AtomicStore;
 use Sabatier\CoreData\AttributeType;
 use Sabatier\CoreData\BatchFaultingArray;
 use Sabatier\CoreData\EntityDescription;
@@ -14,7 +15,6 @@ use Sabatier\CoreData\FetchRequestResultType;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\PersistentStore;
 use Sabatier\CoreData\SQLEntity;
-use Sabatier\CoreData\XMLObjectStore;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Dictionary;
@@ -34,7 +34,7 @@ use function Sabatier\Foundation\string_is_equal;
 /** @internal */
 class PersistentSpace extends Responder
 {
-    private readonly ?XMLObjectStore $xmlStore;
+    private readonly ?AtomicStore $atomicStore;
     private readonly EntityDescription $entity;
     private readonly FetchRequest $fetchRequest;
 
@@ -43,7 +43,7 @@ class PersistentSpace extends Responder
         parent::__construct();
         unset($this->fetchRequest);
         unset($this->entity);
-        unset($this->xmlStore);
+        unset($this->atomicStore);
     }
 
     /**
@@ -51,8 +51,9 @@ class PersistentSpace extends Responder
      */
     public function __get(string $name)
     {
-        if ($name == "xmlStore") {
-            $this->$name = $this->managedObjectContext->persistentStoreCoordinator?->persistentStores?->first(fn(PersistentStore $store): bool => $store instanceof XMLObjectStore);
+        if ($name == "atomicStore") {
+            /** @psalm-suppress PropertyTypeCoercion */
+            $this->$name = $this->managedObjectContext->persistentStoreCoordinator?->persistentStores?->first(fn(PersistentStore $store): bool => $store instanceof AtomicStore);
             return $this->$name;
         } elseif ($name == "entity") {
             $this->$name = $this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel?->entitiesByName?->valueForKey($this->request->url->lastPathComponent) ?? throw new NotFoundException("Unable to load entity \"{$this->request->url->lastPathComponent}\"");
@@ -119,7 +120,7 @@ class PersistentSpace extends Responder
                     $fetchRequest->predicate = $predicates->count() > 1 ? CompoundPredicate::andPredicateWithSubpredicates($predicates) : $predicates->first();
                 }
             }
-            if (($predicate = $fetchRequest->predicate) && ($store = $this->xmlStore)) {
+            if (($predicate = $fetchRequest->predicate) && ($store = $this->atomicStore)) {
                 $fn = function (CompoundPredicate|ComparisonPredicate|Predicate $predicate) use ($store, &$fn): Predicate {
                     if ($predicate instanceof ComparisonPredicate) {
                         $expressions = new ArrayClass([$predicate->rightExpression, $predicate->leftExpression]);
@@ -203,7 +204,7 @@ class PersistentSpace extends Responder
                         throw new BadRequestException(sprintf("\"%s\" can not be null", SQLEntity::primaryKeyName));
                     }
                 } else {
-                    if ($store = $this->xmlStore) {
+                    if ($store = $this->atomicStore) {
                         $objectID = $store->objectID($this->entity, $objectID);
                     }
                     /** @var FetchRequest<ManagedObject> $fetchRequest */

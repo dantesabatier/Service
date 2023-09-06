@@ -72,7 +72,12 @@ class Authentication extends Responder
                     }
                     return new URLCredential($username);
                 })(),
-                default => null
+                AuthenticationScheme::bearer => (function () use ($value): ?URLCredential {
+                    if (!($this->user = $this->userBy("token", $value))) {
+                        return null;
+                    }
+                    return new URLCredential($this->user->valueForKey("username"), $this->user->valueForKey("password"));
+                })()
             };
             return $this->$name;
         } elseif ($name == "user") {
@@ -80,15 +85,7 @@ class Authentication extends Responder
                 if (!($username = $this->credential?->user ?? Application::shared()->session->valueForKey("user"))) {
                     return null;
                 }
-                /** @var class-string<ManagedObject> $userClass */
-                $userClass = self::$userClass;
-                $fetchRequest = $userClass::fetchRequest();
-                $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($username), PredicateOperatorType::like, ComparisonPredicateModifier::direct, ComparisonPredicateOptions::caseInsensitive | ComparisonPredicateOptions::diacriticInsensitive);
-                try {
-                    return $this->managedObjectContext->fetch($fetchRequest)->first()?->serialized($this->serialization);
-                } catch (Exception) {
-                    return null;
-                }
+                return $this->userBy("username", $username);
             })();
             return $this->$name;
         } elseif ($name == "isProtectedContentAvailable") {
@@ -110,7 +107,10 @@ class Authentication extends Responder
                                 $response = hash("sha256", "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
                                 return $parameters["response"] === $response;
                             })(),
-                        default => false
+                        AuthenticationScheme::bearer => (function () use ($user): bool {
+                            [, $value] = $this->authorization;
+                            return $user->valueForKey("token") === $value;
+                        })()
                     };
                 })();
             return $this->$name;
@@ -119,6 +119,19 @@ class Authentication extends Responder
             return $this->$name;
         } else {
             return parent::__get($name);
+        }
+    }
+
+    private function userBy(string $key, mixed $value): ?ManagedObject
+    {
+        try {
+            /** @var class-string<ManagedObject> $userClass */
+            $userClass = self::$userClass;
+            $fetchRequest = $userClass::fetchRequest();
+            $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath($key), Expression::expressionForConstantValue($value), PredicateOperatorType::like, ComparisonPredicateModifier::direct, ComparisonPredicateOptions::caseInsensitive | ComparisonPredicateOptions::diacriticInsensitive);
+            return $this->managedObjectContext->fetch($fetchRequest)->first()?->serialized($this->serialization);
+        } catch (Exception) {
+            return null;
         }
     }
 
@@ -143,9 +156,19 @@ class Authentication extends Responder
         $session->setValueForKey(null, "user");
     }
 
+    /**
+     * @throws Exception
+     */
     #[Action]
     public function token(): void
     {
-        throw new UnimplementedException();
+        $this->isProtectedContentAvailable ?: throw new UnauthorizedException();
+        $token = bin2hex(random_bytes(64));
+        /** @var ManagedObject $user */
+        $user = $this->user;
+        $user->setValueForKey($token, "token");
+        $this->managedObjectContext->save();
+        $this->content = json_encode(["token" => $token]);
+        $this->contentType = "application/json";
     }
 }

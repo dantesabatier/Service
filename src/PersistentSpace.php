@@ -123,8 +123,11 @@ class PersistentSpace extends Responder
                 $fn = function (CompoundPredicate|ComparisonPredicate|Predicate $predicate) use ($store, &$fn): Predicate {
                     if ($predicate instanceof ComparisonPredicate) {
                         $expressions = new ArrayClass([$predicate->rightExpression, $predicate->leftExpression]);
-                        if (($keyPathExpression = $expressions->first(fn(Expression $e): bool => $e->expressionType === ExpressionType::keyPath && $e->keyPath() === SQLEntity::primaryKeyName)) && ($constantValueExpression = $expressions->first(fn(Expression $e): bool => !$e->isEqual($keyPathExpression)))) {
-                            return new ComparisonPredicate($keyPathExpression, Expression::expressionForConstantValue($store->objectID($this->entity, $constantValueExpression->constantValue())), $predicate->predicateOperatorType, $predicate->comparisonPredicateModifier, $predicate->options);
+                        if (($keyPathExpression = $expressions->first(fn(Expression $e): bool => $e->expressionType === ExpressionType::keyPath && str_ends_with($e->keyPath(), SQLEntity::primaryKeyName))) && ($constantValueExpression = $expressions->first(fn(Expression $e): bool => !$e->isEqual($keyPathExpression)))) {
+                            $expressionForConstantValue = Expression::expressionForConstantValue($store->objectID($this->entity, $constantValueExpression->constantValue()));
+                            $rightExpression = $keyPathExpression === $predicate->rightExpression ? $keyPathExpression : $expressionForConstantValue;
+                            $leftExpression = $constantValueExpression === $predicate->leftExpression ? $expressionForConstantValue : $keyPathExpression;
+                            return new ComparisonPredicate($rightExpression, $leftExpression, $predicate->predicateOperatorType, $predicate->comparisonPredicateModifier, $predicate->options);
                         }
                         return $predicate;
                     }

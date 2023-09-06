@@ -73,10 +73,11 @@ class Authentication extends Responder
                     return new URLCredential($username);
                 })(),
                 AuthenticationScheme::bearer => (function () use ($value): ?URLCredential {
-                    if (!($this->user = $this->userBy("token", $value))) {
+                    if (!($user = $this->userBy("token", $value))) {
                         return null;
                     }
-                    return new URLCredential($this->user->valueForKey("username"), $this->user->valueForKey("password"));
+                    $this->user = $user;
+                    return new URLCredential($user->valueForKey("username"), $user->valueForKey("password"));
                 })()
             };
             return $this->$name;

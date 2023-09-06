@@ -142,4 +142,10 @@ class Authentication extends Responder
         $session = Application::shared()->session;
         $session->setValueForKey(null, "user");
     }
+
+    #[Action]
+    public function token(): void
+    {
+        throw new UnimplementedException();
+    }
 }

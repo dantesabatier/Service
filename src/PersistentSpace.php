@@ -60,7 +60,7 @@ class PersistentSpace extends Responder
         } elseif ($name == "fetchRequest") {
             $fetchRequest = new FetchRequest();
             $fetchRequest->entity = $this->entity;
-            $components = new URLComponents($this->request->url->absoluteString);
+            $components = new URLComponents((string)$this->request->url);
             if ($queryItems = $components->queryItems) {
                 if ($item = $queryItems->first(fn(URLQueryItem $item): bool => string_is_equal($item->name, "fetchRequest", CompareOptions::caseInsensitive))) {
                     if (($value = $item->value) && ($json = base64_decode($value)) && ($decoded = json_decode($json, null, 512, JSON_THROW_ON_ERROR))) {
@@ -119,6 +119,20 @@ class PersistentSpace extends Responder
                     $fetchRequest->predicate = $predicates->count() > 1 ? CompoundPredicate::andPredicateWithSubpredicates($predicates) : $predicates->first();
                 }
             }
+            if (($predicate = $fetchRequest->predicate) && ($store = $this->xmlStore)) {
+                $fn = function (CompoundPredicate|ComparisonPredicate|Predicate $predicate) use ($store, &$fn): Predicate {
+                    if ($predicate instanceof ComparisonPredicate) {
+                        $expressions = new ArrayClass([$predicate->rightExpression, $predicate->leftExpression]);
+                        if (($keyPathExpression = $expressions->first(fn(Expression $e): bool => $e->expressionType === ExpressionType::keyPath && $e->keyPath() === SQLEntity::primaryKeyName)) && ($constantValueExpression = $expressions->first(fn(Expression $e): bool => !$e->isEqual($keyPathExpression)))) {
+                            return new ComparisonPredicate($keyPathExpression, Expression::expressionForConstantValue($store->objectID($this->entity, $constantValueExpression->constantValue())), $predicate->predicateOperatorType, $predicate->comparisonPredicateModifier, $predicate->options);
+                        }
+                        return $predicate;
+                    }
+                    /** @psalm-suppress all */
+                    return new CompoundPredicate($predicate->compoundPredicateType, $predicate->subpredicates->map(fn(CompoundPredicate|ComparisonPredicate $subpredicate): CompoundPredicate|ComparisonPredicate => $fn($subpredicate)));
+                };
+                $fetchRequest->predicate = $fn($predicate);
+            }
             if ($serialization = $this->serialization) {
                 $fetchRequest->serialization = $serialization;
             }
@@ -143,24 +157,6 @@ class PersistentSpace extends Responder
             case HTTPRequestMethod::get:
             case HTTPRequestMethod::head:
                 $fetchRequest = $this->fetchRequest;
-                if ($predicate = $fetchRequest->predicate) {
-                    $store = $this->xmlStore;
-                    if ($store !== null) {
-                        $fn = function (CompoundPredicate|ComparisonPredicate|Predicate $predicate) use ($store, &$fn): CompoundPredicate|ComparisonPredicate {
-                            if ($predicate instanceof ComparisonPredicate) {
-                                $expressions = new ArrayClass([$predicate->rightExpression, $predicate->leftExpression]);
-                                if (($keyPathExpression = $expressions->first(fn(Expression $e): bool => $e->expressionType === ExpressionType::keyPath && $e->keyPath() === SQLEntity::primaryKeyName)) && ($constantValueExpression = $expressions->first(fn(Expression $e): bool => !$e->isEqual($keyPathExpression)))) {
-                                    return new ComparisonPredicate($keyPathExpression, Expression::expressionForConstantValue($store->objectID($this->entity, $constantValueExpression->constantValue())), $predicate->predicateOperatorType, $predicate->comparisonPredicateModifier, $predicate->options);
-                                }
-                                return $predicate;
-                            }
-                            /** @psalm-suppress all */
-                            return new CompoundPredicate($predicate->compoundPredicateType, $predicate->subpredicates->map(fn(CompoundPredicate|ComparisonPredicate $subpredicate): CompoundPredicate|ComparisonPredicate => $fn($subpredicate)));
-                        };
-                        /** @psalm-suppress ArgumentTypeCoercion */
-                        $fetchRequest->predicate = $fn($predicate);
-                    }
-                }
                 $fetchRequestResult = match ($fetchRequest->resultType) {
                     FetchRequestResultType::managedObjectResultType, FetchRequestResultType::managedObjectIDResultType,
                     FetchRequestResultType::dictionaryResultType => $context->fetch($fetchRequest),
@@ -204,8 +200,7 @@ class PersistentSpace extends Responder
                         throw new BadRequestException("objectID cannot be null");
                     }
                 } else {
-                    $store = $this->xmlStore;
-                    if ($store !== null) {
+                    if ($store = $this->xmlStore) {
                         $objectID = $store->objectID($this->entity, $objectID);
                     }
                     /** @var FetchRequest<ManagedObject> $fetchRequest */

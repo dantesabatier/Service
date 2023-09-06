@@ -166,7 +166,9 @@ class Application extends Responder
                 default => false
             });
         }
-        header_remove();
+        foreach (["Expires", "Cache-Control", "Pragma"] as $header) {
+            header_remove($header);
+        }
         header(sprintf("%s %s %s", $response->httpVersion, $response->statusCode, HTTPURLResponse::localizedString($response->statusCode)));
         if ($response instanceof BatchResponse) {
             flush();

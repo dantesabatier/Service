@@ -190,17 +190,17 @@ class PersistentSpace extends Responder
                     }
                 }
                 $body = $request->getParsedBody();
-                if ($request->httpMethod !== HTTPRequestMethod::post && !isset($body["objectID"])) {
+                if ($request->httpMethod !== HTTPRequestMethod::post && !isset($body[SQLEntity::primaryKeyName])) {
                     $components = new URLComponents($this->request->url->absoluteString);
-                    if ($item = $components->queryItems?->first(fn(URLQueryItem $item): bool => $item->name === "objectID")) {
+                    if ($item = $components->queryItems?->first(fn(URLQueryItem $item): bool => $item->name === SQLEntity::primaryKeyName)) {
                         $body[$item->name] = (int)$item->value;
                     }
                 }
                 $object = null;
-                $objectID = $body["objectID"] ?? null;
+                $objectID = $body[SQLEntity::primaryKeyName] ?? null;
                 if ($objectID === null) {
                     if ($request->httpMethod !== HTTPRequestMethod::post) {
-                        throw new BadRequestException("objectID cannot be null");
+                        throw new BadRequestException(sprintf("\"%s\" can not be null", SQLEntity::primaryKeyName));
                     }
                 } else {
                     if ($store = $this->xmlStore) {

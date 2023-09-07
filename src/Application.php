@@ -166,14 +166,22 @@ class Application extends Responder
                 default => false
             });
         }
-        foreach (["Expires", "Cache-Control", "Pragma"] as $header) {
+        foreach (["Expires", "Cache-Control", "Pragma"]
+                 as
+                 $header)
+        {
             header_remove($header);
         }
         header(sprintf("%s %s %s", $response->httpVersion, $response->statusCode, HTTPURLResponse::localizedString($response->statusCode)));
         if ($response instanceof BatchResponse) {
             flush();
             header_register_callback(function () use ($headerFields): void {
-                foreach ($headerFields as $key => $value) {
+                foreach ($headerFields
+                         as
+                         $key
+                =>
+                         $value)
+                {
                     header(sprintf("%s: %s", $key, human_readable_value($value)));
                     flush();
                 }
@@ -182,7 +190,12 @@ class Application extends Responder
                 die();
             }
             ob_start();
-            foreach ($response as $idx => $data) {
+            foreach ($response
+                     as
+                     $idx
+            =>
+                     $data)
+            {
                 echo $data;
                 if (($idx + 1) < $response->count) {
                     echo "\r\n";
@@ -192,7 +205,12 @@ class Application extends Responder
             ob_end_flush();
             die();
         }
-        foreach ($headerFields as $key => $value) {
+        foreach ($headerFields
+                 as
+                 $key
+        =>
+                 $value)
+        {
             header(sprintf("%s: %s", $key, human_readable_value($value)));
         }
         if ($isEmpty) {
@@ -218,13 +236,19 @@ class Application extends Responder
         $fileManager = FileManager::default();
         $baseURL = Bundle::main()->bundleURL->appendingPathComponent("src");
         $directories = ["Responders", "ViewControllers"];
-        foreach ($directories as $directory) {
+        foreach ($directories
+                 as
+                 $directory)
+        {
             $directoryURL = $baseURL->appendingPathComponent($directory);
             if (!$fileManager->fileExists($directoryURL->path)) {
                 continue;
             }
             $urls = $fileManager->contentsOfDirectory($directoryURL, null, DirectoryEnumerationOptions::skipsHiddenFiles);
-            foreach ($urls as $url) {
+            foreach ($urls
+                     as
+                     $url)
+            {
                 if (!string_is_equal($url->pathExtension, "php", CompareOptions::caseInsensitive)) {
                     continue;
                 }
@@ -298,11 +322,7 @@ class Application extends Responder
                     AuthenticationScheme::digest => sprintf(", uri=\"%s\", algorithm=\"%s\", nonce=\"%s\", qop=\"%s\", opaque=\"%s\"", $this->request->url->path, "SHA-256", ProcessInfo::processInfo()->globallyUniqueString, "auth", base64_encode((string)$this->request->url->host)),
                     default => ""
                 }]) : null) : new HTTPURLResponse($this->request->url, HTTPStatusCode::internalServerError);
-            $userInfo = new Dictionary([LocalizedDescriptionKey => HTTPURLResponse::localizedString($response->statusCode)]);
-            if ($failureReason = $throwable->getMessage()) {
-                $userInfo[LocalizedFailureReasonErrorKey] = $failureReason;
-            }
-            $error = $this->delegate?->applicationWillPresentError($this, new Error(URLErrorDomain, URLErrorBadServerResponse, $userInfo));
+            $error = $this->delegate?->applicationWillPresentError($this, new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedDescriptionKey => HTTPURLResponse::localizedString($response->statusCode), LocalizedFailureReasonErrorKey => (string)$throwable])));
             $content = $error ? sprintf("%s. %s", $error->localizedDescription, $error->localizedFailureReason ?? "($error->domain error $error->code.)") : null;
             $this->send($response, $content);
         }

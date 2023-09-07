@@ -12,6 +12,7 @@ readonly class Authorization
 
     public function __construct(public AuthenticationScheme $scheme, public string $credentials = "")
     {
+        unset($this->parameters);
     }
 
     public function __get(string $name)

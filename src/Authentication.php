@@ -5,7 +5,6 @@ namespace Sabatier\Service;
 use Exception;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
-use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
@@ -24,10 +23,7 @@ class Authentication extends Responder
     public readonly AuthenticationScheme $scheme;
     public readonly ?URLCredential $credential;
     public readonly ?ManagedObject $user;
-    /** @var array{AuthenticationScheme, string} */
-    private readonly array $authorization;
-    /** @var Dictionary<string> */
-    private Dictionary $parameters;
+    public readonly Authorization $authorization;
 
     public function __construct()
     {
@@ -42,29 +38,20 @@ class Authentication extends Responder
     public function __get(string $name)
     {
         if ($name == "authorization") {
-            $this->$name = (function (): array {
-                if (!($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) || !($index = strpos($authorizationValue, " ")) || !($scheme = trim(substring_to_index($authorizationValue, $index))) || !($value = trim(substring_from_index($authorizationValue, $index)))) {
-                    return [AuthenticationScheme::basic, ""];
+            $this->$name = (function (): Authorization {
+                if (!($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) || !($index = strpos($authorizationValue, " ")) || !($authScheme = trim(substring_to_index($authorizationValue, $index))) || !($credentials = trim(substring_from_index($authorizationValue, $index)))) {
+                    return new Authorization(AuthenticationScheme::basic->value);
                 }
-                return [AuthenticationScheme::from($scheme), $value];
+                return new Authorization($authScheme, $credentials);
             })();
             return $this->$name;
         } elseif ($name == "scheme") {
-            [$scheme,] = $this->authorization;
-            $this->$name = $scheme;
-            return $this->$name;
-        } elseif ($name == "parameters") {
-            $this->$name = (function (): Dictionary {
-                [, $value] = $this->authorization;
-                preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $value, $matches);
-                return new Dictionary(array_combine($matches[1], $matches[2]));
-            })();
+            $this->$name = AuthenticationScheme::from($this->authorization->authScheme);
             return $this->$name;
         } elseif ($name == "credential") {
-            [$scheme, $value] = $this->authorization;
-            $this->$name = match ($scheme) {
-                AuthenticationScheme::basic => (function () use ($value): ?URLCredential {
-                    $components = explode(":", base64_decode($value));
+            $this->$name = match ($this->scheme) {
+                AuthenticationScheme::basic => (function (): ?URLCredential {
+                    $components = explode(":", base64_decode($this->authorization->credentials));
                     if (count($components) !== 2) {
                         return null;
                     }
@@ -72,13 +59,13 @@ class Authentication extends Responder
                     return new URLCredential($username, $password);
                 })(),
                 AuthenticationScheme::digest => (function (): ?URLCredential {
-                    if (!($username = $this->parameters["username"])) {
+                    if (!($username = $this->authorization->parameters["username"])) {
                         return null;
                     }
                     return new URLCredential($username);
                 })(),
-                AuthenticationScheme::bearer => (function () use ($value): ?URLCredential {
-                    if (!($user = $this->userBy("token", $value))) {
+                AuthenticationScheme::bearer => (function (): ?URLCredential {
+                    if (!($user = $this->userBy("token", $this->authorization->credentials))) {
                         return null;
                     }
                     $this->user = $user;
@@ -103,7 +90,7 @@ class Authentication extends Responder
                     return match ($this->scheme) {
                         AuthenticationScheme::basic => is_password($password) ? password_verify((string)$credential->password, $password) : $credential->password === $password,
                         AuthenticationScheme::digest => !is_password($password) && (function () use ($password): bool {
-                                $parameters = $this->parameters;
+                                $parameters = $this->authorization->parameters;
                                 if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"]) || ($parameters["algorithm"] !== "SHA-256")) {
                                     return false;
                                 }
@@ -113,10 +100,7 @@ class Authentication extends Responder
                                 $response = hash("sha256", "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
                                 return $parameters["response"] === $response;
                             })(),
-                        AuthenticationScheme::bearer => (function (): bool {
-                            [, $value] = $this->authorization;
-                            return $value === $this->user?->valueForKey("token");
-                        })()
+                        AuthenticationScheme::bearer => $this->authorization->credentials === $this->user?->valueForKey("token")
                     };
                 })();
             return $this->$name;

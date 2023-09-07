@@ -20,9 +20,9 @@ class Authentication extends Responder
 {
     /** @var class-string<ManagedObject> $userClass */
     public static string $userClass = "App\Model\User";
+    public readonly Authorization $authorization;
     public readonly ?URLCredential $credential;
     public readonly ?ManagedObject $user;
-    public readonly Authorization $authorization;
 
     public function __construct()
     {

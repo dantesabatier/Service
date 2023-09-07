@@ -20,7 +20,6 @@ class Authentication extends Responder
 {
     /** @var class-string<ManagedObject> $userClass */
     public static string $userClass = "App\Model\User";
-    public readonly AuthenticationScheme $scheme;
     public readonly ?URLCredential $credential;
     public readonly ?ManagedObject $user;
     public readonly Authorization $authorization;
@@ -29,7 +28,6 @@ class Authentication extends Responder
     {
         parent::__construct();
         unset($this->authorization);
-        unset($this->scheme);
         unset($this->credential);
         unset($this->user);
         unset($this->isProtectedContentAvailable);
@@ -39,17 +37,14 @@ class Authentication extends Responder
     {
         if ($name == "authorization") {
             $this->$name = (function (): Authorization {
-                if (!($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) || !($index = strpos($authorizationValue, " ")) || !($authScheme = trim(substring_to_index($authorizationValue, $index))) || !($credentials = trim(substring_from_index($authorizationValue, $index)))) {
-                    return new Authorization(AuthenticationScheme::basic->value);
+                if (!($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) || !($index = strpos($authorizationValue, " ")) || !($scheme = trim(substring_to_index($authorizationValue, $index))) || !($credentials = trim(substring_from_index($authorizationValue, $index)))) {
+                    return new Authorization(AuthenticationScheme::basic);
                 }
-                return new Authorization($authScheme, $credentials);
+                return new Authorization(AuthenticationScheme::from($scheme), $credentials);
             })();
             return $this->$name;
-        } elseif ($name == "scheme") {
-            $this->$name = AuthenticationScheme::from($this->authorization->authScheme);
-            return $this->$name;
         } elseif ($name == "credential") {
-            $this->$name = match ($this->scheme) {
+            $this->$name = match ($this->authorization->scheme) {
                 AuthenticationScheme::basic => (function (): ?URLCredential {
                     $components = explode(":", base64_decode($this->authorization->credentials));
                     if (count($components) !== 2) {
@@ -87,7 +82,7 @@ class Authentication extends Responder
                         return false;
                     }
                     $password = $user->valueForKey("password");
-                    return match ($this->scheme) {
+                    return match ($this->authorization->scheme) {
                         AuthenticationScheme::basic => is_password($password) ? password_verify((string)$credential->password, $password) : $credential->password === $password,
                         AuthenticationScheme::digest => !is_password($password) && (function () use ($password): bool {
                                 $parameters = $this->authorization->parameters;

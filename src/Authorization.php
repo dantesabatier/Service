@@ -10,7 +10,7 @@ readonly class Authorization
     /** @var Dictionary<string> */
     public Dictionary $parameters;
 
-    public function __construct(public string $authScheme, public string $credentials = "")
+    public function __construct(public AuthenticationScheme $scheme, public string $credentials = "")
     {
     }
 

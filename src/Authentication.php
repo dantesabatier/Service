@@ -36,7 +36,7 @@ class Authentication extends Responder
     public function __get(string $name)
     {
         if ($name == "authorization") {
-            $this->$name = !($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) || !($index = strpos($authorizationValue, " ")) || !($scheme = trim(substring_to_index($authorizationValue, $index))) || !($credentials = trim(substring_from_index($authorizationValue, $index))) ? new Authorization(AuthenticationScheme::basic) : new Authorization(AuthenticationScheme::from($scheme), $credentials);
+            $this->$name = ($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) && ($index = strpos($authorizationValue, " ")) && ($scheme = trim(substring_to_index($authorizationValue, $index))) && ($credentials = trim(substring_from_index($authorizationValue, $index))) ? new Authorization(AuthenticationScheme::from($scheme), $credentials) : new Authorization(AuthenticationScheme::basic);
             return $this->$name;
         } elseif ($name == "credential") {
             $this->$name = match ($this->authorization->scheme) {

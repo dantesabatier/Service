@@ -36,12 +36,7 @@ class Authentication extends Responder
     public function __get(string $name)
     {
         if ($name == "authorization") {
-            $this->$name = (function (): Authorization {
-                if (!($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) || !($index = strpos($authorizationValue, " ")) || !($scheme = trim(substring_to_index($authorizationValue, $index))) || !($credentials = trim(substring_from_index($authorizationValue, $index)))) {
-                    return new Authorization(AuthenticationScheme::basic);
-                }
-                return new Authorization(AuthenticationScheme::from($scheme), $credentials);
-            })();
+            $this->$name = !($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) || !($index = strpos($authorizationValue, " ")) || !($scheme = trim(substring_to_index($authorizationValue, $index))) || !($credentials = trim(substring_from_index($authorizationValue, $index))) ? new Authorization(AuthenticationScheme::basic) : new Authorization(AuthenticationScheme::from($scheme), $credentials);
             return $this->$name;
         } elseif ($name == "credential") {
             $this->$name = match ($this->authorization->scheme) {
@@ -107,13 +102,13 @@ class Authentication extends Responder
         }
     }
 
-    private function userBy(string $key, mixed $value): ?ManagedObject
+    private function userBy(string $keyPath, mixed $obj): ?ManagedObject
     {
         try {
             /** @var class-string<ManagedObject> $userClass */
             $userClass = self::$userClass;
             $fetchRequest = $userClass::fetchRequest();
-            $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath($key), Expression::expressionForConstantValue($value), PredicateOperatorType::like, ComparisonPredicateModifier::direct, ComparisonPredicateOptions::caseInsensitive | ComparisonPredicateOptions::diacriticInsensitive);
+            $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath($keyPath), Expression::expressionForConstantValue($obj), PredicateOperatorType::like, ComparisonPredicateModifier::direct, ComparisonPredicateOptions::caseInsensitive | ComparisonPredicateOptions::diacriticInsensitive);
             return $this->managedObjectContext->fetch($fetchRequest)->first()?->serialized($this->serialization);
         } catch (Exception) {
             return null;

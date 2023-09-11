@@ -3,6 +3,8 @@
 namespace Sabatier\Service;
 
 use Exception;
+use Random\Engine\Secure;
+use Random\Randomizer;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
@@ -143,7 +145,7 @@ class Authentication extends Responder
     public function token(): void
     {
         $this->isProtectedContentAvailable ?: throw new UnauthorizedException();
-        $token = md5(uniqid() . rand(1000000, 9999999));
+        $token = md5((new Randomizer(new Secure()))->getBytes(64));
         /** @var ManagedObject $user */
         $user = $this->user;
         $user->setValueForKey($token, "token");

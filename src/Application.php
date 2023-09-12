@@ -273,9 +273,9 @@ class Application extends Responder
     public function run(): void
     {
         try {
+            $delegate = $this->delegate;
             ProcessInfo::processInfo()->processName = $this->persistentContainer->name;
             $this->persistentContainer->viewContext->name = $this->persistentContainer->name;
-            $delegate = $this->delegate;
             register_shutdown_function(function () use ($delegate): bool {
                 $delegate?->applicationWillTerminate($this);
                 return true;

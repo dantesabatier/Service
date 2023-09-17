@@ -13,6 +13,7 @@ use Sabatier\CoreData\ExpressionDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\FetchRequestResultType;
 use Sabatier\CoreData\ManagedObject;
+use Sabatier\CoreData\ManagedObjectID;
 use Sabatier\CoreData\PersistentStore;
 use Sabatier\CoreData\SQLEntity;
 use Sabatier\Foundation\ArrayClass;
@@ -197,6 +198,16 @@ class PersistentSpace extends Responder
                         $body[$item->name] = (int)$item->value;
                     }
                 }
+                $managedObject = function (ManagedObjectID|int $objectID): ?ManagedObject {
+                    /** @var FetchRequest<ManagedObject> $fetchRequest */
+                    $fetchRequest = new FetchRequest();
+                    $fetchRequest->entity = $this->entity;
+                    $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath(SQLEntity::primaryKeyName), Expression::expressionForConstantValue($objectID));
+                    if ($serialization = $this->serialization) {
+                        $fetchRequest->serialization = $serialization;
+                    }
+                    return $this->managedObjectContext->fetch($fetchRequest)->first();
+                };
                 $object = null;
                 $objectID = $body[SQLEntity::primaryKeyName] ?? null;
                 if ($objectID === null) {
@@ -207,14 +218,7 @@ class PersistentSpace extends Responder
                     if ($store = $this->atomicStore) {
                         $objectID = $store->objectID($this->entity, $objectID);
                     }
-                    /** @var FetchRequest<ManagedObject> $fetchRequest */
-                    $fetchRequest = new FetchRequest();
-                    $fetchRequest->entity = $this->entity;
-                    $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath(SQLEntity::primaryKeyName), Expression::expressionForConstantValue($objectID));
-                    if ($serialization = $this->serialization) {
-                        $fetchRequest->serialization = $serialization;
-                    }
-                    $object = $context->fetch($fetchRequest)->first();
+                    $object = $managedObject($objectID);
                 }
                 if (!$object instanceof ManagedObject) {
                     if ($request->httpMethod !== HTTPRequestMethod::post) {
@@ -234,6 +238,8 @@ class PersistentSpace extends Responder
                     $object ??= EntityDescription::insertNewObject($this->entity->name, $context);
                     $object->setValuesForKeys($keyedValues);
                     $context->save();
+                    /** @var ManagedObject $object */
+                    $object = $managedObject($object->objectID);
                     $this->content = json_encode($object->serialized($this->serialization), JSON_PRESERVE_ZERO_FRACTION);
                     $this->contentType = "application/json; charset=utf-8";
                 }

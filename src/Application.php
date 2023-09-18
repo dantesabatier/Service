@@ -105,7 +105,7 @@ class Application extends Responder
             }
             $persistentContainer->loadPersistentStores(function (PersistentStoreDescription $description, ?Error $error): void {
                 if ($error) {
-                    fatal_error("Unable to load persistent stores: $error");
+                    fatal_error($error->localizedDescription);
                 }
             });
             $this->$name = $persistentContainer;

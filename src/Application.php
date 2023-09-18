@@ -298,9 +298,8 @@ class Application extends Responder
                     AuthenticationScheme::digest => sprintf(", uri=\"%s\", algorithm=\"%s\", nonce=\"%s\", qop=\"%s\", opaque=\"%s\"", $this->request->url->path, "SHA-256", ProcessInfo::processInfo()->globallyUniqueString, "auth", base64_encode((string)$this->request->url->host)),
                     default => ""
                 }]) : null) : new HTTPURLResponse($this->request->url, HTTPStatusCode::internalServerError);
-            $error = $this->delegate?->applicationWillPresentError($this, new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedDescriptionKey => HTTPURLResponse::localizedString($response->statusCode), LocalizedFailureReasonErrorKey => (string)$throwable])));
-            $content = $error ? sprintf("%s. %s", $error->localizedDescription, $error->localizedFailureReason ?? "($error->domain error $error->code.)") : null;
-            $this->send($response, $content);
+            $error = $this->delegate?->applicationWillPresentError($this, new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedDescriptionKey => HTTPURLResponse::localizedString($response->statusCode), LocalizedFailureReasonErrorKey => $throwable->getMessage()])));
+            $this->send($response, json_encode(["error" => $error]), "application/json; charset=utf-8");
         }
     }
 

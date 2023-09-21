@@ -208,12 +208,12 @@ class PersistentSpace extends Responder
                     }
                     return $this->managedObjectContext->fetch($fetchRequest)->first();
                 };
-                $object = null;
                 $objectID = $body[SQLEntity::primaryKeyName] ?? null;
                 if ($objectID === null) {
                     if ($request->httpMethod !== HTTPRequestMethod::post) {
                         throw new BadRequestException(sprintf("\"%s\" can not be null", SQLEntity::primaryKeyName));
                     }
+                    $object = null;
                 } else {
                     if ($store = $this->atomicStore) {
                         $objectID = $store->objectID($this->entity, $objectID);

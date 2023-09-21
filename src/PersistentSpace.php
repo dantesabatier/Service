@@ -233,14 +233,11 @@ class PersistentSpace extends Responder
                     $context->save();
                     $statusCode = HTTPStatusCode::noContent;
                 } else {
-                    /** @var Dictionary<mixed> $keyedValues */
-                    $keyedValues = Dictionary::dictionaryWithArray($body);
                     $object ??= EntityDescription::insertNewObject($this->entity->name, $context);
-                    $object->setValuesForKeys($keyedValues);
+                    $object->setValuesForKeys(Dictionary::dictionaryWithArray($body));
                     $context->save();
-                    /** @var ManagedObject $object */
                     $object = $managedObject($object->objectID);
-                    $this->content = json_encode($object->serialized($this->serialization), JSON_PRESERVE_ZERO_FRACTION);
+                    $this->content = json_encode($object?->serialized($this->serialization), JSON_PRESERVE_ZERO_FRACTION);
                     $this->contentType = "application/json; charset=utf-8";
                 }
                 break;

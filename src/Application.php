@@ -12,6 +12,7 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\DirectoryEnumerationOptions;
 use Sabatier\Foundation\Error;
 use Sabatier\Foundation\FileManager;
+use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
@@ -298,7 +299,8 @@ class Application extends Responder
                     AuthenticationScheme::digest => sprintf(", uri=\"%s\", algorithm=\"%s\", nonce=\"%s\", qop=\"%s\", opaque=\"%s\"", $this->request->url->path, "SHA-256", ProcessInfo::processInfo()->globallyUniqueString, "auth", base64_encode((string)$this->request->url->host)),
                     default => ""
                 }]) : null) : new HTTPURLResponse($this->request->url, HTTPStatusCode::internalServerError);
-            $error = $this->delegate?->applicationWillPresentError($this, new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedDescriptionKey => HTTPURLResponse::localizedString($response->statusCode), LocalizedFailureReasonErrorKey => $throwable->getMessage()])));
+            $error = $throwable instanceof InternalInconsistencyException ? $throwable->error : new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedDescriptionKey => HTTPURLResponse::localizedString($response->statusCode), LocalizedFailureReasonErrorKey => $throwable->getMessage()]));
+            $error = $this->delegate ? $this->delegate->applicationWillPresentError($this, $error) : $error;
             $this->send($response, json_encode(["error" => $error]), "application/json; charset=utf-8");
         }
     }

@@ -2,8 +2,8 @@
 
 namespace Sabatier\Service;
 
-use LogicException;
+use Sabatier\Foundation\InternalInconsistencyException;
 
-class InvalidRequestException extends LogicException
+class InvalidRequestException extends InternalInconsistencyException
 {
 }

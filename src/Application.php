@@ -29,7 +29,6 @@ use function Sabatier\Foundation\string_is_equal;
 use const Sabatier\CoreData\PersistentHistoryTrackingKey;
 use const Sabatier\CoreData\PersistentStoreRemoteChangeNotificationPostOptionKey;
 use const Sabatier\Foundation\kCFBundleNameKey;
-use const Sabatier\Foundation\LocalizedDescriptionKey;
 use const Sabatier\Foundation\LocalizedFailureReasonErrorKey;
 use const Sabatier\Foundation\URLErrorBadServerResponse;
 use const Sabatier\Foundation\URLErrorDomain;
@@ -298,7 +297,7 @@ class Application extends Responder
                     AuthenticationScheme::digest => sprintf(", uri=\"%s\", algorithm=\"%s\", nonce=\"%s\", qop=\"%s\", opaque=\"%s\"", $this->request->url->path, "SHA-256", ProcessInfo::processInfo()->globallyUniqueString, "auth", base64_encode((string)$this->request->url->host)),
                     default => ""
                 }]) : null) : new HTTPURLResponse($this->request->url, HTTPStatusCode::internalServerError);
-            $error = $throwable instanceof InternalInconsistencyException ? $throwable->error : new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedDescriptionKey => HTTPURLResponse::localizedString($response->statusCode), LocalizedFailureReasonErrorKey => $throwable->getMessage()]));
+            $error = $throwable instanceof InternalInconsistencyException ? $throwable->error : new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $throwable->getMessage()]));
             $error = $this->delegate ? $this->delegate->applicationWillPresentError($this, $error) : $error;
             $this->send($response, json_encode(["error" => $error]), "application/json; charset=utf-8");
         }

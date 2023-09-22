@@ -22,7 +22,6 @@ use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Foundation\URL;
 use Sabatier\Foundation\UserDefaults;
 use Throwable;
-use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\getallheaders;
 use function Sabatier\Foundation\human_readable_value;
 use function Sabatier\Foundation\request_url;
@@ -106,7 +105,7 @@ class Application extends Responder
             }
             $persistentContainer->loadPersistentStores(function (PersistentStoreDescription $description, ?Error $error): void {
                 if ($error) {
-                    fatal_error($error->localizedDescription);
+                    throw new InternalInconsistencyException(error: $error);
                 }
             });
             $this->$name = $persistentContainer;

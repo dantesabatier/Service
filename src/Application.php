@@ -140,6 +140,9 @@ class Application extends Responder
 
     private function send(HTTPURLResponse $response, ?string $content, ?string $contentType = null, ?int $contentLength = null, ?string $contentDisposition = null): never
     {
+        if (headers_sent()) {
+            die();
+        }
         $isEmpty = match ($response->statusCode) {
             HTTPStatusCode::created, HTTPStatusCode::noContent, HTTPStatusCode::resetContent, HTTPStatusCode::notModified => true,
             default => $response instanceof BatchResponse ? $response->isEmpty : empty($content)

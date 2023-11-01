@@ -104,17 +104,16 @@ class Authentication extends Responder
         }
     }
 
+    /**
+     * @throws Exception
+     */
     private function userBy(string $keyPath, mixed $obj): ?ManagedObject
     {
-        try {
-            /** @var class-string<ManagedObject> $userClass */
-            $userClass = self::$userClass;
-            $fetchRequest = $userClass::fetchRequest();
-            $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath($keyPath), Expression::expressionForConstantValue($obj), PredicateOperatorType::like, ComparisonPredicateModifier::direct, ComparisonPredicateOptions::caseInsensitive | ComparisonPredicateOptions::diacriticInsensitive);
-            return $this->managedObjectContext->fetch($fetchRequest)->first()?->serialized($this->serialization);
-        } catch (Exception) {
-            return null;
-        }
+        /** @var class-string<ManagedObject> $userClass */
+        $userClass = self::$userClass;
+        $fetchRequest = $userClass::fetchRequest();
+        $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath($keyPath), Expression::expressionForConstantValue($obj), PredicateOperatorType::like, ComparisonPredicateModifier::direct, ComparisonPredicateOptions::caseInsensitive | ComparisonPredicateOptions::diacriticInsensitive);
+        return $this->managedObjectContext->fetch($fetchRequest)->first()?->serialized($this->serialization);
     }
 
     /**

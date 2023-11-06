@@ -3,8 +3,6 @@
 namespace Sabatier\Service;
 
 use Exception;
-use Random\Engine\Secure;
-use Random\Randomizer;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
@@ -15,6 +13,7 @@ use Sabatier\Foundation\Predicates\ComparisonPredicateOptions;
 use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Foundation\Predicates\PredicateOperatorType;
 use function Sabatier\Foundation\is_password;
+use function Sabatier\Foundation\read_random;
 use function Sabatier\Foundation\substring_from_index;
 use function Sabatier\Foundation\substring_to_index;
 
@@ -144,7 +143,7 @@ class Authentication extends Responder
     public function token(): void
     {
         $this->isProtectedContentAvailable ?: throw new UnauthorizedException();
-        $token = md5((new Randomizer(new Secure()))->getBytes(64));
+        $token = md5(read_random(64));
         /** @var ManagedObject $user */
         $user = $this->user;
         $user->setValueForKey($token, "token");

@@ -29,7 +29,7 @@ abstract class ViewController extends Responder
     #[Outlet]
     public ?string $title = null;
 
-    public function __construct(?string $name = null, ?Bundle $bundle = null)
+    public function __construct()
     {
         parent::__construct();
         unset($this->name);
@@ -37,12 +37,6 @@ abstract class ViewController extends Responder
         unset($this->context);
         unset($this->bundle);
         unset($this->title);
-        if ($name) {
-            $this->name = $name;
-        }
-        if ($bundle) {
-            $this->bundle = $bundle;
-        }
     }
 
     public function __get(string $name)

@@ -137,7 +137,7 @@ abstract class Responder extends ObjectClass
      *
      * The default implementation of this method returns error unchanged.
      * @param Error $error The error object to customize.
-     * @return Error The customized error object; if you decide not to customize the error presentation, return by sending this message to super (that is, return parent::willPresentError($error)).
+     * @return Error The customized error object; if you decide not to customize the error presentation, return by sending this message to parent (that is, return parent::willPresentError($error)).
      */
     public function willPresentError(Error $error): Error
     {

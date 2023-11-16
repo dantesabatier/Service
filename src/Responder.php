@@ -13,7 +13,9 @@ use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
 use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Foundation\ObjectClass;
+use Sabatier\Foundation\URLComponents;
 use function Sabatier\Foundation\string_is_equal;
+use function Sabatier\Foundation\url_validate;
 
 /**
  * An abstract interface for responding to and handling url requests.
@@ -81,7 +83,12 @@ abstract class Responder extends ObjectClass
                     $selector = $method->name;
                     foreach ($method->getAttributes(Action::class) as $attribute) {
                         $action = $attribute->newInstance();
-                        if (string_is_equal($path, $action->path ?? "/$selector", CompareOptions::caseInsensitive)) {
+                        $other = $action->path ?? "/$selector";
+                        if (url_validate($other)) {
+                            $components = new URLComponents($other);
+                            $other = "$components->path$components->query";
+                        }
+                        if (string_is_equal($path, $other, CompareOptions::caseInsensitive)) {
                             $ok = $attemptProceedingWithDefaultImplementation();
                             if ($request->httpMethod === $action->method) {
                                 $this->perform($selector);

@@ -6,7 +6,9 @@ use Exception;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Date;
+use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\DirectoryEnumerationOptions;
+use Sabatier\Foundation\FileAttributeKey;
 use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\ProcessInfo;
@@ -85,7 +87,7 @@ class Session extends ObjectClass
         } elseif ($name == "saveURL") {
             $saveURL = FileManager::default()->url(SearchPathDirectory::cachesDirectory)->appendingPathComponent(Bundle::main()->bundleIdentifier ?? ProcessInfo::processInfo()->processName)->appendingPathComponent("Session");
             if (!FileManager::default()->fileExists($saveURL->path)) {
-                FileManager::default()->createDirectory($saveURL, true);
+                FileManager::default()->createDirectory($saveURL, true, new Dictionary([FileAttributeKey::posixPermissions => 0777]));
             }
             $this->$name = $saveURL;
             return $this->$name;

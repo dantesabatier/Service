@@ -125,7 +125,7 @@ abstract class Responder extends ObjectClass
      * @param Error $error An object containing information about an error.
      * @return bool
      */
-    public function presentError(Error $error): bool
+    public function presentError(/** @noinspection PhpUnusedParameterInspection */ Error $error): bool
     {
         return true;
     }

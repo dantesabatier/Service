@@ -313,4 +313,9 @@ class Application extends Responder
     {
         exit();
     }
+
+    public function presentError(Error $error): bool
+    {
+        return true;
+    }
 }

@@ -112,7 +112,7 @@ class Authentication extends Responder
         $userClass = self::$userClass;
         $fetchRequest = $userClass::fetchRequest();
         $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath($keyPath), Expression::expressionForConstantValue($constantValue), PredicateOperatorType::like, ComparisonPredicateModifier::direct, ComparisonPredicateOptions::caseInsensitive | ComparisonPredicateOptions::diacriticInsensitive);
-        return $this->managedObjectContext->fetch($fetchRequest)->first()?->serialized($this->serialization);
+        return $this->managedObjectContext->fetch($fetchRequest)->first?->serialized($this->serialization);
     }
 
     /**

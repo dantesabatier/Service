@@ -118,7 +118,7 @@ class PersistentSpace extends Responder
                 } else {
                     $predicates = $queryItems->map(fn(URLQueryItem $item): ComparisonPredicate => new ComparisonPredicate(Expression::expressionForKeyPath($item->name), Expression::expressionForConstantValue($item->value)));
                     /** @psalm-suppress InvalidArgument */
-                    $fetchRequest->predicate = $predicates->count() > 1 ? CompoundPredicate::andPredicateWithSubpredicates($predicates) : $predicates->first();
+                    $fetchRequest->predicate = $predicates->count > 1 ? CompoundPredicate::andPredicateWithSubpredicates($predicates) : $predicates->first;
                 }
             }
             if (($predicate = $fetchRequest->predicate) && ($store = $this->atomicStore)) {
@@ -206,7 +206,7 @@ class PersistentSpace extends Responder
                     if ($serialization = $this->serialization) {
                         $fetchRequest->serialization = $serialization;
                     }
-                    return $this->managedObjectContext->fetch($fetchRequest)->first();
+                    return $this->managedObjectContext->fetch($fetchRequest)->first;
                 };
                 $objectID = $body[SQLEntity::primaryKeyName] ?? null;
                 if ($objectID === null) {

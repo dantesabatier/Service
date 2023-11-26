@@ -98,7 +98,7 @@ class Application extends Responder
             return $this->$name;
         } elseif ($name == "persistentContainer") {
             $persistentContainer = new PersistentContainer(Bundle::main()->object(kCFBundleNameKey));
-            if ($description = $persistentContainer->persistentStoreDescriptions->first()) {
+            if ($description = $persistentContainer->persistentStoreDescriptions->first) {
                 $description->setOptionForKey(UserDefaults::standard()->bool(PersistentHistoryTrackingKey), PersistentHistoryTrackingKey);
                 $description->setOptionForKey(UserDefaults::standard()->bool(PersistentStoreRemoteChangeNotificationPostOptionKey), PersistentStoreRemoteChangeNotificationPostOptionKey);
             }

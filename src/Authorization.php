@@ -15,6 +15,17 @@ readonly class Authorization
         unset($this->parameters);
     }
 
+    public function __serialize(): array
+    {
+        return ["scheme" => $this->scheme, "credentials" => $this->credentials];
+    }
+
+    public function __unserialize(array $data): void
+    {
+        $this->scheme = $data["scheme"];
+        $this->credentials = $data["credentials"];
+    }
+
     public function __get(string $name)
     {
         $this->$name = match ($name) {

@@ -7,6 +7,7 @@ use ReflectionProperty;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
+use function Sabatier\Foundation\class_name;
 use const Sabatier\Foundation\kCFBundleNameKey;
 
 /**
@@ -42,7 +43,7 @@ abstract class ViewController extends Responder
     public function __get(string $name)
     {
         if ($name == "name") {
-            $this->$name = self::className();
+            $this->$name = class_name(static::class);
             return $this->$name;
         } elseif ($name == "context") {
             $this->$name = array_reduce((new ReflectionClass($this))->getProperties(ReflectionProperty::IS_PUBLIC), function (array $context, ReflectionProperty $property): array {

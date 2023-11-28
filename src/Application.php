@@ -301,7 +301,7 @@ class Application extends Responder
                     default => ""
                 }]) : null) : new HTTPURLResponse($this->request->url, HTTPStatusCode::internalServerError);
             $error = $throwable instanceof InternalInconsistencyException ? $throwable->error : new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $throwable->getMessage()]));
-            $error = $this->delegate ? $this->delegate->applicationWillPresentError($this, $error) : $error;
+            $error = $this->delegate?->applicationWillPresentError($this, $error) ?? $error;
             $this->send($response, json_encode(["error" => $error]), "application/json; charset=utf-8");
         }
     }

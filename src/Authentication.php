@@ -144,7 +144,7 @@ class Authentication extends Responder
         $user = $this->user;
         $user->setValueForKey($token, "token");
         $this->managedObjectContext->save();
-        $this->content = json_encode(["token" => $token]);
+        $this->content = json_encode(["access_token" => $token, "token_type" => "Bearer"]);
         $this->contentType = "application/json";
     }
 }

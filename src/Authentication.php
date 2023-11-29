@@ -74,25 +74,21 @@ class Authentication extends Responder
             return $this->$name;
         } elseif ($name == "isProtectedContentAvailable") {
             $this->$name = $this->request->httpMethod === HTTPRequestMethod::options || Application::shared()->session->valueForKey("user") !== null || (function (): bool {
-                    if (!($credential = $this->credential) || !($user = $this->user)) {
-                        return false;
-                    }
-                    $password = $user->valueForKey("password");
-                    return match ($this->authorization->scheme) {
-                        AuthenticationScheme::basic => is_password($password) ? password_verify((string)$credential->password, $password) : $credential->password === $password,
-                        AuthenticationScheme::digest => !is_password($password) && (function () use ($password): bool {
-                                $parameters = $this->authorization->parameters;
-                                if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"]) || ($parameters["algorithm"] !== "SHA-256")) {
-                                    return false;
-                                }
-                                $realm = $this->request->url->host;
-                                $HA1 = hash("sha256", "$username:$realm:$password");
-                                $HA2 = hash("sha256", "{$this->request->httpMethod}:$uri");
-                                $response = hash("sha256", "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
-                                return $parameters["response"] === $response;
-                            })(),
-                        AuthenticationScheme::bearer => $this->authorization->credentials === $this->user->valueForKey("token")
-                    };
+                    return ($credential = $this->credential) && ($user = $this->user) && ($password = $user->valueForKey("password")) && match ($this->authorization->scheme) {
+                            AuthenticationScheme::basic => is_password($password) ? password_verify((string)$credential->password, $password) : $credential->password === $password,
+                            AuthenticationScheme::digest => !is_password($password) && (function () use ($password): bool {
+                                    $parameters = $this->authorization->parameters;
+                                    if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"]) || ($parameters["algorithm"] !== "SHA-256")) {
+                                        return false;
+                                    }
+                                    $realm = $this->request->url->host;
+                                    $HA1 = hash("sha256", "$username:$realm:$password");
+                                    $HA2 = hash("sha256", "{$this->request->httpMethod}:$uri");
+                                    $response = hash("sha256", "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
+                                    return $parameters["response"] === $response;
+                                })(),
+                            AuthenticationScheme::bearer => $this->authorization->credentials === $this->user->valueForKey("token")
+                        };
                 })();
             return $this->$name;
         } elseif ($name == "allowedMethods") {

@@ -296,13 +296,13 @@ class Application extends Responder
             $delegate?->applicationDidFinishLaunching($this);
             $this->send($responder->response(), $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition);
         } catch (Throwable $throwable) {
+            $error = $throwable instanceof InternalInconsistencyException ? $throwable->error : new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $throwable->getMessage()]));
             /** @psalm-suppress PossiblyNullArgument */
             $response = $throwable instanceof InvalidRequestException ? new HTTPURLResponse($this->request->url, $throwable->getCode(), null, $throwable instanceof UnauthorizedException ? new Dictionary(["WWW-Authenticate" => "{$this->authentication->authorization->scheme->value} realm=\"{$this->request->url->host}\"" . match ($this->authentication->authorization->scheme) {
                     AuthenticationScheme::digest => sprintf(", uri=\"%s\", algorithm=\"%s\", nonce=\"%s\", qop=\"%s\", opaque=\"%s\"", $this->request->url->path, "SHA-256", ProcessInfo::processInfo()->globallyUniqueString, "auth", base64_encode((string)$this->request->url->host)),
-                    AuthenticationScheme::bearer => sprintf(", error=\"%s\", error_description=\"%s\"", $this->authentication->error?->localizedDescription, $this->authentication->error?->localizedFailureReason),
+                    AuthenticationScheme::bearer => sprintf(", error=\"%s\", error_description=\"%s\"", $error->localizedDescription, $error->localizedFailureReason),
                     default => ""
                 }]) : null) : new HTTPURLResponse($this->request->url, HTTPStatusCode::internalServerError);
-            $error = $throwable instanceof InternalInconsistencyException ? $throwable->error : new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $throwable->getMessage()]));
             $error = $this->delegate?->applicationWillPresentError($this, $error) ?? $error;
             $this->send($response, json_encode(["error" => $error]), "application/json; charset=utf-8");
         }

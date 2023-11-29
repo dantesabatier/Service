@@ -5,8 +5,6 @@ namespace Sabatier\Service;
 use Exception;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
-use Sabatier\Foundation\Dictionary;
-use Sabatier\Foundation\Error;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
@@ -18,9 +16,6 @@ use function Sabatier\Foundation\is_password;
 use function Sabatier\Foundation\read_random;
 use function Sabatier\Foundation\substring_from_index;
 use function Sabatier\Foundation\substring_to_index;
-use const Sabatier\Foundation\LocalizedDescriptionKey;
-use const Sabatier\Foundation\URLErrorDomain;
-use const Sabatier\Foundation\URLErrorNoPermissionsToReadFile;
 
 class Authentication extends Responder
 {
@@ -30,15 +25,12 @@ class Authentication extends Responder
     public readonly ?URLCredential $credential;
     public readonly ?ManagedObject $user;
 
-    public readonly ?Error $error;
-
     public function __construct()
     {
         parent::__construct();
         unset($this->authorization);
         unset($this->credential);
         unset($this->user);
-        unset($this->error);
         unset($this->isProtectedContentAvailable);
     }
 
@@ -98,9 +90,6 @@ class Authentication extends Responder
             return $this->$name;
         } elseif ($name == "allowedMethods") {
             $this->$name = new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
-            return $this->$name;
-        } elseif ($name == "error") {
-            $this->$name = new Error(URLErrorDomain, URLErrorNoPermissionsToReadFile, new Dictionary([LocalizedDescriptionKey => "The operation couldn't be completed."]));
             return $this->$name;
         } else {
             return parent::__get($name);

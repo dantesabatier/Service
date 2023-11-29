@@ -80,8 +80,7 @@ class Authentication extends Responder
                                 if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"]) || ($parameters["algorithm"] !== "SHA-256")) {
                                     return false;
                                 }
-                                $realm = $this->request->url->host;
-                                $HA1 = hash("sha256", "$username:$realm:$password");
+                                $HA1 = hash("sha256", "$username:{$this->request->url->host}:$password");
                                 $HA2 = hash("sha256", "{$this->request->httpMethod}:$uri");
                                 $response = hash("sha256", "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
                                 return $parameters["response"] === $response;

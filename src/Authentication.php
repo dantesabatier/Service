@@ -5,6 +5,7 @@ namespace Sabatier\Service;
 use Exception;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
+use Sabatier\Foundation\Error;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
@@ -25,12 +26,15 @@ class Authentication extends Responder
     public readonly ?URLCredential $credential;
     public readonly ?ManagedObject $user;
 
+    public readonly ?Error $error;
+
     public function __construct()
     {
         parent::__construct();
         unset($this->authorization);
         unset($this->credential);
         unset($this->user);
+        unset($this->error);
         unset($this->isProtectedContentAvailable);
     }
 
@@ -85,7 +89,7 @@ class Authentication extends Responder
                                 $response = hash("sha256", "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
                                 return $parameters["response"] === $response;
                             })(),
-                        AuthenticationScheme::bearer => $this->authorization->credentials === $this->user->valueForKey("token")
+                        AuthenticationScheme::bearer => $this->authorization->credentials === $user->valueForKey("token")
                     });
             return $this->$name;
         } elseif ($name == "allowedMethods") {

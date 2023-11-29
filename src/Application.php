@@ -298,10 +298,7 @@ class Application extends Responder
             $delegate?->applicationDidFinishLaunching($this);
             $this->send($responder->response(), $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition);
         } catch (Throwable $throwable) {
-            $error = $throwable instanceof InternalInconsistencyException ? match (true) {
-                $throwable instanceof UnauthorizedException => new Error(URLErrorDomain, URLErrorNoPermissionsToReadFile, new Dictionary([LocalizedDescriptionKey => "invalid_grant"])),
-                default => $throwable->error
-            } : new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $throwable->getMessage()]));
+            $error = $throwable instanceof InternalInconsistencyException ? ($throwable instanceof UnauthorizedException ? new Error(URLErrorDomain, URLErrorNoPermissionsToReadFile, new Dictionary([LocalizedDescriptionKey => "invalid_grant"])) : $throwable->error) : new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $throwable->getMessage()]));
             $error = $this->delegate?->applicationWillPresentError($this, $error) ?? $error;
             /** @psalm-suppress PossiblyNullArgument */
             $response = $throwable instanceof InvalidRequestException ? new HTTPURLResponse($this->request->url, $throwable->getCode(), null, $throwable instanceof UnauthorizedException ? new Dictionary(["WWW-Authenticate" => "{$this->authentication->authorization->scheme->value} realm=\"{$this->request->url->host}\"" . match ($this->authentication->authorization->scheme) {

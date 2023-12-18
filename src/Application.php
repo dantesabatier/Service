@@ -47,6 +47,7 @@ class Application extends Responder
     public Session $session;
     public Authentication $authentication;
     public readonly PersistentContainer $persistentContainer;
+    public readonly ?Responder $firstResponder;
     private readonly PersistentSpace $persistentSpace;
     private readonly ResourceManager $resourceManager;
 
@@ -57,6 +58,7 @@ class Application extends Responder
         unset($this->delegate);
         unset($this->session);
         unset($this->persistentContainer);
+        unset($this->firstResponder);
         unset($this->authentication);
         unset($this->persistentSpace);
         unset($this->resourceManager);
@@ -122,6 +124,9 @@ class Application extends Responder
             return $this->$name;
         } elseif ($name == "resourceManager") {
             $this->$name = new ResourceManager();
+            return $this->$name;
+        } elseif ($name == "firstResponder") {
+            $this->$name = null;
             return $this->$name;
         } else {
             return parent::__get($name);
@@ -295,6 +300,7 @@ class Application extends Responder
                     return $responder;
                 })()
             };
+            $this->firstResponder = $responder !== $this ? $responder : null;
             $delegate?->applicationDidFinishLaunching($this);
             $this->send($responder->response(), $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition);
         } catch (Throwable $throwable) {

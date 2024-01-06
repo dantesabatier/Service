@@ -283,9 +283,8 @@ class Application extends Responder
             $responder = match ($this->request->httpMethod) {
                 HTTPRequestMethod::options => $this,
                 default => (function (): Responder {
-                    $resourceManager = $this->resourceManager;
-                    if ($resourceManager->isFirstResponder()) {
-                        return $resourceManager;
+                    if ($this->resourceManager->isFirstResponder()) {
+                        return $this->resourceManager;
                     }
                     $session = $this->session;
                     $session->start();

@@ -255,7 +255,7 @@ class Application extends Responder
 
     private function internalResponder(): ?Responder
     {
-        return (new ArrayClass([$this->authentication, $this->persistentSpace, new Home()]))->first(fn(Responder $responder): bool => $responder->isFirstResponder());
+        return (new ArrayClass([$this->authentication, $this->persistentSpace, $this->resourceManager, new Home()]))->first(fn(Responder $responder): bool => $responder->isFirstResponder());
     }
 
     private function instantiateInitialResponder(): Responder
@@ -283,9 +283,6 @@ class Application extends Responder
             $responder = match ($this->request->httpMethod) {
                 HTTPRequestMethod::options => $this,
                 default => (function (): Responder {
-                    if ($this->resourceManager->isFirstResponder()) {
-                        return $this->resourceManager;
-                    }
                     $session = $this->session;
                     $session->start();
                     $responder = $this->instantiateInitialResponder();

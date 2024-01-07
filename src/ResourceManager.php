@@ -25,8 +25,10 @@ class ResourceManager extends Responder
 
     public function isFirstResponder(): bool
     {
-        $path = $this->resourceURL->path;
-        return FileManager::default()->fileExists($path, $isDirectory) && !$isDirectory && FileManager::default()->isReadableFile($path);
+        return match ($this->request->httpMethod) {
+            HTTPRequestMethod::get, HTTPRequestMethod::head => FileManager::default()->fileExists($this->resourceURL->path, $isDirectory) && !$isDirectory && FileManager::default()->isReadableFile($this->resourceURL->path),
+            default => false
+        };
     }
 
     public function response(): HTTPURLResponse

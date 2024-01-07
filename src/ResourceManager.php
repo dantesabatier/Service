@@ -4,7 +4,6 @@
 
 namespace Sabatier\Service;
 
-use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
@@ -19,8 +18,17 @@ class ResourceManager extends Responder
     public function __construct()
     {
         parent::__construct();
-        $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::head, HTTPRequestMethod::options]);
-        $this->resourceURL = new URL($this->request->url->path, FileManager::default()->documentRootDirectory);
+        unset($this->resourceURL);
+    }
+
+    public function __get(string $name)
+    {
+        if ($name == "resourceURL") {
+            $this->$name = (new URL($this->request->url->path, FileManager::default()->documentRootDirectory))->absoluteURL;
+            return $this->$name;
+        } else {
+            return parent::__get($name);
+        }
     }
 
     public function isFirstResponder(): bool

@@ -26,7 +26,5 @@
         </PropertyTypeCoercion>
         <InternalClass errorLevel="suppress"/>
         <InternalProperty errorLevel="suppress"/>
-        <InternalClass errorLevel="suppress"/>
-        <InternalProperty errorLevel="suppress"/>
     </issueHandlers>
 </psalm>

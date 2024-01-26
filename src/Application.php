@@ -286,6 +286,10 @@ class Application extends Responder
                     $session = $this->session;
                     $session->start();
                     $responder = $this->instantiateInitialResponder();
+                    $this->persistentContainer->viewContext->transactionAuthor = match ($this->request->httpMethod) {
+                        HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $session->valueForKey("user"),
+                        default => null
+                    };
                     $session->commit();
                     if ($responder === $this->authentication) {
                         return $responder;
@@ -293,10 +297,6 @@ class Application extends Responder
                     if (!$responder->isProtectedContentAvailable && !$this->authentication->isProtectedContentAvailable) {
                         throw new UnauthorizedException();
                     }
-                    $this->persistentContainer->viewContext->transactionAuthor = match ($this->request->httpMethod) {
-                        HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $this->authentication->user?->valueForKey("username"),
-                        default => null
-                    };
                     return $responder;
                 })()
             };

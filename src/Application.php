@@ -47,7 +47,7 @@ class Application extends Responder
     public Session $session;
     public Authentication $authentication;
     public readonly PersistentContainer $persistentContainer;
-    public readonly ?Responder $firstResponder;
+    public readonly Responder $firstResponder;
     private readonly PersistentSpace $persistentSpace;
     private readonly ResourceManager $resourceManager;
 
@@ -126,7 +126,7 @@ class Application extends Responder
             $this->$name = new ResourceManager();
             return $this->$name;
         } elseif ($name == "firstResponder") {
-            $this->$name = null;
+            $this->$name = $this;
             return $this->$name;
         } else {
             return parent::__get($name);

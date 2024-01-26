@@ -300,7 +300,7 @@ class Application extends Responder
                     return $responder;
                 })()
             };
-            $this->firstResponder = $responder !== $this ? $responder : null;
+            $this->firstResponder = $responder;
             $delegate?->applicationDidFinishLaunching($this);
             $this->send($responder->response(), $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition);
         } catch (Throwable $throwable) {

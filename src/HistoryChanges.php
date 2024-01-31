@@ -12,6 +12,7 @@ use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
 use Sabatier\Foundation\Predicates\Predicate;
 
+/** @internal */
 #[Endpoint]
 class HistoryChanges extends Responder
 {

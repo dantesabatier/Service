@@ -28,9 +28,10 @@ class Preferences extends Responder
                 }
                 if ($request->httpMethod === HTTPRequestMethod::delete) {
                     $statusCode = HTTPStatusCode::noContent;
+                } else {
+                    $this->content = json_encode(UserDefaults::standard()->dictionaryRepresentation(), JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
+                    $this->contentType = "application/json; charset=utf-8";
                 }
-                $this->content = json_encode(UserDefaults::standard()->dictionaryRepresentation(), JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
-                $this->contentType = "application/json; charset=utf-8";
                 break;
             case HTTPRequestMethod::options:
                 break;

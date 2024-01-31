@@ -50,6 +50,8 @@ class Application extends Responder
     public readonly Responder $firstResponder;
     private readonly PersistentSpace $persistentSpace;
     private readonly ResourceManager $resourceManager;
+    private readonly Preferences $preferences;
+    private readonly HistoryChanges $historyChanges;
 
     final public function __construct()
     {
@@ -62,6 +64,8 @@ class Application extends Responder
         unset($this->authentication);
         unset($this->persistentSpace);
         unset($this->resourceManager);
+        unset($this->preferences);
+        unset($this->historyChanges);
     }
 
     /** @suppress PHP0418 */
@@ -124,6 +128,12 @@ class Application extends Responder
             return $this->$name;
         } elseif ($name == "resourceManager") {
             $this->$name = new ResourceManager();
+            return $this->$name;
+        } elseif ($name == "preferences") {
+            $this->$name = new Preferences();
+            return $this->$name;
+        } elseif ($name == "historyChanges") {
+            $this->$name = new HistoryChanges();
             return $this->$name;
         } elseif ($name == "firstResponder") {
             $this->$name = $this;
@@ -255,7 +265,7 @@ class Application extends Responder
 
     private function internalResponder(): ?Responder
     {
-        return (new ArrayClass([$this->authentication, $this->persistentSpace, $this->resourceManager, new Home()]))->first(fn(Responder $responder): bool => $responder->isFirstResponder());
+        return (new ArrayClass([$this->authentication, $this->persistentSpace, $this->resourceManager, $this->preferences, $this->historyChanges, new Home()]))->first(fn(Responder $responder): bool => $responder->isFirstResponder());
     }
 
     private function instantiateInitialResponder(): Responder

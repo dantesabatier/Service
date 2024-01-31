@@ -7,6 +7,7 @@ use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
 use Sabatier\Foundation\UserDefaults;
 
+/** @internal */
 #[Endpoint]
 class Preferences extends Responder
 {

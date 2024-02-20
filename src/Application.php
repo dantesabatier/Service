@@ -33,6 +33,7 @@ use const Sabatier\Foundation\LocalizedDescriptionKey;
 use const Sabatier\Foundation\LocalizedFailureReasonErrorKey;
 use const Sabatier\Foundation\URLErrorBadServerResponse;
 use const Sabatier\Foundation\URLErrorDomain;
+use const Sabatier\Foundation\URLErrorFileDoesNotExist;
 use const Sabatier\Foundation\URLErrorNoPermissionsToReadFile;
 
 /**
@@ -314,7 +315,21 @@ class Application extends Responder
             $delegate?->applicationDidFinishLaunching($this);
             $this->send($responder->response(), $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition);
         } catch (Throwable $throwable) {
-            $error = $throwable instanceof InternalInconsistencyException ? ($throwable instanceof UnauthorizedException ? new Error(URLErrorDomain, URLErrorNoPermissionsToReadFile, new Dictionary([LocalizedDescriptionKey => "invalid_grant"])) : $throwable->error) : new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $throwable->getMessage()]));
+            if ($throwable instanceof InternalInconsistencyException) {
+                if ($throwable instanceof InvalidRequestException) {
+                    if ($throwable instanceof UnauthorizedException) {
+                        $error = new Error(URLErrorDomain, URLErrorNoPermissionsToReadFile, new Dictionary([LocalizedDescriptionKey => "invalid_grant"]));
+                    } elseif ($throwable instanceof NotFoundException) {
+                        $error = new Error(URLErrorDomain, URLErrorFileDoesNotExist, new Dictionary([LocalizedDescriptionKey => HTTPURLResponse::localizedString((int)$throwable->getCode())]));
+                    } else {
+                        $error = new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedDescriptionKey => HTTPURLResponse::localizedString((int)$throwable->getCode())]));
+                    }
+                } else {
+                    $error = $throwable->error;
+                }
+            } else {
+                $error = new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $throwable->getMessage()]));
+            }
             $error = $this->delegate?->applicationWillPresentError($this, $error) ?? $error;
             /** @psalm-suppress PossiblyNullArgument */
             $response = $throwable instanceof InvalidRequestException ? new HTTPURLResponse($this->request->url, $throwable->getCode(), null, $throwable instanceof UnauthorizedException ? new Dictionary(["WWW-Authenticate" => "{$this->authentication->authorization->scheme->value} realm=\"{$this->request->url->host}\"" . match ($this->authentication->authorization->scheme) {

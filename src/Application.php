@@ -29,7 +29,6 @@ use function Sabatier\Foundation\string_is_equal;
 use const Sabatier\CoreData\PersistentHistoryTrackingKey;
 use const Sabatier\CoreData\PersistentStoreRemoteChangeNotificationPostOptionKey;
 use const Sabatier\Foundation\kCFBundleNameKey;
-use const Sabatier\Foundation\LocalizedDescriptionKey;
 use const Sabatier\Foundation\LocalizedFailureReasonErrorKey;
 use const Sabatier\Foundation\URLErrorBadServerResponse;
 use const Sabatier\Foundation\URLErrorDomain;
@@ -320,9 +319,9 @@ class Application extends Responder
                     if ($throwable instanceof UnauthorizedException) {
                         $error = new Error(URLErrorDomain, URLErrorNoPermissionsToReadFile, new Dictionary([LocalizedFailureReasonErrorKey => "invalid_grant"]));
                     } elseif ($throwable instanceof NotFoundException) {
-                        $error = new Error(URLErrorDomain, URLErrorFileDoesNotExist, new Dictionary([LocalizedFailureReasonErrorKey => HTTPURLResponse::localizedString((int)$throwable->getCode())]));
+                        $error = new Error(URLErrorDomain, URLErrorFileDoesNotExist, new Dictionary([LocalizedFailureReasonErrorKey => HTTPURLResponse::localizedString($throwable->getCode())]));
                     } else {
-                        $error = new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => HTTPURLResponse::localizedString((int)$throwable->getCode())]));
+                        $error = new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => HTTPURLResponse::localizedString($throwable->getCode())]));
                     }
                 } else {
                     $error = $throwable->error;

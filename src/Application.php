@@ -317,7 +317,7 @@ class Application extends Responder
             if ($throwable instanceof InternalInconsistencyException) {
                 if ($throwable instanceof InvalidRequestException) {
                     if ($throwable instanceof UnauthorizedException) {
-                        $error = new Error(URLErrorDomain, URLErrorNoPermissionsToReadFile, new Dictionary([LocalizedFailureReasonErrorKey => "invalid_grant"]));
+                        $error = new Error(URLErrorDomain, URLErrorNoPermissionsToReadFile, new Dictionary([LocalizedFailureReasonErrorKey => HTTPURLResponse::localizedString($throwable->getCode())]));
                     } elseif ($throwable instanceof NotFoundException) {
                         $error = new Error(URLErrorDomain, URLErrorFileDoesNotExist, new Dictionary([LocalizedFailureReasonErrorKey => HTTPURLResponse::localizedString($throwable->getCode())]));
                     } else {

@@ -36,7 +36,7 @@ use const Sabatier\Foundation\URLErrorFileDoesNotExist;
 use const Sabatier\Foundation\URLErrorNoPermissionsToReadFile;
 
 /**
- * An object that manages an app’s main url request and resources used by all of that app’s objects.
+ * An object that manages an app's main url request and resources used by all of that app's objects.
  */
 class Application extends Responder
 {

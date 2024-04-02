@@ -131,9 +131,9 @@ abstract class Responder extends ObjectClass
     }
 
     /**
-     * Returns a custom version of the supplied error object that’s more suitable for presentation in alert sheets and dialogs.
+     * Returns a custom version of the supplied error object that's more suitable for presentation in alert sheets and dialogs.
      *
-     * When overriding this method, you can examine error and, if its localized description or recovery information is unhelpfully generic, return an error object with more specific localized text. If you do this, always use the domain and error code of the Error object to distinguish between errors whose presentation you want to customize and those you don’t. Don’t make decisions based on the localized description, recovery suggestion, or recovery options because parsing localized text is problematic.
+     * When overriding this method, you can examine error and, if its localized description or recovery information is unhelpfully generic, return an error object with more specific localized text. If you do this, always use the domain and error code of the Error object to distinguish between errors whose presentation you want to customize and those you don't. Don't make decisions based on the localized description, recovery suggestion, or recovery options because parsing localized text is problematic.
      *
      * The default implementation of this method returns error unchanged.
      * @param Error $error The error object to customize.

@@ -314,6 +314,7 @@ class Application extends Responder
             $delegate?->applicationDidFinishLaunching($this);
             $this->send($responder->response(), $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition);
         } catch (Throwable $throwable) {
+            $this->firstResponder = $this;
             if ($throwable instanceof InternalInconsistencyException) {
                 if ($throwable instanceof InvalidRequestException) {
                     if ($throwable instanceof UnauthorizedException) {

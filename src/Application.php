@@ -47,7 +47,6 @@ class Application extends Responder
     public Session $session;
     public Authentication $authentication;
     public readonly PersistentContainer $persistentContainer;
-    public readonly Responder $firstResponder;
     private readonly PersistentSpace $persistentSpace;
     private readonly ResourceManager $resourceManager;
     private readonly Preferences $preferences;
@@ -60,7 +59,6 @@ class Application extends Responder
         unset($this->delegate);
         unset($this->session);
         unset($this->persistentContainer);
-        unset($this->firstResponder);
         unset($this->authentication);
         unset($this->persistentSpace);
         unset($this->resourceManager);
@@ -134,9 +132,6 @@ class Application extends Responder
             return $this->$name;
         } elseif ($name == "historyChanges") {
             $this->$name = new HistoryChanges();
-            return $this->$name;
-        } elseif ($name == "firstResponder") {
-            $this->$name = $this;
             return $this->$name;
         } else {
             return parent::__get($name);
@@ -310,11 +305,9 @@ class Application extends Responder
                     return $responder;
                 })()
             };
-            $this->firstResponder = $responder;
             $delegate?->applicationDidFinishLaunching($this);
             $this->send($responder->response(), $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition);
         } catch (Throwable $throwable) {
-            $this->firstResponder = $this;
             if ($throwable instanceof InternalInconsistencyException) {
                 if ($throwable instanceof InvalidRequestException) {
                     if ($throwable instanceof UnauthorizedException) {

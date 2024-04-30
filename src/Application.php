@@ -50,7 +50,6 @@ class Application extends Responder
     private readonly PersistentSpace $persistentSpace;
     private readonly ResourceManager $resourceManager;
     private readonly Preferences $preferences;
-    private readonly HistoryChanges $historyChanges;
 
     final public function __construct()
     {
@@ -129,9 +128,6 @@ class Application extends Responder
             return $this->$name;
         } elseif ($name == "preferences") {
             $this->$name = new Preferences();
-            return $this->$name;
-        } elseif ($name == "historyChanges") {
-            $this->$name = new HistoryChanges();
             return $this->$name;
         } else {
             return parent::__get($name);
@@ -260,7 +256,7 @@ class Application extends Responder
 
     private function internalResponder(): ?Responder
     {
-        return (new ArrayClass([$this->authentication, $this->persistentSpace, $this->resourceManager, $this->preferences, $this->historyChanges, new Home()]))->first(fn(Responder $responder): bool => $responder->isFirstResponder());
+        return (new ArrayClass([$this->authentication, $this->persistentSpace, $this->resourceManager, $this->preferences, new Home()]))->first(fn(Responder $responder): bool => $responder->isFirstResponder());
     }
 
     private function instantiateInitialResponder(): Responder

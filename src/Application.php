@@ -305,13 +305,14 @@ class Application extends Responder
             $this->send($responder->response(), $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition);
         } catch (Throwable $throwable) {
             if ($throwable instanceof InternalInconsistencyException) {
+                $reason = $throwable->getMessage() ?? HTTPURLResponse::localizedString($throwable->getCode());
                 if ($throwable instanceof InvalidRequestException) {
                     if ($throwable instanceof UnauthorizedException) {
-                        $error = new Error(URLErrorDomain, URLErrorNoPermissionsToReadFile, new Dictionary([LocalizedFailureReasonErrorKey => HTTPURLResponse::localizedString($throwable->getCode())]));
+                        $error = new Error(URLErrorDomain, URLErrorNoPermissionsToReadFile, new Dictionary([LocalizedFailureReasonErrorKey => $reason]));
                     } elseif ($throwable instanceof NotFoundException) {
-                        $error = new Error(URLErrorDomain, URLErrorFileDoesNotExist, new Dictionary([LocalizedFailureReasonErrorKey => HTTPURLResponse::localizedString($throwable->getCode())]));
+                        $error = new Error(URLErrorDomain, URLErrorFileDoesNotExist, new Dictionary([LocalizedFailureReasonErrorKey => $reason]));
                     } else {
-                        $error = new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => HTTPURLResponse::localizedString($throwable->getCode())]));
+                        $error = new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $reason]));
                     }
                 } else {
                     $error = $throwable->error;
@@ -320,6 +321,7 @@ class Application extends Responder
                 $error = new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $throwable->getMessage()]));
             }
             $error = $this->delegate?->applicationWillPresentError($this, $error) ?? $error;
+            error_log($error);
             /** @psalm-suppress PossiblyNullArgument */
             $response = $throwable instanceof InvalidRequestException ? new HTTPURLResponse($this->request->url, $throwable->getCode(), null, $throwable instanceof UnauthorizedException ? new Dictionary(["WWW-Authenticate" => "{$this->authentication->authorization->scheme->value} realm=\"{$this->request->url->host}\"" . match ($this->authentication->authorization->scheme) {
                     AuthenticationScheme::digest => sprintf(", uri=\"%s\", algorithm=\"%s\", nonce=\"%s\", qop=\"%s\", opaque=\"%s\"", $this->request->url->path, "SHA-256", ProcessInfo::processInfo()->globallyUniqueString, "auth", base64_encode((string)$this->request->url->host)),

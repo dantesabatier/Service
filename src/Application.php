@@ -302,11 +302,7 @@ class Application extends Responder
             $delegate?->applicationDidFinishLaunching($this);
             $this->send($responder->response(), $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition);
         } catch (Throwable $throwable) {
-            if ($throwable instanceof InternalInconsistencyException) {
-                $error = $throwable->error;
-            } else {
-                $error = new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $throwable->getMessage()]));
-            }
+            $error = $throwable instanceof InternalInconsistencyException ? $throwable->error : new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $throwable->getMessage()]));
             $error = $this->delegate?->applicationWillPresentError($this, $error) ?? $error;
             error_log($error);
             /** @psalm-suppress PossiblyNullArgument */

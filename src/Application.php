@@ -32,8 +32,6 @@ use const Sabatier\Foundation\kCFBundleNameKey;
 use const Sabatier\Foundation\LocalizedFailureReasonErrorKey;
 use const Sabatier\Foundation\URLErrorBadServerResponse;
 use const Sabatier\Foundation\URLErrorDomain;
-use const Sabatier\Foundation\URLErrorFileDoesNotExist;
-use const Sabatier\Foundation\URLErrorNoPermissionsToReadFile;
 
 /**
  * An object that manages an app's main url request and resources used by all of that app's objects.
@@ -305,18 +303,7 @@ class Application extends Responder
             $this->send($responder->response(), $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition);
         } catch (Throwable $throwable) {
             if ($throwable instanceof InternalInconsistencyException) {
-                $reason = $throwable->getMessage() ?? HTTPURLResponse::localizedString($throwable->getCode());
-                if ($throwable instanceof InvalidRequestException) {
-                    if ($throwable instanceof UnauthorizedException) {
-                        $error = new Error(URLErrorDomain, URLErrorNoPermissionsToReadFile, new Dictionary([LocalizedFailureReasonErrorKey => $reason]));
-                    } elseif ($throwable instanceof NotFoundException) {
-                        $error = new Error(URLErrorDomain, URLErrorFileDoesNotExist, new Dictionary([LocalizedFailureReasonErrorKey => $reason]));
-                    } else {
-                        $error = new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $reason]));
-                    }
-                } else {
-                    $error = $throwable->error;
-                }
+                $error = $throwable->error;
             } else {
                 $error = new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $throwable->getMessage()]));
             }

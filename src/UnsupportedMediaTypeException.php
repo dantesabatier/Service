@@ -14,6 +14,6 @@ class UnsupportedMediaTypeException extends InvalidRequestException
 {
     public function __construct(string $message = "")
     {
-        parent::__construct($message, HTTPStatusCode::unsupportedMediaType, error: new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $this->getMessage() ?? HTTPURLResponse::localizedString($this->getCode())])));
+        parent::__construct($message, HTTPStatusCode::unsupportedMediaType, error: new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $this->getMessage() ?? HTTPURLResponse::localizedString(HTTPStatusCode::unsupportedMediaType)])));
     }
 }

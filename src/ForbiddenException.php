@@ -14,6 +14,6 @@ class ForbiddenException extends InvalidRequestException
 {
     public function __construct(string $message = "")
     {
-        parent::__construct($message, HTTPStatusCode::forbidden, error: new Error(URLErrorDomain, URLErrorNoPermissionsToReadFile, new Dictionary([LocalizedFailureReasonErrorKey => $this->getMessage() ?? HTTPURLResponse::localizedString(HTTPStatusCode::forbidden)])));
+        parent::__construct($message, HTTPStatusCode::forbidden, error: new Error(URLErrorDomain, URLErrorNoPermissionsToReadFile, new Dictionary([LocalizedFailureReasonErrorKey => $message ?: HTTPURLResponse::localizedString(HTTPStatusCode::forbidden)])));
     }
 }

@@ -14,6 +14,6 @@ class InternalServerErrorException extends InvalidRequestException
 {
     public function __construct(string $message = "")
     {
-        parent::__construct($message, HTTPStatusCode::internalServerError, error: new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $this->getMessage() ?? HTTPURLResponse::localizedString(HTTPStatusCode::internalServerError)])));
+        parent::__construct($message, HTTPStatusCode::internalServerError, error: new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $message ?: HTTPURLResponse::localizedString(HTTPStatusCode::internalServerError)])));
     }
 }

@@ -14,6 +14,6 @@ class ConflictException extends InvalidRequestException
 {
     public function __construct(string $message = "")
     {
-        parent::__construct($message, HTTPStatusCode::conflict, error: new Error(URLErrorDomain, URLErrorNoPermissionsToReadFile, new Dictionary([LocalizedFailureReasonErrorKey => $this->getMessage() ?? HTTPURLResponse::localizedString(HTTPStatusCode::conflict)])));
+        parent::__construct($message, HTTPStatusCode::conflict, error: new Error(URLErrorDomain, URLErrorNoPermissionsToReadFile, new Dictionary([LocalizedFailureReasonErrorKey => $message ?: HTTPURLResponse::localizedString(HTTPStatusCode::conflict)])));
     }
 }

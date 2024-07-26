@@ -14,6 +14,6 @@ class BadRequestException extends InvalidRequestException
 {
     public function __construct(string $message = "")
     {
-        parent::__construct($message, HTTPStatusCode::badRequest, error: new Error(URLErrorDomain, URLErrorBadURL, new Dictionary([LocalizedFailureReasonErrorKey => $this->getMessage() ?? HTTPURLResponse::localizedString(HTTPStatusCode::badRequest)])));
+        parent::__construct($message, HTTPStatusCode::badRequest, error: new Error(URLErrorDomain, URLErrorBadURL, new Dictionary([LocalizedFailureReasonErrorKey => $message ?: HTTPURLResponse::localizedString(HTTPStatusCode::badRequest)])));
     }
 }

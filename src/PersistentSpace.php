@@ -94,8 +94,8 @@ class PersistentSpace extends Responder
                                             $expressionDescription = new ExpressionDescription();
                                             $expressionDescription->name = $element->name;
                                             $expressionDescription->expression = Expression::expressionWithFormat($expression->format, ArrayClass::arrayWithArray($expression->arguments ?? []));
-                                            if (property_exists($expression, "expressionResultType")) {
-                                                $expressionDescription->resultType = AttributeType::from($expression->expressionResultType);
+                                            if (property_exists($element, "resultType")) {
+                                                $expressionDescription->resultType = AttributeType::from($element->resultType);
                                             }
                                             return $expressionDescription;
                                         }

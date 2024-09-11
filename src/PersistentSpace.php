@@ -77,7 +77,7 @@ class PersistentSpace extends Responder
                         $fetchRequest->fetchOffset = $decoded->fetchOffset ?? 0;
                         $fetchRequest->fetchBatchSize = $decoded->fetchBatchSize ?? 0;
                         if (property_exists($decoded, "sortDescriptors")) {
-                            $fetchRequest->sortDescriptors = (new ArrayClass($decoded->sortDescriptors))->map(fn(object $obj): SortDescriptor => new SortDescriptor($obj->key, $obj->ascending));
+                            $fetchRequest->sortDescriptors = (new ArrayClass($decoded->sortDescriptors))->compactMap(fn(object $obj): ?SortDescriptor => property_exists($obj, "key") ? new SortDescriptor($obj->key, $obj->ascending) : null);
                         }
                         if (property_exists($decoded, "resultType")) {
                             $fetchRequest->resultType = FetchRequestResultType::from($decoded->resultType);

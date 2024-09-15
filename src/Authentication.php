@@ -12,7 +12,6 @@ use Sabatier\Foundation\Predicates\ComparisonPredicateModifier;
 use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Foundation\Predicates\PredicateOperatorType;
 use function Sabatier\Foundation\is_password;
-use function Sabatier\Foundation\read_random;
 use function Sabatier\Foundation\substring_from_index;
 use function Sabatier\Foundation\substring_to_index;
 
@@ -126,21 +125,5 @@ class Authentication extends Responder
     {
         $session = Application::shared()->session;
         $session->setValueForKey(null, "user");
-    }
-
-    /**
-     * @throws Exception
-     */
-    #[Action]
-    public function token(): void
-    {
-        $this->isProtectedContentAvailable ?: throw new UnauthorizedException();
-        $token = md5(read_random(64));
-        /** @var ManagedObject $user */
-        $user = $this->user;
-        $user->setValueForKey($token, "token");
-        $this->managedObjectContext->save();
-        $this->content = json_encode(["access_token" => $token, "token_type" => "Bearer"]);
-        $this->contentType = "application/json";
     }
 }

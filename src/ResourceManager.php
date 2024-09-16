@@ -4,6 +4,7 @@
 
 namespace Sabatier\Service;
 
+use Override;
 use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
@@ -31,6 +32,7 @@ class ResourceManager extends Responder
         }
     }
 
+    #[Override]
     public function isFirstResponder(): bool
     {
         return match ($this->request->httpMethod) {
@@ -39,6 +41,7 @@ class ResourceManager extends Responder
         };
     }
 
+    #[Override]
     public function response(): HTTPURLResponse
     {
         switch ($this->request->httpMethod) {

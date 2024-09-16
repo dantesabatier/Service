@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use Override;
 use ReflectionClass;
 use ReflectionProperty;
 use Sabatier\Foundation\Bundle;
@@ -88,6 +89,7 @@ abstract class ViewController extends Responder
     {
     }
 
+    #[Override]
     public function response(): HTTPURLResponse
     {
         if ($this->request->httpMethod === HTTPRequestMethod::get) {

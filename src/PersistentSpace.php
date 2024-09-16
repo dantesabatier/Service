@@ -5,6 +5,7 @@
 namespace Sabatier\Service;
 
 use Exception;
+use Override;
 use Sabatier\CoreData\AtomicStore;
 use Sabatier\CoreData\AttributeType;
 use Sabatier\CoreData\BatchFaultingArray;
@@ -148,11 +149,13 @@ class PersistentSpace extends Responder
         }
     }
 
+    #[Override]
     public function isFirstResponder(): bool
     {
         return $this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel?->entitiesByName?->valueForKey($this->request->url->lastPathComponent) !== null;
     }
 
+    #[Override]
     public function response(): HTTPURLResponse
     {
         $context = $this->managedObjectContext;

@@ -3,6 +3,7 @@
 namespace Sabatier\Service;
 
 use Exception;
+use Override;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Date;
@@ -110,11 +111,13 @@ class Session extends ObjectClass
         }
     }
 
+    #[Override]
     public function valueForKey(string $key): mixed
     {
         return $_SESSION[$key] ?? null;
     }
 
+    #[Override]
     public function setValueForKey(mixed $value, string $key): void
     {
         if ($value === null) {

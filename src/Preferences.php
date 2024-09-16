@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use Override;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
@@ -11,6 +12,7 @@ use Sabatier\Foundation\UserDefaults;
 #[Endpoint]
 class Preferences extends Responder
 {
+    #[Override]
     public function response(): HTTPURLResponse
     {
         $request = $this->request;

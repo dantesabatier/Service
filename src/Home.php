@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use Override;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
@@ -28,6 +29,7 @@ class Home extends ViewController
         $this->isProtectedContentAvailable = true;
     }
 
+    #[Override]
     public function viewWillLoad(): void
     {
         $bundle = Bundle::main();

@@ -8,9 +8,7 @@ use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
-use Sabatier\Foundation\Predicates\ComparisonPredicateModifier;
 use Sabatier\Foundation\Predicates\Expression;
-use Sabatier\Foundation\Predicates\PredicateOperatorType;
 use function Sabatier\Foundation\is_password;
 use function Sabatier\Foundation\read_random;
 use function Sabatier\Foundation\substring_from_index;
@@ -103,7 +101,7 @@ class Authentication extends Responder
         /** @var class-string<ManagedObject> $userClass */
         $userClass = self::$userClass;
         $fetchRequest = $userClass::fetchRequest();
-        $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath($keyPath), Expression::expressionForConstantValue($constantValue), PredicateOperatorType::like, ComparisonPredicateModifier::direct);
+        $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath($keyPath), Expression::expressionForConstantValue($constantValue));
         return $this->managedObjectContext->fetch($fetchRequest)->first?->serialized($this->serialization);
     }
 

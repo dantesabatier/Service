@@ -93,6 +93,8 @@ abstract class Responder extends ObjectClass
                         if (string_is_equal($path, $other, CompareOptions::caseInsensitive)) {
                             $ok = $attemptProceedingWithDefaultImplementation();
                             if ($request->httpMethod === $action->method) {
+                                $this->content = json_encode([]);
+                                $this->contentType = "application/json; charset=utf-8";
                                 $this->perform($selector);
                             }
                             return $ok;

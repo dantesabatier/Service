@@ -12,6 +12,7 @@ use Sabatier\Foundation\Predicates\ComparisonPredicateModifier;
 use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Foundation\Predicates\PredicateOperatorType;
 use function Sabatier\Foundation\is_password;
+use function Sabatier\Foundation\read_random;
 use function Sabatier\Foundation\substring_from_index;
 use function Sabatier\Foundation\substring_to_index;
 
@@ -113,10 +114,14 @@ class Authentication extends Responder
     public function login(): void
     {
         $this->isProtectedContentAvailable ?: throw new UnauthorizedException();
+        /** @var ManagedObject $user */
+        $user = $this->user;
+        $user->setValueForKey(bin2hex(read_random(32)), "token");
+        $this->managedObjectContext->save();
         $session = Application::shared()->session;
         $session->regenerateID();
-        $session->setValueForKey($this->user?->valueForKey("username"), "user");
-        $this->content = json_encode($this->user, JSON_PRESERVE_ZERO_FRACTION);
+        $session->setValueForKey($user->valueForKey("username"), "user");
+        $this->content = json_encode($user, JSON_PRESERVE_ZERO_FRACTION);
         $this->contentType = "application/json";
     }
 

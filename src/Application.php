@@ -282,18 +282,24 @@ class Application extends Responder
             $responder = match ($this->request->httpMethod) {
                 HTTPRequestMethod::options => $this,
                 default => (function (): Responder {
+                    $authentication = $this->authentication;
                     $session = $this->session;
                     $session->start();
                     $responder = $this->instantiateInitialResponder();
+                    $username = $authentication->user?->valueForKey("username");
+                    $token = $authentication->user?->valueForKey("token");
                     $this->persistentContainer->viewContext->transactionAuthor = match ($this->request->httpMethod) {
-                        HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $session->valueForKey("user"),
+                        HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $username,
                         default => null
                     };
                     $session->commit();
-                    if ($responder === $this->authentication) {
+                    if ($responder === $authentication) {
                         return $responder;
                     }
-                    if (!$responder->isProtectedContentAvailable && !$this->authentication->isProtectedContentAvailable) {
+                    if (!$responder->isProtectedContentAvailable && !$authentication->isProtectedContentAvailable) {
+                        throw new UnauthorizedException();
+                    }
+                    if ($this->request->valueForHttpHeaderField("X-CSRF-TOKEN") !== $token) {
                         throw new UnauthorizedException();
                     }
                     return $responder;

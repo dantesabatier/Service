@@ -50,7 +50,7 @@ class ResourceManager extends Responder
                 if (!($content = FileManager::default()->contents($this->resourceURL->path))) {
                     throw new NotFoundException();
                 }
-                if (($contentType = URLFileTypeMappings::shared()->mimeType(strtolower($this->resourceURL->pathExtension))) && ($encoding = mb_detect_encoding($content))) {
+                if (($contentType = URLFileTypeMappings::shared()->mimeType($this->resourceURL->pathExtension)) && ($encoding = mb_detect_encoding($content))) {
                     $contentType .= "; charset=$encoding";
                 }
                 $this->contentType = $contentType;

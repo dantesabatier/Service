@@ -14,6 +14,7 @@ use Sabatier\Foundation\URLFileTypeMappings;
 /** @internal */
 class ResourceManager extends Responder
 {
+    public bool $isProtectedContentAvailable = true;
     private readonly URL $resourceURL;
 
     public function __construct()

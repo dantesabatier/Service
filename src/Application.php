@@ -287,7 +287,7 @@ class Application extends Responder
                     $session->start();
                     $responder = $this->instantiateInitialResponder();
                     $this->persistentContainer->viewContext->transactionAuthor = match ($this->request->httpMethod) {
-                        HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $session->valueForKey("user"),
+                        HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $authentication->user?->valueForKey("username"),
                         default => null
                     };
                     $session->commit();

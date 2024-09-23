@@ -9,7 +9,6 @@ use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
 use function Sabatier\Foundation\class_name;
-use const Sabatier\Foundation\kCFBundleNameKey;
 
 /**
  * @property-read bool $isViewLoaded A Boolean value indicating whether the view is currently loaded into memory.
@@ -66,7 +65,7 @@ abstract class ViewController extends Responder
             $this->$name = Bundle::main();
             return $this->$name;
         } elseif ($name == "title") {
-            $this->$name = $this->bundle->object(kCFBundleNameKey);
+            $this->$name = $this->name;
             return $this->$name;
         } elseif ($name == "isViewLoaded") {
             return isset($this->view);

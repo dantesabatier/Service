@@ -56,12 +56,12 @@ class Authentication extends Responder
                     if (!($user = $this->userBy("token", $this->authorization->credentials))) {
                         return null;
                     }
-                    $this->user = $user;
                     return new URLCredential($user->valueForKey("username"));
                 })()
             };
             return $this->$name;
         } elseif ($name == "user") {
+            error_log("*******");
             $this->$name = (function (): ?ManagedObject {
                 if (!($username = $this->credential?->user ?? Application::shared()->session->valueForKey("user"))) {
                     return null;

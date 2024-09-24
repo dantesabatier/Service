@@ -124,11 +124,10 @@ class Authentication extends Responder
         $validity = $defaults->integer(JWTValidityKey);
         $encoder = new JWTEncoder($key);
         $token = $encoder->encode([JWTIssuedField => $date->timeIntervalSinceReferenceDate, JWTUniqueIDField => base64_encode(random_bytes(16)), JWTIssuerField => $this->request->url->host, JWTNotBeforeField => $date->timeIntervalSinceReferenceDate, JWTExpirationField => $date->addingTimeInterval(60 * 60 * $validity)->timeIntervalSinceReferenceDate, "username" => $username]);
-        $user->setValueForKey($token, "token");
         $session = Application::shared()->session;
         $session->regenerateID();
         $session->setValueForKey($username, "user");
-        $this->content = json_encode($user, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
+        $this->content = json_encode(["user" => $user, "token" => $token], JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
         $this->contentType = "application/json";
     }
 

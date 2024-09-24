@@ -3,7 +3,7 @@
 namespace Sabatier\Service;
 
 const JWTPrivateKey = "JWTPrivateKey";
-const JWTValidityKey = "JWTValidity";
+const JWTValidityTimeIntervalKey = "JWTValidityTimeInterval";
 /** @var string Token type, If present, it must be set to a registered IANA Media Type. */
 const JWTTypeHeaderKey = "typ";
 /** @var string Content type, If nested signing or encryption is employed, it is recommended to set this to JWT; otherwise, omit this field. */

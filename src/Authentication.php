@@ -6,6 +6,7 @@ use Exception;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Date;
+use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
@@ -54,8 +55,9 @@ class Authentication extends Responder
                     return new URLCredential($username);
                 })(),
                 AuthenticationScheme::bearer => (function (): ?URLCredential {
-                    /** @var string $key */
-                    $key = UserDefaults::standard()->string(JWTPrivateKey);
+                    if (!($key = UserDefaults::standard()->string(JWTPrivateKey))) {
+                        return null;
+                    }
                     $decoder = new JWTDecoder($key, $this->request->url->host);
                     if (!($payload = $decoder->decode($this->authorization->credentials)) || !($username = $payload["username"])) {
                         return null;
@@ -89,15 +91,7 @@ class Authentication extends Responder
                                 $response = hash("sha256", "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
                                 return $parameters["response"] === $response;
                             })(),
-                        AuthenticationScheme::bearer => (function () use ($user): bool {
-                            /** @var string $key */
-                            $key = UserDefaults::standard()->string(JWTPrivateKey);
-                            $decoder = new JWTDecoder($key, $this->request->url->host);
-                            if (!($payload = $decoder->decode($this->authorization->credentials)) || !($username = $payload["username"])) {
-                                return false;
-                            }
-                            return $user->valueForKey("username") === $username;
-                        })()
+                        AuthenticationScheme::bearer => $credential->user === $user->valueForKey("username")
                     });
             return $this->$name;
         } elseif ($name == "allowedMethods") {
@@ -116,18 +110,20 @@ class Authentication extends Responder
     {
         $this->isProtectedContentAvailable ?: throw new UnauthorizedException();
         $date = new Date();
-        /** @var ManagedObject $user */
         $user = $this->user;
-        $username = $user->valueForKey("username");
-        $defaults = UserDefaults::standard();
-        $key = $defaults->string(JWTPrivateKey) ?? throw new InternalServerErrorException();
-        $validity = $defaults->integer(JWTValidityKey);
-        $encoder = new JWTEncoder($key);
-        $token = $encoder->encode([JWTIssuedField => $date->timeIntervalSinceReferenceDate, JWTUniqueIDField => base64_encode(random_bytes(16)), JWTIssuerField => $this->request->url->host, JWTNotBeforeField => $date->timeIntervalSinceReferenceDate, JWTExpirationField => $date->addingTimeInterval(60 * 60 * $validity)->timeIntervalSinceReferenceDate, "username" => $username]);
+        /** @var Dictionary<mixed> $data */
+        $data = new Dictionary();
+        $data["user"] = $user;
+        $username = $user?->valueForKey("username");
+        if ($key = UserDefaults::standard()->string(JWTPrivateKey)) {
+            $encoder = new JWTEncoder($key);
+            $token = $encoder->encode([JWTIssuedField => $date->timeIntervalSinceReferenceDate, JWTUniqueIDField => base64_encode(random_bytes(16)), JWTIssuerField => $this->request->url->host, JWTNotBeforeField => $date->timeIntervalSinceReferenceDate, JWTExpirationField => $date->addingTimeInterval(UserDefaults::standard()->float(JWTValidityTimeIntervalKey))->timeIntervalSinceReferenceDate, "username" => $username]);
+            $data["token"] = $token;
+        }
         $session = Application::shared()->session;
         $session->regenerateID();
         $session->setValueForKey($username, "user");
-        $this->content = json_encode(["user" => $user, "token" => $token], JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
+        $this->content = json_encode($data, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
         $this->contentType = "application/json";
     }
 

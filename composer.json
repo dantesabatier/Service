@@ -28,7 +28,10 @@
   "autoload": {
     "psr-4": {
       "Sabatier\\Service\\": "src"
-    }
+    },
+    "files": [
+      "src/Constants.php"
+    ]
   },
   "extra": {
     "branch-alias": {

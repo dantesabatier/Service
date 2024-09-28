@@ -17,6 +17,7 @@ use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
 use Sabatier\Foundation\Networking\URLRequest;
+use Sabatier\Foundation\NotificationCenter;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Foundation\URL;
@@ -39,6 +40,10 @@ use const Sabatier\Foundation\URLErrorDomain;
 class Application extends Responder
 {
     private static ?Application $shared = null;
+    /** @var string A notification that posts shortly before protected files are locked down and become inaccessible. */
+    public final const string protectedDataWillBecomeUnavailableNotification = "protectedDataWillBecomeUnavailableNotification";
+    /** @var string A notification that posts when the protected files become available for your code to access. */
+    public final const string protectedDataDidBecomeAvailableNotification = "protectedDataDidBecomeAvailableNotification";
     public readonly URLRequest $request;
     /** @var ApplicationDelegate|null The delegate of the app object. */
     public ?ApplicationDelegate $delegate = null;
@@ -262,9 +267,11 @@ class Application extends Responder
         if (!($responder = $this->mainResponder()) && !($responder = $this->internalResponder())) {
             throw new NotFoundException();
         }
+        NotificationCenter::default()->postNotificationName(Application::protectedDataWillBecomeUnavailableNotification, $this);
         if (!$responder->isProtectedContentAvailable) {
             $responder->isProtectedContentAvailable = $this->isProtectedContentAvailable;
         }
+        NotificationCenter::default()->postNotificationName(Application::protectedDataDidBecomeAvailableNotification, $this);
         return $responder;
     }
 

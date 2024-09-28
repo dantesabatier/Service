@@ -30,7 +30,8 @@
       "Sabatier\\Service\\": "src"
     },
     "files": [
-      "src/Constants.php"
+      "src/Constants.php",
+      "src/JWTConstants.php"
     ]
   },
   "extra": {

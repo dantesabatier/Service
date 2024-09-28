@@ -55,7 +55,7 @@ class Authentication extends Responder
                     return new URLCredential($username);
                 })(),
                 AuthenticationScheme::bearer => (function (): ?URLCredential {
-                    if (!($key = UserDefaults::standard()->string(JWTPrivateKey))) {
+                    if (!($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey))) {
                         return null;
                     }
                     $decoder = new JWTDecoder($key, $this->request->url->host);
@@ -115,9 +115,9 @@ class Authentication extends Responder
         $data = new Dictionary();
         $data["user"] = $user;
         $username = $user?->valueForKey("username");
-        if ($key = UserDefaults::standard()->string(JWTPrivateKey)) {
+        if ($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) {
             $encoder = new JWTEncoder($key);
-            $token = $encoder->encode([JWTIssuedField => $date->timeIntervalSinceReferenceDate, JWTUniqueIDField => base64_encode(random_bytes(16)), JWTIssuerField => $this->request->url->host, JWTNotBeforeField => $date->timeIntervalSinceReferenceDate, JWTExpirationField => $date->addingTimeInterval(UserDefaults::standard()->float(JWTValidityTimeIntervalKey))->timeIntervalSinceReferenceDate, "username" => $username]);
+            $token = $encoder->encode([JWTIssuedField => $date->timeIntervalSinceReferenceDate, JWTUniqueIDField => base64_encode(random_bytes(16)), JWTIssuerField => $this->request->url->host, JWTNotBeforeField => $date->timeIntervalSinceReferenceDate, JWTExpirationField => $date->addingTimeInterval(UserDefaults::standard()->float(JWTValidityTimeIntervalPreferenceKey))->timeIntervalSinceReferenceDate, "username" => $username]);
             $data["token"] = $token;
         }
         $session = Application::shared()->session;

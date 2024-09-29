@@ -33,7 +33,6 @@ use Sabatier\Foundation\URLComponents;
 use Sabatier\Foundation\URLQueryItem;
 use function Sabatier\Foundation\string_is_equal;
 
-/** @internal */
 class PersistentSpace extends Responder
 {
     private readonly ?AtomicStore $atomicStore;

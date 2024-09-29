@@ -309,6 +309,9 @@ class Application extends Responder
                 })()
             };
             $delegate?->applicationDidFinishLaunching($this);
+            if ($responder->isProtectedContentAvailable) {
+                NotificationCenter::default()->postNotificationName(Application::protectedDataWillBecomeUnavailableNotification, $this);
+            }
             $this->send($responder->response(), $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition);
         } catch (Throwable $throwable) {
             $error = $throwable instanceof InternalInconsistencyException ? $throwable->error : new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $throwable->getMessage()]));

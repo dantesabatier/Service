@@ -50,9 +50,9 @@ class Application extends Responder
     public Session $session;
     public Authentication $authentication;
     public readonly PersistentContainer $persistentContainer;
-    private readonly PersistentSpace $persistentSpace;
-    private readonly ResourceManager $resourceManager;
-    private readonly Preferences $preferences;
+    public readonly PersistentSpace $persistentSpace;
+    public readonly ResourceManager $resourceManager;
+    public readonly Preferences $preferences;
 
     final public function __construct()
     {
@@ -267,11 +267,12 @@ class Application extends Responder
         if (!($responder = $this->mainResponder()) && !($responder = $this->internalResponder())) {
             throw new NotFoundException();
         }
-        NotificationCenter::default()->postNotificationName(Application::protectedDataWillBecomeUnavailableNotification, $this);
         if (!$responder->isProtectedContentAvailable) {
             $responder->isProtectedContentAvailable = $this->isProtectedContentAvailable;
         }
-        NotificationCenter::default()->postNotificationName(Application::protectedDataDidBecomeAvailableNotification, $this);
+        if ($responder->isProtectedContentAvailable) {
+            NotificationCenter::default()->postNotificationName(Application::protectedDataDidBecomeAvailableNotification, $this);
+        }
         return $responder;
     }
 

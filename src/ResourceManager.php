@@ -11,7 +11,6 @@ use Sabatier\Foundation\Networking\HTTPURLResponse;
 use Sabatier\Foundation\URL;
 use Sabatier\Foundation\URLFileTypeMappings;
 
-/** @internal */
 class ResourceManager extends Responder
 {
     public bool $isProtectedContentAvailable = true;

@@ -82,7 +82,7 @@ class Authentication extends Responder
             return $this->$name;
         } elseif ($name == "isProtectedContentAvailable") {
             $this->$name = $this->request->httpMethod === HTTPRequestMethod::options || Application::shared()->session->valueForKey("user") !== null || (($credential = $this->credential) && ($user = $this->user) && ($password = $user->valueForKey("password")) && match ($this->authorization->scheme) {
-                        AuthenticationScheme::basic => is_password($password) ? password_verify((string)$credential->password, (string) $password) : $credential->password === $password,
+                        AuthenticationScheme::basic => is_password($password) ? password_verify((string)$credential->password, (string)$password) : $credential->password === $password,
                         AuthenticationScheme::digest => !is_password($password) && (function () use ($password): bool {
                                 $parameters = $this->authorization->parameters;
                                 if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"]) || ($parameters["algorithm"] !== "SHA-256")) {

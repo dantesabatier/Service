@@ -53,14 +53,14 @@ class PersistentSpace extends Responder
     #[Override]
     public function __get(string $name)
     {
-        if ($name == "atomicStore") {
+        if ($name === "atomicStore") {
             /** @psalm-suppress PropertyTypeCoercion */
             $this->$name = $this->managedObjectContext->persistentStoreCoordinator?->persistentStores?->first(fn(PersistentStore $store): bool => $store instanceof AtomicStore);
             return $this->$name;
-        } elseif ($name == "entity") {
+        } elseif ($name === "entity") {
             $this->$name = $this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel?->entitiesByName?->valueForKey($this->request->url->lastPathComponent) ?? throw new NotFoundException("Unable to load entity \"{$this->request->url->lastPathComponent}\"");
             return $this->$name;
-        } elseif ($name == "fetchRequest") {
+        } elseif ($name === "fetchRequest") {
             $fetchRequest = new FetchRequest();
             $fetchRequest->entity = $this->entity;
             $components = new URLComponents((string)$this->request->url);

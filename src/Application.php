@@ -73,7 +73,7 @@ class Application extends Responder
     #[Override]
     public function __get(string $name)
     {
-        if ($name == "request") {
+        if ($name === "request") {
             $request = new URLRequest(new URL(request_url()));
             $request->allHTTPHeaderFields = new Dictionary(getallheaders());
             $request->httpMethod = $request->valueForHttpHeaderField("X-Http-Method-Override") ?? $_SERVER["REQUEST_METHOD"] ?? HTTPRequestMethod::get;
@@ -94,7 +94,7 @@ class Application extends Responder
             };
             $this->$name = $request;
             return $this->$name;
-        } elseif ($name == "delegate") {
+        } elseif ($name === "delegate") {
             $delegate = null;
             if (($principalClass = Bundle::main()->principalClass) && isset(class_implements($principalClass)[ApplicationDelegate::class])) {
                 /** @var class-string<ApplicationDelegate> $delegateClass */
@@ -106,7 +106,7 @@ class Application extends Responder
             }
             $this->$name = $delegate;
             return $this->$name;
-        } elseif ($name == "persistentContainer") {
+        } elseif ($name === "persistentContainer") {
             $persistentContainer = new PersistentContainer(Bundle::main()->object(kCFBundleNameKey));
             if ($description = $persistentContainer->persistentStoreDescriptions->first) {
                 $description->setOptionForKey(UserDefaults::standard()->bool(PersistentHistoryTrackingKey), PersistentHistoryTrackingKey);
@@ -119,19 +119,19 @@ class Application extends Responder
             });
             $this->$name = $persistentContainer;
             return $this->$name;
-        } elseif ($name == "session") {
+        } elseif ($name === "session") {
             $this->$name = new Session();
             return $this->$name;
-        } elseif ($name == "authentication") {
+        } elseif ($name === "authentication") {
             $this->$name = new Authentication();
             return $this->$name;
-        } elseif ($name == "persistentSpace") {
+        } elseif ($name === "persistentSpace") {
             $this->$name = new PersistentSpace();
             return $this->$name;
-        } elseif ($name == "resourceManager") {
+        } elseif ($name === "resourceManager") {
             $this->$name = new ResourceManager();
             return $this->$name;
-        } elseif ($name == "preferences") {
+        } elseif ($name === "preferences") {
             $this->$name = new Preferences();
             return $this->$name;
         } else {

@@ -76,16 +76,16 @@ class Session extends ObjectClass
      */
     public function __get(string $name)
     {
-        if ($name == "id") {
+        if ($name === "id") {
             return unsafe_value(fn(): string => session_id());
-        } elseif ($name == "name") {
+        } elseif ($name === "name") {
             return unsafe_value(fn(): string => session_name());
-        } elseif ($name == "status") {
+        } elseif ($name === "status") {
             return SessionStatus::from(unsafe_value(fn(): int => session_status()));
-        } elseif ($name == "cookieParameters") {
+        } elseif ($name === "cookieParameters") {
             $this->$name = new CookieParameters((string)parse_url(request_url(), PHP_URL_HOST));
             return $this->$name;
-        } elseif ($name == "saveURL") {
+        } elseif ($name === "saveURL") {
             $saveURL = FileManager::default()->url(SearchPathDirectory::cachesDirectory)->appendingPathComponent(Bundle::main()->bundleIdentifier ?? ProcessInfo::processInfo()->processName)->appendingPathComponent("Session");
             if (!FileManager::default()->fileExists($saveURL->path)) {
                 FileManager::default()->createDirectory($saveURL, true, new Dictionary([FileAttributeKey::posixPermissions => 0777]));
@@ -102,9 +102,9 @@ class Session extends ObjectClass
      */
     public function __set(string $name, mixed $value): void
     {
-        if ($name == "saveURL" || $name == "cookieParameters") {
+        if ($name === "saveURL" || $name === "cookieParameters") {
             $this->$name = $value;
-        } elseif ($name == "name") {
+        } elseif ($name === "name") {
             unsafe_value(fn(): string => session_name($value));
         } else {
             $this->setValueForUndefinedKey($value, $name);

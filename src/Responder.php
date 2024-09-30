@@ -127,7 +127,7 @@ abstract class Responder extends ObjectClass
      */
     public function presentError(Error $error): bool
     {
-        return !(Application::shared() !== $this) || Application::shared()->presentError($this->willPresentError($error));
+        return Application::shared() === $this || Application::shared()->presentError($this->willPresentError($error));
     }
 
     /**

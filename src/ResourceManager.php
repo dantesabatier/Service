@@ -25,7 +25,7 @@ class ResourceManager extends Responder
     #[Override]
     public function __get(string $name)
     {
-        if ($name == "resourceURL") {
+        if ($name === "resourceURL") {
             $this->$name = (new URL($this->request->url->path, FileManager::default()->documentRootDirectory))->absoluteURL;
             return $this->$name;
         } else {

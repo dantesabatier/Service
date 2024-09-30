@@ -22,6 +22,7 @@ class ResourceManager extends Responder
         unset($this->resourceURL);
     }
 
+    #[Override]
     public function __get(string $name)
     {
         if ($name == "resourceURL") {

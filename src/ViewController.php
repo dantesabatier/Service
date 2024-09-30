@@ -40,6 +40,7 @@ abstract class ViewController extends Responder
         unset($this->title);
     }
 
+    #[Override]
     public function __get(string $name)
     {
         if ($name == "name") {

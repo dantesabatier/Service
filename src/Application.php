@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use Override;
 use ReflectionClass;
 use Sabatier\CoreData\PersistentContainer;
 use Sabatier\CoreData\PersistentStoreDescription;
@@ -69,6 +70,7 @@ class Application extends Responder
     }
 
     /** @suppress PHP0418 */
+    #[Override]
     public function __get(string $name)
     {
         if ($name == "request") {
@@ -334,6 +336,7 @@ class Application extends Responder
         exit();
     }
 
+    #[Override]
     public function presentError(Error $error): bool
     {
         return true;

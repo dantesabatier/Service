@@ -3,6 +3,7 @@
 namespace Sabatier\Service;
 
 use IteratorAggregate;
+use Override;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
@@ -26,6 +27,7 @@ class BatchResponse extends HTTPURLResponse implements IteratorAggregate
         $this->isEmpty = $this->count === 0;
     }
 
+    #[Override]
     public function getIterator(): Traversable
     {
         return (function () {

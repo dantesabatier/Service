@@ -50,6 +50,7 @@ class PersistentSpace extends Responder
     /**
      * @throws Exception
      */
+    #[Override]
     public function __get(string $name)
     {
         if ($name == "atomicStore") {

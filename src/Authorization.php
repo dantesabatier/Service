@@ -5,6 +5,7 @@ namespace Sabatier\Service;
 use Exception;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObject;
+use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
@@ -14,23 +15,33 @@ use function Sabatier\Foundation\is_password;
 
 readonly class Authorization
 {
+    public string $method;
+    public string $credentials;
+    /** @var Dictionary<string> */
+    public Dictionary $parameters;
     public AuthenticationScheme $scheme;
     public ?URLCredential $credential;
     public ?ManagedObject $user;
     public bool $isValid;
 
-    public function __construct(public AuthorizationDescription $description)
+    public function __construct(public string $string)
     {
-        unset($this->scheme);
         unset($this->credential);
         unset($this->user);
         unset($this->isValid);
+        $components = explode(" ", $this->string);
+        if (count($components) !== 2) {
+            $components = [AuthenticationScheme::basic->value, ""];
+        }
+        [$this->method, $this->credentials] = $components;
+        $this->scheme = AuthenticationScheme::tryFrom($this->method) ?? AuthenticationScheme::basic;
+        preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->credentials, $matches);
+        $this->parameters = new Dictionary(array_combine($matches[1], $matches[2]));
     }
 
     public function __get(string $name)
     {
         $this->$name = match ($name) {
-            "authenticationScheme" => $this->authenticationScheme(),
             "credential" => $this->credential(),
             "user" => $this->user(),
             "isValid" => $this->isValid(),
@@ -38,15 +49,10 @@ readonly class Authorization
         };
     }
 
-    private function authenticationScheme(): AuthenticationScheme
-    {
-        return AuthenticationScheme::tryFrom($this->description->method) ?? AuthenticationScheme::basic;
-    }
-
     private function credential(): ?URLCredential
     {
         if ($this->scheme === AuthenticationScheme::basic) {
-            $components = explode(":", base64_decode($this->description->credentials));
+            $components = explode(":", base64_decode($this->credentials));
             if (count($components) !== 2) {
                 return null;
             }
@@ -54,7 +60,7 @@ readonly class Authorization
             return new URLCredential($username, $password);
         }
         if ($this->scheme === AuthenticationScheme::digest) {
-            if (!($username = $this->description->parameters["username"])) {
+            if (!($username = $this->parameters["username"])) {
                 return null;
             }
             return new URLCredential($username);
@@ -65,7 +71,7 @@ readonly class Authorization
                 return null;
             }
             $decoder = new JWTDecoder($key, Application::shared()->request->url->host);
-            if (!($username = $decoder->decode($this->description->credentials)[JWTDataField])) {
+            if (!($username = $decoder->decode($this->credentials)[JWTDataField])) {
                 return null;
             }
             return new URLCredential($username);
@@ -107,11 +113,11 @@ readonly class Authorization
             return $credential->password === $password;
         }
         if ($this->scheme === AuthenticationScheme::digest) {
-            $parameters = $this->description->parameters;
+            $parameters = $this->parameters;
             if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"]) || ($parameters["algorithm"] !== "SHA-256")) {
                 return false;
             }
-            $request = $this->description->request;
+            $request = Application::shared()->request;
             $HA1 = hash("sha256", "$username:{$request->url->host}:$password");
             $HA2 = hash("sha256", "$request->httpMethod:$uri");
             $response = hash("sha256", "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");

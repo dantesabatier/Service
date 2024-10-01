@@ -7,7 +7,7 @@ use Sabatier\Foundation\Networking\URLRequest;
 
 readonly class AuthorizationDescription
 {
-    public string $authenticationMethod;
+    public string $method;
     public string $credentials;
     /** @var Dictionary<string> */
     public Dictionary $parameters;
@@ -18,7 +18,7 @@ readonly class AuthorizationDescription
         if (count($components) !== 2) {
             $components = [AuthenticationScheme::basic->value, ""];
         }
-        [$this->authenticationMethod, $this->credentials] = $components;
+        [$this->method, $this->credentials] = $components;
         preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->credentials, $matches);
         $this->parameters = new Dictionary(array_combine($matches[1], $matches[2]));
     }

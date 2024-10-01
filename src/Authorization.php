@@ -15,12 +15,11 @@ use function Sabatier\Foundation\is_password;
 
 readonly class Authorization
 {
-    public string $method;
-    public string $credentials;
+    private string $credentials;
     /** @var Dictionary<string> */
-    public Dictionary $parameters;
+    private Dictionary $parameters;
+    private ?URLCredential $credential;
     public AuthenticationScheme $scheme;
-    public ?URLCredential $credential;
     public ?ManagedObject $user;
     public bool $isValid;
 
@@ -33,8 +32,9 @@ readonly class Authorization
         if (count($components) !== 2) {
             $components = [AuthenticationScheme::basic->value, ""];
         }
-        [$this->method, $this->credentials] = $components;
-        $this->scheme = AuthenticationScheme::tryFrom($this->method) ?? AuthenticationScheme::basic;
+        [$method, $credentials] = $components;
+        $this->scheme = AuthenticationScheme::tryFrom($method) ?? AuthenticationScheme::basic;
+        $this->credentials = $credentials;
         preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->credentials, $matches);
         $this->parameters = new Dictionary(array_combine($matches[1], $matches[2]));
     }

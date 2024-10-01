@@ -40,7 +40,7 @@ readonly class Authorization
 
     private function authenticationScheme(): AuthenticationScheme
     {
-        return AuthenticationScheme::tryFrom($this->description->authenticationMethod) ?? AuthenticationScheme::basic;
+        return AuthenticationScheme::tryFrom($this->description->method) ?? AuthenticationScheme::basic;
     }
 
     private function credential(): ?URLCredential

@@ -14,6 +14,7 @@ use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Foundation\UserDefaults;
 use function Sabatier\Foundation\is_password;
+use function Sabatier\Foundation\read_random;
 use function Sabatier\Foundation\substring_from_index;
 use function Sabatier\Foundation\substring_to_index;
 
@@ -62,7 +63,7 @@ class Authentication extends Responder
                         return null;
                     }
                     $decoder = new JWTDecoder($key, $this->request->url->host);
-                    if (!($payload = $decoder->decode($this->authorization->credentials)) || !($username = $payload["username"])) {
+                    if (!($username = $decoder->decode($this->authorization->credentials)[JWTDataField])) {
                         return null;
                     }
                     return new URLCredential($username);
@@ -123,7 +124,7 @@ class Authentication extends Responder
         $username = $user?->valueForKey("username");
         if ($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) {
             $encoder = new JWTEncoder($key);
-            $token = $encoder->encode([JWTIssuedField => $date->timeIntervalSinceReferenceDate, JWTUniqueIDField => base64_encode(random_bytes(16)), JWTIssuerField => $this->request->url->host, JWTNotBeforeField => $date->timeIntervalSinceReferenceDate, JWTExpirationField => $date->addingTimeInterval(UserDefaults::standard()->float(JWTValidityTimeIntervalPreferenceKey))->timeIntervalSinceReferenceDate, "username" => $username]);
+            $token = $encoder->encode([JWTIssuedField => $date->timeIntervalSinceReferenceDate, JWTUniqueIDField => base64_encode(read_random(16)), JWTIssuerField => $this->request->url->host, JWTNotBeforeField => $date->timeIntervalSinceReferenceDate, JWTExpirationField => $date->addingTimeInterval(UserDefaults::standard()->float(JWTValidityTimeIntervalPreferenceKey))->timeIntervalSinceReferenceDate, JWTDataField => $username]);
             $data["token"] = $token;
         }
         $session = Application::shared()->session;

@@ -151,9 +151,7 @@ class Application extends Responder
      */
     public static function shared(): Application
     {
-        if (static::$shared === null) {
-            static::$shared = new static();
-        }
+        static::$shared ??= new static();
         return static::$shared;
     }
 

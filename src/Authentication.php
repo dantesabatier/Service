@@ -40,7 +40,8 @@ class Authentication extends Responder
         if ($name === "authorization") {
             $this->$name = ($authorizationValue = $this->request->valueForHttpHeaderField("Authorization")) && ($index = strpos($authorizationValue, " ")) && ($scheme = AuthenticationScheme::tryFrom(trim(substring_to_index($authorizationValue, $index)))) && ($credentials = trim(substring_from_index($authorizationValue, $index))) ? new Authorization($scheme, $credentials) : new Authorization(AuthenticationScheme::basic);
             return $this->$name;
-        } elseif ($name === "credential") {
+        }
+        if ($name === "credential") {
             $this->$name = match ($this->authorization->scheme) {
                 AuthenticationScheme::basic => (function (): ?URLCredential {
                     $components = explode(":", base64_decode($this->authorization->credentials));
@@ -68,7 +69,8 @@ class Authentication extends Responder
                 })()
             };
             return $this->$name;
-        } elseif ($name === "user") {
+        }
+        if ($name === "user") {
             $this->$name = (function (): ?ManagedObject {
                 if (!($username = $this->credential?->user ?? Application::shared()->session->valueForKey("user"))) {
                     return null;
@@ -80,7 +82,8 @@ class Authentication extends Responder
                 return $this->managedObjectContext->fetch($fetchRequest)->first?->serialized($this->serialization);
             })();
             return $this->$name;
-        } elseif ($name === "isProtectedContentAvailable") {
+        }
+        if ($name === "isProtectedContentAvailable") {
             /** @psalm-suppress RedundantCast */
             $this->$name = $this->request->httpMethod === HTTPRequestMethod::options || Application::shared()->session->valueForKey("user") !== null || (($credential = $this->credential) && ($user = $this->user) && ($password = $user->valueForKey("password")) && match ($this->authorization->scheme) {
                         AuthenticationScheme::basic => is_password($password) ? password_verify((string)$credential->password, (string)$password) : $credential->password === $password,
@@ -97,12 +100,12 @@ class Authentication extends Responder
                         AuthenticationScheme::bearer => $credential->user === $user->valueForKey("username")
                     });
             return $this->$name;
-        } elseif ($name === "allowedMethods") {
+        }
+        if ($name === "allowedMethods") {
             $this->$name = new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
             return $this->$name;
-        } else {
-            return parent::__get($name);
         }
+        return parent::__get($name);
     }
 
     /**

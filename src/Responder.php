@@ -26,7 +26,6 @@ use function Sabatier\Foundation\url_validate;
 abstract class Responder extends ObjectClass
 {
     public readonly URLRequest $request;
-    /** @var Dictionary|null */
     public readonly ?Dictionary $serialization;
     public readonly ManagedObjectContext $managedObjectContext;
     /** @var ArrayClass<string> */
@@ -127,7 +126,10 @@ abstract class Responder extends ObjectClass
      */
     public function presentError(Error $error): bool
     {
-        return Application::shared() === $this || Application::shared()->presentError($this->willPresentError($error));
+        if (Application::shared() === $this) {
+            return true;
+        }
+        return Application::shared()->presentError($this->willPresentError($error));
     }
 
     /**

@@ -57,10 +57,12 @@ class PersistentSpace extends Responder
             /** @psalm-suppress PropertyTypeCoercion */
             $this->$name = $this->managedObjectContext->persistentStoreCoordinator?->persistentStores?->first(fn(PersistentStore $store): bool => $store instanceof AtomicStore);
             return $this->$name;
-        } elseif ($name === "entity") {
+        }
+        if ($name === "entity") {
             $this->$name = $this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel?->entitiesByName?->valueForKey($this->request->url->lastPathComponent) ?? throw new NotFoundException("Unable to load entity \"{$this->request->url->lastPathComponent}\"");
             return $this->$name;
-        } elseif ($name === "fetchRequest") {
+        }
+        if ($name === "fetchRequest") {
             $fetchRequest = new FetchRequest();
             $fetchRequest->entity = $this->entity;
             $components = new URLComponents((string)$this->request->url);
@@ -89,18 +91,17 @@ class PersistentSpace extends Responder
                             $fetchRequest->propertiesToFetch = (new ArrayClass($decoded->propertiesToFetch))->compactMap(function (mixed $element): ExpressionDescription|string|null {
                                 if (is_string($element)) {
                                     return $element;
-                                } elseif (is_object($element)) {
-                                    if (property_exists($element, "name") && property_exists($element, "expression")) {
-                                        $expression = $element->expression;
-                                        if (property_exists($expression, "format")) {
-                                            $expressionDescription = new ExpressionDescription();
-                                            $expressionDescription->name = $element->name;
-                                            $expressionDescription->expression = Expression::expressionWithFormat($expression->format, ArrayClass::arrayWithArray($expression->arguments ?? []));
-                                            if (property_exists($element, "resultType")) {
-                                                $expressionDescription->resultType = AttributeType::from($element->resultType);
-                                            }
-                                            return $expressionDescription;
+                                }
+                                if (is_object($element) && (property_exists($element, "name") && property_exists($element, "expression"))) {
+                                    $expression = $element->expression;
+                                    if (property_exists($expression, "format")) {
+                                        $expressionDescription = new ExpressionDescription();
+                                        $expressionDescription->name = $element->name;
+                                        $expressionDescription->expression = Expression::expressionWithFormat($expression->format, ArrayClass::arrayWithArray($expression->arguments ?? []));
+                                        if (property_exists($element, "resultType")) {
+                                            $expressionDescription->resultType = AttributeType::from($element->resultType);
                                         }
+                                        return $expressionDescription;
                                     }
                                 }
                                 return null;
@@ -145,9 +146,8 @@ class PersistentSpace extends Responder
             }
             $this->$name = $fetchRequest;
             return $this->$name;
-        } else {
-            return parent::__get($name);
         }
+        return parent::__get($name);
     }
 
     #[Override]

@@ -46,7 +46,8 @@ abstract class ViewController extends Responder
         if ($name === "name") {
             $this->$name = class_name(static::class);
             return $this->$name;
-        } elseif ($name === "context") {
+        }
+        if ($name === "context") {
             $this->$name = array_reduce((new ReflectionClass($this))->getProperties(ReflectionProperty::IS_PUBLIC), function (array $context, ReflectionProperty $property): array {
                 if ($property->getAttributes(Outlet::class) !== []) {
                     $context[$property->name] = $this->valueForKey($property->name);
@@ -54,7 +55,8 @@ abstract class ViewController extends Responder
                 return $context;
             }, []);
             return $this->$name;
-        } elseif ($name === "view") {
+        }
+        if ($name === "view") {
             $this->viewWillLoad();
             if (self::$renderer === null) {
                 self::$renderer = new self::$rendererClass($this->bundle);
@@ -62,17 +64,19 @@ abstract class ViewController extends Responder
             $this->$name = new View($this->name, $this->context, self::$renderer);
             $this->viewDidLoad();
             return $this->$name;
-        } elseif ($name === "bundle") {
+        }
+        if ($name === "bundle") {
             $this->$name = Bundle::main();
             return $this->$name;
-        } elseif ($name === "title") {
+        }
+        if ($name === "title") {
             $this->$name = $this->name;
             return $this->$name;
-        } elseif ($name === "isViewLoaded") {
-            return isset($this->view);
-        } else {
-            return parent::__get($name);
         }
+        if ($name === "isViewLoaded") {
+            return isset($this->view);
+        }
+        return parent::__get($name);
     }
 
     public function loadView(): void

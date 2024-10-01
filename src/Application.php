@@ -94,7 +94,8 @@ class Application extends Responder
             };
             $this->$name = $request;
             return $this->$name;
-        } elseif ($name === "delegate") {
+        }
+        if ($name === "delegate") {
             $delegate = null;
             if (($principalClass = Bundle::main()->principalClass) && isset(class_implements($principalClass)[ApplicationDelegate::class])) {
                 /** @var class-string<ApplicationDelegate> $delegateClass */
@@ -106,7 +107,8 @@ class Application extends Responder
             }
             $this->$name = $delegate;
             return $this->$name;
-        } elseif ($name === "persistentContainer") {
+        }
+        if ($name === "persistentContainer") {
             $persistentContainer = new PersistentContainer(Bundle::main()->object(kCFBundleNameKey));
             if ($description = $persistentContainer->persistentStoreDescriptions->first) {
                 $description->setOptionForKey(UserDefaults::standard()->bool(PersistentHistoryTrackingKey), PersistentHistoryTrackingKey);
@@ -119,24 +121,28 @@ class Application extends Responder
             });
             $this->$name = $persistentContainer;
             return $this->$name;
-        } elseif ($name === "session") {
+        }
+        if ($name === "session") {
             $this->$name = new Session();
             return $this->$name;
-        } elseif ($name === "authentication") {
+        }
+        if ($name === "authentication") {
             $this->$name = new Authentication();
             return $this->$name;
-        } elseif ($name === "persistentSpace") {
+        }
+        if ($name === "persistentSpace") {
             $this->$name = new PersistentSpace();
             return $this->$name;
-        } elseif ($name === "resourceManager") {
+        }
+        if ($name === "resourceManager") {
             $this->$name = new ResourceManager();
             return $this->$name;
-        } elseif ($name === "preferences") {
+        }
+        if ($name === "preferences") {
             $this->$name = new Preferences();
             return $this->$name;
-        } else {
-            return parent::__get($name);
         }
+        return parent::__get($name);
     }
 
     /**
@@ -247,7 +253,10 @@ class Application extends Responder
                 /** @psalm-suppress UnresolvableInclude */
                 require_once $filePath;
                 $responderClass = "$namespaceName\\$directoryURL->lastPathComponent\\{$fileManager->displayName($filePath)}";
-                if (!class_exists($responderClass) || !is_subclass_of($responderClass, Responder::class)) {
+                if (!class_exists($responderClass)) {
+                    continue;
+                }
+                if (!is_subclass_of($responderClass, Responder::class)) {
                     continue;
                 }
                 $responder = new $responderClass();

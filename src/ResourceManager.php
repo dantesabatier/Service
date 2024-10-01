@@ -28,9 +28,8 @@ class ResourceManager extends Responder
         if ($name === "resourceURL") {
             $this->$name = (new URL($this->request->url->path, FileManager::default()->documentRootDirectory))->absoluteURL;
             return $this->$name;
-        } else {
-            return parent::__get($name);
         }
+        return parent::__get($name);
     }
 
     #[Override]

@@ -2,7 +2,6 @@
 
 namespace Sabatier\Service;
 
-use Exception;
 use Sabatier\Foundation\Date;
 
 readonly class JWTDecoder
@@ -11,9 +10,6 @@ readonly class JWTDecoder
     {
     }
 
-    /**
-     * @throws Exception
-     */
     public function decode(string $data): array
     {
         $components = explode(".", $data);

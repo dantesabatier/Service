@@ -18,8 +18,8 @@ readonly class Authorization
     private string $credentials;
     /** @var Dictionary<string> */
     private Dictionary $parameters;
-    private ?URLCredential $credential;
     public AuthenticationScheme $scheme;
+    public ?URLCredential $credential;
     public ?ManagedObject $user;
     public bool $isValid;
 
@@ -32,8 +32,8 @@ readonly class Authorization
         if (count($components) !== 2) {
             $components = [AuthenticationScheme::basic->value, ""];
         }
-        [$method, $credentials] = $components;
-        $this->scheme = AuthenticationScheme::tryFrom($method) ?? AuthenticationScheme::basic;
+        [$scheme, $credentials] = $components;
+        $this->scheme = AuthenticationScheme::tryFrom($scheme) ?? AuthenticationScheme::basic;
         $this->credentials = $credentials;
         preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->credentials, $matches);
         $this->parameters = new Dictionary(array_combine($matches[1], $matches[2]));

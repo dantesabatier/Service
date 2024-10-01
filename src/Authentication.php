@@ -31,7 +31,7 @@ class Authentication extends Responder
     public function __get(string $name)
     {
         if ($name === "authorization") {
-            $this->$name = new Authorization(new AuthorizationDescription($this->request));
+            $this->$name = new Authorization($this->request->valueForHttpHeaderField("Authorization") ?? "");
             return $this->$name;
         }
         if ($name === "scheme") {

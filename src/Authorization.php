@@ -25,6 +25,7 @@ readonly class Authorization
 
     public function __construct(public string $string)
     {
+        unset($this->parameters);
         unset($this->credential);
         unset($this->user);
         unset($this->isValid);
@@ -35,18 +36,23 @@ readonly class Authorization
         [$scheme, $credentials] = $components;
         $this->scheme = AuthenticationScheme::tryFrom($scheme) ?? AuthenticationScheme::basic;
         $this->credentials = $credentials;
-        preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->credentials, $matches);
-        $this->parameters = new Dictionary(array_combine($matches[1], $matches[2]));
     }
 
     public function __get(string $name)
     {
         $this->$name = match ($name) {
+            "parameters" => $this->parameters(),
             "credential" => $this->credential(),
             "user" => $this->user(),
             "isValid" => $this->isValid(),
             default => throw new UndefinedKeyException()
         };
+    }
+
+    private function parameters(): Dictionary
+    {
+        preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->credentials, $matches);
+        return new Dictionary(array_combine($matches[1], $matches[2]));
     }
 
     private function credential(): ?URLCredential

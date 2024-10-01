@@ -20,9 +20,12 @@ readonly class JWTDecoder
             return false;
         }
         [$header, $payload, $signature] = $components;
+        if (!($obj = json_decode(base64_decode($payload)))) {
+            return false;
+        }
         $unsigned = sprintf("%s.%s", $header, $payload);
         $signed = base64_encode(hash_hmac("sha256", $unsigned, $this->key, true));
-        if ($signature !== $signed || !($obj = json_decode(base64_decode($payload)))) {
+        if ($signature !== $signed) {
             return false;
         }
         $date = new Date();

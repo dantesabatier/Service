@@ -35,7 +35,7 @@ class Authentication extends Responder
             return $this->$name;
         }
         if ($name === "scheme") {
-            $this->$name = $this->authorization->authenticationScheme;
+            $this->$name = $this->authorization->scheme;
             return $this->$name;
         }
         if ($name === "isProtectedContentAvailable") {

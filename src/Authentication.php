@@ -13,8 +13,8 @@ use function Sabatier\Foundation\read_random;
 
 class Authentication extends Responder
 {
-    public readonly Authorization $authorization;
     public readonly AuthenticationScheme $scheme;
+    public readonly Authorization $authorization;
 
     public function __construct()
     {

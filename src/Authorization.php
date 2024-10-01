@@ -14,14 +14,14 @@ use function Sabatier\Foundation\is_password;
 
 readonly class Authorization
 {
-    public AuthenticationScheme $authenticationScheme;
+    public AuthenticationScheme $scheme;
     public ?URLCredential $credential;
     public ?ManagedObject $user;
     public bool $isValid;
 
     public function __construct(public AuthorizationDescription $description)
     {
-        unset($this->authenticationScheme);
+        unset($this->scheme);
         unset($this->credential);
         unset($this->user);
         unset($this->isValid);
@@ -45,7 +45,7 @@ readonly class Authorization
 
     private function credential(): ?URLCredential
     {
-        if ($this->authenticationScheme === AuthenticationScheme::basic) {
+        if ($this->scheme === AuthenticationScheme::basic) {
             $components = explode(":", base64_decode($this->description->credentials));
             if (count($components) !== 2) {
                 return null;
@@ -53,14 +53,14 @@ readonly class Authorization
             [$username, $password] = $components;
             return new URLCredential($username, $password);
         }
-        if ($this->authenticationScheme === AuthenticationScheme::digest) {
+        if ($this->scheme === AuthenticationScheme::digest) {
             if (!($username = $this->description->parameters["username"])) {
                 return null;
             }
             return new URLCredential($username);
         }
         /** @psalm-suppress RedundantCondition */
-        if ($this->authenticationScheme === AuthenticationScheme::bearer) {
+        if ($this->scheme === AuthenticationScheme::bearer) {
             if (!($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey))) {
                 return null;
             }
@@ -100,13 +100,13 @@ readonly class Authorization
         }
         /** @var string $password */
         $password = $user->valueForKey("password") ?? "";
-        if ($this->authenticationScheme === AuthenticationScheme::basic) {
+        if ($this->scheme === AuthenticationScheme::basic) {
             if (is_password($password)) {
                 return password_verify((string)$credential->password, $password);
             }
             return $credential->password === $password;
         }
-        if ($this->authenticationScheme === AuthenticationScheme::digest) {
+        if ($this->scheme === AuthenticationScheme::digest) {
             $parameters = $this->description->parameters;
             if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"]) || ($parameters["algorithm"] !== "SHA-256")) {
                 return false;

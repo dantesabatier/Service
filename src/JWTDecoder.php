@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use Exception;
 use Sabatier\Foundation\Date;
 
 readonly class JWTDecoder
@@ -10,34 +11,34 @@ readonly class JWTDecoder
     {
     }
 
-    private function validate(string $token): bool
+    /**
+     * @throws Exception
+     */
+    public function decode(string $data): array
     {
-        if (!str_contains($token, ".")) {
-            return false;
-        }
-        $components = explode(".", $token);
+        $components = explode(".", $data);
         if (count($components) !== 3) {
-            return false;
+            throw new JWTException();
         }
         [$header, $payload, $signature] = $components;
-        if (!($obj = json_decode(base64_decode($payload)))) {
-            return false;
+        if (!($decoded = json_decode(base64_decode($payload), true))) {
+            throw new JWTException();
         }
         $unsigned = sprintf("%s.%s", $header, $payload);
         $signed = base64_encode(hash_hmac("sha256", $unsigned, $this->key, true));
         if ($signature !== $signed) {
-            return false;
+            throw new JWTException();
         }
         $date = new Date();
-        return !(((property_exists($obj, JWTNotBeforeField) && $obj->nbf > $date->timeIntervalSinceReferenceDate) || (property_exists($obj, JWTExpirationField) && $obj->exp < $date->timeIntervalSinceReferenceDate) || (property_exists($obj, JWTIssuerField) && $obj->iss !== $this->issuer)));
-    }
-
-    public function decode(string $data): ?array
-    {
-        if (!$this->validate($data)) {
-            return null;
+        if (array_key_exists(JWTNotBeforeField, $decoded) && $decoded[JWTNotBeforeField] > $date->timeIntervalSinceReferenceDate) {
+            throw new JWTException();
         }
-        [, $payload,] = explode(".", $data);
-        return json_decode(base64_decode($payload), true);
+        if (array_key_exists(JWTExpirationField, $decoded) && $decoded[JWTExpirationField] < $date->timeIntervalSinceReferenceDate) {
+            throw new JWTException();
+        }
+        if (array_key_exists(JWTIssuerField, $decoded) && $decoded[JWTIssuerField] !== $this->issuer) {
+            throw new JWTException();
+        }
+        return $decoded;
     }
 }

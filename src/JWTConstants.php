@@ -24,3 +24,4 @@ const JWTNotBeforeField = "nbf";
 const JWTIssuedField = "iat";
 /** @var string JWT ID, Case-sensitive unique identifier of the token even among different issuers. */
 const JWTUniqueIDField = "jti";
+const JWTDataField = "dat";

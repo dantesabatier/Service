@@ -29,10 +29,10 @@ readonly class Authorization
     public function __construct(public string $rawValue)
     {
         unset($this->parameters);
+        unset($this->scheme);
         unset($this->credential);
         unset($this->user);
         unset($this->isValid);
-        unset($this->scheme);
         $components = explode(" ", $this->rawValue);
         if (count($components) !== 2) {
             $components = [AuthenticationScheme::basic->value, ""];

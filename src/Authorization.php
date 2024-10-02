@@ -86,7 +86,7 @@ readonly class Authorization
         }
         $decoder = new JWTDecoder($key, Application::shared()->request->url->host);
         /** @var string|null $username */
-        $username = $decoder->decode($this->credentials)["dat"];
+        $username = $decoder->decode($this->credentials)["dat"] ?? null;
         if (!$username) {
             return null;
         }

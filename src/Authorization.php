@@ -21,8 +21,8 @@ readonly class Authorization
     private string $data;
     /** @var Dictionary<string> */
     private Dictionary $parameters;
-    private ?URLCredential $credential;
     public AuthenticationScheme $scheme;
+    private ?URLCredential $credential;
     public ?ManagedObject $user;
     public bool $isValid;
 

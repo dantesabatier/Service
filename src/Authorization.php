@@ -18,8 +18,8 @@ readonly class Authorization
     private string $credentials;
     /** @var Dictionary<string> */
     private Dictionary $parameters;
-    private ?URLCredential $credential;
     public AuthenticationMethod $method;
+    public ?URLCredential $credential;
     public ?ManagedObject $user;
     public bool $isValid;
 

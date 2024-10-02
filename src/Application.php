@@ -280,6 +280,7 @@ class Application extends Responder
             $responder->isProtectedContentAvailable = $this->isProtectedContentAvailable;
         }
         if ($responder->isProtectedContentAvailable) {
+            $this->isProtectedContentAvailable = $responder->isProtectedContentAvailable;
             NotificationCenter::default()->postNotificationName(Application::protectedDataDidBecomeAvailableNotification, $this);
         }
         return $responder;
@@ -321,6 +322,8 @@ class Application extends Responder
             if ($responder->isProtectedContentAvailable) {
                 NotificationCenter::default()->postNotificationName(Application::protectedDataWillBecomeUnavailableNotification, $this);
             }
+            $responder->isProtectedContentAvailable = false;
+            $this->isProtectedContentAvailable = $responder->isProtectedContentAvailable;
             $this->send($responder->response(), $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition);
         } catch (Throwable $throwable) {
             $error = $throwable instanceof InternalInconsistencyException ? $throwable->error : new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $throwable->getMessage()]));

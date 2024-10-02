@@ -18,7 +18,7 @@ use function Sabatier\Foundation\is_password;
 readonly class Authorization
 {
     private string $name;
-    private string $credentials;
+    private string $data;
     /** @var Dictionary<string> */
     private Dictionary $parameters;
     private ?URLCredential $credential;
@@ -39,7 +39,7 @@ readonly class Authorization
         }
         [$name, $credentials] = $components;
         $this->name = $name;
-        $this->credentials = $credentials;
+        $this->data = $credentials;
     }
 
     public function __get(string $name)
@@ -61,14 +61,14 @@ readonly class Authorization
 
     private function parameters(): Dictionary
     {
-        preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->credentials, $matches);
+        preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->data, $matches);
         return new Dictionary(array_combine($matches[1], $matches[2]));
     }
 
     private function credential(): ?URLCredential
     {
         if ($this->scheme === AuthenticationScheme::basic) {
-            $components = explode(":", base64_decode($this->credentials));
+            $components = explode(":", base64_decode($this->data));
             if (count($components) !== 2) {
                 return null;
             }
@@ -86,7 +86,7 @@ readonly class Authorization
         }
         $decoder = new JSONWebTokenDecoder($key, Application::shared()->request->url->host);
         /** @var string|null $username */
-        $username = $decoder->decode($this->credentials)->dat;
+        $username = $decoder->decode($this->data)->dat;
         if (!$username) {
             return null;
         }

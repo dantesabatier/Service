@@ -37,9 +37,9 @@ readonly class Authorization
         if (count($components) !== 2) {
             $components = [AuthenticationScheme::basic->value, ""];
         }
-        [$name, $credentials] = $components;
+        [$name, $data] = $components;
         $this->name = $name;
-        $this->data = $credentials;
+        $this->data = $data;
     }
 
     public function __get(string $name)

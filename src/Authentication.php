@@ -22,6 +22,7 @@ class Authentication extends Responder
         unset($this->authorization);
         unset($this->scheme);
         unset($this->isProtectedContentAvailable);
+        $this->allowedMethods = new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
     }
 
     /**
@@ -39,11 +40,7 @@ class Authentication extends Responder
             return $this->$name;
         }
         if ($name === "isProtectedContentAvailable") {
-            $this->$name = $this->request->httpMethod === HTTPRequestMethod::options || Application::shared()->session->valueForKey("user") || $this->authorization->isValid;
-            return $this->$name;
-        }
-        if ($name === "allowedMethods") {
-            $this->$name = new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
+            $this->$name = $this->authorization->isValid;
             return $this->$name;
         }
         return parent::__get($name);

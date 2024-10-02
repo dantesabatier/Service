@@ -18,7 +18,7 @@ readonly class Authorization
     private string $credentials;
     /** @var Dictionary<string> */
     private Dictionary $parameters;
-    public AuthenticationMethod $method;
+    public AuthenticationScheme $scheme;
     public ?URLCredential $credential;
     public ?ManagedObject $user;
     public bool $isValid;
@@ -31,10 +31,10 @@ readonly class Authorization
         unset($this->isValid);
         $components = explode(" ", $this->string);
         if (count($components) !== 2) {
-            $components = [AuthenticationMethod::basic->value, ""];
+            $components = [AuthenticationScheme::basic->value, ""];
         }
         [$method, $credentials] = $components;
-        $this->method = AuthenticationMethod::tryFrom($method) ?? AuthenticationMethod::basic;
+        $this->scheme = AuthenticationScheme::tryFrom($method) ?? AuthenticationScheme::basic;
         $this->credentials = $credentials;
     }
 
@@ -57,7 +57,7 @@ readonly class Authorization
 
     private function credential(): ?URLCredential
     {
-        if ($this->method === AuthenticationMethod::basic) {
+        if ($this->scheme === AuthenticationScheme::basic) {
             $components = explode(":", base64_decode($this->credentials));
             if (count($components) !== 2) {
                 return null;
@@ -65,7 +65,7 @@ readonly class Authorization
             [$username, $password] = $components;
             return new URLCredential($username, $password);
         }
-        if ($this->method === AuthenticationMethod::digest) {
+        if ($this->scheme === AuthenticationScheme::digest) {
             if (!($username = $this->parameters["username"])) {
                 return null;
             }
@@ -108,13 +108,13 @@ readonly class Authorization
         }
         /** @var string $password */
         $password = $user->valueForKey("password") ?? "";
-        if ($this->method === AuthenticationMethod::basic) {
+        if ($this->scheme === AuthenticationScheme::basic) {
             if (is_password($password)) {
                 return password_verify((string)$credential->password, $password);
             }
             return $credential->password === $password;
         }
-        if ($this->method === AuthenticationMethod::digest) {
+        if ($this->scheme === AuthenticationScheme::digest) {
             $parameters = $this->parameters;
             if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"]) || ($parameters["algorithm"] !== "SHA-256")) {
                 return false;

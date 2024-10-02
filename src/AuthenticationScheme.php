@@ -2,7 +2,7 @@
 
 namespace Sabatier\Service;
 
-enum AuthenticationMethod: string
+enum AuthenticationScheme: string
 {
     case basic = "Basic";
     case bearer = "Bearer";

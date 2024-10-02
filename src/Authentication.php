@@ -13,14 +13,14 @@ use function Sabatier\Foundation\read_random;
 
 class Authentication extends Responder
 {
-    public readonly AuthenticationMethod $method;
+    public readonly AuthenticationScheme $scheme;
     public readonly Authorization $authorization;
 
     public function __construct()
     {
         parent::__construct();
         unset($this->authorization);
-        unset($this->method);
+        unset($this->scheme);
         unset($this->isProtectedContentAvailable);
     }
 
@@ -35,7 +35,7 @@ class Authentication extends Responder
             return $this->$name;
         }
         if ($name === "method") {
-            $this->$name = $this->authorization->method;
+            $this->$name = $this->authorization->scheme;
             return $this->$name;
         }
         if ($name === "isProtectedContentAvailable") {

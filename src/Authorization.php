@@ -15,12 +15,12 @@ use function Sabatier\Foundation\is_password;
 
 readonly class Authorization
 {
-    public string $name;
-    public string $credentials;
+    private string $name;
+    private string $credentials;
     /** @var Dictionary<string> */
-    public Dictionary $parameters;
+    private Dictionary $parameters;
+    private ?URLCredential $credential;
     public AuthenticationScheme $scheme;
-    public ?URLCredential $credential;
     public ?ManagedObject $user;
     public bool $isValid;
 

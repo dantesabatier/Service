@@ -34,7 +34,7 @@ class Authentication extends Responder
             $this->$name = new Authorization($this->request->valueForHttpHeaderField("Authorization") ?? "");
             return $this->$name;
         }
-        if ($name === "method") {
+        if ($name === "scheme") {
             $this->$name = $this->authorization->scheme;
             return $this->$name;
         }

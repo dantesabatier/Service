@@ -19,7 +19,7 @@ readonly class Authorization
     /** @var Dictionary<string> */
     private Dictionary $parameters;
     private ?URLCredential $credential;
-    public AuthenticationScheme $scheme;
+    public AuthenticationMethod $method;
     public ?ManagedObject $user;
     public bool $isValid;
 
@@ -31,10 +31,10 @@ readonly class Authorization
         unset($this->isValid);
         $components = explode(" ", $this->string);
         if (count($components) !== 2) {
-            $components = [AuthenticationScheme::basic->value, ""];
+            $components = [AuthenticationMethod::basic->value, ""];
         }
-        [$scheme, $credentials] = $components;
-        $this->scheme = AuthenticationScheme::tryFrom($scheme) ?? AuthenticationScheme::basic;
+        [$method, $credentials] = $components;
+        $this->method = AuthenticationMethod::tryFrom($method) ?? AuthenticationMethod::basic;
         $this->credentials = $credentials;
     }
 
@@ -57,7 +57,7 @@ readonly class Authorization
 
     private function credential(): ?URLCredential
     {
-        if ($this->scheme === AuthenticationScheme::basic) {
+        if ($this->method === AuthenticationMethod::basic) {
             $components = explode(":", base64_decode($this->credentials));
             if (count($components) !== 2) {
                 return null;
@@ -65,24 +65,20 @@ readonly class Authorization
             [$username, $password] = $components;
             return new URLCredential($username, $password);
         }
-        if ($this->scheme === AuthenticationScheme::digest) {
+        if ($this->method === AuthenticationMethod::digest) {
             if (!($username = $this->parameters["username"])) {
                 return null;
             }
             return new URLCredential($username);
         }
-        /** @psalm-suppress RedundantCondition */
-        if ($this->scheme === AuthenticationScheme::bearer) {
-            if (!($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey))) {
-                return null;
-            }
-            $decoder = new JWTDecoder($key, Application::shared()->request->url->host);
-            if (!($username = $decoder->decode($this->credentials)[JWTDataField])) {
-                return null;
-            }
-            return new URLCredential($username);
+        if (!($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey))) {
+            return null;
         }
-        return null;
+        $decoder = new JWTDecoder($key, Application::shared()->request->url->host);
+        if (!($username = $decoder->decode($this->credentials)[JWTDataField])) {
+            return null;
+        }
+        return new URLCredential($username);
     }
 
     private function user(): ?ManagedObject
@@ -112,13 +108,13 @@ readonly class Authorization
         }
         /** @var string $password */
         $password = $user->valueForKey("password") ?? "";
-        if ($this->scheme === AuthenticationScheme::basic) {
+        if ($this->method === AuthenticationMethod::basic) {
             if (is_password($password)) {
                 return password_verify((string)$credential->password, $password);
             }
             return $credential->password === $password;
         }
-        if ($this->scheme === AuthenticationScheme::digest) {
+        if ($this->method === AuthenticationMethod::digest) {
             $parameters = $this->parameters;
             if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"]) || ($parameters["algorithm"] !== "SHA-256")) {
                 return false;

@@ -84,9 +84,9 @@ readonly class Authorization
         if (!($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey))) {
             return null;
         }
-        $decoder = new JWTDecoder($key, Application::shared()->request->url->host);
+        $decoder = new JSONWebTokenDecoder($key, Application::shared()->request->url->host);
         /** @var string|null $username */
-        $username = $decoder->decode($this->credentials)["dat"] ?? null;
+        $username = $decoder->decode($this->credentials)->dat;
         if (!$username) {
             return null;
         }

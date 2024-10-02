@@ -11,9 +11,6 @@ use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\UserDefaults;
 use function Sabatier\Foundation\read_random;
 
-/**
- * @psalm-import-type JWT from JWTEncoder
- */
 class Authentication extends Responder
 {
     public readonly AuthenticationScheme $scheme;
@@ -56,15 +53,15 @@ class Authentication extends Responder
     public function login(): void
     {
         $this->isProtectedContentAvailable ?: throw new UnauthorizedException();
-        $date = new Date();
         $user = $this->authorization->user;
         /** @var Dictionary<mixed> $data */
         $data = new Dictionary();
         $data["user"] = $user;
         $username = $user?->valueForKey("username");
         if ($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) {
-            $encoder = new JWTEncoder($key);
-            $token = $encoder->encode(["iat" => $date->timeIntervalSinceReferenceDate, "jti" => base64_encode(read_random(16)), "iss" => $this->request->url->host, "nbf" => $date->timeIntervalSinceReferenceDate, "exp" => $date->addingTimeInterval(UserDefaults::standard()->float(JWTValidityTimeIntervalPreferenceKey))->timeIntervalSinceReferenceDate, "dat" => $username]);
+            $date = new Date();
+            $encoder = new JSONWebTokenEncoder($key);
+            $token = $encoder->encode(new JSONWebToken(iss: $this->request->url->host, exp: $date->addingTimeInterval(UserDefaults::standard()->float(JWTValidityTimeIntervalPreferenceKey))->timeIntervalSinceReferenceDate, nbf: $date->timeIntervalSinceReferenceDate, iat: $date->timeIntervalSinceReferenceDate, jti: base64_encode(read_random(16)), dat: $username));
             $data["token"] = $token;
         }
         $session = Application::shared()->session;

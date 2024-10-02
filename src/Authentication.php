@@ -61,8 +61,7 @@ class Authentication extends Responder
         if ($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) {
             $date = new Date();
             $encoder = new JSONWebTokenEncoder($key);
-            $token = $encoder->encode(new JSONWebToken(iss: $this->request->url->host, exp: $date->addingTimeInterval(UserDefaults::standard()->float(JWTValidityTimeIntervalPreferenceKey))->timeIntervalSinceReferenceDate, nbf: $date->timeIntervalSinceReferenceDate, iat: $date->timeIntervalSinceReferenceDate, jti: base64_encode(read_random(16)), dat: $username));
-            $data["token"] = $token;
+            $data["token"] = $encoder->encode(new JSONWebToken(iss: $this->request->url->host, exp: $date->addingTimeInterval(UserDefaults::standard()->float(JWTValidityTimeIntervalPreferenceKey))->timeIntervalSinceReferenceDate, nbf: $date->timeIntervalSinceReferenceDate, iat: $date->timeIntervalSinceReferenceDate, jti: base64_encode(read_random(16)), dat: $username));
         }
         $session = Application::shared()->session;
         $session->regenerateID();

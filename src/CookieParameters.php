@@ -2,13 +2,15 @@
 
 namespace Sabatier\Service;
 
-use JetBrains\PhpStorm\ArrayShape;
 use JetBrains\PhpStorm\ExpectedValues;
 use Sabatier\Foundation\Networking\HTTPCookieStringPolicy;
 
+/**
+ * @psalm-type CookieParametersValues = array{lifetime: int, path: string, domain: string, secure: bool, httponly: bool, samesite: string}
+ */
 readonly class CookieParameters
 {
-    #[ArrayShape(["lifetime" => "int", "path" => "string", "domain" => "string", "secure" => "bool", "httponly" => "bool", "samesite" => "string"])]
+    /** @var CookieParametersValues $allValues */
     public array $allValues;
 
     public function __construct(public string $domain, public string $path = "/", public int $lifetime = 0, public bool $isSecure = true, public bool $isHTTPOnly = true, #[ExpectedValues(valuesFromClass: HTTPCookieStringPolicy::class)] public string $sameSitePolicy = HTTPCookieStringPolicy::sameSiteLax)

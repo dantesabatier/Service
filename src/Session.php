@@ -100,9 +100,6 @@ class Session extends ObjectClass
         return $this->valueForUndefinedKey($name);
     }
 
-    /**
-     * @throws Exception
-     */
     public function __set(string $name, mixed $value): void
     {
         if ($name === "saveURL" || $name === "cookieParameters") {
@@ -132,7 +129,6 @@ class Session extends ObjectClass
 
     /**
      * Initialize session data
-     * @throws Exception
      */
     public function start(): void
     {
@@ -145,7 +141,6 @@ class Session extends ObjectClass
 
     /**
      * Write session data and end session
-     * @throws Exception
      */
     public function commit(): void
     {
@@ -154,7 +149,6 @@ class Session extends ObjectClass
 
     /**
      * Re-initialize session with original values
-     * @throws Exception
      */
     public function reset(): void
     {
@@ -163,7 +157,6 @@ class Session extends ObjectClass
 
     /**
      * Discard changes and finish session
-     * @throws Exception
      */
     public function invalidate(): void
     {
@@ -172,7 +165,6 @@ class Session extends ObjectClass
 
     /**
      * Update the current session id with a newly generated one
-     * @throws Exception
      */
     public function regenerateID(): void
     {

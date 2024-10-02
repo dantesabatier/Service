@@ -19,5 +19,6 @@
         <InternalClass errorLevel="suppress"/>
         <InternalProperty errorLevel="suppress"/>
         <RiskyTruthyFalsyComparison errorLevel="suppress"/>
+        <DuplicateClass errorLevel="suppress"/>
     </issueHandlers>
 </psalm>

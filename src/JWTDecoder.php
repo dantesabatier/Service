@@ -13,6 +13,10 @@ readonly class JWTDecoder
     {
     }
 
+    /**
+     * @param string $data
+     * @return JWT
+     */
     public function decode(string $data): array
     {
         $components = explode(".", $data);
@@ -20,14 +24,14 @@ readonly class JWTDecoder
             throw new JWTException();
         }
         [$header, $payload, $signature] = $components;
-        /** @var JWT $decoded */
-        $decoded = json_decode(base64_decode($payload), true);
         $unsigned = sprintf("%s.%s", $header, $payload);
         $signed = base64_encode(hash_hmac("sha256", $unsigned, $this->key, true));
         if ($signature !== $signed) {
             throw new JWTException();
         }
         $date = new Date();
+        /** @var JWT $decoded */
+        $decoded = json_decode(base64_decode($payload), true);
         if (array_key_exists("nbf", $decoded) && $decoded["nbf"] > $date->timeIntervalSinceReferenceDate) {
             throw new JWTException();
         }

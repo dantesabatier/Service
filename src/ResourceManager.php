@@ -5,6 +5,7 @@
 namespace Sabatier\Service;
 
 use Override;
+use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
@@ -20,6 +21,7 @@ class ResourceManager extends Responder
     {
         parent::__construct();
         unset($this->resourceURL);
+        $this->allowedMethods = new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::head, HTTPRequestMethod::get]);
     }
 
     #[Override]
@@ -35,10 +37,7 @@ class ResourceManager extends Responder
     #[Override]
     public function isFirstResponder(): bool
     {
-        return match ($this->request->httpMethod) {
-            HTTPRequestMethod::get, HTTPRequestMethod::head => FileManager::default()->fileExists($this->resourceURL->path, $isDirectory) && !$isDirectory && FileManager::default()->isReadableFile($this->resourceURL->path),
-            default => throw new MethodNotAllowedException()
-        };
+        return FileManager::default()->fileExists($this->resourceURL->path, $isDirectory) && !$isDirectory && FileManager::default()->isReadableFile($this->resourceURL->path);
     }
 
     #[Override]

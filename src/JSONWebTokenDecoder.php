@@ -4,6 +4,9 @@ namespace Sabatier\Service;
 
 use Sabatier\Foundation\Date;
 
+/**
+ * @psalm-import-type JSONWebTokenValues from JSONWebToken
+ */
 readonly class JSONWebTokenDecoder
 {
     public function __construct(private string $key, private ?string $issuer = null)
@@ -25,8 +28,9 @@ readonly class JSONWebTokenDecoder
         if ($signature !== $signed) {
             throw new JSONWebTokenException("Access token is not valid.");
         }
-        $token = new JSONWebToken();
+        /** @var JSONWebTokenValues $decoded */
         $decoded = json_decode(base64_decode($payload), true);
+        $token = new JSONWebToken();
         foreach ($decoded as $key => $value) {
             $token->$key = $value;
         }

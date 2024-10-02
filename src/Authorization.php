@@ -15,27 +15,27 @@ use function Sabatier\Foundation\is_password;
 
 readonly class Authorization
 {
+    private string $name;
     private string $credentials;
     /** @var Dictionary<string> */
     private Dictionary $parameters;
+    private ?URLCredential $credential;
     public AuthenticationScheme $scheme;
-    public ?URLCredential $credential;
     public ?ManagedObject $user;
     public bool $isValid;
 
-    public function __construct(public string $string)
+    public function __construct(public string $rawValue)
     {
         unset($this->parameters);
         unset($this->credential);
         unset($this->user);
         unset($this->isValid);
-        $components = explode(" ", $this->string);
+        $components = explode(" ", $this->rawValue);
         if (count($components) !== 2) {
             $components = [AuthenticationScheme::basic->value, ""];
         }
-        [$method, $credentials] = $components;
-        $this->scheme = AuthenticationScheme::tryFrom($method) ?? AuthenticationScheme::basic;
-        $this->credentials = $credentials;
+        [$this->name, $this->credentials] = $components;
+        $this->scheme = AuthenticationScheme::tryFrom($this->name) ?? AuthenticationScheme::basic;
     }
 
     public function __get(string $name)

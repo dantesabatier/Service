@@ -11,6 +11,9 @@ use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\UserDefaults;
 use function Sabatier\Foundation\read_random;
 
+/**
+ * @psalm-import-type JWT from JWTEncoder
+ */
 class Authentication extends Responder
 {
     public readonly AuthenticationScheme $scheme;
@@ -61,7 +64,7 @@ class Authentication extends Responder
         $username = $user?->valueForKey("username");
         if ($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) {
             $encoder = new JWTEncoder($key);
-            $token = $encoder->encode([JWTIssuedField => $date->timeIntervalSinceReferenceDate, JWTUniqueIDField => base64_encode(read_random(16)), JWTIssuerField => $this->request->url->host, JWTNotBeforeField => $date->timeIntervalSinceReferenceDate, JWTExpirationField => $date->addingTimeInterval(UserDefaults::standard()->float(JWTValidityTimeIntervalPreferenceKey))->timeIntervalSinceReferenceDate, JWTDataField => $username]);
+            $token = $encoder->encode(["iat" => $date->timeIntervalSinceReferenceDate, "jti" => base64_encode(read_random(16)), "iss" => $this->request->url->host, "nbf" => $date->timeIntervalSinceReferenceDate, "exp" => $date->addingTimeInterval(UserDefaults::standard()->float(JWTValidityTimeIntervalPreferenceKey))->timeIntervalSinceReferenceDate, "dat" => $username]);
             $data["token"] = $token;
         }
         $session = Application::shared()->session;

@@ -40,14 +40,19 @@ readonly class Authorization
 
     public function __get(string $name)
     {
-        $this->$name = match ($name) {
-            "scheme" => AuthenticationScheme::tryFrom($this->name) ?? AuthenticationScheme::basic,
+        return $this->$name = match ($name) {
+            "scheme" => $this->scheme(),
             "parameters" => $this->parameters(),
             "credential" => $this->credential(),
             "user" => $this->user(),
             "isValid" => $this->isValid(),
             default => throw new UndefinedKeyException()
         };
+    }
+
+    private function scheme(): AuthenticationScheme
+    {
+        return AuthenticationScheme::tryFrom($this->name) ?? AuthenticationScheme::basic;
     }
 
     private function parameters(): Dictionary

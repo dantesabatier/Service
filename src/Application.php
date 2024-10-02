@@ -286,6 +286,34 @@ class Application extends Responder
         return $responder;
     }
 
+    private function firstResponder(): Responder
+    {
+        $authentication = $this->authentication;
+        $session = $this->session;
+        $session->start();
+        $responder = $this->instantiateInitialResponder();
+        $this->persistentContainer->viewContext->transactionAuthor = match ($this->request->httpMethod) {
+            HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $authentication->authorization->user?->valueForKey("username"),
+            default => null
+        };
+        $session->commit();
+        if ($responder === $authentication) {
+            return $responder;
+        }
+        if (!$responder->isProtectedContentAvailable && !$authentication->isProtectedContentAvailable) {
+            throw new UnauthorizedException();
+        }
+        return $responder;
+    }
+
+    private function preparedFirstResponder(): Responder
+    {
+        return match ($this->request->httpMethod) {
+            HTTPRequestMethod::options => $this,
+            default => $this->firstResponder()
+        };
+    }
+
     public function run(): void
     {
         try {
@@ -297,27 +325,7 @@ class Application extends Responder
                 return true;
             });
             $delegate?->applicationWillFinishLaunching($this);
-            $responder = match ($this->request->httpMethod) {
-                HTTPRequestMethod::options => $this,
-                default => (function (): Responder {
-                    $authentication = $this->authentication;
-                    $session = $this->session;
-                    $session->start();
-                    $responder = $this->instantiateInitialResponder();
-                    $this->persistentContainer->viewContext->transactionAuthor = match ($this->request->httpMethod) {
-                        HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $authentication->authorization->user?->valueForKey("username"),
-                        default => null
-                    };
-                    $session->commit();
-                    if ($responder === $authentication) {
-                        return $responder;
-                    }
-                    if (!$responder->isProtectedContentAvailable && !$authentication->isProtectedContentAvailable) {
-                        throw new UnauthorizedException();
-                    }
-                    return $responder;
-                })()
-            };
+            $responder = $this->preparedFirstResponder();
             $delegate?->applicationDidFinishLaunching($this);
             if ($responder->isProtectedContentAvailable) {
                 $responder->isProtectedContentAvailable = false;

@@ -3,6 +3,7 @@
 namespace Sabatier\Service;
 
 use JsonSerializable;
+use Override;
 
 /**
  * @psalm-type JSONWebTokenValues = array{iss: string|null, sub: string|null, aud: string|null, exp: float, nbf: float, iat: float, jti: string|null, dat: mixed}
@@ -20,7 +21,7 @@ class JSONWebToken implements JsonSerializable
     /**
      * @return JSONWebTokenValues
      */
-    #[\Override]
+    #[Override]
     public function jsonSerialize(): array
     {
         return $this->allValues;

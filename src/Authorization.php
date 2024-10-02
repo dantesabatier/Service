@@ -3,6 +3,7 @@
 namespace Sabatier\Service;
 
 use Exception;
+use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\Dictionary;
@@ -35,7 +36,9 @@ readonly class Authorization
         if (count($components) !== 2) {
             $components = [AuthenticationScheme::basic->value, ""];
         }
-        [$this->name, $this->credentials] = $components;
+        [$name, $credentials] = $components;
+        $this->name = $name;
+        $this->credentials = $credentials;
     }
 
     public function __get(string $name)
@@ -96,9 +99,11 @@ readonly class Authorization
             if (!$username) {
                 return null;
             }
-            $fetchRequest = new FetchRequest("User");
+            $context = $application->persistentContainer->viewContext;
+            $fetchRequest = new FetchRequest();
+            $fetchRequest->entity = EntityDescription::entity("User", $context);
             $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($username));
-            return $application->persistentContainer->viewContext->fetch($fetchRequest)->first?->serialized($application->serialization);
+            return $context->fetch($fetchRequest)->first?->serialized($application->serialization);
         } catch (Exception) {
             return null;
         }

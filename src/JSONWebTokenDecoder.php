@@ -32,7 +32,7 @@ readonly class JSONWebTokenDecoder
         }
         $date = new Date();
         if ($token->nbf && $token->nbf > $date->timeIntervalSinceReferenceDate) {
-            throw new JSONWebTokenException("Access token has expired.");
+            throw new JSONWebTokenException("Access token is not yet valid.");
         }
         if ($token->exp && $token->exp < $date->timeIntervalSinceReferenceDate) {
             throw new JSONWebTokenException("Access token has expired.");

@@ -85,7 +85,9 @@ readonly class Authorization
             return null;
         }
         $decoder = new JWTDecoder($key, Application::shared()->request->url->host);
-        if (!($username = $decoder->decode($this->credentials)[JWTDataField])) {
+        /** @var string|null $username */
+        $username = $decoder->decode($this->credentials)["dat"];
+        if (!$username) {
             return null;
         }
         return new URLCredential($username);

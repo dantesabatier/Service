@@ -21,25 +21,25 @@ readonly class JWTDecoder
     {
         $components = explode(".", $data);
         if (count($components) !== 3) {
-            throw new JWTException();
+            throw new JWTException("Access token is missing.");
         }
         [$header, $payload, $signature] = $components;
         $unsigned = sprintf("%s.%s", $header, $payload);
         $signed = base64_encode(hash_hmac("sha256", $unsigned, $this->key, true));
         if ($signature !== $signed) {
-            throw new JWTException();
+            throw new JWTException("Access token is not valid.");
         }
         $date = new Date();
         /** @var JWT $decoded */
         $decoded = json_decode(base64_decode($payload), true);
         if (array_key_exists("nbf", $decoded) && $decoded["nbf"] > $date->timeIntervalSinceReferenceDate) {
-            throw new JWTException();
+            throw new JWTException("Access token has expired.");
         }
         if (array_key_exists("exp", $decoded) && $decoded["exp"] < $date->timeIntervalSinceReferenceDate) {
-            throw new JWTException();
+            throw new JWTException("Access token has expired.");
         }
         if (array_key_exists("iss", $decoded) && $decoded["iss"] !== $this->issuer) {
-            throw new JWTException();
+            throw new JWTException("Access token issuer is invalid.");
         }
         return $decoded;
     }

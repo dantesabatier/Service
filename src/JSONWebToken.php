@@ -11,11 +11,25 @@ use Override;
 class JSONWebToken implements JsonSerializable
 {
     /** @var JSONWebTokenValues */
-    public array $allValues;
+    readonly public array $allValues;
 
     public function __construct(public ?string $iss = null, public ?string $sub = null, public ?string $aud = null, public float $exp = 0, public float $nbf = 0, public float $iat = 0, public ?string $jti = null, public mixed $dat = null)
     {
         $this->allValues = ["iss" => $this->iss, "sub" => $this->sub, "aud" => $this->aud, "exp" => $this->exp, "nbf" => $this->nbf, "iat" => $this->iat, "jti" => $this->jti, "dat" => $this->dat];
+    }
+
+    /**
+     * @param JSONWebTokenValues $values
+     * @return JSONWebToken
+     */
+    public static function token(array $values): JSONWebToken
+    {
+        $token = new JSONWebToken();
+        $token->allValues = $values;
+        foreach ($token->allValues as $key => $value) {
+            $token->$key = $value;
+        }
+        return $token;
     }
 
     /**

@@ -28,10 +28,10 @@ readonly class JSONWebTokenDecoder
         if ($signature !== $signed) {
             throw new JSONWebTokenException("Access token is not valid.");
         }
+        $date = new Date();
         /** @var JSONWebTokenValues $decoded */
         $decoded = json_decode(base64_decode($payload), true);
         $token = JSONWebToken::token($decoded);
-        $date = new Date();
         if ($token->nbf && $token->nbf > $date->timeIntervalSinceReferenceDate) {
             throw new JSONWebTokenException("Access token is not yet valid.");
         }

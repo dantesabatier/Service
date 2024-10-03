@@ -17,10 +17,10 @@ use Sabatier\Foundation\UndefinedKeyException;
  * @property-read mixed $dat
  * @psalm-type JSONWebTokenValues = array{iss: string|null, sub: string|null, aud: string|null, exp: float|null, nbf: float|null, iat: float|null, jti: string|null, dat: mixed}
  */
-readonly class JSONWebToken implements JsonSerializable
+class JSONWebToken implements JsonSerializable
 {
     /** @var JSONWebTokenValues */
-    public array $allValues;
+    private array $allValues;
 
     public function __construct(?string $iss = null, ?string $sub = null, ?string $aud = null, ?float $exp = null, ?float $nbf = null, ?float $iat = null, ?string $jti = null, mixed $dat = null)
     {
@@ -29,7 +29,7 @@ readonly class JSONWebToken implements JsonSerializable
 
     public function __get(string $name)
     {
-        $this->$name = match ($name) {
+        return match ($name) {
             "iss", "sub", "aud", "exp", "nbf", "iat", "jti", "dat" => $this->allValues[$name] ?? null,
             default => throw new UndefinedKeyException(),
         };
@@ -42,7 +42,9 @@ readonly class JSONWebToken implements JsonSerializable
     public static function token(array $values): JSONWebToken
     {
         $token = new JSONWebToken();
-        $token->allValues = $values;
+        foreach ($values as $key => $value) {
+            $token->allValues[$key] = $value;
+        }
         return $token;
     }
 

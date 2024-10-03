@@ -7,7 +7,7 @@ use JetBrains\PhpStorm\ExpectedValues;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 
 #[Attribute(Attribute::TARGET_METHOD)]
-readonly class Action
+final readonly class Action
 {
     public function __construct(#[ExpectedValues(valuesFromClass: HTTPRequestMethod::class)] public string $method = HTTPRequestMethod::post, public ?string $path = null)
     {

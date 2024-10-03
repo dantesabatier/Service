@@ -5,7 +5,7 @@ namespace Sabatier\Service;
 use Attribute;
 
 #[Attribute(Attribute::TARGET_CLASS)]
-readonly class Endpoint
+final readonly class Endpoint
 {
     public function __construct(public ?string $path = null)
     {

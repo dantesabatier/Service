@@ -30,10 +30,7 @@ readonly class JSONWebTokenDecoder
         }
         /** @var JSONWebTokenValues $decoded */
         $decoded = json_decode(base64_decode($payload), true);
-        $token = new JSONWebToken();
-        foreach ($decoded as $key => $value) {
-            $token->$key = $value;
-        }
+        $token = JSONWebToken::token($decoded);
         $date = new Date();
         if ($token->nbf && $token->nbf > $date->timeIntervalSinceReferenceDate) {
             throw new JSONWebTokenException("Access token is not yet valid.");

@@ -86,7 +86,7 @@ readonly class Authorization
         }
         $decoder = new JSONWebTokenDecoder($key, Application::shared()->request->url->host);
         /** @var string|null $username */
-        $username = $decoder->decode($this->data)->dat;
+        $username = $decoder->decode($this->data)->sec;
         if (!$username) {
             return null;
         }

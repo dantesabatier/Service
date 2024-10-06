@@ -161,7 +161,6 @@ class PersistentSpace extends Responder
     {
         $context = $this->managedObjectContext;
         $request = $this->request;
-        $statusCode = HTTPStatusCode::ok;
         switch ($request->httpMethod) {
             case HTTPRequestMethod::get:
             case HTTPRequestMethod::head:
@@ -232,10 +231,10 @@ class PersistentSpace extends Responder
                     throw new ConflictException();
                 }
                 if ($request->httpMethod === HTTPRequestMethod::delete) {
+                    $this->statusCode = HTTPStatusCode::noContent;
                     /** @psalm-suppress PossiblyNullArgument */
                     $context->delete($object);
                     $context->save();
-                    $statusCode = HTTPStatusCode::noContent;
                 } else {
                     $object ??= EntityDescription::insertNewObject($this->entity->name, $context);
                     $object->setValuesForKeys(Dictionary::dictionaryWithArray($body));
@@ -250,6 +249,6 @@ class PersistentSpace extends Responder
             default:
                 throw new MethodNotAllowedException();
         }
-        return new HTTPURLResponse($request->url, $statusCode);
+        return new HTTPURLResponse($request->url, $this->statusCode);
     }
 }

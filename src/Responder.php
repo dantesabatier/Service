@@ -40,6 +40,7 @@ abstract class Responder extends ObjectClass
     public ?string $contentDisposition = null;
     public bool $isProtectedContentAvailable = false;
     public readonly bool $isEndpoint;
+    public readonly bool $isActionable;
     public readonly ?string $selector;
 
     public function __construct()
@@ -49,6 +50,7 @@ abstract class Responder extends ObjectClass
         unset($this->managedObjectContext);
         unset($this->allowedMethods);
         unset($this->isEndpoint);
+        unset($this->isActionable);
         unset($this->selector);
     }
 
@@ -63,6 +65,7 @@ abstract class Responder extends ObjectClass
             "managedObjectContext" => Application::shared()->persistentContainer->viewContext,
             "allowedMethods" => new ArrayClass([HTTPRequestMethod::head, HTTPRequestMethod::options, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::put, HTTPRequestMethod::delete]),
             "isEndpoint" => $this->isEndpoint(),
+            "isActionable" => $this->selector !== null,
             "selector" => $this->selector(),
             default => $this->valueForUndefinedKey($name)
         };
@@ -119,7 +122,7 @@ abstract class Responder extends ObjectClass
      */
     public function isFirstResponder(): bool
     {
-        return $this->allowedMethods->containsElement($this->request->httpMethod) && ($this->isEndpoint || $this->selector !== null);
+        return $this->allowedMethods->containsElement($this->request->httpMethod) && ($this->isEndpoint || $this->isActionable);
     }
 
     /**

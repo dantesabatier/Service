@@ -113,20 +113,14 @@ abstract class Responder extends ObjectClass
      */
     public function response(): HTTPURLResponse
     {
-        switch ($this->request->httpMethod) {
-            case HTTPRequestMethod::post:
-            case HTTPRequestMethod::put:
-            case HTTPRequestMethod::patch:
-            case HTTPRequestMethod::delete:
-                if ($selector = $this->selector) {
-                    $this->perform($selector);
-                    if ($this->request->httpMethod === HTTPRequestMethod::delete) {
-                        $this->statusCode = HTTPStatusCode::noContent;
-                    }
-                }
-                break;
-            default:
-                break;
+        if (match ($this->request->httpMethod) {
+                HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => true,
+                default => false,
+            } && ($selector = $this->selector)) {
+            $this->perform($selector);
+            if ($this->request->httpMethod === HTTPRequestMethod::delete) {
+                $this->statusCode = HTTPStatusCode::noContent;
+            }
         }
         return new HTTPURLResponse($this->request->url, $this->statusCode);
     }

@@ -35,6 +35,7 @@ abstract class Responder extends ObjectClass
     public ?int $contentLength = null;
     public ?string $contentDisposition = null;
     public bool $isProtectedContentAvailable = false;
+    public ?string $selector = null;
 
     public function __construct()
     {
@@ -61,8 +62,6 @@ abstract class Responder extends ObjectClass
      */
     public function isFirstResponder(): bool
     {
-        $attemptProceedingWithDefaultImplementation = fn(): bool => $this->allowedMethods->containsElement($this
-            ->request->httpMethod) ?: throw new MethodNotAllowedException();
         $request = $this->request;
         $path = $request->url->path;
         $reflectionClass = new ReflectionClass($this);
@@ -72,7 +71,7 @@ abstract class Responder extends ObjectClass
                 foreach ($reflectionClass->getAttributes(Endpoint::class) as $attribute) {
                     $endpoint = $attribute->newInstance();
                     if (string_is_equal($path, $endpoint->path ?? "/{$reflectionClass->getShortName()}", CompareOptions::caseInsensitive)) {
-                        return $attemptProceedingWithDefaultImplementation();
+                        return true;
                     }
                 }
                 break;
@@ -90,11 +89,8 @@ abstract class Responder extends ObjectClass
                             $other = "$components->path$components->query";
                         }
                         if (string_is_equal($path, $other, CompareOptions::caseInsensitive)) {
-                            $ok = $attemptProceedingWithDefaultImplementation();
-                            if ($request->httpMethod === $action->method) {
-                                $this->perform($selector);
-                            }
-                            return $ok;
+                            $this->selector = $selector;
+                            return true;
                         }
                     }
                 }
@@ -110,6 +106,21 @@ abstract class Responder extends ObjectClass
      */
     public function response(): HTTPURLResponse
     {
+        $this->allowedMethods->containsElement($this->request->httpMethod) ?: throw new MethodNotAllowedException();
+        switch ($this->request->httpMethod) {
+            case HTTPRequestMethod::post:
+            case HTTPRequestMethod::put:
+            case HTTPRequestMethod::patch:
+            case HTTPRequestMethod::delete:
+                if ($selector = $this->selector) {
+                    $this->content = json_encode([]);
+                    $this->contentType = "application/json";
+                    $this->perform($selector);
+                }
+                break;
+            default:
+                break;
+        }
         return new HTTPURLResponse($this->request->url);
     }
 

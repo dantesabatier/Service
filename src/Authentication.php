@@ -8,6 +8,7 @@ use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
+use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\UserDefaults;
 use function Sabatier\Foundation\read_random;
 
@@ -75,5 +76,6 @@ class Authentication extends Responder
     {
         $session = Application::shared()->session;
         $session->setValueForKey(null, "user");
+        $this->statusCode = HTTPStatusCode::noContent;
     }
 }

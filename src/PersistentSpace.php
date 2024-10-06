@@ -153,7 +153,7 @@ class PersistentSpace extends Responder
     #[Override]
     public function isFirstResponder(): bool
     {
-        return $this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel?->entitiesByName?->valueForKey($this->request->url->lastPathComponent) !== null;
+        return $this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel?->entitiesByName?->offsetExists($this->request->url->lastPathComponent) ?? false;
     }
 
     #[Override]

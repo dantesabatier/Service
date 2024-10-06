@@ -15,6 +15,7 @@ use const Sabatier\Foundation\kCFBundleVersionKey;
 #[Endpoint("/")]
 class Home extends ViewController
 {
+    public bool $isProtectedContentAvailable = true;
     #[Outlet]
     public readonly ?string $version;
     #[Outlet]
@@ -26,7 +27,6 @@ class Home extends ViewController
     {
         parent::__construct();
         $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::head, HTTPRequestMethod::options]);
-        $this->isProtectedContentAvailable = true;
     }
 
     #[Override]

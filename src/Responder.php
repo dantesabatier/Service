@@ -39,6 +39,8 @@ abstract class Responder extends ObjectClass
     public ?int $contentLength = null;
     public ?string $contentDisposition = null;
     public bool $isProtectedContentAvailable = false;
+    private readonly bool $isEndpoint;
+    private readonly ?string $selector;
 
     public function __construct()
     {
@@ -46,6 +48,8 @@ abstract class Responder extends ObjectClass
         unset($this->serialization);
         unset($this->managedObjectContext);
         unset($this->allowedMethods);
+        unset($this->isEndpoint);
+        unset($this->selector);
     }
 
     public function __get(string $name)
@@ -55,8 +59,44 @@ abstract class Responder extends ObjectClass
             "serialization" => (($string = $this->request->valueForHttpHeaderField("serialization")) && ($array = json_decode($string, true))) ? Dictionary::dictionaryWithArray($array) : null,
             "managedObjectContext" => Application::shared()->persistentContainer->viewContext,
             "allowedMethods" => new ArrayClass([HTTPRequestMethod::head, HTTPRequestMethod::options, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::put, HTTPRequestMethod::delete]),
+            "isEndpoint" => $this->isEndpoint(),
+            "selector" => $this->selector(),
             default => $this->valueForUndefinedKey($name)
         };
+    }
+
+    private function isEndpoint(): bool
+    {
+        $path = $this->request->url->path;
+        $reflectionClass = new ReflectionClass($this);
+        foreach ($reflectionClass->getAttributes(Endpoint::class) as $attribute) {
+            $endpoint = $attribute->newInstance();
+            if (string_is_equal($path, $endpoint->path ?? "/{$reflectionClass->getShortName()}", CompareOptions::caseInsensitive)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private function selector(): ?string
+    {
+        $path = $this->request->url->path;
+        $reflectionClass = new ReflectionClass($this);
+        foreach ($reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
+            $selector = $method->name;
+            foreach ($method->getAttributes(Action::class) as $attribute) {
+                $action = $attribute->newInstance();
+                $other = $action->path ?? "/$selector";
+                if (url_validate($other)) {
+                    $components = new URLComponents($other);
+                    $other = "$components->path$components->query";
+                }
+                if (string_is_equal($path, $other, CompareOptions::caseInsensitive)) {
+                    return $selector;
+                }
+            }
+        }
+        return null;
     }
 
     /**
@@ -65,48 +105,7 @@ abstract class Responder extends ObjectClass
      */
     public function isFirstResponder(): bool
     {
-        $attemptProceedingWithDefaultImplementation = fn(): bool => $this->allowedMethods->containsElement($this
-            ->request->httpMethod) ?: throw new MethodNotAllowedException();
-        $request = $this->request;
-        $path = $request->url->path;
-        $reflectionClass = new ReflectionClass($this);
-        switch ($request->httpMethod) {
-            case HTTPRequestMethod::get:
-            case HTTPRequestMethod::head:
-                foreach ($reflectionClass->getAttributes(Endpoint::class) as $attribute) {
-                    $endpoint = $attribute->newInstance();
-                    if (string_is_equal($path, $endpoint->path ?? "/{$reflectionClass->getShortName()}", CompareOptions::caseInsensitive)) {
-                        return $attemptProceedingWithDefaultImplementation();
-                    }
-                }
-                break;
-            case HTTPRequestMethod::post:
-            case HTTPRequestMethod::put:
-            case HTTPRequestMethod::patch:
-            case HTTPRequestMethod::delete:
-                foreach ($reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
-                    $selector = $method->name;
-                    foreach ($method->getAttributes(Action::class) as $attribute) {
-                        $action = $attribute->newInstance();
-                        $other = $action->path ?? "/$selector";
-                        if (url_validate($other)) {
-                            $components = new URLComponents($other);
-                            $other = "$components->path$components->query";
-                        }
-                        if (string_is_equal($path, $other, CompareOptions::caseInsensitive)) {
-                            if ($request->httpMethod === $action->method) {
-                                $ok = $attemptProceedingWithDefaultImplementation();
-                                $this->perform($selector);
-                                return $ok;
-                            }
-                        }
-                    }
-                }
-                break;
-            default:
-                break;
-        }
-        return false;
+        return $this->allowedMethods->containsElement($this->request->httpMethod) && ($this->isEndpoint || $this->selector !== null);
     }
 
     /**
@@ -114,6 +113,22 @@ abstract class Responder extends ObjectClass
      */
     public function response(): HTTPURLResponse
     {
+        $this->allowedMethods->containsElement($this->request->httpMethod) ?: throw new MethodNotAllowedException();
+        switch ($this->request->httpMethod) {
+            case HTTPRequestMethod::post:
+            case HTTPRequestMethod::put:
+            case HTTPRequestMethod::patch:
+            case HTTPRequestMethod::delete:
+                if ($selector = $this->selector) {
+                    $this->perform($selector);
+                    if ($this->request->httpMethod === HTTPRequestMethod::delete) {
+                        $this->statusCode = HTTPStatusCode::noContent;
+                    }
+                }
+                break;
+            default:
+                break;
+        }
         return new HTTPURLResponse($this->request->url, $this->statusCode);
     }
 

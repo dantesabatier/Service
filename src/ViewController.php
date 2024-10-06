@@ -99,6 +99,6 @@ abstract class ViewController extends Responder
         if ($this->request->httpMethod === HTTPRequestMethod::get) {
             $this->loadView();
         }
-        return new HTTPURLResponse($this->request->url, $this->statusCode);
+        return parent::response();
     }
 }

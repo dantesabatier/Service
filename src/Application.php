@@ -273,66 +273,44 @@ class Application extends Responder
 
     private function instantiateInitialResponder(): Responder
     {
-        if (!($responder = $this->mainResponder()) && !($responder = $this->internalResponder())) {
-            throw new NotFoundException();
-        }
-        if (!$responder->isProtectedContentAvailable) {
-            $responder->isProtectedContentAvailable = $this->isProtectedContentAvailable;
-        }
-        if ($responder->isProtectedContentAvailable) {
-            $this->isProtectedContentAvailable = $responder->isProtectedContentAvailable;
-            NotificationCenter::default()->postNotificationName(Application::protectedDataDidBecomeAvailableNotification, $this);
-        }
-        return $responder;
-    }
-
-    private function firstResponder(): Responder
-    {
-        $authentication = $this->authentication;
-        $session = $this->session;
-        $session->start();
-        $responder = $this->instantiateInitialResponder();
-        $this->persistentContainer->viewContext->transactionAuthor = match ($this->request->httpMethod) {
-            HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $authentication->authorization->user?->valueForKey("username"),
-            default => null
-        };
-        $session->commit();
-        if ($responder === $authentication) {
-            return $responder;
-        }
-        if (!$responder->isProtectedContentAvailable && !$authentication->isProtectedContentAvailable) {
-            throw new UnauthorizedException();
-        }
-        return $responder;
-    }
-
-    private function preparedFirstResponder(): Responder
-    {
-        return match ($this->request->httpMethod) {
-            HTTPRequestMethod::options => $this,
-            default => $this->firstResponder()
-        };
+        return $this->mainResponder() ?? $this->internalResponder() ?? throw new NotFoundException();
     }
 
     public function run(): void
     {
         try {
-            $delegate = $this->delegate;
             ProcessInfo::processInfo()->processName = $this->persistentContainer->name;
             $this->persistentContainer->viewContext->name = $this->persistentContainer->name;
-            register_shutdown_function(function () use ($delegate): bool {
-                $delegate?->applicationWillTerminate($this);
+            register_shutdown_function(function (): bool {
+                $this->delegate?->applicationWillTerminate($this);
                 return true;
             });
-            $delegate?->applicationWillFinishLaunching($this);
-            $responder = $this->preparedFirstResponder();
-            $delegate?->applicationDidFinishLaunching($this);
+            $this->delegate?->applicationWillFinishLaunching($this);
+            $responder = $this->instantiateInitialResponder();
+            $this->session->start();
+            if (!$responder->isProtectedContentAvailable) {
+                $responder->isProtectedContentAvailable = $this->isProtectedContentAvailable;
+            }
+            if (!$responder->isProtectedContentAvailable && !$this->authentication->isProtectedContentAvailable) {
+                throw new UnauthorizedException();
+            }
+            if ($responder->isProtectedContentAvailable) {
+                $this->isProtectedContentAvailable = $responder->isProtectedContentAvailable;
+                NotificationCenter::default()->postNotificationName(Application::protectedDataDidBecomeAvailableNotification, $this);
+            }
+            $response = $responder->response();
+            $this->persistentContainer->viewContext->transactionAuthor = match ($this->request->httpMethod) {
+                HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $this->authentication->authorization->user?->valueForKey("username"),
+                default => null
+            };
+            $this->session->commit();
             if ($responder->isProtectedContentAvailable) {
                 $responder->isProtectedContentAvailable = false;
                 $this->isProtectedContentAvailable = $responder->isProtectedContentAvailable;
                 NotificationCenter::default()->postNotificationName(Application::protectedDataWillBecomeUnavailableNotification, $this);
             }
-            $this->send($responder->response(), $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition);
+            $this->delegate?->applicationDidFinishLaunching($this);
+            $this->send($response, $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition);
         } catch (Throwable $throwable) {
             $error = $throwable instanceof InternalInconsistencyException ? $throwable->error : new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $throwable->getMessage()]));
             $error = $this->delegate?->applicationWillPresentError($this, $error) ?? $error;

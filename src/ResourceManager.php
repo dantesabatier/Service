@@ -37,18 +37,17 @@ class ResourceManager extends Responder
     #[Override]
     public function isFirstResponder(): bool
     {
-        return FileManager::default()->fileExists($this->resourceURL->path, $isDirectory) && !$isDirectory && FileManager::default()->isReadableFile($this->resourceURL->path);
+        return FileManager::default()->fileExists($this->resourceURL->path, $isDirectory) && !$isDirectory;
     }
 
     #[Override]
     public function response(): HTTPURLResponse
     {
+        FileManager::default()->isReadableFile($this->resourceURL->path) ?: throw new MethodNotAllowedException();
         switch ($this->request->httpMethod) {
             case HTTPRequestMethod::get:
             case HTTPRequestMethod::head:
-                if (!($content = FileManager::default()->contents($this->resourceURL->path))) {
-                    throw new NotFoundException();
-                }
+                $content = FileManager::default()->contents($this->resourceURL->path) ?? throw new InternalServerErrorException();
                 if (($contentType = URLFileTypeMappings::shared()->mimeType($this->resourceURL->pathExtension)) && ($encoding = mb_detect_encoding($content))) {
                     $contentType .= "; charset=$encoding";
                 }
@@ -62,6 +61,6 @@ class ResourceManager extends Responder
             default:
                 throw new MethodNotAllowedException();
         }
-        return new HTTPURLResponse($this->request->url);
+        return new HTTPURLResponse($this->request->url, $this->statusCode);
     }
 }

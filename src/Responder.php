@@ -30,6 +30,10 @@ abstract class Responder extends ObjectClass
     public readonly URLRequest $request;
     public readonly ?Dictionary $serialization;
     public readonly ManagedObjectContext $managedObjectContext;
+    public bool $isProtectedContentAvailable = false;
+    public readonly bool $isEndpoint;
+    public readonly bool $isActionable;
+    public readonly ?string $selector;
     /** @var ArrayClass<string> */
     public ArrayClass $allowedMethods;
     #[ExpectedValues(valuesFromClass: HTTPStatusCode::class)]
@@ -38,20 +42,16 @@ abstract class Responder extends ObjectClass
     public ?string $contentType = null;
     public ?int $contentLength = null;
     public ?string $contentDisposition = null;
-    public bool $isProtectedContentAvailable = false;
-    public readonly bool $isEndpoint;
-    public readonly bool $isActionable;
-    public readonly ?string $selector;
 
     public function __construct()
     {
         unset($this->request);
         unset($this->serialization);
         unset($this->managedObjectContext);
-        unset($this->allowedMethods);
         unset($this->isEndpoint);
         unset($this->isActionable);
         unset($this->selector);
+        unset($this->allowedMethods);
     }
 
     /**
@@ -63,10 +63,10 @@ abstract class Responder extends ObjectClass
             "request" => Application::shared()->request,
             "serialization" => $this->serialization(),
             "managedObjectContext" => Application::shared()->persistentContainer->viewContext,
-            "allowedMethods" => new ArrayClass([HTTPRequestMethod::head, HTTPRequestMethod::options, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::put, HTTPRequestMethod::delete]),
             "isEndpoint" => $this->isEndpoint(),
             "isActionable" => $this->selector !== null,
             "selector" => $this->selector(),
+            "allowedMethods" => new ArrayClass([HTTPRequestMethod::head, HTTPRequestMethod::options, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::put, HTTPRequestMethod::delete]),
             default => $this->valueForUndefinedKey($name)
         };
     }

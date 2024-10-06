@@ -69,6 +69,7 @@ abstract class Responder extends ObjectClass
             case HTTPRequestMethod::get:
             case HTTPRequestMethod::head:
                 foreach ($reflectionClass->getAttributes(Endpoint::class) as $attribute) {
+                    /** @var Endpoint $endpoint */
                     $endpoint = $attribute->newInstance();
                     if (string_is_equal($path, $endpoint->path ?? "/{$reflectionClass->getShortName()}", CompareOptions::caseInsensitive)) {
                         return true;
@@ -82,6 +83,7 @@ abstract class Responder extends ObjectClass
                 foreach ($reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
                     $selector = $method->name;
                     foreach ($method->getAttributes(Action::class) as $attribute) {
+                        /** @var Action $action */
                         $action = $attribute->newInstance();
                         $other = $action->path ?? "/$selector";
                         if (url_validate($other)) {

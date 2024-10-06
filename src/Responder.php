@@ -89,12 +89,10 @@ abstract class Responder extends ObjectClass
                             $components = new URLComponents($other);
                             $other = "$components->path$components->query";
                         }
-                        /** @psalm-suppress RedundantCondition */
-                        if (string_is_equal($path, $other, CompareOptions::caseInsensitive) && $attemptProceedingWithDefaultImplementation() && ($request->httpMethod === $action->method)) {
-                            $this->content = json_encode([]);
-                            $this->contentType = "application/json; charset=utf-8";
+                        if (string_is_equal($path, $other, CompareOptions::caseInsensitive) && ($request->httpMethod === $action->method)) {
+                            $ok = $attemptProceedingWithDefaultImplementation();
                             $this->perform($selector);
-                            return true;
+                            return $ok;
                         }
                     }
                 }

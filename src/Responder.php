@@ -115,8 +115,6 @@ abstract class Responder extends ObjectClass
             case HTTPRequestMethod::patch:
             case HTTPRequestMethod::delete:
                 if ($selector = $this->selector) {
-                    $this->content = json_encode([]);
-                    $this->contentType = "application/json";
                     $this->perform($selector);
                 }
                 break;

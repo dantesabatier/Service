@@ -39,7 +39,6 @@ abstract class Responder extends ObjectClass
     public ?int $contentLength = null;
     public ?string $contentDisposition = null;
     public bool $isProtectedContentAvailable = false;
-    private ?string $selector = null;
 
     public function __construct()
     {
@@ -66,6 +65,8 @@ abstract class Responder extends ObjectClass
      */
     public function isFirstResponder(): bool
     {
+        $attemptProceedingWithDefaultImplementation = fn(): bool => $this->allowedMethods->containsElement($this
+            ->request->httpMethod) ?: throw new MethodNotAllowedException();
         $request = $this->request;
         $path = $request->url->path;
         $reflectionClass = new ReflectionClass($this);
@@ -73,10 +74,9 @@ abstract class Responder extends ObjectClass
             case HTTPRequestMethod::get:
             case HTTPRequestMethod::head:
                 foreach ($reflectionClass->getAttributes(Endpoint::class) as $attribute) {
-                    /** @var Endpoint $endpoint */
                     $endpoint = $attribute->newInstance();
                     if (string_is_equal($path, $endpoint->path ?? "/{$reflectionClass->getShortName()}", CompareOptions::caseInsensitive)) {
-                        return true;
+                        return $attemptProceedingWithDefaultImplementation();
                     }
                 }
                 break;
@@ -87,15 +87,17 @@ abstract class Responder extends ObjectClass
                 foreach ($reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
                     $selector = $method->name;
                     foreach ($method->getAttributes(Action::class) as $attribute) {
-                        /** @var Action $action */
                         $action = $attribute->newInstance();
                         $other = $action->path ?? "/$selector";
                         if (url_validate($other)) {
                             $components = new URLComponents($other);
                             $other = "$components->path$components->query";
                         }
-                        if (string_is_equal($path, $other, CompareOptions::caseInsensitive)) {
-                            $this->selector = $selector;
+                        /** @psalm-suppress RedundantCondition */
+                        if (string_is_equal($path, $other, CompareOptions::caseInsensitive) && $attemptProceedingWithDefaultImplementation() && ($request->httpMethod === $action->method)) {
+                            $this->content = json_encode([]);
+                            $this->contentType = "application/json; charset=utf-8";
+                            $this->perform($selector);
                             return true;
                         }
                     }
@@ -112,22 +114,6 @@ abstract class Responder extends ObjectClass
      */
     public function response(): HTTPURLResponse
     {
-        $this->allowedMethods->containsElement($this->request->httpMethod) ?: throw new MethodNotAllowedException();
-        switch ($this->request->httpMethod) {
-            case HTTPRequestMethod::post:
-            case HTTPRequestMethod::put:
-            case HTTPRequestMethod::patch:
-            case HTTPRequestMethod::delete:
-                if ($this->request->httpMethod === HTTPRequestMethod::delete) {
-                    $this->statusCode = HTTPStatusCode::noContent;
-                }
-                if ($selector = $this->selector) {
-                    $this->perform($selector);
-                }
-                break;
-            default:
-                break;
-        }
         return new HTTPURLResponse($this->request->url, $this->statusCode);
     }
 

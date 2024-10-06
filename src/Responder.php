@@ -30,10 +30,10 @@ abstract class Responder extends ObjectClass
     public readonly URLRequest $request;
     public readonly ?Dictionary $serialization;
     public readonly ManagedObjectContext $managedObjectContext;
-    public bool $isProtectedContentAvailable = false;
     public readonly bool $isEndpoint;
     public readonly bool $isActionable;
     public readonly ?string $selector;
+    public bool $isProtectedContentAvailable = false;
     /** @var ArrayClass<string> */
     public ArrayClass $allowedMethods;
     #[ExpectedValues(valuesFromClass: HTTPStatusCode::class)]

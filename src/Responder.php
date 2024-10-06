@@ -79,7 +79,10 @@ abstract class Responder extends ObjectClass
         if (!($string = $this->request->valueForHttpHeaderField("serialization"))) {
             return null;
         }
-        return new Dictionary(json_decode($string, true, 512, JSON_THROW_ON_ERROR));
+        if (!($array = json_decode($string, true, 512, JSON_THROW_ON_ERROR))) {
+            return null;
+        }
+        return new Dictionary($array);
     }
 
     private function isEndpoint(): bool

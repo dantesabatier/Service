@@ -3,6 +3,7 @@
 namespace Sabatier\Service;
 
 use Exception;
+use JetBrains\PhpStorm\ExpectedValues;
 use ReflectionClass;
 use ReflectionMethod;
 use Sabatier\CoreData\ManagedObjectContext;
@@ -12,6 +13,7 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Error;
 use Sabatier\Foundation\ErrorRecoveryAttempting;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
+use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
 use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Foundation\ObjectClass;
@@ -30,6 +32,8 @@ abstract class Responder extends ObjectClass
     public readonly ManagedObjectContext $managedObjectContext;
     /** @var ArrayClass<string> */
     public ArrayClass $allowedMethods;
+    #[ExpectedValues(valuesFromClass: HTTPStatusCode::class)]
+    public int $statusCode = HTTPStatusCode::ok;
     public ?string $content = null;
     public ?string $contentType = null;
     public ?int $contentLength = null;
@@ -121,7 +125,7 @@ abstract class Responder extends ObjectClass
             default:
                 break;
         }
-        return new HTTPURLResponse($this->request->url);
+        return new HTTPURLResponse($this->request->url, $this->statusCode);
     }
 
     /**

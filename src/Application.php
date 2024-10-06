@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use Exception;
 use Override;
 use ReflectionClass;
 use Sabatier\CoreData\PersistentContainer;
@@ -69,7 +70,9 @@ class Application extends Responder
         unset($this->historyChanges);
     }
 
-    /** @suppress PHP0418 */
+    /**
+     * @throws Exception
+     */
     #[Override]
     public function __get(string $name)
     {

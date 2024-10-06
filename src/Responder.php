@@ -35,7 +35,7 @@ abstract class Responder extends ObjectClass
     public ?int $contentLength = null;
     public ?string $contentDisposition = null;
     public bool $isProtectedContentAvailable = false;
-    public ?string $selector = null;
+    private ?string $selector = null;
 
     public function __construct()
     {

@@ -15,7 +15,6 @@ class Preferences extends Responder
     public function response(): HTTPURLResponse
     {
         $request = $this->request;
-        $statusCode = HTTPStatusCode::ok;
         switch ($request->httpMethod) {
             case HTTPRequestMethod::get:
             case HTTPRequestMethod::post:
@@ -29,7 +28,7 @@ class Preferences extends Responder
                     }
                 }
                 if ($request->httpMethod === HTTPRequestMethod::delete) {
-                    $statusCode = HTTPStatusCode::noContent;
+                    $this->statusCode = HTTPStatusCode::noContent;
                 } else {
                     $this->content = json_encode(UserDefaults::standard()->dictionaryRepresentation(), JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
                     $this->contentType = "application/json; charset=utf-8";
@@ -40,6 +39,6 @@ class Preferences extends Responder
             default:
                 throw new MethodNotAllowedException();
         }
-        return new HTTPURLResponse($this->request->url, $statusCode);
+        return new HTTPURLResponse($this->request->url, $this->statusCode);
     }
 }

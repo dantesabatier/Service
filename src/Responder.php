@@ -113,7 +113,6 @@ abstract class Responder extends ObjectClass
      */
     public function response(): HTTPURLResponse
     {
-        $this->allowedMethods->containsElement($this->request->httpMethod) ?: throw new MethodNotAllowedException();
         switch ($this->request->httpMethod) {
             case HTTPRequestMethod::post:
             case HTTPRequestMethod::put:

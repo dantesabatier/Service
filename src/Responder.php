@@ -52,17 +52,31 @@ abstract class Responder extends ObjectClass
         unset($this->selector);
     }
 
+    /**
+     * @throws Exception
+     */
     public function __get(string $name)
     {
         return $this->$name = match ($name) {
             "request" => Application::shared()->request,
-            "serialization" => (($string = $this->request->valueForHttpHeaderField("serialization")) && ($array = json_decode($string, true))) ? Dictionary::dictionaryWithArray($array) : null,
+            "serialization" => $this->serialization(),
             "managedObjectContext" => Application::shared()->persistentContainer->viewContext,
             "allowedMethods" => new ArrayClass([HTTPRequestMethod::head, HTTPRequestMethod::options, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::put, HTTPRequestMethod::delete]),
             "isEndpoint" => $this->isEndpoint(),
             "selector" => $this->selector(),
             default => $this->valueForUndefinedKey($name)
         };
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function serialization(): ?Dictionary
+    {
+        if (!($string = $this->request->valueForHttpHeaderField("serialization"))) {
+            return null;
+        }
+        return new Dictionary(json_decode($string, true, 512, JSON_THROW_ON_ERROR));
     }
 
     private function isEndpoint(): bool

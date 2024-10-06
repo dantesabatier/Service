@@ -82,7 +82,7 @@ abstract class Responder extends ObjectClass
         if (!($array = json_decode($string, true, 512, JSON_THROW_ON_ERROR))) {
             return null;
         }
-        return new Dictionary($array);
+        return Dictionary::dictionaryWithArray($array);
     }
 
     private function isEndpoint(): bool

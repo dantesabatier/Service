@@ -118,6 +118,9 @@ abstract class Responder extends ObjectClass
             case HTTPRequestMethod::put:
             case HTTPRequestMethod::patch:
             case HTTPRequestMethod::delete:
+                if ($this->request->httpMethod === HTTPRequestMethod::delete) {
+                    $this->statusCode = HTTPStatusCode::noContent;
+                }
                 if ($selector = $this->selector) {
                     $this->perform($selector);
                 }

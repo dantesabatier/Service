@@ -53,7 +53,6 @@ class Authentication extends Responder
     #[Action]
     public function login(): void
     {
-        $this->isProtectedContentAvailable ?: throw new UnauthorizedException();
         $user = $this->authorization->user;
         /** @var Dictionary<mixed> $data */
         $data = new Dictionary();

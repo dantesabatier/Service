@@ -79,7 +79,7 @@ abstract class Responder extends ObjectClass
         if (!($string = $this->request->valueForHttpHeaderField("serialization"))) {
             return null;
         }
-        if (!($array = json_decode($string, true, 512, JSON_THROW_ON_ERROR))) {
+        if (!($array = json_decode($string, true))) {
             return null;
         }
         return Dictionary::dictionaryWithArray($array);

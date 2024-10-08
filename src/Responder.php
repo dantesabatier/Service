@@ -76,10 +76,7 @@ abstract class Responder extends ObjectClass
      */
     private function serialization(): ?Dictionary
     {
-        if (!($string = $this->request->valueForHttpHeaderField("serialization"))) {
-            return null;
-        }
-        if (!($array = json_decode($string, true))) {
+        if (!($string = $this->request->valueForHttpHeaderField("serialization")) || !json_validate($string) || !($array = json_decode($string, true))) {
             return null;
         }
         return Dictionary::dictionaryWithArray($array);

@@ -95,7 +95,7 @@ readonly class Authorization
     {
         $application = Application::shared();
         /** @var string|null $username */
-        $username = $this->credential?->user;
+        $username = $this->credential?->user ?? $application->session->valueForKey("user");
         if (!$username) {
             return null;
         }

@@ -48,24 +48,16 @@ readonly class Authorization
     public function __get(string $name)
     {
         return $this->$name = match ($name) {
-            "scheme" => $this->scheme(),
-            "parameters" => $this->parameters(),
+            "scheme" => AuthenticationScheme::tryFrom($this->name) ?? AuthenticationScheme::basic,
+            "parameters" => (function () {
+                preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->data, $matches);
+                return new Dictionary(array_combine($matches[1], $matches[2]));
+            })(),
             "credential" => $this->credential(),
             "user" => $this->user(),
             "isValid" => $this->isValid(),
             default => throw new UndefinedKeyException()
         };
-    }
-
-    private function scheme(): AuthenticationScheme
-    {
-        return AuthenticationScheme::tryFrom($this->name) ?? AuthenticationScheme::basic;
-    }
-
-    private function parameters(): Dictionary
-    {
-        preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->data, $matches);
-        return new Dictionary(array_combine($matches[1], $matches[2]));
     }
 
     private function credential(): ?URLCredential

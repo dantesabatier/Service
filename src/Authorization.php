@@ -42,6 +42,9 @@ readonly class Authorization
         $this->data = $data;
     }
 
+    /**
+     * @throws Exception
+     */
     public function __get(string $name)
     {
         return $this->$name = match ($name) {
@@ -93,23 +96,22 @@ readonly class Authorization
         return new URLCredential($username);
     }
 
+    /**
+     * @throws Exception
+     */
     private function user(): ?ManagedObject
     {
-        try {
-            $application = Application::shared();
-            /** @var string|null $username */
-            $username = $this->credential?->user ?? $application->session->valueForKey("user");
-            if (!$username) {
-                return null;
-            }
-            $context = $application->persistentContainer->viewContext;
-            $fetchRequest = new FetchRequest();
-            $fetchRequest->entity = EntityDescription::entity("User", $context);
-            $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($username));
-            return $context->fetch($fetchRequest)->first?->serialized($application->serialization);
-        } catch (Exception) {
+        $application = Application::shared();
+        /** @var string|null $username */
+        $username = $this->credential?->user ?? $application->session->valueForKey("user");
+        if (!$username) {
             return null;
         }
+        $context = $application->persistentContainer->viewContext;
+        $fetchRequest = new FetchRequest();
+        $fetchRequest->entity = EntityDescription::entity("User", $context);
+        $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($username));
+        return $context->fetch($fetchRequest)->first?->serialized($application->serialization);
     }
 
     private function isValid(): bool

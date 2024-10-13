@@ -7,7 +7,6 @@ use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\Dictionary;
-use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
@@ -108,14 +107,6 @@ readonly class Authorization
 
     private function isValid(): bool
     {
-        $application = Application::shared();
-        $request = $application->request;
-        if ($request->httpMethod === HTTPRequestMethod::options) {
-            return true;
-        }
-        if ($application->session->valueForKey("user")) {
-            return true;
-        }
         if (!($credential = $this->credential)) {
             return false;
         }
@@ -135,6 +126,7 @@ readonly class Authorization
             if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"]) || ($parameters["algorithm"] !== "SHA-256")) {
                 return false;
             }
+            $request = Application::shared()->request;
             $HA1 = hash("sha256", "$username:{$request->url->host}:$password");
             $HA2 = hash("sha256", "$request->httpMethod:$uri");
             $response = hash("sha256", "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");

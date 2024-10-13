@@ -9,7 +9,6 @@ use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
-use Sabatier\Foundation\UndefinedKeyException;
 use Sabatier\Foundation\UserDefaults;
 use function Sabatier\Foundation\read_random;
 
@@ -54,7 +53,7 @@ class Authentication extends Responder
     #[Action]
     public function login(): void
     {
-        $user = $this->authorization->user ?? throw new UndefinedKeyException();
+        $user = $this->authorization->user ?? throw new UnauthorizedException();
         /** @var Dictionary<mixed> $data */
         $data = new Dictionary();
         $data["user"] = $user;

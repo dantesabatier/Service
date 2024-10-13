@@ -42,4 +42,3 @@ class Preferences extends Responder
         return new HTTPURLResponse($this->request->url, $this->statusCode);
     }
 }
-

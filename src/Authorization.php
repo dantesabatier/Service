@@ -16,10 +16,10 @@ use function Sabatier\Foundation\is_password;
 
 readonly class Authorization
 {
-    private string $name;
-    private string $data;
+    public string $name;
+    public string $data;
     /** @var Dictionary<string> */
-    private Dictionary $parameters;
+    public Dictionary $parameters;
     public AuthenticationScheme $scheme;
     private ?URLCredential $credential;
     public ?ManagedObject $user;

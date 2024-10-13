@@ -283,10 +283,4 @@ class Application extends Responder
     {
         exit();
     }
-
-    #[Override]
-    public function presentError(Error $error): bool
-    {
-        return true;
-    }
 }

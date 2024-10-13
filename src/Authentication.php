@@ -4,6 +4,7 @@ namespace Sabatier\Service;
 
 use Exception;
 use Override;
+use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
@@ -53,11 +54,12 @@ class Authentication extends Responder
     #[Action]
     public function login(): void
     {
+        /** @var ManagedObject $user */
         $user = $this->authorization->user;
         /** @var Dictionary<mixed> $data */
         $data = new Dictionary();
         $data["user"] = $user;
-        $username = $user?->valueForKey("username");
+        $username = $user->valueForKey("username");
         if ($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) {
             $date = new Date();
             $encoder = new JSONWebTokenEncoder($key);

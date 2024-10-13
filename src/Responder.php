@@ -171,7 +171,7 @@ abstract class Responder extends ObjectClass
         };
     }
 
-    private function allHeaderFields(HTTPURLResponse $response): Dictionary
+    private function responseHeaderFields(HTTPURLResponse $response): Dictionary
     {
         $headerFields = $response->allHeaderFields;
         $headerFields["Content-Type"] = $this->contentType;
@@ -197,7 +197,7 @@ abstract class Responder extends ObjectClass
         return $headerFields;
     }
 
-    public function willSend(HTTPURLResponse $response): void
+    private function willSend(HTTPURLResponse $response): void
     {
         if (headers_sent()) {
             die();
@@ -212,7 +212,7 @@ abstract class Responder extends ObjectClass
     {
         flush();
         header_register_callback(function () use ($response): void {
-            $headers = $this->allHeaderFields($response);
+            $headers = $this->responseHeaderFields($response);
             foreach ($headers as $key => $value) {
                 header(sprintf("%s: %s", $key, human_readable_value($value)));
                 flush();
@@ -235,7 +235,7 @@ abstract class Responder extends ObjectClass
 
     private function sendResponse(HTTPURLResponse $response): never
     {
-        $headers = $this->allHeaderFields($response);
+        $headers = $this->responseHeaderFields($response);
         foreach ($headers as $key => $value) {
             header(sprintf("%s: %s", $key, human_readable_value($value)));
         }

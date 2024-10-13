@@ -105,28 +105,43 @@ readonly class Authorization
         return $context->fetch($fetchRequest)->first?->serialized($application->serialization);
     }
 
+    private function validateBasicAuthenticationScheme(URLCredential $credential, string $password): bool
+    {
+        if (is_password($password)) {
+            return password_verify((string)$credential->password, $password);
+        }
+        return $credential->password === $password;
+    }
+
+    private function validateDigestAuthenticationScheme(string $password): bool
+    {
+        $parameters = $this->parameters;
+        if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"]) || ($parameters["algorithm"] !== "SHA-256")) {
+            return false;
+        }
+        $request = Application::shared()->request;
+        $HA1 = hash("sha256", "$username:{$request->url->host}:$password");
+        $HA2 = hash("sha256", "$request->httpMethod:$uri");
+        $response = hash("sha256", "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
+        return $parameters["response"] === $response;
+    }
+
+    private function validateBearerAuthenticationScheme(URLCredential $credential, ManagedObject $user): bool
+    {
+        return $credential->user === $user->valueForKey("username");
+    }
+
     private function validate(ManagedObject $user, URLCredential $credential): bool
     {
         /** @var string $password */
         $password = $user->valueForKey("password") ?? "";
         if ($this->scheme === AuthenticationScheme::basic) {
-            if (is_password($password)) {
-                return password_verify((string)$credential->password, $password);
-            }
-            return $credential->password === $password;
+            return $this->validateBasicAuthenticationScheme($credential, $password);
         }
         if ($this->scheme === AuthenticationScheme::digest) {
-            $parameters = $this->parameters;
-            if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"]) || ($parameters["algorithm"] !== "SHA-256")) {
-                return false;
-            }
-            $request = Application::shared()->request;
-            $HA1 = hash("sha256", "$username:{$request->url->host}:$password");
-            $HA2 = hash("sha256", "$request->httpMethod:$uri");
-            $response = hash("sha256", "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
-            return $parameters["response"] === $response;
+            return $this->validateDigestAuthenticationScheme($password);
         }
-        return $credential->user === $user->valueForKey("username");
+        return $this->validateBearerAuthenticationScheme($credential, $user);
     }
 
     private function isValid(): bool

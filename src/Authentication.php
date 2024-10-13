@@ -4,12 +4,12 @@ namespace Sabatier\Service;
 
 use Exception;
 use Override;
-use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
+use Sabatier\Foundation\UndefinedKeyException;
 use Sabatier\Foundation\UserDefaults;
 use function Sabatier\Foundation\read_random;
 
@@ -54,8 +54,7 @@ class Authentication extends Responder
     #[Action]
     public function login(): void
     {
-        /** @var ManagedObject $user */
-        $user = $this->authorization->user;
+        $user = $this->authorization->user ?? throw new UndefinedKeyException();
         /** @var Dictionary<mixed> $data */
         $data = new Dictionary();
         $data["user"] = $user;

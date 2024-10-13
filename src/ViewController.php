@@ -58,9 +58,7 @@ abstract class ViewController extends Responder
         }
         if ($name === "view") {
             $this->viewWillLoad();
-            if (self::$renderer === null) {
-                self::$renderer = new self::$rendererClass($this->bundle);
-            }
+            self::$renderer ??= new self::$rendererClass($this->bundle);
             $this->$name = new View($this->name, $this->context, self::$renderer);
             $this->viewDidLoad();
             return $this->$name;

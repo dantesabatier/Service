@@ -341,3 +341,4 @@ class Application extends Responder
         return true;
     }
 }
+

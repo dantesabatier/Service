@@ -64,8 +64,7 @@ abstract class Responder extends ObjectClass
             "serialization" => $this->serialization(),
             "managedObjectContext" => Application::shared()->persistentContainer->viewContext,
             "isEndpoint" => $this->isEndpoint(),
-            "isActionable" => $this->selector !== null,
-            "selector" => $this->selector(),
+            "isActionable" => $this->selector(),
             "allowedMethods" => new ArrayClass([HTTPRequestMethod::head, HTTPRequestMethod::options, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::put, HTTPRequestMethod::delete]),
             default => $this->valueForUndefinedKey($name)
         };
@@ -82,8 +81,19 @@ abstract class Responder extends ObjectClass
         return Dictionary::dictionaryWithArray($array);
     }
 
+    private function isReading(): bool
+    {
+        return match ($this->request->httpMethod) {
+            HTTPRequestMethod::options, HTTPRequestMethod::head, HTTPRequestMethod::get => true,
+            default => false,
+        };
+    }
+
     private function isEndpoint(): bool
     {
+        if (!$this->isReading()) {
+            return false;
+        }
         $path = $this->request->url->path;
         $reflectionClass = new ReflectionClass($this);
         foreach ($reflectionClass->getAttributes(Endpoint::class) as $attribute) {
@@ -95,8 +105,19 @@ abstract class Responder extends ObjectClass
         return false;
     }
 
+    private function isWriting(): bool
+    {
+        return match ($this->request->httpMethod) {
+            HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => true,
+            default => false,
+        };
+    }
+
     private function selector(): ?string
     {
+        if (!$this->isWriting()) {
+            return null;
+        }
         $path = $this->request->url->path;
         $reflectionClass = new ReflectionClass($this);
         foreach ($reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
@@ -122,7 +143,7 @@ abstract class Responder extends ObjectClass
      */
     public function isFirstResponder(): bool
     {
-        return $this->allowedMethods->containsElement($this->request->httpMethod) && ($this->isEndpoint || $this->isActionable);
+        return $this->isEndpoint || $this->isActionable;
     }
 
     /**
@@ -130,10 +151,8 @@ abstract class Responder extends ObjectClass
      */
     public function response(): HTTPURLResponse
     {
-        if (match ($this->request->httpMethod) {
-                HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => true,
-                default => false,
-            } && ($selector = $this->selector)) {
+        $this->allowedMethods->containsElement($this->request->httpMethod) ?: throw new MethodNotAllowedException();
+        if ($selector = $this->selector) {
             $this->perform($selector);
             if ($this->request->httpMethod === HTTPRequestMethod::delete) {
                 $this->statusCode = HTTPStatusCode::noContent;

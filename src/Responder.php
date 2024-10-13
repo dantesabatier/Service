@@ -18,6 +18,7 @@ use Sabatier\Foundation\Networking\HTTPURLResponse;
 use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\URLComponents;
+use function Sabatier\Foundation\human_readable_value;
 use function Sabatier\Foundation\string_is_equal;
 use function Sabatier\Foundation\url_validate;
 
@@ -64,7 +65,8 @@ abstract class Responder extends ObjectClass
             "serialization" => $this->serialization(),
             "managedObjectContext" => Application::shared()->persistentContainer->viewContext,
             "isEndpoint" => $this->isEndpoint(),
-            "isActionable" => $this->selector(),
+            "isActionable" => $this->selector !== null,
+            "selector" => $this->selector(),
             "allowedMethods" => new ArrayClass([HTTPRequestMethod::head, HTTPRequestMethod::options, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::put, HTTPRequestMethod::delete]),
             default => $this->valueForUndefinedKey($name)
         };
@@ -89,6 +91,14 @@ abstract class Responder extends ObjectClass
         };
     }
 
+    private function isWriting(): bool
+    {
+        return match ($this->request->httpMethod) {
+            HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => true,
+            default => false,
+        };
+    }
+
     private function isEndpoint(): bool
     {
         if (!$this->isReading()) {
@@ -103,14 +113,6 @@ abstract class Responder extends ObjectClass
             }
         }
         return false;
-    }
-
-    private function isWriting(): bool
-    {
-        return match ($this->request->httpMethod) {
-            HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => true,
-            default => false,
-        };
     }
 
     private function selector(): ?string
@@ -159,6 +161,104 @@ abstract class Responder extends ObjectClass
             }
         }
         return new HTTPURLResponse($this->request->url, $this->statusCode);
+    }
+
+    private function isResponseEmpty(HTTPURLResponse $response): bool
+    {
+        return match ($response->statusCode) {
+            HTTPStatusCode::created, HTTPStatusCode::noContent, HTTPStatusCode::resetContent, HTTPStatusCode::notModified => true,
+            default => $response instanceof BatchResponse ? $response->isEmpty : empty($this->content)
+        };
+    }
+
+    private function allHeaderFields(HTTPURLResponse $response): Dictionary
+    {
+        $headerFields = $response->allHeaderFields;
+        $headerFields["Content-Type"] = $this->contentType;
+        $headerFields["Content-Length"] = $this->contentLength;
+        $headerFields["Content-Disposition"] = $this->contentDisposition;
+        if ($origin = $this->request->valueForHttpHeaderField("Origin")) {
+            $headerFields["Access-Control-Allow-Origin"] = $origin;
+            $headerFields["Access-Control-Allow-Credentials"] = true;
+            $headerFields["Vary"] = "Origin";
+        }
+        if ($value = $this->request->valueForHttpHeaderField("Access-Control-Request-Method")) {
+            $headerFields["Access-Control-Allow-Methods"] = $value;
+        }
+        if ($value = $this->request->valueForHttpHeaderField("Access-Control-Request-Headers")) {
+            $headerFields["Access-Control-Allow-Headers"] = $value;
+        }
+        if ($this->isResponseEmpty($response)) {
+            $headerFields->removeAll(fn(mixed $e, string $k): bool => match ($k) {
+                "Content-Type", "Content-Length", "Content-Disposition" => true,
+                default => false
+            });
+        }
+        return $headerFields;
+    }
+
+    public function willSend(HTTPURLResponse $response): void
+    {
+        if (headers_sent()) {
+            die();
+        }
+        foreach (["Expires", "Cache-Control", "Pragma"] as $header) {
+            header_remove($header);
+        }
+        header(sprintf("%s %s %s", $response->httpVersion, $response->statusCode, HTTPURLResponse::localizedString($response->statusCode)));
+    }
+
+    private function sendBatchResponse(BatchResponse $response): never
+    {
+        flush();
+        header_register_callback(function () use ($response): void {
+            $headers = $this->allHeaderFields($response);
+            foreach ($headers as $key => $value) {
+                header(sprintf("%s: %s", $key, human_readable_value($value)));
+                flush();
+            }
+        });
+        if ($this->isResponseEmpty($response)) {
+            die();
+        }
+        ob_start();
+        foreach ($response as $idx => $data) {
+            echo $data;
+            if (($idx + 1) < $response->count) {
+                echo "\r\n";
+            }
+            flush();
+        }
+        ob_end_flush();
+        die();
+    }
+
+    private function sendResponse(HTTPURLResponse $response): never
+    {
+        $headers = $this->allHeaderFields($response);
+        foreach ($headers as $key => $value) {
+            header(sprintf("%s: %s", $key, human_readable_value($value)));
+        }
+        if ($this->isResponseEmpty($response)) {
+            die();
+        }
+        ob_start();
+        /** @noinspection SpellCheckingInspection */
+        ob_start("ob_gzhandler");
+        echo $this->content;
+        ob_end_flush();
+        header("Content-Length: " . ob_get_length());
+        ob_end_flush();
+        die();
+    }
+
+    public function send(HTTPURLResponse $response): never
+    {
+        $this->willSend($response);
+        if ($response instanceof BatchResponse) {
+            $this->sendBatchResponse($response);
+        }
+        $this->sendResponse($response);
     }
 
     /**

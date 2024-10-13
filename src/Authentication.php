@@ -41,7 +41,7 @@ class Authentication extends Responder
             return $this->$name;
         }
         if ($name === "isProtectedContentAvailable") {
-            $this->$name = $this->authorization->isValid;
+            $this->$name = $this->request->httpMethod === HTTPRequestMethod::options || Application::shared()->session->valueForKey("user") !== null || $this->authorization->isValid;
             return $this->$name;
         }
         return parent::__get($name);

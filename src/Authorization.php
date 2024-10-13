@@ -105,14 +105,8 @@ readonly class Authorization
         return $context->fetch($fetchRequest)->first?->serialized($application->serialization);
     }
 
-    private function isValid(): bool
+    private function validate(ManagedObject $user, URLCredential $credential): bool
     {
-        if (!($credential = $this->credential)) {
-            return false;
-        }
-        if (!($user = $this->user)) {
-            return false;
-        }
         /** @var string $password */
         $password = $user->valueForKey("password") ?? "";
         if ($this->scheme === AuthenticationScheme::basic) {
@@ -133,5 +127,16 @@ readonly class Authorization
             return $parameters["response"] === $response;
         }
         return $credential->user === $user->valueForKey("username");
+    }
+
+    private function isValid(): bool
+    {
+        if (!($credential = $this->credential)) {
+            return false;
+        }
+        if (!($user = $this->user)) {
+            return false;
+        }
+        return $this->validate($user, $credential);
     }
 }

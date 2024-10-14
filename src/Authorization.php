@@ -7,7 +7,6 @@ use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\Dictionary;
-use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
@@ -95,7 +94,7 @@ readonly class Authorization
     {
         $application = Application::shared();
         /** @var string|null $username */
-        $username = $this->credential?->user;
+        $username = $this->credential?->user ?? $application->session->valueForKey("user");
         if (!$username) {
             return null;
         }
@@ -106,40 +105,53 @@ readonly class Authorization
         return $context->fetch($fetchRequest)->first?->serialized($application->serialization);
     }
 
+    private function validateBasicAuthenticationScheme(URLCredential $credential, string $password): bool
+    {
+        if (is_password($password)) {
+            return password_verify((string)$credential->password, $password);
+        }
+        return $credential->password === $password;
+    }
+
+    private function validateDigestAuthenticationScheme(string $password): bool
+    {
+        $parameters = $this->parameters;
+        if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"]) || ($parameters["algorithm"] !== "SHA-256")) {
+            return false;
+        }
+        $request = Application::shared()->request;
+        $HA1 = hash("sha256", "$username:{$request->url->host}:$password");
+        $HA2 = hash("sha256", "$request->httpMethod:$uri");
+        $response = hash("sha256", "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
+        return $parameters["response"] === $response;
+    }
+
+    private function validateBearerAuthenticationScheme(URLCredential $credential, ManagedObject $user): bool
+    {
+        return $credential->user === $user->valueForKey("username");
+    }
+
+    private function validate(ManagedObject $user, URLCredential $credential): bool
+    {
+        /** @var string $password */
+        $password = $user->valueForKey("password") ?? "";
+        if ($this->scheme === AuthenticationScheme::basic) {
+            return $this->validateBasicAuthenticationScheme($credential, $password);
+        }
+        if ($this->scheme === AuthenticationScheme::digest) {
+            return $this->validateDigestAuthenticationScheme($password);
+        }
+        return $this->validateBearerAuthenticationScheme($credential, $user);
+    }
+
     private function isValid(): bool
     {
-        $application = Application::shared();
-        $request = $application->request;
-        if ($request->httpMethod === HTTPRequestMethod::options) {
-            return true;
-        }
-        if ($application->session->valueForKey("user")) {
-            return true;
-        }
         if (!($credential = $this->credential)) {
             return false;
         }
         if (!($user = $this->user)) {
             return false;
         }
-        /** @var string $password */
-        $password = $user->valueForKey("password") ?? "";
-        if ($this->scheme === AuthenticationScheme::basic) {
-            if (is_password($password)) {
-                return password_verify((string)$credential->password, $password);
-            }
-            return $credential->password === $password;
-        }
-        if ($this->scheme === AuthenticationScheme::digest) {
-            $parameters = $this->parameters;
-            if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"]) || ($parameters["algorithm"] !== "SHA-256")) {
-                return false;
-            }
-            $HA1 = hash("sha256", "$username:{$request->url->host}:$password");
-            $HA2 = hash("sha256", "$request->httpMethod:$uri");
-            $response = hash("sha256", "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
-            return $parameters["response"] === $response;
-        }
-        return $credential->user === $user->valueForKey("username");
+        return $this->validate($user, $credential);
     }
 }

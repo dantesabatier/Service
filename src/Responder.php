@@ -10,6 +10,8 @@ use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Dictionary;
+use Sabatier\Foundation\Error;
+use Sabatier\Foundation\ErrorRecoveryAttempting;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
@@ -28,6 +30,8 @@ abstract class Responder extends ObjectClass
     public readonly URLRequest $request;
     public readonly ?Dictionary $serialization;
     public readonly ManagedObjectContext $managedObjectContext;
+    public readonly bool $isEndpoint;
+    public readonly bool $isActionable;
     public readonly ?string $selector;
     public bool $isProtectedContentAvailable = false;
     /** @var ArrayClass<string> */
@@ -38,8 +42,6 @@ abstract class Responder extends ObjectClass
     public ?string $contentType = null;
     public ?int $contentLength = null;
     public ?string $contentDisposition = null;
-    private readonly bool $isEndpoint;
-    private readonly bool $isActionable;
 
     public function __construct()
     {
@@ -62,7 +64,7 @@ abstract class Responder extends ObjectClass
             "serialization" => $this->serialization(),
             "managedObjectContext" => Application::shared()->persistentContainer->viewContext,
             "isEndpoint" => $this->isEndpoint(),
-            "isActionable" => $this->isActionable(),
+            "isActionable" => $this->selector !== null,
             "selector" => $this->selector(),
             "allowedMethods" => new ArrayClass([HTTPRequestMethod::head, HTTPRequestMethod::options, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::put, HTTPRequestMethod::delete]),
             default => $this->valueForUndefinedKey($name)
@@ -93,7 +95,7 @@ abstract class Responder extends ObjectClass
         return false;
     }
 
-    private function isActionable(): bool
+    private function selector(): ?string
     {
         $path = $this->request->url->path;
         $reflectionClass = new ReflectionClass($this);
@@ -107,28 +109,6 @@ abstract class Responder extends ObjectClass
                     $other = "$components->path$components->query";
                 }
                 if (string_is_equal($path, $other, CompareOptions::caseInsensitive)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    private function selector(): ?string
-    {
-        $path = $this->request->url->path;
-        $reflectionClass = new ReflectionClass($this);
-        foreach ($reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
-            $selector = $method->name;
-            foreach ($method->getAttributes(Action::class) as $attribute) {
-                /** @var Action $action */
-                $action = $attribute->newInstance();
-                $other = $action->path ?? "/$selector";
-                if (url_validate($other)) {
-                    $components = new URLComponents($other);
-                    $other = "$components->path$components->query";
-                }
-                if (string_is_equal($path, $other, CompareOptions::caseInsensitive) && $this->request->httpMethod === $action->method) {
                     return $selector;
                 }
             }
@@ -142,7 +122,7 @@ abstract class Responder extends ObjectClass
      */
     public function isFirstResponder(): bool
     {
-        return $this->isEndpoint || $this->isActionable;
+        return $this->allowedMethods->containsElement($this->request->httpMethod) && ($this->isEndpoint || $this->isActionable);
     }
 
     /**
@@ -150,8 +130,10 @@ abstract class Responder extends ObjectClass
      */
     public function response(): HTTPURLResponse
     {
-        $this->allowedMethods->containsElement($this->request->httpMethod) ?: throw new MethodNotAllowedException();
-        if ($selector = $this->selector) {
+        if (match ($this->request->httpMethod) {
+                HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => true,
+                default => false,
+            } && ($selector = $this->selector)) {
             $this->perform($selector);
             if ($this->request->httpMethod === HTTPRequestMethod::delete) {
                 $this->statusCode = HTTPStatusCode::noContent;
@@ -160,8 +142,36 @@ abstract class Responder extends ObjectClass
         return new HTTPURLResponse($this->request->url, $this->statusCode);
     }
 
-    public function send(HTTPURLResponse $response): never
+    /**
+     * Presents an error alert to the user as an application-modal dialog.
+     *
+     * The alert displays information found in the Error object $error; this information can include error description, recovery suggestion, failure reason, and button titles (all localized). The method returns true if error recovery succeeded and false otherwise. For error recovery to be attempted, a recovery-attempter object (that is, an object conforming to the {@see ErrorRecoveryAttempting} informal protocol) must be associated with error.
+     *
+     * The default implementation of this method sends {@see willPresentError()} to self. By doing this, Responder gives subclasses an opportunity to customize error presentation. It then forwards the message, passing any customized error object, to the next responder; if there is no next responder, it passes the error object to App, which displays a document-modal error alert. When the user dismisses the alert, any recovery attempter associated with the error object is given a chance to recover from the error. See the class description for the precise route up the responder chain (plus document and controller objects) this message might travel.
+     *
+     * It is not recommended that you attempt to override this method. If you wish to customize the error presentation, override {@see willPresentError()} instead.
+     * @param Error $error An object containing information about an error.
+     * @return bool
+     */
+    public function presentError(Error $error): bool
     {
-        Response::from($this, $response)->send();
+        if (Application::shared() === $this) {
+            return true;
+        }
+        return Application::shared()->presentError($this->willPresentError($error));
+    }
+
+    /**
+     * Returns a custom version of the supplied error object that's more suitable for presentation in alert sheets and dialogs.
+     *
+     * When overriding this method, you can examine error and, if its localized description or recovery information is unhelpfully generic, return an error object with more specific localized text. If you do this, always use the domain and error code of the Error object to distinguish between errors whose presentation you want to customize and those you don't. Don't make decisions based on the localized description, recovery suggestion, or recovery options because parsing localized text is problematic.
+     *
+     * The default implementation of this method returns error unchanged.
+     * @param Error $error The error object to customize.
+     * @return Error The customized error object; if you decide not to customize the error presentation, return by sending this message to parent (that is, return parent::willPresentError($error)).
+     */
+    public function willPresentError(Error $error): Error
+    {
+        return $error;
     }
 }

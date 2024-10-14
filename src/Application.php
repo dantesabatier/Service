@@ -26,6 +26,7 @@ use Sabatier\Foundation\URL;
 use Sabatier\Foundation\UserDefaults;
 use Throwable;
 use function Sabatier\Foundation\getallheaders;
+use function Sabatier\Foundation\human_readable_value;
 use function Sabatier\Foundation\request_url;
 use function Sabatier\Foundation\string_is_equal;
 use const Sabatier\CoreData\PersistentHistoryTrackingKey;
@@ -76,15 +77,52 @@ class Application extends Responder
     public function __get(string $name)
     {
         if ($name === "request") {
-            $this->$name = $this->request();
+            $request = new URLRequest(new URL(request_url()));
+            $request->allHTTPHeaderFields = new Dictionary(getallheaders());
+            $request->httpMethod = $request->valueForHttpHeaderField("X-Http-Method-Override") ?? $_SERVER["REQUEST_METHOD"] ?? HTTPRequestMethod::get;
+            $request->httpBody = match ($request->httpMethod) {
+                HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::delete, HTTPRequestMethod::patch => (function () use ($request): ?string {
+                    $contentType = $request->valueForHttpHeaderField("Content-Type") ?? "text/plain";
+                    $mediaType = $contentType;
+                    if (str_contains($contentType, ";")) {
+                        [$mediaType,] = explode(";", $contentType);
+                    }
+                    $httpBody = match ($mediaType) {
+                        "application/x-www-form-urlencoded", "application/json" => file_get_contents("php://input"),
+                        default => null
+                    };
+                    return empty($httpBody) ? null : $httpBody;
+                })(),
+                default => null
+            };
+            $this->$name = $request;
             return $this->$name;
         }
         if ($name === "delegate") {
-            $this->$name = $this->delegate();
+            $delegate = null;
+            if (($principalClass = Bundle::main()->principalClass) && isset(class_implements($principalClass)[ApplicationDelegate::class])) {
+                /** @var class-string<ApplicationDelegate> $delegateClass */
+                $delegateClass = $principalClass;
+                if (is_subclass_of($delegateClass, ObjectClass::class)) {
+                    $delegateClass::initialize();
+                }
+                $delegate = new $delegateClass();
+            }
+            $this->$name = $delegate;
             return $this->$name;
         }
         if ($name === "persistentContainer") {
-            $this->$name = $this->persistentContainer();
+            $persistentContainer = new PersistentContainer(Bundle::main()->object(kCFBundleNameKey));
+            if ($description = $persistentContainer->persistentStoreDescriptions->first) {
+                $description->setOptionForKey(UserDefaults::standard()->bool(PersistentHistoryTrackingKey), PersistentHistoryTrackingKey);
+                $description->setOptionForKey(UserDefaults::standard()->bool(PersistentStoreRemoteChangeNotificationPostOptionKey), PersistentStoreRemoteChangeNotificationPostOptionKey);
+            }
+            $persistentContainer->loadPersistentStores(function (PersistentStoreDescription $description, ?Error $error): void {
+                if ($error) {
+                    throw new InternalInconsistencyException(error: $error);
+                }
+            });
+            $this->$name = $persistentContainer;
             return $this->$name;
         }
         if ($name === "session") {
@@ -110,57 +148,6 @@ class Application extends Responder
         return parent::__get($name);
     }
 
-    private function request(): URLRequest
-    {
-        $request = new URLRequest(new URL(request_url()));
-        $request->allHTTPHeaderFields = new Dictionary(getallheaders());
-        $request->httpMethod = $request->valueForHttpHeaderField("X-Http-Method-Override") ?? $_SERVER["REQUEST_METHOD"] ?? HTTPRequestMethod::get;
-        $request->httpBody = match ($request->httpMethod) {
-            HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::delete, HTTPRequestMethod::patch => (function () use ($request): ?string {
-                $contentType = $request->valueForHttpHeaderField("Content-Type") ?? "text/plain";
-                $mediaType = $contentType;
-                if (str_contains($contentType, ";")) {
-                    [$mediaType,] = explode(";", $contentType);
-                }
-                $httpBody = match ($mediaType) {
-                    "application/x-www-form-urlencoded", "application/json" => file_get_contents("php://input"),
-                    default => null
-                };
-                return empty($httpBody) ? null : $httpBody;
-            })(),
-            default => null
-        };
-        return $request;
-    }
-
-    private function delegate(): ?ApplicationDelegate
-    {
-        if (($principalClass = Bundle::main()->principalClass) && isset(class_implements($principalClass)[ApplicationDelegate::class])) {
-            /** @var class-string<ApplicationDelegate> $delegateClass */
-            $delegateClass = $principalClass;
-            if (is_subclass_of($delegateClass, ObjectClass::class)) {
-                $delegateClass::initialize();
-            }
-            return new $delegateClass();
-        }
-        return null;
-    }
-
-    private function persistentContainer(): PersistentContainer
-    {
-        $persistentContainer = new PersistentContainer(Bundle::main()->object(kCFBundleNameKey));
-        if ($description = $persistentContainer->persistentStoreDescriptions->first) {
-            $description->setOptionForKey(UserDefaults::standard()->bool(PersistentHistoryTrackingKey), PersistentHistoryTrackingKey);
-            $description->setOptionForKey(UserDefaults::standard()->bool(PersistentStoreRemoteChangeNotificationPostOptionKey), PersistentStoreRemoteChangeNotificationPostOptionKey);
-        }
-        $persistentContainer->loadPersistentStores(function (PersistentStoreDescription $description, ?Error $error): void {
-            if ($error) {
-                throw new InternalInconsistencyException(error: $error);
-            }
-        });
-        return $persistentContainer;
-    }
-
     /**
      * The singleton app instance.
      * @return Application
@@ -169,6 +156,77 @@ class Application extends Responder
     {
         static::$shared ??= new static();
         return static::$shared;
+    }
+
+    private function send(HTTPURLResponse $response, ?string $content, ?string $contentType = null, ?int $contentLength = null, ?string $contentDisposition = null): never
+    {
+        if (headers_sent()) {
+            die();
+        }
+        $isEmpty = match ($response->statusCode) {
+            HTTPStatusCode::created, HTTPStatusCode::noContent, HTTPStatusCode::resetContent, HTTPStatusCode::notModified => true,
+            default => $response instanceof BatchResponse ? $response->isEmpty : empty($content)
+        };
+        $headerFields = $response->allHeaderFields;
+        $headerFields["Content-Type"] = $contentType;
+        $headerFields["Content-Length"] = $contentLength;
+        $headerFields["Content-Disposition"] = $contentDisposition;
+        if ($origin = $this->request->valueForHttpHeaderField("Origin")) {
+            $headerFields["Access-Control-Allow-Origin"] = $origin;
+            $headerFields["Access-Control-Allow-Credentials"] = true;
+            $headerFields["Vary"] = "Origin";
+        }
+        if ($value = $this->request->valueForHttpHeaderField("Access-Control-Request-Method")) {
+            $headerFields["Access-Control-Allow-Methods"] = $value;
+        }
+        if ($value = $this->request->valueForHttpHeaderField("Access-Control-Request-Headers")) {
+            $headerFields["Access-Control-Allow-Headers"] = $value;
+        }
+        if ($isEmpty) {
+            $headerFields->removeAll(fn(mixed $e, string $k): bool => match ($k) {
+                "Content-Type", "Content-Length", "Content-Disposition" => true,
+                default => false
+            });
+        }
+        foreach (["Expires", "Cache-Control", "Pragma"] as $header) {
+            header_remove($header);
+        }
+        header(sprintf("%s %s %s", $response->httpVersion, $response->statusCode, HTTPURLResponse::localizedString($response->statusCode)));
+        if ($response instanceof BatchResponse) {
+            flush();
+            header_register_callback(function () use ($headerFields): void {
+                foreach ($headerFields as $key => $value) {
+                    header(sprintf("%s: %s", $key, human_readable_value($value)));
+                    flush();
+                }
+            });
+            if ($isEmpty) {
+                die();
+            }
+            ob_start();
+            foreach ($response as $idx => $data) {
+                echo $data;
+                if (($idx + 1) < $response->count) {
+                    echo "\r\n";
+                }
+                flush();
+            }
+            ob_end_flush();
+            die();
+        }
+        foreach ($headerFields as $key => $value) {
+            header(sprintf("%s: %s", $key, human_readable_value($value)));
+        }
+        if ($isEmpty) {
+            die();
+        }
+        ob_start();
+        ob_start("ob_gzhandler");
+        echo $content;
+        ob_end_flush();
+        header("Content-Length: " . ob_get_length());
+        ob_end_flush();
+        die();
     }
 
     private function mainResponder(): ?Responder
@@ -220,22 +278,6 @@ class Application extends Responder
         return $this->mainResponder() ?? $this->internalResponder() ?? throw new NotFoundException();
     }
 
-    private function responseFromThrowable(Throwable $throwable): HTTPURLResponse
-    {
-        $error = $throwable instanceof InternalInconsistencyException ? $throwable->error : new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $throwable->getMessage()]));
-        $error = $this->delegate?->applicationWillPresentError($this, $error) ?? $error;
-        $this->content = json_encode(["error" => $error]);
-        $this->contentType = "application/json";
-        if ($throwable instanceof InvalidRequestException) {
-            return new HTTPURLResponse($this->request->url, $throwable->getCode(), null, $throwable instanceof UnauthorizedException ? new Dictionary(["WWW-Authenticate" => "{$this->authentication->scheme->value} realm=\"{$this->request->url->host}\"" . match ($this->authentication->scheme) {
-                    AuthenticationScheme::digest => sprintf(", uri=\"%s\", algorithm=\"%s\", nonce=\"%s\", qop=\"%s\", opaque=\"%s\"", $this->request->url->path, "SHA-256", ProcessInfo::processInfo()->globallyUniqueString, "auth", base64_encode((string)$this->request->url->host)),
-                    AuthenticationScheme::bearer => sprintf(", error=\"%s\", error_description=\"%s\"", $error->localizedDescription, $error->localizedFailureReason ?? ""),
-                    default => ""
-                }]) : null);
-        }
-        return new HTTPURLResponse($this->request->url, HTTPStatusCode::internalServerError);
-    }
-
     public function run(): void
     {
         try {
@@ -270,9 +312,17 @@ class Application extends Responder
                 NotificationCenter::default()->postNotificationName(Application::protectedDataWillBecomeUnavailableNotification, $this);
             }
             $this->delegate?->applicationDidFinishLaunching($this);
-            $responder->send($response);
+            $this->send($response, $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition);
         } catch (Throwable $throwable) {
-            $this->send($this->responseFromThrowable($throwable));
+            $error = $throwable instanceof InternalInconsistencyException ? $throwable->error : new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $throwable->getMessage()]));
+            $error = $this->delegate?->applicationWillPresentError($this, $error) ?? $error;
+            /** @psalm-suppress PossiblyNullArgument */
+            $response = $throwable instanceof InvalidRequestException ? new HTTPURLResponse($this->request->url, $throwable->getCode(), null, $throwable instanceof UnauthorizedException ? new Dictionary(["WWW-Authenticate" => "{$this->authentication->scheme->value} realm=\"{$this->request->url->host}\"" . match ($this->authentication->scheme) {
+                    AuthenticationScheme::digest => sprintf(", uri=\"%s\", algorithm=\"%s\", nonce=\"%s\", qop=\"%s\", opaque=\"%s\"", $this->request->url->path, "SHA-256", ProcessInfo::processInfo()->globallyUniqueString, "auth", base64_encode((string)$this->request->url->host)),
+                    AuthenticationScheme::bearer => sprintf(", error=\"%s\", error_description=\"%s\"", $error->localizedDescription, $error->localizedFailureReason),
+                    default => ""
+                }]) : null) : new HTTPURLResponse($this->request->url, HTTPStatusCode::internalServerError);
+            $this->send($response, json_encode(["error" => $error]), "application/json; charset=utf-8");
         }
     }
 
@@ -282,5 +332,11 @@ class Application extends Responder
     public function terminate(): never
     {
         exit();
+    }
+
+    #[Override]
+    public function presentError(Error $error): bool
+    {
+        return true;
     }
 }

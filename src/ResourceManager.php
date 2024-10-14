@@ -51,7 +51,7 @@ class ResourceManager extends Responder
                 if (($contentType = URLFileTypeMappings::shared()->mimeType($this->resourceURL->pathExtension)) && ($encoding = mb_detect_encoding($content))) {
                     $contentType .= "; charset=$encoding";
                 }
-                $this->contentType = $contentType;
+                $this->headerFields["Content-Type"] = $contentType;
                 if ($this->request->httpMethod === HTTPRequestMethod::get) {
                     $this->content = $content;
                 }
@@ -61,6 +61,6 @@ class ResourceManager extends Responder
             default:
                 throw new MethodNotAllowedException();
         }
-        return new HTTPURLResponse($this->request->url, $this->statusCode);
+        return new HTTPURLResponse($this->request->url, $this->statusCode, headerFields: $this->headerFields);
     }
 }

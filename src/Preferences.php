@@ -29,7 +29,7 @@ class Preferences extends Responder
                     $this->statusCode = HTTPStatusCode::noContent;
                 } else {
                     $this->content = json_encode(UserDefaults::standard()->dictionaryRepresentation(), JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
-                    $this->contentType = "application/json; charset=utf-8";
+                    $this->headerFields["Content-Type"] = "application/json";
                 }
                 break;
             case HTTPRequestMethod::options:
@@ -37,6 +37,6 @@ class Preferences extends Responder
             default:
                 throw new MethodNotAllowedException();
         }
-        return new HTTPURLResponse($this->request->url, $this->statusCode);
+        return new HTTPURLResponse($this->request->url, $this->statusCode, headerFields: $this->headerFields);
     }
 }

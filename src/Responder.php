@@ -3,7 +3,6 @@
 namespace Sabatier\Service;
 
 use Exception;
-use JetBrains\PhpStorm\Deprecated;
 use JetBrains\PhpStorm\ExpectedValues;
 use ReflectionClass;
 use ReflectionMethod;
@@ -35,12 +34,6 @@ abstract class Responder extends ObjectClass
     #[ExpectedValues(valuesFromClass: HTTPStatusCode::class)]
     public int $statusCode = HTTPStatusCode::ok;
     public ?string $content = null;
-    #[Deprecated]
-    public ?string $contentType = null;
-    #[Deprecated]
-    public ?int $contentLength = null;
-    #[Deprecated]
-    public ?string $contentDisposition = null;
     /** @var Dictionary<mixed> */
     public Dictionary $headerFields;
     public readonly ?string $selector;

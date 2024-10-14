@@ -176,7 +176,7 @@ class PersistentSpace extends Responder
                 }
                 if ($request->httpMethod === HTTPRequestMethod::get) {
                     $this->content = json_encode($fetchRequestResult, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
-                    $this->contentType = "application/json; charset=utf-8";
+                    $this->headerFields["Content-Type"] = "application/json";
                 }
                 break;
             case HTTPRequestMethod::post:
@@ -241,7 +241,7 @@ class PersistentSpace extends Responder
                     $context->save();
                     $object = $managedObject($object->objectID);
                     $this->content = json_encode($object?->serialized($this->serialization), JSON_PRESERVE_ZERO_FRACTION);
-                    $this->contentType = "application/json; charset=utf-8";
+                    $this->headerFields["Content-Type"] = "application/json";
                 }
                 break;
             case HTTPRequestMethod::options:
@@ -249,6 +249,6 @@ class PersistentSpace extends Responder
             default:
                 throw new MethodNotAllowedException();
         }
-        return new HTTPURLResponse($request->url, $this->statusCode);
+        return new HTTPURLResponse($request->url, $this->statusCode, headerFields: $this->headerFields);
     }
 }

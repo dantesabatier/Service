@@ -16,8 +16,6 @@ use Sabatier\Foundation\Error;
 use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
-use Sabatier\Foundation\Networking\HTTPStatusCode;
-use Sabatier\Foundation\Networking\HTTPURLResponse;
 use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Foundation\NotificationCenter;
 use Sabatier\Foundation\ObjectClass;
@@ -26,15 +24,11 @@ use Sabatier\Foundation\URL;
 use Sabatier\Foundation\UserDefaults;
 use Throwable;
 use function Sabatier\Foundation\getallheaders;
-use function Sabatier\Foundation\human_readable_value;
 use function Sabatier\Foundation\request_url;
 use function Sabatier\Foundation\string_is_equal;
 use const Sabatier\CoreData\PersistentHistoryTrackingKey;
 use const Sabatier\CoreData\PersistentStoreRemoteChangeNotificationPostOptionKey;
 use const Sabatier\Foundation\kCFBundleNameKey;
-use const Sabatier\Foundation\LocalizedFailureReasonErrorKey;
-use const Sabatier\Foundation\URLErrorBadServerResponse;
-use const Sabatier\Foundation\URLErrorDomain;
 
 /**
  * An object that manages an app's main url request and resources used by all of that app's objects.
@@ -172,74 +166,6 @@ class Application extends Responder
         return static::$shared;
     }
 
-    private function willSend(HTTPURLResponse $response, ?Dictionary &$headerFields): void
-    {
-        if (headers_sent()) {
-            die();
-        }
-        $headerFields = $response->allHeaderFields;
-        if (match ($response->statusCode) {
-            HTTPStatusCode::created, HTTPStatusCode::noContent, HTTPStatusCode::resetContent, HTTPStatusCode::notModified => true,
-            default => false
-        }) {
-            $headerFields->removeAll(fn(mixed $e, string $k): bool => match ($k) {
-                "Content-Type", "Content-Length", "Content-Disposition" => true,
-                default => false
-            });
-        }
-        foreach (["Expires", "Cache-Control", "Pragma"] as $header) {
-            header_remove($header);
-        }
-    }
-
-    private function sendBatchResponse(BatchResponse $response, Dictionary $headerFields): never
-    {
-        header(sprintf("%s %s %s", $response->httpVersion, $response->statusCode, HTTPURLResponse::localizedString($response->statusCode)));
-        flush();
-        header_register_callback(function () use ($headerFields): void {
-            foreach ($headerFields as $key => $value) {
-                header(sprintf("%s: %s", $key, human_readable_value($value)));
-                flush();
-            }
-        });
-        ob_start();
-        foreach ($response as $idx => $data) {
-            echo $data;
-            if (($idx + 1) < $response->count) {
-                echo "\r\n";
-            }
-            flush();
-        }
-        ob_end_flush();
-        die();
-    }
-
-    private function sendResponse(HTTPURLResponse $response, Dictionary $headerFields, ?string $content): never
-    {
-        header(sprintf("%s %s %s", $response->httpVersion, $response->statusCode, HTTPURLResponse::localizedString($response->statusCode)));
-        foreach ($headerFields as $key => $value) {
-            header(sprintf("%s: %s", $key, human_readable_value($value)));
-        }
-        ob_start();
-        ob_start("ob_gzhandler");
-        echo $content;
-        ob_end_flush();
-        header("Content-Length: " . ob_get_length());
-        ob_end_flush();
-        die();
-    }
-
-    private function send(HTTPURLResponse $response, ?string $content): never
-    {
-        $this->willSend($response, $headerFields);
-        if ($response instanceof BatchResponse) {
-            /** @psalm-suppress PossiblyNullArgument */
-            $this->sendBatchResponse($response, $headerFields);
-        }
-        /** @psalm-suppress PossiblyNullArgument */
-        $this->sendResponse($response, $headerFields, $content);
-    }
-
     private function mainResponder(): ?Responder
     {
         if (!($delegate = $this->delegate)) {
@@ -289,7 +215,7 @@ class Application extends Responder
         return $this->mainResponder() ?? $this->internalResponder() ?? throw new NotFoundException();
     }
 
-    public function run(): void
+    public function run(): never
     {
         try {
             ProcessInfo::processInfo()->processName = $this->persistentContainer->name;
@@ -323,28 +249,11 @@ class Application extends Responder
                 NotificationCenter::default()->postNotificationName(Application::protectedDataWillBecomeUnavailableNotification, $this);
             }
             $this->delegate?->applicationDidFinishLaunching($this);
-            $this->send($response, $responder->content);
+            $emitter = Emitter::from($response, $responder->content);
+            $emitter->emit();
         } catch (Throwable $throwable) {
-            $this->statusCode = HTTPStatusCode::internalServerError;
-            $error = new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $throwable->getMessage()]));
-            if ($throwable instanceof InternalInconsistencyException) {
-                $error = $throwable->error;
-                if ($throwable instanceof InvalidRequestException) {
-                    $this->statusCode = $throwable->getCode();
-                }
-            }
-            $error = $this->delegate?->applicationWillPresentError($this, $error) ?? $error;
-            $this->content = json_encode(["error" => $error]);
-            $this->headerFields["Content-Type"] = "application/json";
-            if ($throwable instanceof UnauthorizedException) {
-                $this->headerFields["WWW-Authenticate"] = "{$this->authentication->scheme->value} realm=\"{$this->request->url->host}\"" . match ($this->authentication->scheme) {
-                        AuthenticationScheme::digest => sprintf(", uri=\"%s\", algorithm=\"%s\", nonce=\"%s\", qop=\"%s\", opaque=\"%s\"", $this->request->url->path, "SHA-256", ProcessInfo::processInfo()->globallyUniqueString, "auth", base64_encode((string)$this->request->url->host)),
-                        AuthenticationScheme::bearer => sprintf(", error=\"%s\", error_description=\"%s\"", $error->localizedDescription, $error->localizedFailureReason ?? ""),
-                        default => ""
-                    };
-            }
-            $response = new HTTPURLResponse($this->request->url, $this->statusCode, headerFields: $this->headerFields);
-            $this->send($response, $this->content);
+            $emitter = Emitter::from($throwable);
+            $emitter->emit();
         }
     }
 

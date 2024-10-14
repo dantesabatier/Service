@@ -3,6 +3,7 @@
 namespace Sabatier\Service;
 
 use Exception;
+use JetBrains\PhpStorm\Deprecated;
 use JetBrains\PhpStorm\ExpectedValues;
 use ReflectionClass;
 use ReflectionMethod;
@@ -37,9 +38,14 @@ abstract class Responder extends ObjectClass
     #[ExpectedValues(valuesFromClass: HTTPStatusCode::class)]
     public int $statusCode = HTTPStatusCode::ok;
     public ?string $content = null;
+    #[Deprecated]
     public ?string $contentType = null;
+    #[Deprecated]
     public ?int $contentLength = null;
+    #[Deprecated]
     public ?string $contentDisposition = null;
+    /** @var Dictionary<mixed> */
+    public Dictionary $headerFields;
 
     public function __construct()
     {
@@ -50,6 +56,7 @@ abstract class Responder extends ObjectClass
         unset($this->isActionable);
         unset($this->selector);
         unset($this->allowedMethods);
+        unset($this->headerFields);
     }
 
     /**
@@ -65,6 +72,7 @@ abstract class Responder extends ObjectClass
             "isActionable" => $this->selector !== null,
             "selector" => $this->selector(),
             "allowedMethods" => new ArrayClass([HTTPRequestMethod::head, HTTPRequestMethod::options, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::put, HTTPRequestMethod::delete]),
+            "headerFields" => $this->headerFields(),
             default => $this->valueForUndefinedKey($name)
         };
     }
@@ -114,6 +122,24 @@ abstract class Responder extends ObjectClass
         return null;
     }
 
+    private function headerFields(): Dictionary
+    {
+        /** @var Dictionary<mixed> $headerFields */
+        $headerFields = new Dictionary();
+        if ($origin = $this->request->valueForHttpHeaderField("Origin")) {
+            $headerFields["Access-Control-Allow-Origin"] = $origin;
+            $headerFields["Access-Control-Allow-Credentials"] = true;
+            $headerFields["Vary"] = "Origin";
+        }
+        if ($value = $this->request->valueForHttpHeaderField("Access-Control-Request-Method")) {
+            $headerFields["Access-Control-Allow-Methods"] = $value;
+        }
+        if ($value = $this->request->valueForHttpHeaderField("Access-Control-Request-Headers")) {
+            $headerFields["Access-Control-Allow-Headers"] = $value;
+        }
+        return $headerFields;
+    }
+
     /**
      * Returns a Boolean value indicating whether this object is the first responder.
      * @return bool true if the responder is the first responder; otherwise, false.
@@ -137,6 +163,6 @@ abstract class Responder extends ObjectClass
                 $this->statusCode = HTTPStatusCode::noContent;
             }
         }
-        return new HTTPURLResponse($this->request->url, $this->statusCode);
+        return new HTTPURLResponse($this->request->url, $this->statusCode, headerFields: $this->headerFields);
     }
 }

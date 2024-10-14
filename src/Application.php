@@ -172,17 +172,16 @@ class Application extends Responder
         return static::$shared;
     }
 
-    private function send(HTTPURLResponse $response, ?string $content): never
+    private function willSend(HTTPURLResponse $response, ?Dictionary &$headerFields): void
     {
         if (headers_sent()) {
             die();
         }
-        $isEmpty = match ($response->statusCode) {
+        $headerFields = $response->allHeaderFields;
+        if (match ($response->statusCode) {
             HTTPStatusCode::created, HTTPStatusCode::noContent, HTTPStatusCode::resetContent, HTTPStatusCode::notModified => true,
             default => false
-        };
-        $headerFields = $response->allHeaderFields;
-        if ($isEmpty) {
+        }) {
             $headerFields->removeAll(fn(mixed $e, string $k): bool => match ($k) {
                 "Content-Type", "Content-Length", "Content-Disposition" => true,
                 default => false
@@ -191,34 +190,35 @@ class Application extends Responder
         foreach (["Expires", "Cache-Control", "Pragma"] as $header) {
             header_remove($header);
         }
+    }
+
+    private function sendBatchResponse(BatchResponse $response, Dictionary $headerFields): never
+    {
         header(sprintf("%s %s %s", $response->httpVersion, $response->statusCode, HTTPURLResponse::localizedString($response->statusCode)));
-        if ($response instanceof BatchResponse) {
-            flush();
-            header_register_callback(function () use ($headerFields): void {
-                foreach ($headerFields as $key => $value) {
-                    header(sprintf("%s: %s", $key, human_readable_value($value)));
-                    flush();
-                }
-            });
-            if ($isEmpty) {
-                die();
-            }
-            ob_start();
-            foreach ($response as $idx => $data) {
-                echo $data;
-                if (($idx + 1) < $response->count) {
-                    echo "\r\n";
-                }
+        flush();
+        header_register_callback(function () use ($headerFields): void {
+            foreach ($headerFields as $key => $value) {
+                header(sprintf("%s: %s", $key, human_readable_value($value)));
                 flush();
             }
-            ob_end_flush();
-            die();
+        });
+        ob_start();
+        foreach ($response as $idx => $data) {
+            echo $data;
+            if (($idx + 1) < $response->count) {
+                echo "\r\n";
+            }
+            flush();
         }
+        ob_end_flush();
+        die();
+    }
+
+    private function sendResponse(HTTPURLResponse $response, Dictionary $headerFields, ?string $content): never
+    {
+        header(sprintf("%s %s %s", $response->httpVersion, $response->statusCode, HTTPURLResponse::localizedString($response->statusCode)));
         foreach ($headerFields as $key => $value) {
             header(sprintf("%s: %s", $key, human_readable_value($value)));
-        }
-        if ($isEmpty) {
-            die();
         }
         ob_start();
         ob_start("ob_gzhandler");
@@ -227,6 +227,17 @@ class Application extends Responder
         header("Content-Length: " . ob_get_length());
         ob_end_flush();
         die();
+    }
+
+    private function send(HTTPURLResponse $response, ?string $content): never
+    {
+        $this->willSend($response, $headerFields);
+        if ($response instanceof BatchResponse) {
+            /** @psalm-suppress PossiblyNullArgument */
+            $this->sendBatchResponse($response, $headerFields);
+        }
+        /** @psalm-suppress PossiblyNullArgument */
+        $this->sendResponse($response, $headerFields, $content);
     }
 
     private function mainResponder(): ?Responder

@@ -67,7 +67,7 @@ class Authentication extends Responder
         $session->regenerateID();
         $session->setValueForKey($username, "user");
         $this->content = json_encode($data, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
-        $this->contentType = "application/json";
+        $this->headerFields["Content-Type"] = "application/json";
     }
 
     #[Action]

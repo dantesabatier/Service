@@ -29,12 +29,9 @@ abstract class Responder extends ObjectClass
     public readonly URLRequest $request;
     public readonly ?Dictionary $serialization;
     public readonly ManagedObjectContext $managedObjectContext;
-    public readonly bool $isEndpoint;
-    public readonly bool $isActionable;
-    public readonly ?string $selector;
-    public bool $isProtectedContentAvailable = false;
     /** @var ArrayClass<string> */
     public ArrayClass $allowedMethods;
+    public bool $isProtectedContentAvailable = false;
     #[ExpectedValues(valuesFromClass: HTTPStatusCode::class)]
     public int $statusCode = HTTPStatusCode::ok;
     public ?string $content = null;
@@ -46,17 +43,20 @@ abstract class Responder extends ObjectClass
     public ?string $contentDisposition = null;
     /** @var Dictionary<mixed> */
     public Dictionary $headerFields;
+    public readonly ?string $selector;
+    public readonly bool $isEndpoint;
+    public readonly bool $isActionable;
 
     public function __construct()
     {
         unset($this->request);
         unset($this->serialization);
         unset($this->managedObjectContext);
-        unset($this->isEndpoint);
-        unset($this->isActionable);
-        unset($this->selector);
         unset($this->allowedMethods);
         unset($this->headerFields);
+        unset($this->selector);
+        unset($this->isEndpoint);
+        unset($this->isActionable);
     }
 
     /**
@@ -68,11 +68,11 @@ abstract class Responder extends ObjectClass
             "request" => Application::shared()->request,
             "serialization" => $this->serialization(),
             "managedObjectContext" => Application::shared()->persistentContainer->viewContext,
-            "isEndpoint" => $this->isEndpoint(),
-            "isActionable" => $this->selector !== null,
-            "selector" => $this->selector(),
             "allowedMethods" => new ArrayClass([HTTPRequestMethod::head, HTTPRequestMethod::options, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::put, HTTPRequestMethod::delete]),
             "headerFields" => $this->headerFields(),
+            "selector" => $this->selector(),
+            "isEndpoint" => $this->isEndpoint(),
+            "isActionable" => $this->selector !== null,
             default => $this->valueForUndefinedKey($name)
         };
     }

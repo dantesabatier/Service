@@ -179,7 +179,7 @@ class Application extends Responder
         }
         $isEmpty = match ($response->statusCode) {
             HTTPStatusCode::created, HTTPStatusCode::noContent, HTTPStatusCode::resetContent, HTTPStatusCode::notModified => true,
-            default => $response instanceof BatchResponse ? $response->isEmpty : empty($content)
+            default => false
         };
         $headerFields = $response->allHeaderFields;
         $headerFields["Content-Type"] = $contentType;

@@ -77,52 +77,15 @@ class Application extends Responder
     public function __get(string $name)
     {
         if ($name === "request") {
-            $request = new URLRequest(new URL(request_url()));
-            $request->allHTTPHeaderFields = new Dictionary(getallheaders());
-            $request->httpMethod = $request->valueForHttpHeaderField("X-Http-Method-Override") ?? $_SERVER["REQUEST_METHOD"] ?? HTTPRequestMethod::get;
-            $request->httpBody = match ($request->httpMethod) {
-                HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::delete, HTTPRequestMethod::patch => (function () use ($request): ?string {
-                    $contentType = $request->valueForHttpHeaderField("Content-Type") ?? "text/plain";
-                    $mediaType = $contentType;
-                    if (str_contains($contentType, ";")) {
-                        [$mediaType,] = explode(";", $contentType);
-                    }
-                    $httpBody = match ($mediaType) {
-                        "application/x-www-form-urlencoded", "application/json" => file_get_contents("php://input"),
-                        default => null
-                    };
-                    return empty($httpBody) ? null : $httpBody;
-                })(),
-                default => null
-            };
-            $this->$name = $request;
+            $this->$name = $this->request();
             return $this->$name;
         }
         if ($name === "delegate") {
-            $delegate = null;
-            if (($principalClass = Bundle::main()->principalClass) && isset(class_implements($principalClass)[ApplicationDelegate::class])) {
-                /** @var class-string<ApplicationDelegate> $delegateClass */
-                $delegateClass = $principalClass;
-                if (is_subclass_of($delegateClass, ObjectClass::class)) {
-                    $delegateClass::initialize();
-                }
-                $delegate = new $delegateClass();
-            }
-            $this->$name = $delegate;
+            $this->$name = $this->delegate();
             return $this->$name;
         }
         if ($name === "persistentContainer") {
-            $persistentContainer = new PersistentContainer(Bundle::main()->object(kCFBundleNameKey));
-            if ($description = $persistentContainer->persistentStoreDescriptions->first) {
-                $description->setOptionForKey(UserDefaults::standard()->bool(PersistentHistoryTrackingKey), PersistentHistoryTrackingKey);
-                $description->setOptionForKey(UserDefaults::standard()->bool(PersistentStoreRemoteChangeNotificationPostOptionKey), PersistentStoreRemoteChangeNotificationPostOptionKey);
-            }
-            $persistentContainer->loadPersistentStores(function (PersistentStoreDescription $description, ?Error $error): void {
-                if ($error) {
-                    throw new InternalInconsistencyException(error: $error);
-                }
-            });
-            $this->$name = $persistentContainer;
+            $this->$name = $this->persistentContainer();
             return $this->$name;
         }
         if ($name === "session") {
@@ -146,6 +109,57 @@ class Application extends Responder
             return $this->$name;
         }
         return parent::__get($name);
+    }
+
+    private function request(): URLRequest
+    {
+        $request = new URLRequest(new URL(request_url()));
+        $request->allHTTPHeaderFields = new Dictionary(getallheaders());
+        $request->httpMethod = $request->valueForHttpHeaderField("X-Http-Method-Override") ?? $_SERVER["REQUEST_METHOD"] ?? HTTPRequestMethod::get;
+        $request->httpBody = match ($request->httpMethod) {
+            HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::delete, HTTPRequestMethod::patch => (function () use ($request): ?string {
+                $contentType = $request->valueForHttpHeaderField("Content-Type") ?? "text/plain";
+                $mediaType = $contentType;
+                if (str_contains($contentType, ";")) {
+                    [$mediaType,] = explode(";", $contentType);
+                }
+                $httpBody = match ($mediaType) {
+                    "application/x-www-form-urlencoded", "application/json" => file_get_contents("php://input"),
+                    default => null
+                };
+                return empty($httpBody) ? null : $httpBody;
+            })(),
+            default => null
+        };
+        return $request;
+    }
+
+    private function delegate(): ?ApplicationDelegate
+    {
+        if (($principalClass = Bundle::main()->principalClass) && isset(class_implements($principalClass)[ApplicationDelegate::class])) {
+            /** @var class-string<ApplicationDelegate> $delegateClass */
+            $delegateClass = $principalClass;
+            if (is_subclass_of($delegateClass, ObjectClass::class)) {
+                $delegateClass::initialize();
+            }
+            return new $delegateClass();
+        }
+        return null;
+    }
+
+    private function persistentContainer(): PersistentContainer
+    {
+        $persistentContainer = new PersistentContainer(Bundle::main()->object(kCFBundleNameKey));
+        if ($description = $persistentContainer->persistentStoreDescriptions->first) {
+            $description->setOptionForKey(UserDefaults::standard()->bool(PersistentHistoryTrackingKey), PersistentHistoryTrackingKey);
+            $description->setOptionForKey(UserDefaults::standard()->bool(PersistentStoreRemoteChangeNotificationPostOptionKey), PersistentStoreRemoteChangeNotificationPostOptionKey);
+        }
+        $persistentContainer->loadPersistentStores(function (PersistentStoreDescription $description, ?Error $error): void {
+            if ($error) {
+                throw new InternalInconsistencyException(error: $error);
+            }
+        });
+        return $persistentContainer;
     }
 
     /**
@@ -332,11 +346,5 @@ class Application extends Responder
     public function terminate(): never
     {
         exit();
-    }
-
-    #[Override]
-    public function presentError(Error $error): bool
-    {
-        return true;
     }
 }

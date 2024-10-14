@@ -41,7 +41,7 @@ class Authentication extends Responder
             return $this->$name;
         }
         if ($name === "isProtectedContentAvailable") {
-            $this->$name = $this->authorization->isValid;
+            $this->$name = $this->request->httpMethod === HTTPRequestMethod::options || Application::shared()->session->valueForKey("user") !== null || $this->authorization->isValid;
             return $this->$name;
         }
         return parent::__get($name);
@@ -53,11 +53,11 @@ class Authentication extends Responder
     #[Action]
     public function login(): void
     {
-        $user = $this->authorization->user;
+        $user = $this->authorization->user ?? throw new UnauthorizedException();
         /** @var Dictionary<mixed> $data */
         $data = new Dictionary();
         $data["user"] = $user;
-        $username = $user?->valueForKey("username");
+        $username = $user->valueForKey("username");
         if ($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) {
             $date = new Date();
             $encoder = new JSONWebTokenEncoder($key);

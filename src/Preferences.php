@@ -3,6 +3,7 @@
 namespace Sabatier\Service;
 
 use Override;
+use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
@@ -22,10 +23,7 @@ class Preferences extends Responder
             case HTTPRequestMethod::patch:
             case HTTPRequestMethod::delete:
                 if ($request->httpMethod !== HTTPRequestMethod::get) {
-                    $body = $this->request->getParsedBody();
-                    foreach ($body as $key => $value) {
-                        UserDefaults::standard()->setObject($value, $key);
-                    }
+                    UserDefaults::standard()->dictionaryRepresentation()->merge(Dictionary::dictionaryWithArray($this->request->getParsedBody()));
                 }
                 if ($request->httpMethod === HTTPRequestMethod::delete) {
                     $this->statusCode = HTTPStatusCode::noContent;

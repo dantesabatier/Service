@@ -172,7 +172,7 @@ class Application extends Responder
         return static::$shared;
     }
 
-    private function send(HTTPURLResponse $response, ?string $content, ?string $contentType = null, ?int $contentLength = null, ?string $contentDisposition = null): never
+    private function send(HTTPURLResponse $response, ?string $content): never
     {
         if (headers_sent()) {
             die();
@@ -182,20 +182,6 @@ class Application extends Responder
             default => false
         };
         $headerFields = $response->allHeaderFields;
-        $headerFields["Content-Type"] = $contentType;
-        $headerFields["Content-Length"] = $contentLength;
-        $headerFields["Content-Disposition"] = $contentDisposition;
-        if ($origin = $this->request->valueForHttpHeaderField("Origin")) {
-            $headerFields["Access-Control-Allow-Origin"] = $origin;
-            $headerFields["Access-Control-Allow-Credentials"] = true;
-            $headerFields["Vary"] = "Origin";
-        }
-        if ($value = $this->request->valueForHttpHeaderField("Access-Control-Request-Method")) {
-            $headerFields["Access-Control-Allow-Methods"] = $value;
-        }
-        if ($value = $this->request->valueForHttpHeaderField("Access-Control-Request-Headers")) {
-            $headerFields["Access-Control-Allow-Headers"] = $value;
-        }
         if ($isEmpty) {
             $headerFields->removeAll(fn(mixed $e, string $k): bool => match ($k) {
                 "Content-Type", "Content-Length", "Content-Disposition" => true,
@@ -314,11 +300,11 @@ class Application extends Responder
                 $this->isProtectedContentAvailable = $responder->isProtectedContentAvailable;
                 NotificationCenter::default()->postNotificationName(Application::protectedDataDidBecomeAvailableNotification, $this);
             }
-            $response = $responder->response();
             $this->persistentContainer->viewContext->transactionAuthor = match ($this->request->httpMethod) {
                 HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $this->authentication->authorization->user?->valueForKey("username"),
                 default => null
             };
+            $response = $responder->response();
             $this->session->commit();
             if ($responder->isProtectedContentAvailable) {
                 $responder->isProtectedContentAvailable = false;
@@ -326,17 +312,28 @@ class Application extends Responder
                 NotificationCenter::default()->postNotificationName(Application::protectedDataWillBecomeUnavailableNotification, $this);
             }
             $this->delegate?->applicationDidFinishLaunching($this);
-            $this->send($response, $responder->content, $responder->contentType, $responder->contentLength, $responder->contentDisposition);
+            $this->send($response, $responder->content);
         } catch (Throwable $throwable) {
-            $error = $throwable instanceof InternalInconsistencyException ? $throwable->error : new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $throwable->getMessage()]));
+            $this->statusCode = HTTPStatusCode::internalServerError;
+            $error = new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $throwable->getMessage()]));
+            if ($throwable instanceof InternalInconsistencyException) {
+                $error = $throwable->error;
+                if ($throwable instanceof InvalidRequestException) {
+                    $this->statusCode = $throwable->getCode();
+                }
+            }
             $error = $this->delegate?->applicationWillPresentError($this, $error) ?? $error;
-            /** @psalm-suppress PossiblyNullArgument */
-            $response = $throwable instanceof InvalidRequestException ? new HTTPURLResponse($this->request->url, $throwable->getCode(), null, $throwable instanceof UnauthorizedException ? new Dictionary(["WWW-Authenticate" => "{$this->authentication->scheme->value} realm=\"{$this->request->url->host}\"" . match ($this->authentication->scheme) {
-                    AuthenticationScheme::digest => sprintf(", uri=\"%s\", algorithm=\"%s\", nonce=\"%s\", qop=\"%s\", opaque=\"%s\"", $this->request->url->path, "SHA-256", ProcessInfo::processInfo()->globallyUniqueString, "auth", base64_encode((string)$this->request->url->host)),
-                    AuthenticationScheme::bearer => sprintf(", error=\"%s\", error_description=\"%s\"", $error->localizedDescription, $error->localizedFailureReason),
-                    default => ""
-                }]) : null) : new HTTPURLResponse($this->request->url, HTTPStatusCode::internalServerError);
-            $this->send($response, json_encode(["error" => $error]), "application/json; charset=utf-8");
+            $this->content = json_encode(["error" => $error]);
+            $this->headerFields["Content-Type"] = "application/json";
+            if ($throwable instanceof UnauthorizedException) {
+                $this->headerFields["WWW-Authenticate"] = "{$this->authentication->scheme->value} realm=\"{$this->request->url->host}\"" . match ($this->authentication->scheme) {
+                        AuthenticationScheme::digest => sprintf(", uri=\"%s\", algorithm=\"%s\", nonce=\"%s\", qop=\"%s\", opaque=\"%s\"", $this->request->url->path, "SHA-256", ProcessInfo::processInfo()->globallyUniqueString, "auth", base64_encode((string)$this->request->url->host)),
+                        AuthenticationScheme::bearer => sprintf(", error=\"%s\", error_description=\"%s\"", $error->localizedDescription, $error->localizedFailureReason ?? ""),
+                        default => ""
+                    };
+            }
+            $response = new HTTPURLResponse($this->request->url, $this->statusCode, headerFields: $this->headerFields);
+            $this->send($response, $this->content);
         }
     }
 

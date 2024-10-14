@@ -78,7 +78,7 @@ abstract class ViewController extends Responder
     public function loadView(): void
     {
         $this->content = $this->view->render();
-        $this->contentType = "text/html; charset=utf-8";
+        $this->headerFields["Content-Type"] = "text/html; charset=utf-8";
     }
 
     public function viewWillLoad(): void

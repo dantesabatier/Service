@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use Override;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
 use function Sabatier\Foundation\human_readable_value;
 
@@ -17,6 +18,7 @@ readonly class BatchEmitter extends Emitter
         $this->batchResponse = $response;
     }
 
+    #[Override]
     public function execute(): never
     {
         $response = $this->batchResponse;

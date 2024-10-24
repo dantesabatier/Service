@@ -14,7 +14,7 @@ use const Sabatier\Foundation\URLErrorBadServerResponse;
 use const Sabatier\Foundation\URLErrorDomain;
 
 /** @internal */
-readonly class ThrowableEmitter extends Emitter
+readonly class ThrowableResponseEmitter extends ResponseEmitter
 {
     public function __construct(Throwable $throwable)
     {

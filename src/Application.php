@@ -249,9 +249,9 @@ class Application extends Responder
                 NotificationCenter::default()->postNotificationName(Application::protectedDataWillBecomeUnavailableNotification, $this);
             }
             $this->delegate?->applicationDidFinishLaunching($this);
-            Emitter::from($response, $responder->content)->emit();
+            ResponseEmitter::from($response, $responder->content)->emit();
         } catch (Throwable $throwable) {
-            Emitter::from($throwable)->emit();
+            ResponseEmitter::from($throwable)->emit();
         }
     }
 

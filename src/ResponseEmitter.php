@@ -9,7 +9,7 @@ use Throwable;
 use function Sabatier\Foundation\human_readable_value;
 
 /** @internal */
-readonly class Emitter
+readonly class ResponseEmitter
 {
     public Dictionary $headerFields;
 
@@ -28,15 +28,15 @@ readonly class Emitter
         $this->headerFields = $headerFields;
     }
 
-    public static function from(HTTPURLResponse|Throwable $response, ?string $content = null): Emitter
+    public static function from(HTTPURLResponse|Throwable $response, ?string $content = null): ResponseEmitter
     {
         if ($response instanceof Throwable) {
-            return new ThrowableEmitter($response);
+            return new ThrowableResponseEmitter($response);
         }
         if ($response instanceof BatchResponse) {
-            return new BatchEmitter($response);
+            return new BatchResponseEmitter($response);
         }
-        return new Emitter($response, $content);
+        return new ResponseEmitter($response, $content);
     }
 
     public function prepare(): void

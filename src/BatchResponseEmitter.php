@@ -7,7 +7,7 @@ use Sabatier\Foundation\Networking\HTTPURLResponse;
 use function Sabatier\Foundation\human_readable_value;
 
 /** @internal */
-readonly class BatchEmitter extends Emitter
+readonly class BatchResponseEmitter extends ResponseEmitter
 {
     public BatchResponse $batchResponse;
 

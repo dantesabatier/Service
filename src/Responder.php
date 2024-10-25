@@ -220,7 +220,7 @@ abstract class Responder extends ObjectClass
      */
     public function isFirstResponder(): bool
     {
-        return $this->allowedMethods->containsElement($this->request->httpMethod) && ($this->isEndpoint || $this->isActionable);
+        return $this->isEndpoint || $this->isActionable;
     }
 
     /**
@@ -228,6 +228,7 @@ abstract class Responder extends ObjectClass
      */
     public function response(): HTTPURLResponse
     {
+        $this->allowedMethods->containsElement($this->request->httpMethod) ?: throw new MethodNotAllowedException();
         if (match ($this->request->httpMethod) {
                 HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => true,
                 default => false,

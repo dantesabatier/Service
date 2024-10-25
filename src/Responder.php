@@ -117,6 +117,7 @@ abstract class Responder extends ObjectClass
         if ($queryItems = $components->queryItems) {
             if ($item = $queryItems->first(fn(URLQueryItem $item): bool => string_is_equal($item->name, "fetchRequest", CompareOptions::caseInsensitive))) {
                 if (($value = $item->value) && ($json = base64_decode($value)) && (json_validate($json))) {
+                    /** @var object{predicate: object{format: string, arguments?: array}, includesSubentities?: bool, fetchLimit?: int, fetchOffset?: int, fetchBatchSize?: int, sortDescriptors?: array, resultType: int, propertiesToFetch?: array, returnsDistinctResults?: bool, propertiesToGroupBy?: array, havingPredicate: object{format: string, arguments?: array}} $decoded */
                     $decoded = json_decode($json);
                     if (property_exists($decoded, "predicate")) {
                         $predicate = $decoded->predicate;

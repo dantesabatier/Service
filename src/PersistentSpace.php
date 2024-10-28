@@ -32,8 +32,8 @@ use function Sabatier\Foundation\string_is_equal;
 
 class PersistentSpace extends Responder
 {
-    private readonly ?AtomicStore $atomicStore;
     private readonly EntityDescription $entity;
+    private readonly ?AtomicStore $atomicStore;
 
     public function __construct()
     {
@@ -60,6 +60,30 @@ class PersistentSpace extends Responder
         return parent::__get($name);
     }
 
+    private function fetchRequest(): FetchRequest
+    {
+        $fetchRequest = $this->fetchRequest;
+        $fetchRequest->entity = $this->entity;
+        if (($predicate = $fetchRequest->predicate) && ($store = $this->atomicStore)) {
+            $fn = function (CompoundPredicate|ComparisonPredicate|Predicate $predicate) use ($store, &$fn): Predicate {
+                if ($predicate instanceof ComparisonPredicate) {
+                    $expressions = new ArrayClass([$predicate->rightExpression, $predicate->leftExpression]);
+                    if (($keyPathExpression = $expressions->first(fn(Expression $e): bool => $e->expressionType === ExpressionType::keyPath && str_ends_with($e->keyPath(), SQLEntity::primaryKeyName))) && ($constantValueExpression = $expressions->first(fn(Expression $e): bool => !$e->isEqual($keyPathExpression)))) {
+                        $expressionForConstantValue = Expression::expressionForConstantValue($store->objectID($this->entity, $constantValueExpression->constantValue()));
+                        $rightExpression = $keyPathExpression === $predicate->rightExpression ? $keyPathExpression : $expressionForConstantValue;
+                        $leftExpression = $constantValueExpression === $predicate->leftExpression ? $expressionForConstantValue : $keyPathExpression;
+                        return new ComparisonPredicate($rightExpression, $leftExpression, $predicate->predicateOperatorType, $predicate->comparisonPredicateModifier, $predicate->options);
+                    }
+                    return $predicate;
+                }
+                /** @psalm-suppress all */
+                return new CompoundPredicate($predicate->compoundPredicateType, $predicate->subpredicates->map(fn(CompoundPredicate|ComparisonPredicate $subpredicate): CompoundPredicate|ComparisonPredicate => $fn($subpredicate)));
+            };
+            $fetchRequest->predicate = $fn($predicate);
+        }
+        return $fetchRequest;
+    }
+
     #[Override]
     public function isFirstResponder(): bool
     {
@@ -74,25 +98,7 @@ class PersistentSpace extends Responder
         switch ($request->httpMethod) {
             case HTTPRequestMethod::get:
             case HTTPRequestMethod::head:
-                $fetchRequest = $this->fetchRequest;
-                $fetchRequest->entity = $this->entity;
-                if (($predicate = $fetchRequest->predicate) && ($store = $this->atomicStore)) {
-                    $fn = function (CompoundPredicate|ComparisonPredicate|Predicate $predicate) use ($store, &$fn): Predicate {
-                        if ($predicate instanceof ComparisonPredicate) {
-                            $expressions = new ArrayClass([$predicate->rightExpression, $predicate->leftExpression]);
-                            if (($keyPathExpression = $expressions->first(fn(Expression $e): bool => $e->expressionType === ExpressionType::keyPath && str_ends_with($e->keyPath(), SQLEntity::primaryKeyName))) && ($constantValueExpression = $expressions->first(fn(Expression $e): bool => !$e->isEqual($keyPathExpression)))) {
-                                $expressionForConstantValue = Expression::expressionForConstantValue($store->objectID($this->entity, $constantValueExpression->constantValue()));
-                                $rightExpression = $keyPathExpression === $predicate->rightExpression ? $keyPathExpression : $expressionForConstantValue;
-                                $leftExpression = $constantValueExpression === $predicate->leftExpression ? $expressionForConstantValue : $keyPathExpression;
-                                return new ComparisonPredicate($rightExpression, $leftExpression, $predicate->predicateOperatorType, $predicate->comparisonPredicateModifier, $predicate->options);
-                            }
-                            return $predicate;
-                        }
-                        /** @psalm-suppress all */
-                        return new CompoundPredicate($predicate->compoundPredicateType, $predicate->subpredicates->map(fn(CompoundPredicate|ComparisonPredicate $subpredicate): CompoundPredicate|ComparisonPredicate => $fn($subpredicate)));
-                    };
-                    $fetchRequest->predicate = $fn($predicate);
-                }
+                $fetchRequest = $this->fetchRequest();
                 $fetchRequestResult = match ($fetchRequest->resultType) {
                     FetchRequestResultType::managedObjectResultType, FetchRequestResultType::managedObjectIDResultType,
                     FetchRequestResultType::dictionaryResultType => $context->fetch($fetchRequest),

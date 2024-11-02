@@ -53,23 +53,6 @@ class UploadsEnumerator extends DirectoryEnumerator
         }
     }
 
-    #[Override]
-    public function level(): int
-    {
-        return 0;
-    }
-
-    #[Override]
-    public function skipDescendants(): void
-    {
-    }
-
-    #[Override]
-    public function isEnumeratingDirectoryPostOrder(): bool
-    {
-        return false;
-    }
-
     public function getIterator(): Traversable
     {
         return (function (): Generator {

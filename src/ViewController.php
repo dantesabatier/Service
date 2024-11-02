@@ -20,7 +20,7 @@ abstract class ViewController extends Responder
     /** @var string The name of the view controller's template file, if one was specified. */
     public string $name;
     /** @var View The view that the controller manages. */
-    public readonly View $view;
+    public View $view;
     /** @var object|array<string, mixed> */
     public object|array $context = [];
     /** @var Bundle The view controller's template bundle if it exists. */

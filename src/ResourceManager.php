@@ -20,18 +20,8 @@ class ResourceManager extends Responder
     public function __construct()
     {
         parent::__construct();
-        unset($this->resourceURL);
         $this->allowedMethods = new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::head, HTTPRequestMethod::get]);
-    }
-
-    #[Override]
-    public function __get(string $name)
-    {
-        if ($name === "resourceURL") {
-            $this->$name = (new URL($this->request->url->path, FileManager::default()->documentRootDirectory))->absoluteURL;
-            return $this->$name;
-        }
-        return parent::__get($name);
+        $this->resourceURL = (new URL($this->request->url->path, FileManager::default()->documentRootDirectory))->absoluteURL;
     }
 
     #[Override]

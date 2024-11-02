@@ -4,6 +4,7 @@ namespace Sabatier\Service;
 
 use Exception;
 use Generator;
+use JetBrains\PhpStorm\Immutable;
 use Override;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\DirectoryEnumerator;
@@ -18,16 +19,19 @@ use Traversable;
  */
 class UploadsEnumerator extends DirectoryEnumerator
 {
-    public bool $isEmpty;
+    public readonly int $count;
+    public readonly bool $isEmpty;
+    #[Immutable(allowedWriteScope: Immutable::PRIVATE_WRITE_SCOPE)]
     public ?URL $currentURL = null;
 
     /**
      * @param URL $url
      * @param Set<string>|null $keys
      */
-    public function __construct(public readonly URL $url, private readonly ?Set $keys = null)
+    public function __construct(public readonly URL $url, public readonly ?Set $keys = null)
     {
-        $this->isEmpty = count($_FILES) === 0;
+        $this->count = count($_FILES);
+        $this->isEmpty = $this->count === 0;
     }
 
     #[Override]

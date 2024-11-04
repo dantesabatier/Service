@@ -49,6 +49,7 @@ class Application extends Responder
     public readonly PersistentSpace $persistentSpace;
     public readonly ResourceManager $resourceManager;
     public readonly Preferences $preferences;
+    public readonly Uploader $uploader;
 
     final public function __construct()
     {
@@ -61,6 +62,7 @@ class Application extends Responder
         unset($this->persistentSpace);
         unset($this->resourceManager);
         unset($this->preferences);
+        unset($this->uploader);
         unset($this->historyChanges);
     }
 
@@ -100,6 +102,10 @@ class Application extends Responder
         }
         if ($name === "preferences") {
             $this->$name = new Preferences();
+            return $this->$name;
+        }
+        if ($name === "uploader") {
+            $this->$name = new Uploader();
             return $this->$name;
         }
         return parent::__get($name);
@@ -207,7 +213,7 @@ class Application extends Responder
 
     private function internalResponder(): ?Responder
     {
-        return (new ArrayClass([$this->authentication, $this->persistentSpace, $this->resourceManager, $this->preferences, new Home()]))->first(fn(Responder $responder): bool => $responder->isFirstResponder());
+        return (new ArrayClass([$this->authentication, $this->persistentSpace, $this->resourceManager, $this->preferences, $this->uploader, new Home()]))->first(fn(Responder $responder): bool => $responder->isFirstResponder());
     }
 
     private function instantiateInitialResponder(): Responder

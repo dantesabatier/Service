@@ -45,6 +45,7 @@ class ResourceManager extends Responder
                 if ($this->request->httpMethod === HTTPRequestMethod::get) {
                     $this->content = $content;
                 }
+                $this->headerFields["Cache-Control"] = "max-age=3600";
                 break;
             case HTTPRequestMethod::options:
                 break;

@@ -41,5 +41,6 @@ class Uploader extends Responder
         }
         $this->content = json_encode($files);
         $this->headerFields["Content-Type"] = "application/json";
+        $this->headerFields["Cache-Control"] = "max-age=3600";
     }
 }

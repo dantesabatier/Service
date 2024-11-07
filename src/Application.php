@@ -3,9 +3,13 @@
 namespace Sabatier\Service;
 
 use Exception;
+use JetBrains\PhpStorm\Immutable;
 use Override;
 use ReflectionClass;
 use Sabatier\CoreData\PersistentContainer;
+use Sabatier\CoreData\PersistentHistoryChangeRequest;
+use Sabatier\CoreData\PersistentHistoryToken;
+use Sabatier\CoreData\PersistentHistoryTransaction;
 use Sabatier\CoreData\PersistentStoreDescription;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
@@ -15,9 +19,13 @@ use Sabatier\Foundation\DirectoryEnumerationOptions;
 use Sabatier\Foundation\Error;
 use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\InternalInconsistencyException;
+use Sabatier\Foundation\KeyedArchiver;
+use Sabatier\Foundation\KeyedUnarchiver;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLRequest;
+use Sabatier\Foundation\Notification;
 use Sabatier\Foundation\NotificationCenter;
+use Sabatier\Foundation\Number;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Foundation\URL;
@@ -26,7 +34,9 @@ use Throwable;
 use function Sabatier\Foundation\getallheaders;
 use function Sabatier\Foundation\request_url;
 use function Sabatier\Foundation\string_is_equal;
+use const Sabatier\CoreData\PersistentHistoryTokenKey;
 use const Sabatier\CoreData\PersistentHistoryTrackingKey;
+use const Sabatier\CoreData\PersistentStoreRemoteChange;
 use const Sabatier\CoreData\PersistentStoreRemoteChangeNotificationPostOptionKey;
 use const Sabatier\Foundation\kCFBundleNameKey;
 
@@ -50,6 +60,8 @@ class Application extends Responder
     public readonly ResourceManager $resourceManager;
     public readonly Preferences $preferences;
     public readonly Uploader $uploader;
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    public PersistentHistoryToken $persistentHistoryToken;
 
     final public function __construct()
     {
@@ -64,6 +76,7 @@ class Application extends Responder
         unset($this->preferences);
         unset($this->uploader);
         unset($this->historyChanges);
+        unset($this->persistentHistoryToken);
     }
 
     /**
@@ -106,6 +119,10 @@ class Application extends Responder
         }
         if ($name === "uploader") {
             $this->$name = new Uploader();
+            return $this->$name;
+        }
+        if ($name === "persistentHistoryToken") {
+            $this->$name = UserDefaults::standard()->object(PersistentHistoryTokenKey) ? KeyedUnarchiver::unarchiveTopLevelObjectWithData(UserDefaults::standard()->object(PersistentHistoryTokenKey)) : new PersistentHistoryToken(new Dictionary([(string)$this->persistentContainer->persistentStoreCoordinator->persistentStores->first?->identifier => new Number(0)]));
             return $this->$name;
         }
         return parent::__get($name);
@@ -158,6 +175,18 @@ class Application extends Responder
             if ($error) {
                 throw new InternalInconsistencyException(error: $error);
             }
+        });
+        NotificationCenter::default()->addObserverForName(PersistentStoreRemoteChange, $persistentContainer->persistentStoreCoordinator, function (Notification $notification): void {
+            /** @var Dictionary<mixed> $userInfo */
+            $userInfo = $notification->userInfo;
+            /** @var PersistentHistoryToken $persistentHistoryToken */
+            $persistentHistoryToken = $userInfo[PersistentHistoryTokenKey];
+            UserDefaults::standard()->setObject(KeyedArchiver::archivedData($persistentHistoryToken), PersistentHistoryTokenKey);
+            $this->persistentHistoryToken = $persistentHistoryToken;
+            $context = $this->persistentContainer->viewContext;
+            $request = PersistentHistoryChangeRequest::deleteHistoryBeforeToken($persistentHistoryToken);
+            $request->fetchRequest = PersistentHistoryTransaction::fetchRequest();
+            $context->execute($request);
         });
         return $persistentContainer;
     }

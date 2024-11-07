@@ -55,6 +55,7 @@ class UploadsEnumerator extends DirectoryEnumerator
         }
     }
 
+    #[Override]
     public function getIterator(): Traversable
     {
         return (function (): Generator {

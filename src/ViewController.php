@@ -16,64 +16,36 @@ abstract class ViewController extends Responder
     /** @var class-string<Renderer> */
     public static string $rendererClass = NativeRenderer::class;
     /** @var string The name of the view controller's template file, if one was specified. */
-    public string $name;
+    public string $name {
+        get => class_name(get_class($this));
+    }
     /** @var View The view that the controller manages. */
-    public View $view;
+    private(set) View $view;
     /** @var object|array<string, mixed> */
-    public object|array $context = [];
+    public array $context {
+        get => $this->associatedValues[__PROPERTY__] ??= array_reduce(new ReflectionClass($this)->getProperties(ReflectionProperty::IS_PUBLIC), function (array $context, ReflectionProperty $property): array {
+            if ($property->getAttributes(Outlet::class) !== []) {
+                $context[$property->name] = $this->valueForKey($property->name);
+            }
+            return $context;
+        }, []);
+    }
     /** @var Bundle The view controller's template bundle if it exists. */
-    public Bundle $bundle;
+    public Bundle $bundle {
+        get => $this->associatedValues[__PROPERTY__] ??= Bundle::main();
+        set {
+            $this->associatedValues[__PROPERTY__] = $value;
+        }
+    }
     /** @var string|null A localized string that represents the view this controller manages. */
     #[Outlet]
     public ?string $title = null;
 
-    public function __construct()
-    {
-        parent::__construct();
-        unset($this->name);
-        unset($this->view);
-        unset($this->context);
-        unset($this->bundle);
-        unset($this->title);
-    }
-
-    public function __get(string $name)
-    {
-        if ($name === "name") {
-            $this->$name = class_name(static::class);
-            return $this->$name;
-        }
-        if ($name === "context") {
-            $this->$name = array_reduce(new ReflectionClass($this)->getProperties(ReflectionProperty::IS_PUBLIC), function (array $context, ReflectionProperty $property): array {
-                if ($property->getAttributes(Outlet::class) !== []) {
-                    $context[$property->name] = $this->valueForKey($property->name);
-                }
-                return $context;
-            }, []);
-            return $this->$name;
-        }
-        if ($name === "view") {
-            $this->viewWillLoad();
-            $this->$name = new View($this->name, $this->context, new self::$rendererClass($this->bundle));
-            $this->viewDidLoad();
-            return $this->$name;
-        }
-        if ($name === "bundle") {
-            $this->$name = Bundle::main();
-            return $this->$name;
-        }
-        if ($name === "title") {
-            $this->$name = $this->name;
-            return $this->$name;
-        }
-        if ($name === "isViewLoaded") {
-            return isset($this->view);
-        }
-        return $this->valueForUndefinedKey($name);
-    }
-
     public function loadView(): void
     {
+        $this->viewWillLoad();
+        $this->view = new View($this->name, $this->context, new self::$rendererClass($this->bundle));
+        $this->viewDidLoad();
         $this->content = $this->view->render();
         $this->headerFields["Content-Type"] = "text/html; charset=utf-8";
         $this->headerFields["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0";

@@ -77,6 +77,22 @@ class Application extends Responder
             UserDefaults::standard()->setObject(KeyedArchiver::archivedData($value), PersistentHistoryTokenKey);
         }
     }
+    public Responder $instantiateInitialResponder {
+        get => $this->mainResponder() ?? $this->internalResponder() ?? match ($this->request->httpMethod) {
+            HTTPRequestMethod::options => $this,
+            default => throw new NotFoundException()
+        };
+    }
+
+    /**
+     * The singleton app instance.
+     * @return Application
+     */
+    public static function shared(): Application
+    {
+        static::$shared ??= new static();
+        return static::$shared;
+    }
 
     private function delegate(): ?ApplicationDelegate
     {
@@ -115,16 +131,6 @@ class Application extends Responder
             $context->execute($request);
         });
         return $persistentContainer;
-    }
-
-    /**
-     * The singleton app instance.
-     * @return Application
-     */
-    public static function shared(): Application
-    {
-        static::$shared ??= new static();
-        return static::$shared;
     }
 
     private function mainResponder(): ?Responder
@@ -171,39 +177,36 @@ class Application extends Responder
         return new ArrayClass([$this->authentication, $this->persistentSpace, $this->resourceManager, $this->preferences, $this->uploader, new Home()])->first(fn(Responder $responder): bool => $responder->isFirstResponder);
     }
 
-    private function instantiateInitialResponder(): Responder
-    {
-        return $this->mainResponder() ?? $this->internalResponder() ?? match ($this->request->httpMethod) {
-            HTTPRequestMethod::options => $this,
-            default => throw new NotFoundException()
-        };
-    }
-
     public function run(): never
     {
         try {
-            $this->delegate?->applicationWillFinishLaunching($this);
-            ProcessInfo::processInfo()->processName = $this->persistentContainer->name;
-            $this->persistentContainer->viewContext->name = $this->persistentContainer->name;
-            register_shutdown_function(function (): bool {
-                $this->delegate?->applicationWillTerminate($this);
+            $delegate = $this->delegate;
+            $delegate?->applicationWillFinishLaunching($this);
+            $persistentContainer = $this->persistentContainer;
+            $viewContext = $persistentContainer->viewContext;
+            $viewContext->name = $persistentContainer->name;
+            ProcessInfo::processInfo()->processName = $persistentContainer->name;
+            register_shutdown_function(function () use ($delegate): bool {
+                $delegate?->applicationWillTerminate($this);
                 return true;
             });
-            $responder = $this->instantiateInitialResponder();
-            $this->session->start();
+            $responder = $this->instantiateInitialResponder;
+            $authentication = $this->authentication;
+            $session = $this->session;
+            $session->start();
             if (!$responder->isProtectedContentAvailable) {
                 $responder->isProtectedContentAvailable = $this->isProtectedContentAvailable;
             }
-            if (!$responder->isProtectedContentAvailable && !$this->authentication->isProtectedContentAvailable) {
+            if (!$responder->isProtectedContentAvailable && !$authentication->isProtectedContentAvailable) {
                 throw new UnauthorizedException();
             }
-            $this->persistentContainer->viewContext->transactionAuthor = match ($this->request->httpMethod) {
-                HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $this->authentication->authorization->user?->valueForKey("username"),
+            $viewContext->transactionAuthor = match ($this->request->httpMethod) {
+                HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $authentication->authorization->user?->valueForKey("username"),
                 default => null
             };
             $response = $responder->response;
-            $this->session->commit();
-            $this->delegate?->applicationDidFinishLaunching($this);
+            $session->commit();
+            $delegate?->applicationDidFinishLaunching($this);
             $response->send();
         } catch (Throwable $throwable) {
             $responder = new Thrower();

@@ -25,9 +25,13 @@ use function Sabatier\Foundation\unsafe_value;
  */
 class Session extends ObjectClass
 {
-    public CookieParameters $cookieParameters;
+    public CookieParameters $cookieParameters {
+        get => $this->associatedValues[__PROPERTY__] ??= new CookieParameters(new URL(request_url())->host ?? "");
+    }
     /** @var URL The session save url. */
-    public URL $saveURL;
+    public URL $saveURL {
+        get => $this->associatedValues[__PROPERTY__] ??= $this->saveURL();
+    }
     /** @var string The session id. */
     public string $id {
         get => unsafe_value(fn(): string => session_id());
@@ -42,12 +46,6 @@ class Session extends ObjectClass
     /** @var SessionStatus The session status. */
     public SessionStatus $status {
         get => SessionStatus::from(unsafe_value(fn(): int => session_status()));
-    }
-
-    public function __construct()
-    {
-        unset($this->cookieParameters);
-        unset($this->saveURL);
     }
 
     public function __destruct()
@@ -86,30 +84,13 @@ class Session extends ObjectClass
     /**
      * @throws Exception
      */
-    public function __get(string $name)
+    private function saveURL(): URL
     {
-        if ($name === "cookieParameters") {
-            $this->$name = new CookieParameters(new URL(request_url())->host ?? "");
-            return $this->$name;
+        $saveURL = FileManager::default()->url(SearchPathDirectory::cachesDirectory)->appendingPathComponent(Bundle::main()->bundleIdentifier ?? ProcessInfo::processInfo()->processName)->appendingPathComponent("Session");
+        if (!FileManager::default()->fileExists($saveURL->path)) {
+            FileManager::default()->createDirectory($saveURL, true, new Dictionary([FileAttributeKey::posixPermissions => 0777]));
         }
-        if ($name === "saveURL") {
-            $saveURL = FileManager::default()->url(SearchPathDirectory::cachesDirectory)->appendingPathComponent(Bundle::main()->bundleIdentifier ?? ProcessInfo::processInfo()->processName)->appendingPathComponent("Session");
-            if (!FileManager::default()->fileExists($saveURL->path)) {
-                FileManager::default()->createDirectory($saveURL, true, new Dictionary([FileAttributeKey::posixPermissions => 0777]));
-            }
-            $this->$name = $saveURL;
-            return $this->$name;
-        }
-        return $this->valueForUndefinedKey($name);
-    }
-
-    public function __set(string $name, mixed $value): void
-    {
-        if ($name === "saveURL" || $name === "cookieParameters") {
-            $this->$name = $value;
-        } else {
-            $this->setValueForUndefinedKey($value, $name);
-        }
+        return $saveURL;
     }
 
     #[Override]

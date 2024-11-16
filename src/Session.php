@@ -22,15 +22,27 @@ use function Sabatier\Foundation\unsafe_value;
 
 /**
  * An object-oriented wrapper for a session.
- * @property-read string $id The session id.
- * @property string $name The session name.
- * @property-read SessionStatus $status The session status.
  */
 class Session extends ObjectClass
 {
     public CookieParameters $cookieParameters;
     /** @var URL The session save url. */
     public URL $saveURL;
+    /** @var string The session id. */
+    public string $id {
+        get => unsafe_value(fn(): string => session_id());
+    }
+    /** @var string The session name. */
+    public string $name {
+        get => unsafe_value(fn(): string => session_name());
+        set {
+            unsafe_value(fn(): string => session_name($value));
+        }
+    }
+    /** @var SessionStatus The session status. */
+    public SessionStatus $status {
+        get => SessionStatus::from(unsafe_value(fn(): int => session_status()));
+    }
 
     public function __construct()
     {
@@ -76,17 +88,8 @@ class Session extends ObjectClass
      */
     public function __get(string $name)
     {
-        if ($name === "id") {
-            return unsafe_value(fn(): string => session_id());
-        }
-        if ($name === "name") {
-            return unsafe_value(fn(): string => session_name());
-        }
-        if ($name === "status") {
-            return SessionStatus::from(unsafe_value(fn(): int => session_status()));
-        }
         if ($name === "cookieParameters") {
-            $this->$name = new CookieParameters((string)parse_url(request_url(), PHP_URL_HOST));
+            $this->$name = new CookieParameters(new URL(request_url())->host ?? "");
             return $this->$name;
         }
         if ($name === "saveURL") {
@@ -104,8 +107,6 @@ class Session extends ObjectClass
     {
         if ($name === "saveURL" || $name === "cookieParameters") {
             $this->$name = $value;
-        } elseif ($name === "name") {
-            unsafe_value(fn(): string => session_name($value));
         } else {
             $this->setValueForUndefinedKey($value, $name);
         }

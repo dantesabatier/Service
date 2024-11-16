@@ -3,8 +3,6 @@
 namespace Sabatier\Service;
 
 use Exception;
-use JetBrains\PhpStorm\Immutable;
-use Override;
 use ReflectionClass;
 use Sabatier\CoreData\PersistentContainer;
 use Sabatier\CoreData\PersistentHistoryChangeRequest;
@@ -22,17 +20,13 @@ use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Foundation\KeyedArchiver;
 use Sabatier\Foundation\KeyedUnarchiver;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
-use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Foundation\Notification;
 use Sabatier\Foundation\NotificationCenter;
 use Sabatier\Foundation\Number;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\ProcessInfo;
-use Sabatier\Foundation\URL;
 use Sabatier\Foundation\UserDefaults;
 use Throwable;
-use function Sabatier\Foundation\getallheaders;
-use function Sabatier\Foundation\request_url;
 use function Sabatier\Foundation\string_is_equal;
 use const Sabatier\CoreData\PersistentHistoryTokenKey;
 use const Sabatier\CoreData\PersistentHistoryTrackingKey;
@@ -50,23 +44,20 @@ class Application extends Responder
     /** @var string A notification that posts when the protected files become available for your code to access. */
     final public const string protectedDataDidBecomeAvailableNotification = "protectedDataDidBecomeAvailableNotification";
     private static ?Application $shared = null;
-    public readonly URLRequest $request;
     /** @var ApplicationDelegate|null The delegate of the app object. */
     public ?ApplicationDelegate $delegate = null;
     public Session $session;
-    public Authentication $authentication;
     public readonly PersistentContainer $persistentContainer;
+    public Authenticator $authentication;
     public readonly PersistentSpace $persistentSpace;
     public readonly ResourceManager $resourceManager;
     public readonly Preferences $preferences;
     public readonly Uploader $uploader;
-    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
-    public PersistentHistoryToken $persistentHistoryToken;
+    private(set) PersistentHistoryToken $persistentHistoryToken;
 
     final public function __construct()
     {
         parent::__construct();
-        unset($this->request);
         unset($this->delegate);
         unset($this->session);
         unset($this->persistentContainer);
@@ -82,13 +73,8 @@ class Application extends Responder
     /**
      * @throws Exception
      */
-    #[Override]
     public function __get(string $name)
     {
-        if ($name === "request") {
-            $this->$name = $this->request();
-            return $this->$name;
-        }
         if ($name === "delegate") {
             $this->$name = $this->delegate();
             return $this->$name;
@@ -102,7 +88,7 @@ class Application extends Responder
             return $this->$name;
         }
         if ($name === "authentication") {
-            $this->$name = new Authentication();
+            $this->$name = new Authenticator();
             return $this->$name;
         }
         if ($name === "persistentSpace") {
@@ -125,30 +111,7 @@ class Application extends Responder
             $this->$name = UserDefaults::standard()->object(PersistentHistoryTokenKey) ? KeyedUnarchiver::unarchiveTopLevelObjectWithData(UserDefaults::standard()->object(PersistentHistoryTokenKey)) : new PersistentHistoryToken(new Dictionary([(string)$this->persistentContainer->persistentStoreCoordinator->persistentStores->first?->identifier => new Number(0)]));
             return $this->$name;
         }
-        return parent::__get($name);
-    }
-
-    private function request(): URLRequest
-    {
-        $request = new URLRequest(new URL(request_url()));
-        $request->allHTTPHeaderFields = new Dictionary(getallheaders());
-        $request->httpMethod = $request->valueForHttpHeaderField("X-Http-Method-Override") ?? $_SERVER["REQUEST_METHOD"] ?? HTTPRequestMethod::get;
-        $request->httpBody = match ($request->httpMethod) {
-            HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::delete, HTTPRequestMethod::patch => (function () use ($request): ?string {
-                $contentType = $request->valueForHttpHeaderField("Content-Type") ?? "text/plain";
-                $mediaType = $contentType;
-                if (str_contains($contentType, ";")) {
-                    [$mediaType,] = explode(";", $contentType);
-                }
-                $httpBody = match ($mediaType) {
-                    "application/x-www-form-urlencoded", "application/json" => file_get_contents("php://input"),
-                    default => null
-                };
-                return empty($httpBody) ? null : $httpBody;
-            })(),
-            default => null
-        };
-        return $request;
+        return $this->valueForUndefinedKey($name);
     }
 
     private function delegate(): ?ApplicationDelegate
@@ -181,10 +144,10 @@ class Application extends Responder
             $userInfo = $notification->userInfo;
             /** @var PersistentHistoryToken $persistentHistoryToken */
             $persistentHistoryToken = $userInfo[PersistentHistoryTokenKey];
-            UserDefaults::standard()->setObject(KeyedArchiver::archivedData($persistentHistoryToken), PersistentHistoryTokenKey);
             $this->persistentHistoryToken = $persistentHistoryToken;
+            UserDefaults::standard()->setObject(KeyedArchiver::archivedData($this->persistentHistoryToken), PersistentHistoryTokenKey);
             $context = $this->persistentContainer->viewContext;
-            $request = PersistentHistoryChangeRequest::deleteHistoryBeforeToken($persistentHistoryToken);
+            $request = PersistentHistoryChangeRequest::deleteHistoryBeforeToken($this->persistentHistoryToken);
             $request->fetchRequest = PersistentHistoryTransaction::fetchRequest();
             $context->execute($request);
         });
@@ -232,7 +195,7 @@ class Application extends Responder
                     continue;
                 }
                 $responder = new $responderClass();
-                if ($responder->isFirstResponder()) {
+                if ($responder->isFirstResponder) {
                     return $responder;
                 }
             }
@@ -242,12 +205,15 @@ class Application extends Responder
 
     private function internalResponder(): ?Responder
     {
-        return (new ArrayClass([$this->authentication, $this->persistentSpace, $this->resourceManager, $this->preferences, $this->uploader, new Home()]))->first(fn(Responder $responder): bool => $responder->isFirstResponder());
+        return new ArrayClass([$this->authentication, $this->persistentSpace, $this->resourceManager, $this->preferences, $this->uploader, new Home()])->first(fn(Responder $responder): bool => $responder->isFirstResponder);
     }
 
     private function instantiateInitialResponder(): Responder
     {
-        return $this->mainResponder() ?? $this->internalResponder() ?? throw new NotFoundException();
+        return $this->mainResponder() ?? $this->internalResponder() ?? match ($this->request->httpMethod) {
+            HTTPRequestMethod::options => $this,
+            default => throw new NotFoundException()
+        };
     }
 
     public function run(): never
@@ -268,25 +234,20 @@ class Application extends Responder
             if (!$responder->isProtectedContentAvailable && !$this->authentication->isProtectedContentAvailable) {
                 throw new UnauthorizedException();
             }
-            if ($responder->isProtectedContentAvailable) {
-                $this->isProtectedContentAvailable = $responder->isProtectedContentAvailable;
-                NotificationCenter::default()->postNotificationName(Application::protectedDataDidBecomeAvailableNotification, $this);
-            }
             $this->persistentContainer->viewContext->transactionAuthor = match ($this->request->httpMethod) {
                 HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $this->authentication->authorization->user?->valueForKey("username"),
                 default => null
             };
-            $response = $responder->response();
+            $response = $responder->response;
             $this->session->commit();
-            if ($responder->isProtectedContentAvailable) {
-                $responder->isProtectedContentAvailable = false;
-                $this->isProtectedContentAvailable = $responder->isProtectedContentAvailable;
-                NotificationCenter::default()->postNotificationName(Application::protectedDataWillBecomeUnavailableNotification, $this);
-            }
             $this->delegate?->applicationDidFinishLaunching($this);
-            ResponseEmitter::from($response, $responder->content)->emit();
+            $response->send();
         } catch (Throwable $throwable) {
-            ResponseEmitter::from($throwable)->emit();
+            $responder = new Thrower();
+            $responder->throwable = $throwable;
+            $responder->scheme = $this->authentication->scheme;
+            $response = $responder->response;
+            $response->send();
         }
     }
 

@@ -2,12 +2,10 @@
 
 namespace Sabatier\Service;
 
-use Override;
 use ReflectionClass;
 use ReflectionProperty;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
-use Sabatier\Foundation\Networking\HTTPURLResponse;
 use function Sabatier\Foundation\class_name;
 
 /**
@@ -39,7 +37,6 @@ abstract class ViewController extends Responder
         unset($this->title);
     }
 
-    #[Override]
     public function __get(string $name)
     {
         if ($name === "name") {
@@ -47,7 +44,7 @@ abstract class ViewController extends Responder
             return $this->$name;
         }
         if ($name === "context") {
-            $this->$name = array_reduce((new ReflectionClass($this))->getProperties(ReflectionProperty::IS_PUBLIC), function (array $context, ReflectionProperty $property): array {
+            $this->$name = array_reduce(new ReflectionClass($this)->getProperties(ReflectionProperty::IS_PUBLIC), function (array $context, ReflectionProperty $property): array {
                 if ($property->getAttributes(Outlet::class) !== []) {
                     $context[$property->name] = $this->valueForKey($property->name);
                 }
@@ -72,13 +69,14 @@ abstract class ViewController extends Responder
         if ($name === "isViewLoaded") {
             return isset($this->view);
         }
-        return parent::__get($name);
+        return $this->valueForUndefinedKey($name);
     }
 
     public function loadView(): void
     {
         $this->content = $this->view->render();
         $this->headerFields["Content-Type"] = "text/html; charset=utf-8";
+        $this->headerFields["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0";
     }
 
     public function viewWillLoad(): void
@@ -89,12 +87,12 @@ abstract class ViewController extends Responder
     {
     }
 
-    #[Override]
-    public function response(): HTTPURLResponse
-    {
-        if ($this->request->httpMethod === HTTPRequestMethod::get) {
-            $this->loadView();
+    public Response $response {
+        get {
+            if ($this->request->httpMethod === HTTPRequestMethod::get) {
+                $this->loadView();
+            }
+            return parent::$response::get();
         }
-        return parent::response();
     }
 }

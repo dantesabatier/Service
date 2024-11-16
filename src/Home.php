@@ -15,19 +15,15 @@ use const Sabatier\Foundation\kCFBundleVersionKey;
 #[Endpoint("/")]
 class Home extends ViewController
 {
-    public bool $isProtectedContentAvailable = true;
+    public ArrayClass $allowedMethods {
+        get => new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::head, HTTPRequestMethod::options]);
+    }
     #[Outlet]
     public readonly ?string $version;
     #[Outlet]
     public readonly ?string $shortVersion;
     #[Outlet]
     public readonly ?string $copyright;
-
-    public function __construct()
-    {
-        parent::__construct();
-        $this->allowedMethods = new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::head, HTTPRequestMethod::options]);
-    }
 
     #[Override]
     public function viewWillLoad(): void

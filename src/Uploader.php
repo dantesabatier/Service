@@ -14,10 +14,8 @@ use Sabatier\Foundation\URLResourceKey;
 
 class Uploader extends Responder
 {
-    public function __construct()
-    {
-        parent::__construct();
-        $this->allowedMethods = new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
+    public ArrayClass $allowedMethods {
+        get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
     }
 
     /**
@@ -41,6 +39,5 @@ class Uploader extends Responder
         }
         $this->content = json_encode($files);
         $this->headerFields["Content-Type"] = "application/json";
-        $this->headerFields["Cache-Control"] = "max-age=3600";
     }
 }

@@ -3,7 +3,6 @@
 namespace Sabatier\Service;
 
 use Exception;
-use Override;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
@@ -12,39 +11,33 @@ use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\UserDefaults;
 use function Sabatier\Foundation\read_random;
 
-class Authentication extends Responder
+class Authenticator extends Responder
 {
-    public readonly AuthenticationScheme $scheme;
+    public ArrayClass $allowedMethods {
+        get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
+    }
+    public AuthenticationScheme $scheme;
     public readonly Authorization $authorization;
+    public bool $isProtectedContentAvailable {
+        get => $this->request->httpMethod === HTTPRequestMethod::options || Application::shared()->session->valueForKey("user") !== null || $this->authorization->isValid;
+    }
 
     public function __construct()
     {
         parent::__construct();
-        unset($this->authorization);
-        unset($this->scheme);
-        unset($this->isProtectedContentAvailable);
-        $this->allowedMethods = new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
-    }
-
-    /**
-     * @throws Exception
-     */
-    #[Override]
-    public function __get(string $name)
-    {
-        if ($name === "authorization") {
-            $this->$name = new Authorization($this->request->valueForHttpHeaderField("Authorization") ?? "");
-            return $this->$name;
+        $value = $this->request->valueForHttpHeaderField("Authorization") ?? "";
+        $components = explode(" ", $value);
+        if (count($components) !== 2) {
+            $components = [AuthenticationScheme::basic->value, ""];
         }
-        if ($name === "scheme") {
-            $this->$name = $this->authorization->scheme;
-            return $this->$name;
-        }
-        if ($name === "isProtectedContentAvailable") {
-            $this->$name = $this->request->httpMethod === HTTPRequestMethod::options || Application::shared()->session->valueForKey("user") !== null || $this->authorization->isValid;
-            return $this->$name;
-        }
-        return parent::__get($name);
+        [$name, $data] = $components;
+        $this->scheme = AuthenticationScheme::tryFrom($name) ?? AuthenticationScheme::basic;
+        $this->authorization = match ($this->scheme) {
+            AuthenticationScheme::basic => new BasicAuthorization(),
+            AuthenticationScheme::bearer => new BearerAuthorization(),
+            AuthenticationScheme::digest => new DigestAuthorization(),
+        };
+        $this->authorization->data = $data;
     }
 
     /**

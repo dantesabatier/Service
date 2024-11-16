@@ -7,24 +7,35 @@ use Override;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
-use Sabatier\Foundation\Networking\HTTPURLResponse;
-use Sabatier\Foundation\URL;
 use Traversable;
 
 /**
  * @template-implements IteratorAggregate<int, string>
- * @internal
  */
-class BatchResponse extends HTTPURLResponse implements IteratorAggregate
+class BatchResponse extends Response implements IteratorAggregate
 {
     public readonly int $count;
-    public readonly bool $isEmpty;
+    public bool $isEmpty {
+        get => $this->count === 0;
+    }
+    public Dictionary $allHeaderFields {
+        get {
+            $headerFields = $this->allHeaderFields;
+            $headerFields["Content-Type"] = "text/plain; charset=utf-8";
+            $headerFields["Transfer-Encoding"] = "chunked";
+            return $headerFields;
+        }
+    }
+    private readonly FetchRequest $fetchRequest;
+    private readonly ArrayClass $fetchRequestResults;
 
-    public function __construct(URL $url, private readonly ArrayClass $fetchRequestResults, private readonly FetchRequest $fetchRequest)
+    public function __construct(Responder $responder, FetchRequest $fetchRequest, ArrayClass $fetchRequestResults)
     {
-        parent::__construct($url, headerFields: new Dictionary(["Content-Type" => "text/plain; charset=utf-8", "Transfer-Encoding" => "chunked"]));
-        $this->count = (int)ceil($this->fetchRequestResults->count / max($this->fetchRequest->fetchBatchSize, 1));
-        $this->isEmpty = $this->count === 0;
+        parent::__construct($responder);
+        $this->fetchRequest = $fetchRequest;
+        $this->fetchRequestResults = $fetchRequestResults;
+        $this->count = (int)ceil($fetchRequestResults->count / max($fetchRequest->fetchBatchSize, 1));
+        $this->emitter = new BatchEmitter();
     }
 
     #[Override]
@@ -33,11 +44,9 @@ class BatchResponse extends HTTPURLResponse implements IteratorAggregate
         return (function () {
             $cursor = 1;
             $records = new ArrayClass();
-            $fetchRequest = $this->fetchRequest;
-            $fetchBatchSize = $fetchRequest->fetchBatchSize;
             foreach ($this->fetchRequestResults as $index => $fetchRequestResult) {
-                $records->append($fetchRequestResult);
-                if ((($index + 1) === ($cursor * $fetchBatchSize))) {
+                $records[] = $fetchRequestResult;
+                if ((($index + 1) === ($cursor * $this->fetchRequest->fetchBatchSize))) {
                     yield json_encode($records, JSON_PRESERVE_ZERO_FRACTION);
                     $records = new ArrayClass();
                     $cursor++;

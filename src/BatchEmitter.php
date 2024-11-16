@@ -2,30 +2,24 @@
 
 namespace Sabatier\Service;
 
-use Override;
+use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
 use function Sabatier\Foundation\human_readable_value;
 
-/** @internal */
-readonly class BatchResponseEmitter extends ResponseEmitter
+class BatchEmitter extends Emitter
 {
-    public BatchResponse $batchResponse;
-
-    public function __construct(HTTPURLResponse $response, ?string $content = null)
+    public function emit(BatchResponse $response, Dictionary $headers, ?string $content = null): never
     {
-        parent::__construct($response, $content);
-        assert($response instanceof BatchResponse);
-        $this->batchResponse = $response;
-    }
-
-    #[Override]
-    public function execute(): never
-    {
-        $response = $this->batchResponse;
+        if (headers_sent()) {
+            die();
+        }
+        foreach (["Expires", "Cache-Control", "Pragma"] as $header) {
+            header_remove($header);
+        }
         header(sprintf("%s %s %s", $response->httpVersion, $response->statusCode, HTTPURLResponse::localizedString($response->statusCode)));
         flush();
-        header_register_callback(function (): void {
-            foreach ($this->headerFields as $key => $value) {
+        header_register_callback(function () use ($headers): void {
+            foreach ($headers as $key => $value) {
                 header(sprintf("%s: %s", $key, human_readable_value($value)));
                 flush();
             }

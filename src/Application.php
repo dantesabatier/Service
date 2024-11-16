@@ -191,12 +191,12 @@ class Application extends Responder
                 HTTPRequestMethod::options => $this,
                 default => throw new NotFoundException()
             };
-            $authentication = $this->authentication;
             $session = $this->session;
             $session->start();
             if (!$responder->isProtectedContentAvailable) {
                 $responder->isProtectedContentAvailable = $this->isProtectedContentAvailable;
             }
+            $authentication = $this->authentication;
             if (!$responder->isProtectedContentAvailable && !$authentication->isProtectedContentAvailable) {
                 throw new UnauthorizedException();
             }

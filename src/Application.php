@@ -77,11 +77,8 @@ class Application extends Responder
             UserDefaults::standard()->setObject(KeyedArchiver::archivedData($value), PersistentHistoryTokenKey);
         }
     }
-    public Responder $instantiateInitialResponder {
-        get => $this->mainResponder() ?? $this->internalResponder() ?? match ($this->request->httpMethod) {
-            HTTPRequestMethod::options => $this,
-            default => throw new NotFoundException()
-        };
+    public ?Responder $firstResponder {
+        get => $this->associatedValues[__PROPERTY__] ??= $this->mainResponder() ?? $this->internalResponder();
     }
 
     /**
@@ -190,7 +187,10 @@ class Application extends Responder
                 $delegate?->applicationWillTerminate($this);
                 return true;
             });
-            $responder = $this->instantiateInitialResponder;
+            $responder = $this->firstResponder ?? match ($this->request->httpMethod) {
+                HTTPRequestMethod::options => $this,
+                default => throw new NotFoundException()
+            };
             $authentication = $this->authentication;
             $session = $this->session;
             $session->start();

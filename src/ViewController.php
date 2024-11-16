@@ -41,6 +41,11 @@ abstract class ViewController extends Responder
     #[Outlet]
     public ?string $title = null;
 
+    /**
+     * Creates the view that the controller manages.
+     *
+     * You should never call this method directly.
+     */
     public function loadView(): void
     {
         $this->viewWillLoad();
@@ -55,6 +60,9 @@ abstract class ViewController extends Responder
     {
     }
 
+    /**
+     * Called after the controller's view is loaded into memory.
+     */
     public function viewDidLoad(): void
     {
     }

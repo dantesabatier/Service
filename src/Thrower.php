@@ -44,4 +44,11 @@ class Thrower extends Responder
             return new Response($this);
         }
     }
+
+    public function throw(Throwable $throwable, AuthenticationScheme $scheme): never
+    {
+        $this->throwable = $throwable;
+        $this->scheme = $scheme;
+        $this->response->send();
+    }
 }

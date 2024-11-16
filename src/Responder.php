@@ -22,9 +22,8 @@ use function Sabatier\Foundation\url_validate;
  */
 abstract class Responder extends ObjectClass
 {
-    private array $cache = [];
     public Request $request {
-        get => $this->cache[__FUNCTION__] ??= new Request();
+        get => Responder::$staticAssociatedValues[Responder::class][__FUNCTION__] ??= new Request();
     }
     /** @var Dictionary<mixed>|null */
     public ?Dictionary $serialization {
@@ -43,10 +42,10 @@ abstract class Responder extends ObjectClass
     public int $statusCode = HTTPStatusCode::ok;
     public ?string $content = null;
     public ?string $selector {
-        get => $this->cache[__PROPERTY__] ??= $this->selector();
+        get => $this->associatedValues[__PROPERTY__] ??= $this->selector();
     }
     public bool $isEndpoint {
-        get => $this->cache[__PROPERTY__] ??= $this->isEndpoint();
+        get => $this->associatedValues[__PROPERTY__] ??= $this->isEndpoint();
     }
     public bool $isActionable {
         get => $this->selector !== null;

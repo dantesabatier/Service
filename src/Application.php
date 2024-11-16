@@ -2,7 +2,6 @@
 
 namespace Sabatier\Service;
 
-use Exception;
 use ReflectionClass;
 use Sabatier\CoreData\PersistentContainer;
 use Sabatier\CoreData\PersistentHistoryChangeRequest;
@@ -45,73 +44,38 @@ class Application extends Responder
     final public const string protectedDataDidBecomeAvailableNotification = "protectedDataDidBecomeAvailableNotification";
     private static ?Application $shared = null;
     /** @var ApplicationDelegate|null The delegate of the app object. */
-    public ?ApplicationDelegate $delegate = null;
-    public Session $session;
-    public readonly PersistentContainer $persistentContainer;
-    public Authenticator $authentication;
-    public readonly PersistentSpace $persistentSpace;
-    public readonly ResourceManager $resourceManager;
-    public readonly Preferences $preferences;
-    public readonly Uploader $uploader;
-    private(set) PersistentHistoryToken $persistentHistoryToken;
-
-    final public function __construct()
-    {
-        parent::__construct();
-        unset($this->delegate);
-        unset($this->session);
-        unset($this->persistentContainer);
-        unset($this->authentication);
-        unset($this->persistentSpace);
-        unset($this->resourceManager);
-        unset($this->preferences);
-        unset($this->uploader);
-        unset($this->historyChanges);
-        unset($this->persistentHistoryToken);
+    public ?ApplicationDelegate $delegate {
+        get => $this->associatedValues[__PROPERTY__] ??= $this->delegate();
     }
-
-    /**
-     * @throws Exception
-     */
-    public function __get(string $name)
-    {
-        if ($name === "delegate") {
-            $this->$name = $this->delegate();
-            return $this->$name;
+    public PersistentContainer $persistentContainer {
+        get => $this->associatedValues[__PROPERTY__] ??= $this->persistentContainer();
+    }
+    public Session $session {
+        get => $this->associatedValues[__PROPERTY__] ??= new Session();
+    }
+    public Authenticator $authentication {
+        get => $this->associatedValues[__PROPERTY__] ??= new Authenticator();
+        set {
+            $this->associatedValues[__PROPERTY__] = $value;
         }
-        if ($name === "persistentContainer") {
-            $this->$name = $this->persistentContainer();
-            return $this->$name;
+    }
+    public PersistentSpace $persistentSpace {
+        get => $this->associatedValues[__PROPERTY__] ??= new PersistentSpace();
+    }
+    public ResourceManager $resourceManager {
+        get => $this->associatedValues[__PROPERTY__] ??= new ResourceManager();
+    }
+    public Preferences $preferences {
+        get => $this->associatedValues[__PROPERTY__] ??= new Preferences();
+    }
+    public Uploader $uploader {
+        get => $this->associatedValues[__PROPERTY__] ??= new Uploader();
+    }
+    private(set) PersistentHistoryToken $persistentHistoryToken {
+        get => UserDefaults::standard()->object(PersistentHistoryTokenKey) ? KeyedUnarchiver::unarchiveTopLevelObjectWithData(UserDefaults::standard()->object(PersistentHistoryTokenKey)) : new PersistentHistoryToken(new Dictionary([(string)$this->persistentContainer->persistentStoreCoordinator->persistentStores->first?->identifier => new Number(0)]));
+        set {
+            UserDefaults::standard()->setObject(KeyedArchiver::archivedData($value), PersistentHistoryTokenKey);
         }
-        if ($name === "session") {
-            $this->$name = new Session();
-            return $this->$name;
-        }
-        if ($name === "authentication") {
-            $this->$name = new Authenticator();
-            return $this->$name;
-        }
-        if ($name === "persistentSpace") {
-            $this->$name = new PersistentSpace();
-            return $this->$name;
-        }
-        if ($name === "resourceManager") {
-            $this->$name = new ResourceManager();
-            return $this->$name;
-        }
-        if ($name === "preferences") {
-            $this->$name = new Preferences();
-            return $this->$name;
-        }
-        if ($name === "uploader") {
-            $this->$name = new Uploader();
-            return $this->$name;
-        }
-        if ($name === "persistentHistoryToken") {
-            $this->$name = UserDefaults::standard()->object(PersistentHistoryTokenKey) ? KeyedUnarchiver::unarchiveTopLevelObjectWithData(UserDefaults::standard()->object(PersistentHistoryTokenKey)) : new PersistentHistoryToken(new Dictionary([(string)$this->persistentContainer->persistentStoreCoordinator->persistentStores->first?->identifier => new Number(0)]));
-            return $this->$name;
-        }
-        return $this->valueForUndefinedKey($name);
     }
 
     private function delegate(): ?ApplicationDelegate
@@ -145,7 +109,6 @@ class Application extends Responder
             /** @var PersistentHistoryToken $persistentHistoryToken */
             $persistentHistoryToken = $userInfo[PersistentHistoryTokenKey];
             $this->persistentHistoryToken = $persistentHistoryToken;
-            UserDefaults::standard()->setObject(KeyedArchiver::archivedData($this->persistentHistoryToken), PersistentHistoryTokenKey);
             $context = $this->persistentContainer->viewContext;
             $request = PersistentHistoryChangeRequest::deleteHistoryBeforeToken($this->persistentHistoryToken);
             $request->fetchRequest = PersistentHistoryTransaction::fetchRequest();

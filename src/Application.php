@@ -207,10 +207,7 @@ class Application extends Responder
             $response->send();
         } catch (Throwable $throwable) {
             $responder = new Thrower();
-            $responder->throwable = $throwable;
-            $responder->scheme = $this->authentication->scheme;
-            $response = $responder->response;
-            $response->send();
+            $responder->throw($throwable, $this->authentication->scheme);
         }
     }
 

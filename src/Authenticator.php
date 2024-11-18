@@ -57,7 +57,7 @@ class Authenticator extends Responder
         }
         $session = Application::shared()->session;
         $session->regenerateID();
-        $session->setValueForKey($username, "user");
+        $session->setValueForKey($username, "username");
         $this->content = json_encode($data, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
         $this->headerFields["Content-Type"] = "application/json";
     }
@@ -66,7 +66,7 @@ class Authenticator extends Responder
     public function logout(): void
     {
         $session = Application::shared()->session;
-        $session->setValueForKey(null, "user");
+        $session->setValueForKey(null, "username");
         $this->statusCode = HTTPStatusCode::noContent;
     }
 }

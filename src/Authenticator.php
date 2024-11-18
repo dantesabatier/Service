@@ -19,7 +19,7 @@ class Authenticator extends Responder
     public AuthenticationScheme $scheme;
     public readonly Authorization $authorization;
     public bool $isProtectedContentAvailable {
-        get => $this->request->httpMethod === HTTPRequestMethod::options || Application::shared()->session->valueForKey("user") !== null || $this->authorization->isValid;
+        get => $this->request->httpMethod === HTTPRequestMethod::options || $this->authorization->isValid;
     }
 
     public function __construct()
@@ -33,11 +33,10 @@ class Authenticator extends Responder
         [$name, $data] = $components;
         $this->scheme = AuthenticationScheme::tryFrom($name) ?? AuthenticationScheme::basic;
         $this->authorization = match ($this->scheme) {
-            AuthenticationScheme::basic => new BasicAuthorization(),
-            AuthenticationScheme::bearer => new BearerAuthorization(),
-            AuthenticationScheme::digest => new DigestAuthorization(),
+            AuthenticationScheme::basic => new BasicAuthorization($data),
+            AuthenticationScheme::bearer => new BearerAuthorization($data),
+            AuthenticationScheme::digest => new DigestAuthorization($data),
         };
-        $this->authorization->data = $data;
     }
 
     /**

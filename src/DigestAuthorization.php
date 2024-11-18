@@ -28,13 +28,7 @@ class DigestAuthorization extends Authorization
                 return false;
             }
             $parameters = $this->parameters;
-            if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"])) {
-                return false;
-            }
-            if (!($algorithm = match ($parameters["algorithm"]) {
-                "SHA-256" => "sha256",
-                default => null,
-            })) {
+            if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"]) || !($algorithm = hash_algos()[$parameters["algorithm"]])) {
                 return false;
             }
             $request = Application::shared()->request;

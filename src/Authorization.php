@@ -21,7 +21,7 @@ abstract class Authorization
         get {
             $application = Application::shared();
             /** @var string|null $username */
-            $username = $this->credential?->user ?? $application->session->valueForKey("user");
+            $username = $this->credential?->user;
             if (!$username) {
                 return null;
             }

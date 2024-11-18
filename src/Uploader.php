@@ -18,8 +18,8 @@ class Uploader extends Responder
     public ArrayClass $allowedMethods {
         get => $this->allowedMethods ??= new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
     }
-    public URL $url {
-        get => $this->url ??= FileManager::default()->url(SearchPathDirectory::sharedPublicDirectory, SearchPathDomainMask::local, null, true);
+    public URL $directoryURL {
+        get => $this->directoryURL ??= FileManager::default()->url(SearchPathDirectory::sharedPublicDirectory, SearchPathDomainMask::local, null, true);
     }
 
     /**
@@ -29,7 +29,7 @@ class Uploader extends Responder
     public function upload(): void
     {
         $keys = new Set([URLResourceKey::nameKey, URLResourceKey::pathKey]);
-        $enumerator = new UploadsEnumerator($this->url, $keys);
+        $enumerator = new UploadsEnumerator($this->directoryURL, $keys);
         !$enumerator->isEmpty ?: throw new BadRequestException();
         /** @var ArrayClass<Dictionary<string>> $files */
         $files = new ArrayClass();

@@ -2,7 +2,6 @@
 
 namespace Sabatier\Service;
 
-use Override;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
@@ -18,21 +17,24 @@ class Home extends ViewController
     public ArrayClass $allowedMethods {
         get => $this->allowedMethods ??= new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::head, HTTPRequestMethod::options]);
     }
+    public bool $isProtectedContentAvailable = true;
     #[Outlet]
-    public readonly ?string $version;
+    public ?string $title = null {
+        get => $this->title ??= Bundle::main()->object(kCFBundleNameKey);
+    }
     #[Outlet]
-    public readonly ?string $shortVersion;
+    public ?string $version {
+        get => Bundle::main()->object(kCFBundleVersionKey);
+    }
     #[Outlet]
-    public readonly ?string $copyright;
-
-    #[Override]
-    public function viewWillLoad(): void
-    {
-        $bundle = Bundle::main();
-        $this->title = $bundle->object(kCFBundleNameKey);
-        $this->version = $bundle->object(kCFBundleVersionKey);
-        $this->shortVersion = $bundle->object(kCFBundleShortVersionStringKey);
-        $this->copyright = $bundle->object(kCFBundleHumanReadableCopyright);
-        $this->bundle = Bundle::bundleForClass(self::class);
+    public ?string $shortVersion {
+        get => Bundle::main()->object(kCFBundleShortVersionStringKey);
+    }
+    #[Outlet]
+    public ?string $copyright {
+        get => Bundle::main()->object(kCFBundleHumanReadableCopyright);
+    }
+    public Bundle $bundle {
+        get => $this->bundle ??= Bundle::bundleForClass(self::class);
     }
 }

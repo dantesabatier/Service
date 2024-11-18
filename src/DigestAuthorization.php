@@ -9,10 +9,7 @@ class DigestAuthorization extends Authorization
 {
     /** @var Dictionary<string> */
     public Dictionary $parameters {
-        get {
-            preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->data, $matches);
-            return new Dictionary(array_combine($matches[1], $matches[2]));
-        }
+        get => $this->parameters ??= $this->parameters();
     }
     public ?URLCredential $credential {
         get {
@@ -31,11 +28,17 @@ class DigestAuthorization extends Authorization
             if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"]) || ($parameters["algorithm"] !== "SHA-256")) {
                 return false;
             }
-            $request = Application::shared()->request;
+            $request = $this->request;
             $HA1 = hash("sha256", "$username:{$request->url->host}:$password");
             $HA2 = hash("sha256", "$request->httpMethod:$uri");
             $response = hash("sha256", "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
             return $parameters["response"] === $response;
         }
+    }
+
+    private function parameters(): Dictionary
+    {
+        preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->data, $matches);
+        return new Dictionary(array_combine($matches[1], $matches[2]));
     }
 }

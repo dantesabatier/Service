@@ -17,19 +17,21 @@ abstract class Authorization
     abstract public bool $isValid {
         get;
     }
+    public Request $request {
+        get => Application::shared()->request;
+    }
     public ?ManagedObject $user {
         get {
-            $application = Application::shared();
             /** @var string|null $username */
             $username = $this->credential?->user;
             if (!$username) {
                 return null;
             }
-            $context = $application->persistentContainer->viewContext;
+            $context = Application::shared()->persistentContainer->viewContext;
             $fetchRequest = new FetchRequest();
             $fetchRequest->entity = EntityDescription::entity("User", $context);
             $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($username));
-            return $context->fetch($fetchRequest)->first?->serialized($application->serialization);
+            return $context->fetch($fetchRequest)->first?->serialized($this->request->serialization);
         }
     }
 

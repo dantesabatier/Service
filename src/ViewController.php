@@ -7,6 +7,7 @@ use ReflectionProperty;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use function Sabatier\Foundation\class_name;
+use const Sabatier\Foundation\kCFBundleNameKey;
 
 /**
  * @property-read bool $isViewLoaded A Boolean value indicating whether the view is currently loaded into memory.
@@ -17,7 +18,7 @@ abstract class ViewController extends Responder
     public static string $rendererClass = NativeRenderer::class;
     /** @var string The name of the view controller's template file, if one was specified. */
     public string $name {
-        get => class_name(get_class($this));
+        get => $this->associatedValues[__PROPERTY__] ??= class_name(get_class($this));
     }
     /** @var View The view that the controller manages. */
     private(set) View $view;
@@ -39,7 +40,9 @@ abstract class ViewController extends Responder
     }
     /** @var string|null A localized string that represents the view this controller manages. */
     #[Outlet]
-    public ?string $title = null;
+    public ?string $title = null {
+        get => $this->title ??= $this->bundle->object(kCFBundleNameKey);
+    }
 
     /**
      * Creates the view that the controller manages.

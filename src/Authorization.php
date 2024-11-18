@@ -11,7 +11,6 @@ use Sabatier\Foundation\Predicates\Expression;
 
 abstract class Authorization
 {
-    public string $data = "";
     abstract public ?URLCredential $credential {
         get;
     }
@@ -32,5 +31,9 @@ abstract class Authorization
             $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($username));
             return $context->fetch($fetchRequest)->first?->serialized($application->serialization);
         }
+    }
+
+    public function __construct(public readonly string $data)
+    {
     }
 }

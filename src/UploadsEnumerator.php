@@ -27,10 +27,10 @@ class UploadsEnumerator extends DirectoryEnumerator
     private ?URL $currentURL = null;
 
     /**
-     * @param URL $url
+     * @param URL $directoryURL
      * @param Set<string>|null $keys
      */
-    public function __construct(public readonly URL $url, public readonly ?Set $keys = null)
+    public function __construct(public readonly URL $directoryURL, public readonly ?Set $keys = null)
     {
     }
 
@@ -38,7 +38,7 @@ class UploadsEnumerator extends DirectoryEnumerator
     public function directoryAttributes(): ?Dictionary
     {
         try {
-            return FileManager::default()->attributesOfItem($this->url->path);
+            return FileManager::default()->attributesOfItem($this->directoryURL->path);
         } catch (Exception) {
             return null;
         }
@@ -64,7 +64,7 @@ class UploadsEnumerator extends DirectoryEnumerator
             $fileManager = FileManager::default();
             $keys = $this->keys;
             foreach ($_FILES as $file) {
-                $url = $this->url->appendingPathComponent($file["name"]);
+                $url = $this->directoryURL->appendingPathComponent($file["name"]);
                 $path = $url->path;
                 if ($fileManager->fileExists($path)) {
                     $fileManager->removeItem($url);

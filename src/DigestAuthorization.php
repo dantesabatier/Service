@@ -28,13 +28,13 @@ class DigestAuthorization extends Authorization
                 return false;
             }
             $parameters = $this->parameters;
-            if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"]) || !($algorithm = hash_algos()[$parameters["algorithm"]])) {
+            if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"]) || ($parameters["algorithm"] !== "SHA-256")) {
                 return false;
             }
             $request = Application::shared()->request;
-            $HA1 = hash($algorithm, "$username:{$request->url->host}:$password");
-            $HA2 = hash($algorithm, "$request->httpMethod:$uri");
-            $response = hash($algorithm, "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
+            $HA1 = hash("sha256", "$username:{$request->url->host}:$password");
+            $HA2 = hash("sha256", "$request->httpMethod:$uri");
+            $response = hash("sha256", "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
             return $parameters["response"] === $response;
         }
     }

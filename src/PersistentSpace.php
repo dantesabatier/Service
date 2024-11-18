@@ -111,7 +111,7 @@ class PersistentSpace extends Responder
                 $fn = function (CompoundPredicate|ComparisonPredicate|Predicate $predicate) use ($store, &$fn): Predicate {
                     if ($predicate instanceof ComparisonPredicate) {
                         $expressions = new ArrayClass([$predicate->rightExpression, $predicate->leftExpression]);
-                        if (($keyPathExpression = $expressions->first(fn(Expression $e): bool => $e->expressionType === ExpressionType::keyPath && str_ends_with($e->keyPath, SQLEntity::primaryKeyName))) && ($constantValueExpression = $expressions->first(fn(Expression $e): bool => !$e->isEqual($keyPathExpression)))) {
+                        if (($keyPathExpression = $expressions->first(fn(Expression $expression): bool => $expression->expressionType === ExpressionType::keyPath && str_ends_with($expression->keyPath, SQLEntity::primaryKeyName))) && ($constantValueExpression = $expressions->first(fn(Expression $expression): bool => !$expression->isEqual($keyPathExpression)))) {
                             $expressionForConstantValue = Expression::expressionForConstantValue($store->objectID($this->entity, $constantValueExpression->constantValue));
                             $rightExpression = $keyPathExpression === $predicate->rightExpression ? $keyPathExpression : $expressionForConstantValue;
                             $leftExpression = $constantValueExpression === $predicate->leftExpression ? $expressionForConstantValue : $keyPathExpression;

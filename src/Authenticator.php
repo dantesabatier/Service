@@ -19,7 +19,7 @@ class Authenticator extends Responder
     public AuthenticationScheme $scheme;
     public readonly Authorization $authorization;
     public bool $isProtectedContentAvailable {
-        get => $this->request->httpMethod === HTTPRequestMethod::options || $this->authorization->isValid;
+        get => $this->isProtectedContentAvailable ??= $this->request->httpMethod === HTTPRequestMethod::options || $this->authorization->isValid;
     }
 
     public function __construct()

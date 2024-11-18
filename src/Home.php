@@ -16,7 +16,7 @@ use const Sabatier\Foundation\kCFBundleVersionKey;
 class Home extends ViewController
 {
     public ArrayClass $allowedMethods {
-        get => new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::head, HTTPRequestMethod::options]);
+        get => $this->allowedMethods ??= new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::head, HTTPRequestMethod::options]);
     }
     #[Outlet]
     public readonly ?string $version;

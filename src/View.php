@@ -8,7 +8,7 @@ namespace Sabatier\Service;
  */
 readonly class View
 {
-    public function __construct(public string $name, public object|array $context, public Renderer $renderer)
+    public function __construct(public string $name, public array $context, public Renderer $renderer)
     {
     }
 

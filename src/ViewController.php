@@ -18,13 +18,13 @@ abstract class ViewController extends Responder
     public static string $rendererClass = NativeRenderer::class;
     /** @var string The name of the view controller's template file, if one was specified. */
     public string $name {
-        get => $this->associatedValues[__PROPERTY__] ??= class_name(get_class($this));
+        get => $this->name ??= class_name(get_class($this));
     }
     /** @var View The view that the controller manages. */
     private(set) View $view;
     /** @var object|array<string, mixed> */
     public array $context {
-        get => $this->associatedValues[__PROPERTY__] ??= array_reduce(new ReflectionClass($this)->getProperties(ReflectionProperty::IS_PUBLIC), function (array $context, ReflectionProperty $property): array {
+        get => $this->context ??= array_reduce(new ReflectionClass($this)->getProperties(ReflectionProperty::IS_PUBLIC), function (array $context, ReflectionProperty $property): array {
             if ($property->getAttributes(Outlet::class) !== []) {
                 $context[$property->name] = $this->valueForKey($property->name);
             }
@@ -33,10 +33,7 @@ abstract class ViewController extends Responder
     }
     /** @var Bundle The view controller's template bundle if it exists. */
     public Bundle $bundle {
-        get => $this->associatedValues[__PROPERTY__] ??= Bundle::main();
-        set {
-            $this->associatedValues[__PROPERTY__] = $value;
-        }
+        get => $this->bundle ??= Bundle::main();
     }
     /** @var string|null A localized string that represents the view this controller manages. */
     #[Outlet]

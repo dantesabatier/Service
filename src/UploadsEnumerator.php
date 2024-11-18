@@ -18,8 +18,12 @@ use Traversable;
  */
 class UploadsEnumerator extends DirectoryEnumerator
 {
-    public readonly int $count;
-    public readonly bool $isEmpty;
+    public int $count {
+        get => count($_FILES);
+    }
+    public bool $isEmpty {
+        get => $this->count === 0;
+    }
     private ?URL $currentURL = null;
 
     /**
@@ -28,8 +32,6 @@ class UploadsEnumerator extends DirectoryEnumerator
      */
     public function __construct(public readonly URL $url, public readonly ?Set $keys = null)
     {
-        $this->count = count($_FILES);
-        $this->isEmpty = $this->count === 0;
     }
 
     #[Override]

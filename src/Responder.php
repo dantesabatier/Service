@@ -36,16 +36,16 @@ abstract class Responder extends ObjectClass
     }
     /** @var ArrayClass<string> */
     public ArrayClass $allowedMethods {
-        get => new ArrayClass([HTTPRequestMethod::head, HTTPRequestMethod::options, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::put, HTTPRequestMethod::delete]);
+        get => $this->allowedMethods ??= new ArrayClass([HTTPRequestMethod::head, HTTPRequestMethod::options, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::put, HTTPRequestMethod::delete]);
     }
     #[ExpectedValues(valuesFromClass: HTTPStatusCode::class)]
     public int $statusCode = HTTPStatusCode::ok;
     public ?string $content = null;
     public ?string $selector {
-        get => $this->associatedValues[__PROPERTY__] ??= $this->selector();
+        get => $this->selector ??= $this->selector();
     }
     public bool $isEndpoint {
-        get => $this->associatedValues[__PROPERTY__] ??= $this->isEndpoint();
+        get => $this->isEndpoint ??= $this->isEndpoint();
     }
     public bool $isActionable {
         get => $this->selector !== null;

@@ -45,31 +45,28 @@ class Application extends Responder
     private static ?Application $shared = null;
     /** @var ApplicationDelegate|null The delegate of the app object. */
     public ?ApplicationDelegate $delegate {
-        get => $this->associatedValues[__PROPERTY__] ??= $this->delegate();
+        get => $this->delegate ??= $this->delegate();
     }
     public PersistentContainer $persistentContainer {
-        get => $this->associatedValues[__PROPERTY__] ??= $this->persistentContainer();
+        get => $this->persistentContainer ??= $this->persistentContainer();
     }
     public Session $session {
-        get => $this->associatedValues[__PROPERTY__] ??= new Session();
+        get => $this->session ??= new Session();
     }
     public Authenticator $authentication {
-        get => $this->associatedValues[__PROPERTY__] ??= new Authenticator();
-        set {
-            $this->associatedValues[__PROPERTY__] = $value;
-        }
+        get => $this->authentication ??= new Authenticator();
     }
     public PersistentSpace $persistentSpace {
-        get => $this->associatedValues[__PROPERTY__] ??= new PersistentSpace();
+        get => $this->persistentSpace ??= new PersistentSpace();
     }
     public ResourceManager $resourceManager {
-        get => $this->associatedValues[__PROPERTY__] ??= new ResourceManager();
+        get => $this->resourceManager ??= new ResourceManager();
     }
     public Preferences $preferences {
-        get => $this->associatedValues[__PROPERTY__] ??= new Preferences();
+        get => $this->preferences ??= new Preferences();
     }
     public Uploader $uploader {
-        get => $this->associatedValues[__PROPERTY__] ??= new Uploader();
+        get => $this->uploader ??= new Uploader();
     }
     private(set) PersistentHistoryToken $persistentHistoryToken {
         get => UserDefaults::standard()->object(PersistentHistoryTokenKey) ? KeyedUnarchiver::unarchiveTopLevelObjectWithData(UserDefaults::standard()->object(PersistentHistoryTokenKey)) : new PersistentHistoryToken(new Dictionary([(string)$this->persistentContainer->persistentStoreCoordinator->persistentStores->first?->identifier => new Number(0)]));
@@ -78,7 +75,7 @@ class Application extends Responder
         }
     }
     public ?Responder $firstResponder {
-        get => $this->associatedValues[__PROPERTY__] ??= $this->mainResponder() ?? $this->internalResponder();
+        get => $this->firstResponder ??= $this->mainResponder() ?? $this->internalResponder();
     }
 
     /**

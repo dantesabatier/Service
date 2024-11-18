@@ -13,14 +13,10 @@ use Sabatier\Foundation\URLFileTypeMappings;
 class ResourceManager extends Responder
 {
     public ArrayClass $allowedMethods {
-        get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::head, HTTPRequestMethod::get]);
+        get => $this->allowedMethods ??= new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::head, HTTPRequestMethod::get]);
     }
-    public readonly URL $resourceURL;
-
-    public function __construct()
-    {
-        parent::__construct();
-        $this->resourceURL = new URL($this->request->url->path, FileManager::default()->documentRootDirectory)->absoluteURL;
+    public URL $resourceURL {
+        get => $this->resourceURL ??= new URL($this->request->url->path, FileManager::default()->documentRootDirectory)->absoluteURL;
     }
 
     public bool $isFirstResponder {

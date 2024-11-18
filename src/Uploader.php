@@ -15,7 +15,7 @@ use Sabatier\Foundation\URLResourceKey;
 class Uploader extends Responder
 {
     public ArrayClass $allowedMethods {
-        get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
+        get => $this->allowedMethods ??= new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
     }
 
     /**

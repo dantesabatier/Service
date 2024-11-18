@@ -33,10 +33,10 @@ use function Sabatier\Foundation\string_is_equal;
 class PersistentSpace extends Responder
 {
     public EntityDescription $entity {
-        get => $this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel?->entitiesByName?->valueForKey($this->request->url->lastPathComponent) ?? throw new NotFoundException("Unable to load entity \"{$this->request->url->lastPathComponent}\"");
+        get => $this->entity ??= $this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel?->entitiesByName?->valueForKey($this->request->url->lastPathComponent) ?? throw new NotFoundException("Unable to load entity \"{$this->request->url->lastPathComponent}\"");
     }
     public ?AtomicStore $atomicStore {
-        get => $this->managedObjectContext->persistentStoreCoordinator?->persistentStores?->first(fn(PersistentStore $store): bool => $store instanceof AtomicStore);
+        get => $this->atomicStore ??= $this->managedObjectContext->persistentStoreCoordinator?->persistentStores?->first(fn(PersistentStore $store): bool => $store instanceof AtomicStore);
     }
     public FetchRequest $fetchRequest {
         get {

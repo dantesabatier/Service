@@ -18,6 +18,9 @@ class Home extends ViewController
         get => $this->allowedMethods ??= new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::head, HTTPRequestMethod::options]);
     }
     public bool $isProtectedContentAvailable = true;
+    public Bundle $bundle {
+        get => $this->bundle ??= Bundle::bundleForClass(self::class);
+    }
     #[Outlet]
     public ?string $title = null {
         get => $this->title ??= Bundle::main()->object(kCFBundleNameKey);
@@ -33,8 +36,5 @@ class Home extends ViewController
     #[Outlet]
     public ?string $copyright {
         get => Bundle::main()->object(kCFBundleHumanReadableCopyright);
-    }
-    public Bundle $bundle {
-        get => $this->bundle ??= Bundle::bundleForClass(self::class);
     }
 }

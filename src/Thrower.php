@@ -17,7 +17,6 @@ class Thrower extends Responder
 {
     public Throwable $throwable;
     public AuthenticationScheme $scheme;
-
     public Response $response {
         get {
             $request = $this->request;

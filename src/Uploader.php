@@ -10,12 +10,16 @@ use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\SearchPathDirectory;
 use Sabatier\Foundation\SearchPathDomainMask;
 use Sabatier\Foundation\Set;
+use Sabatier\Foundation\URL;
 use Sabatier\Foundation\URLResourceKey;
 
 class Uploader extends Responder
 {
     public ArrayClass $allowedMethods {
         get => $this->allowedMethods ??= new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
+    }
+    public URL $url {
+        get => $this->url ??= FileManager::default()->url(SearchPathDirectory::sharedPublicDirectory, SearchPathDomainMask::local, null, true);
     }
 
     /**
@@ -25,7 +29,7 @@ class Uploader extends Responder
     public function upload(): void
     {
         $keys = new Set([URLResourceKey::nameKey, URLResourceKey::pathKey]);
-        $enumerator = new UploadsEnumerator(FileManager::default()->url(SearchPathDirectory::sharedPublicDirectory, SearchPathDomainMask::local, null, true), $keys);
+        $enumerator = new UploadsEnumerator($this->url, $keys);
         !$enumerator->isEmpty ?: throw new BadRequestException();
         /** @var ArrayClass<Dictionary<string>> $files */
         $files = new ArrayClass();

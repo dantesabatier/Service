@@ -41,14 +41,14 @@ abstract class Responder extends ObjectClass
     #[ExpectedValues(valuesFromClass: HTTPStatusCode::class)]
     public int $statusCode = HTTPStatusCode::ok;
     public ?string $content = null;
-    public ?string $selector {
+    private ?string $selector {
         get => $this->selector ??= $this->selector();
     }
-    public bool $isEndpoint {
+    private bool $isEndpoint {
         get => $this->isEndpoint ??= $this->isEndpoint();
     }
-    public bool $isActionable {
-        get => $this->selector !== null;
+    private bool $isActionable {
+        get => $this->isActionable ??= $this->selector !== null;
     }
     /** @var bool Returns a Boolean value indicating whether this object is the first responder. */
     public bool $isFirstResponder {

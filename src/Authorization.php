@@ -21,9 +21,7 @@ abstract class Authorization
     }
     public ?Authenticatable $user {
         get {
-            /** @var string|null $username */
-            $username = $this->credential?->user;
-            if (!$username) {
+            if (!($username = $this->credential?->user)) {
                 return null;
             }
             $context = Application::shared()->persistentContainer->viewContext;

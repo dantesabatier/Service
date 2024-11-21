@@ -25,13 +25,18 @@ class DigestAuthorization extends Authorization
                 return false;
             }
             $parameters = $this->parameters;
-            if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"]) || ($parameters["algorithm"] !== "SHA-256")) {
+            if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"])) {
                 return false;
             }
+            $algo = match ($parameters["algorithm"]) {
+                "SHA-512-256" => "sha512",
+                "SHA-256" => "sha256",
+                default => "md5"
+            };
             $request = $this->request;
-            $HA1 = hash("sha256", "$username:{$request->url->host}:$password");
-            $HA2 = hash("sha256", "$request->httpMethod:$uri");
-            $response = hash("sha256", "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
+            $HA1 = hash($algo, "$username:{$request->url->host}:$password");
+            $HA2 = hash($algo, "$request->httpMethod:$uri");
+            $response = hash($algo, "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
             return $parameters["response"] === $response;
         }
     }

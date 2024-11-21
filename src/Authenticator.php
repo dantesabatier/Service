@@ -16,8 +16,8 @@ class Authenticator extends Responder
     public ArrayClass $allowedMethods {
         get => $this->allowedMethods ??= new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
     }
-    public AuthenticationScheme $scheme;
-    public readonly Authorization $authorization;
+    private(set) AuthenticationScheme $scheme;
+    private(set) Authorization $authorization;
     public bool $isProtectedContentAvailable {
         get => $this->isProtectedContentAvailable ??= $this->request->httpMethod === HTTPRequestMethod::options || $this->authorization->isValid;
     }
@@ -25,7 +25,7 @@ class Authenticator extends Responder
     public function __construct()
     {
         $value = $this->request->valueForHttpHeaderField("Authorization") ?? "";
-        $components = explode(" ", $value);
+        $components = explode(" ", $value, 2);
         if (count($components) !== 2) {
             $components = [AuthenticationScheme::basic->value, ""];
         }

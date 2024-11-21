@@ -24,7 +24,6 @@ class Authenticator extends Responder
 
     public function __construct()
     {
-        parent::__construct();
         $value = $this->request->valueForHttpHeaderField("Authorization") ?? "";
         $components = explode(" ", $value);
         if (count($components) !== 2) {

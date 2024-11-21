@@ -37,7 +37,6 @@ class Downloader extends Responder
         }
         $this->headerFields["Content-Type"] = $contentType;
         $this->headerFields["Content-Disposition"] = "attachment; filename=\"$resourceURL->lastPathComponent\"";
-        $this->headerFields["Content-Control"] = "private";
         $this->content = $content;
     }
 }

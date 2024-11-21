@@ -40,6 +40,14 @@ abstract class ViewController extends Responder
     public ?string $title = null {
         get => $this->title ??= $this->bundle->object(kCFBundleNameKey);
     }
+    public Response $response {
+        get {
+            if ($this->request->httpMethod === HTTPRequestMethod::get) {
+                $this->loadView();
+            }
+            return parent::$response::get();
+        }
+    }
 
     /**
      * Creates the view that the controller manages.
@@ -65,14 +73,5 @@ abstract class ViewController extends Responder
      */
     public function viewDidLoad(): void
     {
-    }
-
-    public Response $response {
-        get {
-            if ($this->request->httpMethod === HTTPRequestMethod::get) {
-                $this->loadView();
-            }
-            return parent::$response::get();
-        }
     }
 }

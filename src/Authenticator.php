@@ -17,7 +17,7 @@ class Authenticator extends Responder
         get => $this->allowedMethods ??= new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
     }
     private(set) AuthenticationScheme $scheme;
-    private string $data;
+    private(set) string $data;
     public Authorization $authorization {
         get => $this->authorization ??= match ($this->scheme) {
             AuthenticationScheme::basic => new BasicAuthorization($this->data),

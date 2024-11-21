@@ -19,11 +19,9 @@ class ResourceManager extends Responder
     public URL $resourceURL {
         get => $this->resourceURL ??= new URL($this->request->url->path, FileManager::default()->documentRootDirectory)->absoluteURL;
     }
-
     public bool $isFirstResponder {
         get => FileManager::default()->fileExists($this->resourceURL->path, $isDirectory) && !$isDirectory;
     }
-
     public Response $response {
         get {
             FileManager::default()->isReadableFile($this->resourceURL->path) ?: throw new MethodNotAllowedException();

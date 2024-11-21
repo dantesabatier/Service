@@ -30,7 +30,9 @@ abstract class Responder extends ObjectClass
         get => $this->request->serialization;
     }
     /** @var Dictionary<mixed> */
-    public Dictionary $headerFields;
+    public Dictionary $headerFields {
+        get => $this->headerFields ??= new Dictionary();
+    }
     public ManagedObjectContext $managedObjectContext {
         get => Application::shared()->persistentContainer->viewContext;
     }
@@ -70,11 +72,6 @@ abstract class Responder extends ObjectClass
             }
             return new Response($this);
         }
-    }
-
-    public function __construct()
-    {
-        $this->headerFields = new Dictionary();
     }
 
     private function isEndpoint(): bool

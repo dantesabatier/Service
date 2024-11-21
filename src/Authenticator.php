@@ -17,7 +17,14 @@ class Authenticator extends Responder
         get => $this->allowedMethods ??= new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
     }
     private(set) AuthenticationScheme $scheme;
-    private(set) Authorization $authorization;
+    private string $data;
+    public Authorization $authorization {
+        get => $this->authorization ??= match ($this->scheme) {
+            AuthenticationScheme::basic => new BasicAuthorization($this->data),
+            AuthenticationScheme::bearer => new BearerAuthorization($this->data),
+            AuthenticationScheme::digest => new DigestAuthorization($this->data),
+        };
+    }
     public bool $isProtectedContentAvailable {
         get => $this->isProtectedContentAvailable ??= $this->request->httpMethod === HTTPRequestMethod::options || $this->authorization->isValid;
     }
@@ -31,11 +38,7 @@ class Authenticator extends Responder
         }
         [$name, $data] = $components;
         $this->scheme = AuthenticationScheme::tryFrom($name) ?? AuthenticationScheme::basic;
-        $this->authorization = match ($this->scheme) {
-            AuthenticationScheme::basic => new BasicAuthorization($data),
-            AuthenticationScheme::bearer => new BearerAuthorization($data),
-            AuthenticationScheme::digest => new DigestAuthorization($data),
-        };
+        $this->data = $data;
     }
 
     /**

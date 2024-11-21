@@ -74,7 +74,7 @@ class Application extends Responder
             UserDefaults::standard()->setObject(KeyedArchiver::archivedData($value), PersistentHistoryTokenKey);
         }
     }
-    public ?Responder $firstResponder {
+    private(set) ?Responder $firstResponder {
         get => $this->firstResponder ??= $this->mainResponder() ?? $this->internalResponder();
     }
 

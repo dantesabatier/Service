@@ -23,7 +23,7 @@ class BearerAuthorization extends Authorization
     }
     public bool $isValid {
         get {
-            if (!($credential = $this->credential) || !($username = $this->user?->valueForKey("username"))) {
+            if (!($credential = $this->credential) || !($username = $this->user?->username)) {
                 return false;
             }
             return $credential->user === $username;

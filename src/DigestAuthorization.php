@@ -21,7 +21,7 @@ class DigestAuthorization extends Authorization
     }
     public bool $isValid {
         get {
-            if (!($password = $this->user?->valueForKey("password"))) {
+            if (!($password = $this->user?->password)) {
                 return false;
             }
             $parameters = $this->parameters;

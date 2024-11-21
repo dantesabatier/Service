@@ -4,7 +4,6 @@ namespace Sabatier\Service;
 
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
-use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
@@ -20,7 +19,7 @@ abstract class Authorization
     public Request $request {
         get => Application::shared()->request;
     }
-    public ?ManagedObject $user {
+    public ?Authenticatable $user {
         get {
             /** @var string|null $username */
             $username = $this->credential?->user;

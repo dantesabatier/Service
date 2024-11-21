@@ -19,7 +19,7 @@ class BasicAuthorization extends Authorization
     }
     public bool $isValid {
         get {
-            if (!($credential = $this->credential) || !($password = $this->user?->valueForKey("password"))) {
+            if (!($credential = $this->credential) || !($password = $this->user?->password)) {
                 return false;
             }
             if (is_password($password)) {

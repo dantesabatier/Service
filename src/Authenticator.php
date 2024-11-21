@@ -48,7 +48,7 @@ class Authenticator extends Responder
         /** @var Dictionary<mixed> $data */
         $data = new Dictionary();
         $data["user"] = $user;
-        $username = $user->valueForKey("username");
+        $username = $user->username;
         if ($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) {
             $date = new Date();
             $encoder = new JSONWebTokenEncoder($key);

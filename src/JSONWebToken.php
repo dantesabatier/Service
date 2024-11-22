@@ -13,28 +13,28 @@ class JSONWebToken implements JsonSerializable
     /** @var JSONWebTokenValues */
     private(set) array $allValues;
     public ?string $iss {
-        get => $this->allValues["iss"] ?? null;
+        get => $this->allValues[__PROPERTY__] ?? null;
     }
     public ?string $sub {
-        get => $this->allValues["sub"] ?? null;
+        get => $this->allValues[__PROPERTY__] ?? null;
     }
     public ?string $exp {
-        get => $this->allValues["exp"] ?? null;
+        get => $this->allValues[__PROPERTY__] ?? null;
     }
     public ?string $aud {
-        get => $this->allValues["aud"] ?? null;
+        get => $this->allValues[__PROPERTY__] ?? null;
     }
     public ?string $nbf {
-        get => $this->allValues["nbf"] ?? null;
+        get => $this->allValues[__PROPERTY__] ?? null;
     }
     public ?string $iat {
-        get => $this->allValues["iat"] ?? null;
+        get => $this->allValues[__PROPERTY__] ?? null;
     }
     public ?string $jti {
-        get => $this->allValues["jti"] ?? null;
+        get => $this->allValues[__PROPERTY__] ?? null;
     }
     public mixed $sec {
-        get => $this->allValues["sec"] ?? null;
+        get => $this->allValues[__PROPERTY__] ?? null;
     }
 
     public function __construct(?string $iss = null, ?string $sub = null, ?string $aud = null, ?float $exp = null, ?float $nbf = null, ?float $iat = null, ?string $jti = null, mixed $sec = null)

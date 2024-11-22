@@ -38,10 +38,6 @@ use const Sabatier\Foundation\kCFBundleNameKey;
  */
 class Application extends Responder
 {
-    /** @var string A notification that posts shortly before protected files are locked down and become inaccessible. */
-    final public const string protectedDataWillBecomeUnavailableNotification = "protectedDataWillBecomeUnavailableNotification";
-    /** @var string A notification that posts when the protected files become available for your code to access. */
-    final public const string protectedDataDidBecomeAvailableNotification = "protectedDataDidBecomeAvailableNotification";
     private static ?Application $shared = null;
     /** @var ApplicationDelegate|null The delegate of the app object. */
     public ?ApplicationDelegate $delegate {

@@ -4,7 +4,6 @@
 
 namespace Sabatier\Service;
 
-use Sabatier\CoreData\AtomicStore;
 use Sabatier\CoreData\AttributeType;
 use Sabatier\CoreData\BatchFaultingArray;
 use Sabatier\CoreData\EntityDescription;
@@ -13,7 +12,6 @@ use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\FetchRequestResultType;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectID;
-use Sabatier\CoreData\PersistentStore;
 use Sabatier\CoreData\SQLEntity;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\CompareOptions;
@@ -23,7 +21,6 @@ use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\CompoundPredicate;
 use Sabatier\Foundation\Predicates\Expression;
-use Sabatier\Foundation\Predicates\ExpressionType;
 use Sabatier\Foundation\Predicates\Predicate;
 use Sabatier\Foundation\SortDescriptor;
 use Sabatier\Foundation\URLComponents;
@@ -34,9 +31,6 @@ class PersistentSpace extends Responder
 {
     public EntityDescription $entity {
         get => $this->entity ??= $this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel?->entitiesByName?->valueForKey($this->request->url->lastPathComponent) ?? throw new NotFoundException("Unable to load entity \"{$this->request->url->lastPathComponent}\"");
-    }
-    public ?AtomicStore $atomicStore {
-        get => $this->atomicStore ??= $this->managedObjectContext->persistentStoreCoordinator?->persistentStores?->first(fn(PersistentStore $store): bool => $store instanceof AtomicStore);
     }
     public FetchRequest $fetchRequest {
         get {
@@ -107,23 +101,6 @@ class PersistentSpace extends Responder
                 $fetchRequest->serialization = $serialization;
             }
             $fetchRequest->entity = $this->entity;
-            if (($predicate = $fetchRequest->predicate) && ($store = $this->atomicStore)) {
-                $fn = function (CompoundPredicate|ComparisonPredicate|Predicate $predicate) use ($store, &$fn): Predicate {
-                    if ($predicate instanceof ComparisonPredicate) {
-                        $expressions = new ArrayClass([$predicate->rightExpression, $predicate->leftExpression]);
-                        if (($keyPathExpression = $expressions->first(fn(Expression $expression): bool => $expression->expressionType === ExpressionType::keyPath && str_ends_with($expression->keyPath, SQLEntity::primaryKeyName))) && ($constantValueExpression = $expressions->first(fn(Expression $expression): bool => !$expression->isEqual($keyPathExpression)))) {
-                            $expressionForConstantValue = Expression::expressionForConstantValue($store->objectID($this->entity, $constantValueExpression->constantValue));
-                            $rightExpression = $keyPathExpression === $predicate->rightExpression ? $keyPathExpression : $expressionForConstantValue;
-                            $leftExpression = $constantValueExpression === $predicate->leftExpression ? $expressionForConstantValue : $keyPathExpression;
-                            return new ComparisonPredicate($rightExpression, $leftExpression, $predicate->predicateOperatorType, $predicate->comparisonPredicateModifier, $predicate->options);
-                        }
-                        return $predicate;
-                    }
-                    /** @psalm-suppress all */
-                    return new CompoundPredicate($predicate->compoundPredicateType, $predicate->subpredicates->map(fn(CompoundPredicate|ComparisonPredicate $subpredicate): CompoundPredicate|ComparisonPredicate => $fn($subpredicate)));
-                };
-                $fetchRequest->predicate = $fn($predicate);
-            }
             return $fetchRequest;
         }
     }
@@ -191,9 +168,6 @@ class PersistentSpace extends Responder
                         }
                         $object = null;
                     } else {
-                        if ($store = $this->atomicStore) {
-                            $objectID = $store->objectID($this->entity, $objectID);
-                        }
                         $object = $managedObject($objectID);
                     }
                     if (!$object instanceof ManagedObject) {

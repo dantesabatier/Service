@@ -23,7 +23,7 @@ use function Sabatier\Foundation\url_validate;
 abstract class Responder extends ObjectClass
 {
     public Request $request {
-        get => Responder::$staticAssociatedValues[Responder::class][__PROPERTY__] ??= new Request();
+        get => self::$staticAssociatedValues[self::class][__PROPERTY__] ??= new Request();
     }
     /** @var Dictionary<mixed> */
     public Dictionary $headerFields {

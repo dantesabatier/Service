@@ -6,7 +6,6 @@ use IteratorAggregate;
 use Override;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\Foundation\ArrayClass;
-use Sabatier\Foundation\Dictionary;
 use Traversable;
 
 /**
@@ -18,20 +17,15 @@ class BatchResponse extends Response implements IteratorAggregate
     public bool $isEmpty {
         get => $this->count === 0;
     }
-    public Dictionary $allHeaderFields {
-        get {
-            $headerFields = $this->allHeaderFields;
-            $headerFields["Content-Type"] = "text/plain; charset=utf-8";
-            $headerFields["Transfer-Encoding"] = "chunked";
-            return $headerFields;
-        }
-    }
     private readonly FetchRequest $fetchRequest;
     private readonly ArrayClass $fetchRequestResults;
 
     public function __construct(Responder $responder, FetchRequest $fetchRequest, ArrayClass $fetchRequestResults)
     {
         parent::__construct($responder);
+        $headerFields = $this->allHeaderFields;
+        $headerFields["Content-Type"] = "text/plain; charset=utf-8";
+        $headerFields["Transfer-Encoding"] = "chunked";
         $this->fetchRequest = $fetchRequest;
         $this->fetchRequestResults = $fetchRequestResults;
         $this->count = (int)ceil($fetchRequestResults->count / max($fetchRequest->fetchBatchSize, 1));

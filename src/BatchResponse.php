@@ -23,9 +23,8 @@ class BatchResponse extends Response implements IteratorAggregate
     public function __construct(Responder $responder, FetchRequest $fetchRequest, ArrayClass $fetchRequestResults)
     {
         parent::__construct($responder);
-        $headerFields = $this->allHeaderFields;
-        $headerFields["Content-Type"] = "text/plain; charset=utf-8";
-        $headerFields["Transfer-Encoding"] = "chunked";
+        $this->allHeaderFields["Content-Type"] = "text/plain; charset=utf-8";
+        $this->allHeaderFields["Transfer-Encoding"] = "chunked";
         $this->fetchRequest = $fetchRequest;
         $this->fetchRequestResults = $fetchRequestResults;
         $this->count = (int)ceil($fetchRequestResults->count / max($fetchRequest->fetchBatchSize, 1));

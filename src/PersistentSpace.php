@@ -97,7 +97,7 @@ class PersistentSpace extends Responder
                     $fetchRequest->predicate = $predicates->count > 1 ? CompoundPredicate::andPredicateWithSubpredicates($predicates) : $predicates->first;
                 }
             }
-            if ($serialization = $this->serialization) {
+            if ($serialization = $this->request->serialization) {
                 $fetchRequest->serialization = $serialization;
             }
             $fetchRequest->entity = $this->entity;
@@ -156,7 +156,7 @@ class PersistentSpace extends Responder
                         $fetchRequest = new FetchRequest();
                         $fetchRequest->entity = $this->entity;
                         $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath(SQLEntity::primaryKeyName), Expression::expressionForConstantValue($objectID));
-                        if ($serialization = $this->serialization) {
+                        if ($serialization = $this->request->serialization) {
                             $fetchRequest->serialization = $serialization;
                         }
                         return $this->managedObjectContext->fetch($fetchRequest)->first;
@@ -187,7 +187,7 @@ class PersistentSpace extends Responder
                         $object->setValuesForKeys(Dictionary::dictionaryWithArray($body));
                         $context->save();
                         $object = $managedObject($object->objectID);
-                        $this->content = json_encode($object?->serialized($this->serialization), JSON_PRESERVE_ZERO_FRACTION);
+                        $this->content = json_encode($object?->serialized($this->request->serialization), JSON_PRESERVE_ZERO_FRACTION);
                         $this->headerFields["Content-Type"] = "application/json";
                     }
                     break;

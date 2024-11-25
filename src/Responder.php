@@ -25,10 +25,6 @@ abstract class Responder extends ObjectClass
     public Request $request {
         get => Responder::$staticAssociatedValues[Responder::class][__PROPERTY__] ??= new Request();
     }
-    /** @var Dictionary<mixed>|null */
-    public ?Dictionary $serialization {
-        get => $this->request->serialization;
-    }
     /** @var Dictionary<mixed> */
     public Dictionary $headerFields {
         get => $this->headerFields ??= new Dictionary();

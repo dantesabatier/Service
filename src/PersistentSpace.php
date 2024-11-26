@@ -97,7 +97,7 @@ class PersistentSpace extends Responder
                     $fetchRequest->predicate = $predicates->count > 1 ? CompoundPredicate::andPredicateWithSubpredicates($predicates) : $predicates->first;
                 }
             }
-            if ($serialization = $this->request->serialization) {
+            if ($serialization = $request->serialization) {
                 $fetchRequest->serialization = $serialization;
             }
             $fetchRequest->entity = $this->entity;

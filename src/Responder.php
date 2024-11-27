@@ -39,18 +39,17 @@ abstract class Responder extends ObjectClass
     #[ExpectedValues(valuesFromClass: HTTPStatusCode::class)]
     public int $statusCode = HTTPStatusCode::ok;
     public ?string $content = null;
-    private ?string $selector {
-        get => $this->selector ??= $this->selector();
-    }
-    private bool $isEndpoint {
-        get => $this->isEndpoint ??= $this->isEndpoint();
-    }
-    private bool $isActionable {
-        get => $this->isActionable ??= $this->selector !== null;
+    public ?string $selector {
+        get => $this->associatedValues[__PROPERTY__];
     }
     /** @var bool Returns a Boolean value indicating whether this object is the first responder. */
     public bool $isFirstResponder {
-        get => $this->isEndpoint || $this->isActionable;
+        get {
+            if (!isset($this->associatedValues[__PROPERTY__])) {
+                $this->prepare();
+            }
+            return $this->associatedValues[__PROPERTY__];
+        }
     }
     public bool $isProtectedContentAvailable = false;
     public Response $response {
@@ -70,23 +69,18 @@ abstract class Responder extends ObjectClass
         }
     }
 
-    private function isEndpoint(): bool
+    private function prepare(): void
     {
+        $this->associatedValues["isFirstResponder"] = false;
         $path = $this->request->url->path;
         $reflectionClass = new ReflectionClass($this);
         foreach ($reflectionClass->getAttributes(Endpoint::class) as $attribute) {
             $endpoint = $attribute->newInstance();
             if (string_is_equal($path, $endpoint->path ?? "/{$reflectionClass->getShortName()}", CompareOptions::caseInsensitive)) {
-                return true;
+                $this->associatedValues["isFirstResponder"] = true;
             }
         }
-        return false;
-    }
-
-    private function selector(): ?string
-    {
-        $path = $this->request->url->path;
-        $reflectionClass = new ReflectionClass($this);
+        $this->associatedValues["selector"] = null;
         foreach ($reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
             $selector = $method->name;
             foreach ($method->getAttributes(Action::class) as $attribute) {
@@ -97,10 +91,11 @@ abstract class Responder extends ObjectClass
                     $other = "$components->path$components->query";
                 }
                 if (string_is_equal($path, $other, CompareOptions::caseInsensitive)) {
-                    return $selector;
+                    $this->associatedValues["isFirstResponder"] = true;
+                    $this->associatedValues["selector"] = $selector;
+                    break;
                 }
             }
         }
-        return null;
     }
 }

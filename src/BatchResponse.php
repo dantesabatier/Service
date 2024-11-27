@@ -13,12 +13,12 @@ use Traversable;
  */
 class BatchResponse extends Response implements IteratorAggregate
 {
-    public readonly int $count;
+    private(set) int $count;
     public bool $isEmpty {
         get => $this->count === 0;
     }
-    private readonly FetchRequest $fetchRequest;
-    private readonly ArrayClass $fetchRequestResults;
+    private ArrayClass $fetchRequestResults;
+    private int $fetchBatchSize;
 
     public function __construct(Responder $responder, FetchRequest $fetchRequest, ArrayClass $fetchRequestResults)
     {
@@ -26,9 +26,9 @@ class BatchResponse extends Response implements IteratorAggregate
         $allHeaderFields = $this->allHeaderFields;
         $allHeaderFields["Content-Type"] = "text/plain; charset=utf-8";
         $allHeaderFields["Transfer-Encoding"] = "chunked";
-        $this->fetchRequest = $fetchRequest;
         $this->fetchRequestResults = $fetchRequestResults;
-        $this->count = (int)ceil($fetchRequestResults->count / max($fetchRequest->fetchBatchSize, 1));
+        $this->fetchBatchSize = min($fetchRequest->fetchBatchSize, $fetchRequestResults->count);
+        $this->count = (int)ceil($fetchRequestResults->count / max($this->fetchBatchSize, 1));
         $this->emitter = new BatchEmitter();
     }
 
@@ -40,7 +40,7 @@ class BatchResponse extends Response implements IteratorAggregate
             $records = new ArrayClass();
             foreach ($this->fetchRequestResults as $index => $fetchRequestResult) {
                 $records[] = $fetchRequestResult;
-                if ((($index + 1) === ($cursor * $this->fetchRequest->fetchBatchSize))) {
+                if ((($index + 1) === ($cursor * $this->fetchBatchSize))) {
                     yield json_encode($records, JSON_PRESERVE_ZERO_FRACTION);
                     $records = new ArrayClass();
                     $cursor++;

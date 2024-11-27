@@ -189,12 +189,12 @@ class Application extends Responder
             if (!$responder->isProtectedContentAvailable) {
                 $responder->isProtectedContentAvailable = $this->isProtectedContentAvailable;
             }
-            $authentication = $this->accessManager;
-            if (!$responder->isProtectedContentAvailable && !$authentication->isProtectedContentAvailable) {
+            $accessManager = $this->accessManager;
+            if (!$responder->isProtectedContentAvailable && !$accessManager->isProtectedContentAvailable) {
                 throw new UnauthorizedException();
             }
             $viewContext->transactionAuthor = match ($this->request->httpMethod) {
-                HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $authentication->authorization->user?->username,
+                HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $accessManager->authorization->user?->username,
                 default => null
             };
             $response = $responder->response;

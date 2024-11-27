@@ -19,7 +19,7 @@ class Preferences extends Responder
                 case HTTPRequestMethod::patch:
                 case HTTPRequestMethod::delete:
                     if ($request->httpMethod !== HTTPRequestMethod::get) {
-                        $body = $request->getParsedBody();
+                        $body = $request->parsedBody;
                         foreach ($body as $key => $value) {
                             UserDefaults::standard()->setObject($value, $key);
                         }

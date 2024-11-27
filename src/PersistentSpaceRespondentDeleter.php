@@ -13,8 +13,7 @@ class PersistentSpaceRespondentDeleter extends PersistentSpaceRespondent
     public Response $response {
         get {
             $responder = $this->responder;
-            $body = $responder->request->parsedBody;
-            if (!($objectID = $body[SQLEntity::primaryKeyName])) {
+            if (!($objectID = $responder->request->parsedBody[SQLEntity::primaryKeyName])) {
                 throw new BadRequestException(sprintf("\"%s\" can not be null", SQLEntity::primaryKeyName));
             }
             if (!($object = $this->managedObject($objectID))) {

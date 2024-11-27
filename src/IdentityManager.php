@@ -13,6 +13,7 @@ class IdentityManager
     public ?Authenticatable $user {
         get {
             $context = Application::shared()->persistentContainer->viewContext;
+            /** @var FetchRequest<Authenticatable> $fetchRequest */
             $fetchRequest = new FetchRequest();
             $fetchRequest->entity = EntityDescription::entity("User", $context);
             $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($this->username));

@@ -36,7 +36,7 @@ class Response extends HTTPURLResponse
         }
         parent::__construct($request->url, $responder->statusCode, headerFields: $headerFields);
         $this->body = $responder->content;
-        $this->emitter = new NativeEmitter();
+        $this->emitter = new Emitter();
     }
 
     public function send(): never

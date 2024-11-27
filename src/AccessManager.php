@@ -11,7 +11,7 @@ use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\UserDefaults;
 use function Sabatier\Foundation\read_random;
 
-class Authenticator extends Responder
+class AccessManager extends Responder
 {
     public ArrayClass $allowedMethods {
         get => $this->allowedMethods ??= new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);

@@ -12,15 +12,12 @@ abstract class Authorization
     abstract public bool $isValid {
         get;
     }
-    public Request $request {
-        get => Application::shared()->request;
-    }
     public ?Authenticatable $user {
         get {
             if (!($username = $this->credential?->user)) {
                 return null;
             }
-            return new IdentityManager($username, $this->request->serialization)->user;
+            return new IdentityManager($username, Application::shared()->request->serialization)->user;
         }
     }
 

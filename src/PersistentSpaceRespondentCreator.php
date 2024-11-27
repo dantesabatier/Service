@@ -17,9 +17,10 @@ class PersistentSpaceRespondentCreator extends PersistentSpaceRespondent
 {
     public Response $response {
         get {
-            $body = $this->body;
             /** @var PersistentSpace $responder */
             $responder = $this->responder;
+            $request = $responder->request;
+            $body = $request->parsedBody;
             $context = $responder->managedObjectContext;
             $entity = $responder->entity;
             if ($objectID = $body[SQLEntity::primaryKeyName]) {

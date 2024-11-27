@@ -7,11 +7,14 @@ use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Foundation\Networking\URLRequestAttribution;
 use Sabatier\Foundation\URL;
+use Sabatier\Foundation\URLComponents;
+use Sabatier\Foundation\URLQueryItem;
 use function Sabatier\Foundation\getallheaders;
 use function Sabatier\Foundation\request_url;
 
 class Request extends URLRequest
 {
+    private(set) Dictionary $parsedBody;
     /** @var Dictionary<mixed>|null */
     private(set) ?Dictionary $serialization = null;
 
@@ -36,6 +39,16 @@ class Request extends URLRequest
             default => null
         };
         $this->attribution = URLRequestAttribution::user;
+        $this->parsedBody = Dictionary::dictionaryWithArray($this->getParsedBody());
+        if ($this->parsedBody->isEmpty) {
+            $components = new URLComponents($this->url->absoluteString);
+            if ($dictionary = $components->queryItems?->reduce(new Dictionary(), function (Dictionary $result, URLQueryItem $queryItem): Dictionary {
+                $result[$queryItem->name] = $queryItem->value;
+                return $result;
+            })) {
+                $this->parsedBody->merge($dictionary);
+            }
+        }
         if (($string = $this->valueForHttpHeaderField("serialization")) && json_validate($string) && ($array = json_decode($string, true))) {
             $this->serialization = Dictionary::dictionaryWithArray($array);
         }

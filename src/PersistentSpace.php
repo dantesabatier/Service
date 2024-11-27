@@ -17,9 +17,9 @@ class PersistentSpace extends Responder
     }
     public Response $response {
         get => match ($this->request->httpMethod) {
-            HTTPRequestMethod::get, HTTPRequestMethod::head => new PersistentSpaceRespondentReader($this)->response,
+            HTTPRequestMethod::get => new PersistentSpaceRespondentReader($this)->response,
             HTTPRequestMethod::post => new PersistentSpaceRespondentCreator($this)->response,
-            HTTPRequestMethod::put, HTTPRequestMethod::patch => new PersistentSpaceRespondentUpdater($this)->response,
+            HTTPRequestMethod::patch => new PersistentSpaceRespondentUpdater($this)->response,
             HTTPRequestMethod::delete => new PersistentSpaceRespondentDeleter($this)->response,
             HTTPRequestMethod::options => new Response($this),
             default => throw new MethodNotAllowedException()

@@ -49,8 +49,8 @@ class Application extends Responder
     public Session $session {
         get => $this->session ??= new Session();
     }
-    public Authenticator $authentication {
-        get => $this->authentication ??= new Authenticator();
+    public AccessManager $accessManager {
+        get => $this->accessManager ??= new AccessManager();
     }
     public PersistentSpace $persistentSpace {
         get => $this->persistentSpace ??= new PersistentSpace();
@@ -164,7 +164,7 @@ class Application extends Responder
 
     private function internalResponder(): ?Responder
     {
-        return new ArrayClass([$this->authentication, $this->persistentSpace, $this->resourceManager, $this->preferences, $this->uploader, new Home()])->first(fn(Responder $responder): bool => $responder->isFirstResponder);
+        return new ArrayClass([$this->accessManager, $this->persistentSpace, $this->resourceManager, $this->preferences, $this->uploader, new Home()])->first(fn(Responder $responder): bool => $responder->isFirstResponder);
     }
 
     public function run(): never
@@ -189,7 +189,7 @@ class Application extends Responder
             if (!$responder->isProtectedContentAvailable) {
                 $responder->isProtectedContentAvailable = $this->isProtectedContentAvailable;
             }
-            $authentication = $this->authentication;
+            $authentication = $this->accessManager;
             if (!$responder->isProtectedContentAvailable && !$authentication->isProtectedContentAvailable) {
                 throw new UnauthorizedException();
             }
@@ -203,7 +203,7 @@ class Application extends Responder
             $response->send();
         } catch (Throwable $throwable) {
             $responder = new Thrower();
-            $responder->throw($throwable, $this->authentication->scheme);
+            $responder->throw($throwable, $this->accessManager->scheme);
         }
     }
 

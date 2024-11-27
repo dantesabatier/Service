@@ -23,7 +23,7 @@ class Downloader extends Responder
     #[Action]
     public function download(): void
     {
-        $body = $this->request->getParsedBody();
+        $body = $this->request->parsedBody;
         $urlString = $body["url"] ?? throw new BadRequestException();
         $attachmentURL = new URL($urlString);
         $fileManager = FileManager::default();

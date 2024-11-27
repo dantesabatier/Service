@@ -33,7 +33,7 @@ class DigestAuthorization extends Authorization
                 "SHA-256" => "sha256",
                 default => "md5"
             };
-            $request = $this->request;
+            $request = Application::shared()->request;
             $HA1 = hash($algo, "$username:{$request->url->host}:$password");
             $HA2 = hash($algo, "$request->httpMethod:$uri");
             $response = hash($algo, "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");

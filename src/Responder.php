@@ -22,6 +22,8 @@ use function Sabatier\Foundation\url_validate;
  */
 abstract class Responder extends ObjectClass
 {
+    public const string isFirstResponder = "isFirstResponder";
+    private const string selector = "selector";
     public Request $request {
         get => self::$staticAssociatedValues[self::class][__PROPERTY__] ??= new Request();
     }
@@ -76,7 +78,7 @@ abstract class Responder extends ObjectClass
         foreach ($reflectionClass->getAttributes(Endpoint::class) as $attribute) {
             $endpoint = $attribute->newInstance();
             if (string_is_equal($path, $endpoint->path ?? "/{$reflectionClass->getShortName()}", CompareOptions::caseInsensitive)) {
-                $this->associatedValues["isFirstResponder"] = true;
+                $this->associatedValues[self::isFirstResponder] = true;
             }
         }
         foreach ($reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
@@ -89,13 +91,13 @@ abstract class Responder extends ObjectClass
                     $other = "$components->path$components->query";
                 }
                 if (string_is_equal($path, $other, CompareOptions::caseInsensitive)) {
-                    $this->associatedValues["isFirstResponder"] = true;
-                    $this->associatedValues["selector"] = $selector;
+                    $this->associatedValues[self::isFirstResponder] = true;
+                    $this->associatedValues[self::selector] = $selector;
                     break;
                 }
             }
         }
-        $this->associatedValues["isFirstResponder"] ??= false;
-        $this->associatedValues["selector"] ??= null;
+        $this->associatedValues[self::isFirstResponder] ??= false;
+        $this->associatedValues[self::selector] ??= null;
     }
 }

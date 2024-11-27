@@ -12,7 +12,6 @@ use Sabatier\CoreData\FetchRequestResultType;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Dictionary;
-use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\CompoundPredicate;
 use Sabatier\Foundation\Predicates\Expression;
@@ -102,7 +101,6 @@ class PersistentSpaceRespondentReader extends PersistentSpaceRespondent
     public Response $response {
         get {
             $responder = $this->responder;
-            $request = $responder->request;
             $context = $responder->managedObjectContext;
             $fetchRequest = $this->fetchRequest;
             $fetchRequestResult = match ($fetchRequest->resultType) {
@@ -114,10 +112,8 @@ class PersistentSpaceRespondentReader extends PersistentSpaceRespondent
             if ($fetchRequestResult instanceof BatchFaultingArray) {
                 return new BatchResponse($responder, $fetchRequest, $fetchRequestResult);
             }
-            if ($request->httpMethod === HTTPRequestMethod::get) {
-                $responder->content = json_encode($fetchRequestResult, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
-                $responder->headerFields["Content-Type"] = "application/json";
-            }
+            $responder->content = json_encode($fetchRequestResult, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
+            $responder->headerFields["Content-Type"] = "application/json";
             return new Response($responder);
         }
     }

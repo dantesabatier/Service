@@ -49,7 +49,7 @@ class Request extends URLRequest
                 $this->parsedBody->merge($dictionary);
             }
         }
-        if (($string = $this->valueForHttpHeaderField("serialization")) && json_validate($string) && ($array = json_decode($string, true))) {
+        if (($string = $this->valueForHttpHeaderField("Serialization")) && json_validate($string) && ($array = json_decode($string, true))) {
             $this->serialization = Dictionary::dictionaryWithArray($array);
         }
     }

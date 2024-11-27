@@ -71,7 +71,6 @@ abstract class Responder extends ObjectClass
 
     private function prepare(): void
     {
-        $this->associatedValues["isFirstResponder"] = false;
         $path = $this->request->url->path;
         $reflectionClass = new ReflectionClass($this);
         foreach ($reflectionClass->getAttributes(Endpoint::class) as $attribute) {
@@ -80,7 +79,6 @@ abstract class Responder extends ObjectClass
                 $this->associatedValues["isFirstResponder"] = true;
             }
         }
-        $this->associatedValues["selector"] = null;
         foreach ($reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
             $selector = $method->name;
             foreach ($method->getAttributes(Action::class) as $attribute) {
@@ -97,5 +95,7 @@ abstract class Responder extends ObjectClass
                 }
             }
         }
+        $this->associatedValues["isFirstResponder"] ??= false;
+        $this->associatedValues["selector"] ??= null;
     }
 }

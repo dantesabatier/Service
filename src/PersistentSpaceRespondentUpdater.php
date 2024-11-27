@@ -1,0 +1,31 @@
+<?php
+
+/** @noinspection PhpInternalEntityUsedInspection */
+
+namespace Sabatier\Service;
+
+use Sabatier\CoreData\SQLEntity;
+
+/** @internal */
+class PersistentSpaceRespondentUpdater extends PersistentSpaceRespondent
+{
+    public Response $response {
+        get {
+            $body = $this->body;
+            if (!($objectID = $body[SQLEntity::primaryKeyName])) {
+                throw new BadRequestException(sprintf("\"%s\" can not be null", SQLEntity::primaryKeyName));
+            }
+            if (!($object = $this->managedObject($objectID))) {
+                throw new NotFoundException();
+            }
+            $responder = $this->responder;
+            $context = $responder->managedObjectContext;
+            $object->setValuesForKeys($body);
+            $context->save();
+            $object = $this->managedObject($object->objectID);
+            $responder->content = json_encode($object?->serialized($responder->request->serialization), JSON_PRESERVE_ZERO_FRACTION);
+            $responder->headerFields["Content-Type"] = "application/json";
+            return new Response($responder);
+        }
+    }
+}

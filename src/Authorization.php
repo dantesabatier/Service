@@ -2,11 +2,7 @@
 
 namespace Sabatier\Service;
 
-use Sabatier\CoreData\EntityDescription;
-use Sabatier\CoreData\FetchRequest;
 use Sabatier\Foundation\Networking\URLCredential;
-use Sabatier\Foundation\Predicates\ComparisonPredicate;
-use Sabatier\Foundation\Predicates\Expression;
 
 abstract class Authorization
 {
@@ -24,11 +20,7 @@ abstract class Authorization
             if (!($username = $this->credential?->user)) {
                 return null;
             }
-            $context = Application::shared()->persistentContainer->viewContext;
-            $fetchRequest = new FetchRequest();
-            $fetchRequest->entity = EntityDescription::entity("User", $context);
-            $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($username));
-            return $context->fetch($fetchRequest)->first?->serialized($this->request->serialization);
+            return new IdentityManager($username, $this->request->serialization)->user;
         }
     }
 

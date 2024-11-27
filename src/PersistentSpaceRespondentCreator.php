@@ -39,7 +39,7 @@ class PersistentSpaceRespondentCreator extends PersistentSpaceRespondent
             $object = $this->managedObject($object->objectID);
             $responder->content = json_encode($object?->serialized($responder->request->serialization), JSON_PRESERVE_ZERO_FRACTION);
             $responder->headerFields["Content-Type"] = "application/json";
-            return $this->response;
+            return new Response($responder);
         }
     }
 }

@@ -2,8 +2,10 @@
 
 namespace Sabatier\Service;
 
+use JetBrains\PhpStorm\ExpectedValues;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
+use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
@@ -30,7 +32,7 @@ abstract class Authorization
         }
     }
 
-    public function __construct(public readonly string $data)
+    public function __construct(public readonly string $credentials, #[ExpectedValues(valuesFromClass: HTTPRequestMethod::class)] public string $method = HTTPRequestMethod::get, public readonly ?string $host = null, public readonly ?int $port = null)
     {
     }
 }

@@ -16,7 +16,7 @@ abstract class Authorization
     abstract public bool $isValid {
         get;
     }
-    public Authenticatable $user {
+    public ?Authenticatable $user {
         get {
             if (!($username = $this->credential?->user)) {
                 return null;

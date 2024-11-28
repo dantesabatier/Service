@@ -25,7 +25,7 @@ abstract class Authorization
         }
     }
 
-    public function __construct(public readonly ManagedObjectContext $context, public readonly string $credentials, #[ExpectedValues(valuesFromClass: HTTPRequestMethod::class)] public string $method = HTTPRequestMethod::get, public readonly ?string $host = null, public readonly ?Dictionary $serialization = null)
+    public function __construct(public readonly string $data, public readonly ManagedObjectContext $context, public readonly ?Dictionary $serialization = null, public readonly ?string $host = null, #[ExpectedValues(valuesFromClass: HTTPRequestMethod::class)] public string $method = HTTPRequestMethod::get)
     {
     }
 }

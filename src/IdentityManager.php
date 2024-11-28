@@ -22,7 +22,7 @@ class IdentityManager
         }
     }
 
-    public function __construct(private readonly ManagedObjectContext $context, private readonly string $username, private readonly ?Dictionary $serialization = null)
+    public function __construct(private readonly string $username, private readonly ManagedObjectContext $context, private readonly ?Dictionary $serialization = null)
     {
     }
 }

@@ -9,7 +9,10 @@ class DigestAuthorization extends Authorization
 {
     /** @var Dictionary<string> */
     public Dictionary $parameters {
-        get => $this->parameters ??= $this->parameters();
+        get {
+            preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->data, $matches);
+            return new Dictionary(array_combine($matches[1], $matches[2]));
+        }
     }
     public ?URLCredential $credential {
         get {
@@ -39,11 +42,5 @@ class DigestAuthorization extends Authorization
             $response = hash($algo, "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
             return $parameters["response"] === $response;
         }
-    }
-
-    private function parameters(): Dictionary
-    {
-        preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->data, $matches);
-        return new Dictionary(array_combine($matches[1], $matches[2]));
     }
 }

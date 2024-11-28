@@ -14,7 +14,7 @@ class BearerAuthorization extends Authorization
             }
             $decoder = new JSONWebTokenDecoder($key, $this->host);
             /** @var string|null $username */
-            $username = $decoder->decode($this->credentials)->sec;
+            $username = $decoder->decode($this->data)->sec;
             if (!$username) {
                 return null;
             }

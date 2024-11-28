@@ -33,6 +33,9 @@ class AccessManager extends Responder
     {
         $value = $this->request->valueForHttpHeaderField("Authorization") ?? "";
         $components = explode(" ", $value, 2);
+        if (count($components) !== 2) {
+            $components = [AuthenticationScheme::basic->value, ""];
+        }
         [$name, $data] = $components;
         $this->scheme = AuthenticationScheme::tryFrom($name) ?? AuthenticationScheme::basic;
         $this->data = $data;

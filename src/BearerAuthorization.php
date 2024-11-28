@@ -12,9 +12,9 @@ class BearerAuthorization extends Authorization
             if (!($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey))) {
                 return null;
             }
-            $decoder = new JSONWebTokenDecoder($key, Application::shared()->request->url->host);
+            $decoder = new JSONWebTokenDecoder($key, $this->host);
             /** @var string|null $username */
-            $username = $decoder->decode($this->data)->sec;
+            $username = $decoder->decode($this->credentials)->sec;
             if (!$username) {
                 return null;
             }

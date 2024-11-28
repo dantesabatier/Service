@@ -20,9 +20,9 @@ class AccessManager extends Responder
     private(set) string $data;
     public Authorization $authorization {
         get => $this->authorization ??= match ($this->scheme) {
-            AuthenticationScheme::basic => new BasicAuthorization($this->data, $this->managedObjectContext, $this->request->serialization),
-            AuthenticationScheme::bearer => new BearerAuthorization($this->data, $this->managedObjectContext, $this->request->serialization, $this->request->url->host),
-            AuthenticationScheme::digest => new DigestAuthorization($this->data, $this->managedObjectContext, $this->request->serialization, $this->request->url->host, $this->request->httpMethod),
+            AuthenticationScheme::basic => new BasicAuthorization($this->request, $this->managedObjectContext),
+            AuthenticationScheme::bearer => new BearerAuthorization($this->request, $this->managedObjectContext),
+            AuthenticationScheme::digest => new DigestAuthorization($this->request, $this->managedObjectContext),
         };
     }
     public bool $isProtectedContentAvailable {
@@ -33,12 +33,8 @@ class AccessManager extends Responder
     {
         $value = $this->request->valueForHttpHeaderField("Authorization") ?? "";
         $components = explode(" ", $value, 2);
-        if (count($components) !== 2) {
-            $components = [AuthenticationScheme::basic->value, ""];
-        }
-        [$name, $credentials] = $components;
+        [$name,] = $components;
         $this->scheme = AuthenticationScheme::tryFrom($name) ?? AuthenticationScheme::basic;
-        $this->data = $credentials;
     }
 
     /**

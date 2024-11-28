@@ -10,7 +10,7 @@ class DigestAuthorization extends Authorization
     /** @var Dictionary<string> */
     public Dictionary $parameters {
         get {
-            preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->credentials, $matches);
+            preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->data, $matches);
             return new Dictionary(array_combine($matches[1], $matches[2]));
         }
     }

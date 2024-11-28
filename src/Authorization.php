@@ -2,10 +2,7 @@
 
 namespace Sabatier\Service;
 
-use JetBrains\PhpStorm\ExpectedValues;
 use Sabatier\CoreData\ManagedObjectContext;
-use Sabatier\Foundation\Dictionary;
-use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLCredential;
 
 abstract class Authorization
@@ -21,11 +18,21 @@ abstract class Authorization
             if (!($username = $this->credential?->user)) {
                 return null;
             }
-            return new IdentityManager($this->context, $username, $this->serialization)->currenUser;
+            return new IdentityManager($this->context, $username, $this->request->serialization)->currenUser;
         }
     }
+    private(set) AuthenticationScheme $scheme;
+    private(set) string $data;
 
-    public function __construct(public readonly string $data, public readonly ManagedObjectContext $context, public readonly ?Dictionary $serialization = null, public readonly ?string $host = null, #[ExpectedValues(valuesFromClass: HTTPRequestMethod::class)] public string $method = HTTPRequestMethod::get)
+    public function __construct(public readonly Request $request, public readonly ManagedObjectContext $context)
     {
+        $value = $this->request->valueForHttpHeaderField("Authorization") ?? "";
+        $components = explode(" ", $value, 2);
+        if (count($components) !== 2) {
+            $components = [AuthenticationScheme::basic->value, ""];
+        }
+        [$name, $credentials] = $components;
+        $this->scheme = AuthenticationScheme::tryFrom($name) ?? AuthenticationScheme::basic;
+        $this->data = $credentials;
     }
 }

@@ -10,7 +10,7 @@ class DigestAuthorization extends Authorization
     /** @var Dictionary<string> */
     public Dictionary $parameters {
         get {
-            preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->data, $matches);
+            preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->credentials, $matches);
             return new Dictionary(array_combine($matches[1], $matches[2]));
         }
     }
@@ -36,9 +36,8 @@ class DigestAuthorization extends Authorization
                 "SHA-256" => "sha256",
                 default => "md5"
             };
-            $request = Application::shared()->request;
-            $HA1 = hash($algo, "$username:{$request->url->host}:$password");
-            $HA2 = hash($algo, "$request->httpMethod:$uri");
+            $HA1 = hash($algo, "$username:$this->host:$password");
+            $HA2 = hash($algo, "$this->method:$uri");
             $response = hash($algo, "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
             return $parameters["response"] === $response;
         }

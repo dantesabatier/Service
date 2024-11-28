@@ -27,7 +27,7 @@ abstract class Authorization
             if (!($username = $this->credential?->user)) {
                 return null;
             }
-            return new IdentityManager($this->context, $username, $this->request->serialization)->currenUser;
+            return new IdentityManager($username, $this->context, $this->request->serialization)->currenUser;
         }
     }
 

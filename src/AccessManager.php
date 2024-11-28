@@ -20,9 +20,9 @@ class AccessManager extends Responder
     private(set) string $credentials;
     public Authorization $authorization {
         get => $this->authorization ??= match ($this->scheme) {
-            AuthenticationScheme::basic => new BasicAuthorization($this->credentials, serialization: $this->request->serialization),
-            AuthenticationScheme::bearer => new BearerAuthorization($this->credentials, host: $this->request->url->host, serialization: $this->request->serialization),
-            AuthenticationScheme::digest => new DigestAuthorization($this->credentials, $this->request->httpMethod, $this->request->url->host, $this->request->serialization),
+            AuthenticationScheme::basic => new BasicAuthorization($this->managedObjectContext, $this->credentials, serialization: $this->request->serialization),
+            AuthenticationScheme::bearer => new BearerAuthorization($this->managedObjectContext, $this->credentials, host: $this->request->url->host, serialization: $this->request->serialization),
+            AuthenticationScheme::digest => new DigestAuthorization($this->managedObjectContext, $this->credentials, $this->request->httpMethod, $this->request->url->host, $this->request->serialization),
         };
     }
     public bool $isProtectedContentAvailable {

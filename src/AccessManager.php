@@ -17,12 +17,12 @@ class AccessManager extends Responder
         get => $this->allowedMethods ??= new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
     }
     private(set) AuthenticationScheme $scheme;
-    private(set) string $credentials;
+    private(set) string $data;
     public Authorization $authorization {
         get => $this->authorization ??= match ($this->scheme) {
-            AuthenticationScheme::basic => new BasicAuthorization($this->credentials, $this->managedObjectContext, $this->request->serialization),
-            AuthenticationScheme::bearer => new BearerAuthorization($this->credentials, $this->managedObjectContext, $this->request->serialization, $this->request->url->host),
-            AuthenticationScheme::digest => new DigestAuthorization($this->credentials, $this->managedObjectContext, $this->request->serialization, $this->request->url->host, $this->request->httpMethod),
+            AuthenticationScheme::basic => new BasicAuthorization($this->data, $this->managedObjectContext, $this->request->serialization),
+            AuthenticationScheme::bearer => new BearerAuthorization($this->data, $this->managedObjectContext, $this->request->serialization, $this->request->url->host),
+            AuthenticationScheme::digest => new DigestAuthorization($this->data, $this->managedObjectContext, $this->request->serialization, $this->request->url->host, $this->request->httpMethod),
         };
     }
     public bool $isProtectedContentAvailable {
@@ -38,7 +38,7 @@ class AccessManager extends Responder
         }
         [$name, $credentials] = $components;
         $this->scheme = AuthenticationScheme::tryFrom($name) ?? AuthenticationScheme::basic;
-        $this->credentials = $credentials;
+        $this->data = $credentials;
     }
 
     /**

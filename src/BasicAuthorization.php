@@ -9,7 +9,7 @@ class BasicAuthorization extends Authorization
 {
     public ?URLCredential $credential {
         get {
-            $components = explode(":", base64_decode($this->credentials));
+            $components = explode(":", base64_decode($this->data));
             if (count($components) !== 2) {
                 return null;
             }

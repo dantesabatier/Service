@@ -7,12 +7,6 @@ use Sabatier\Foundation\Networking\URLCredential;
 
 abstract class Authorization
 {
-    abstract public ?URLCredential $credential {
-        get;
-    }
-    abstract public bool $isValid {
-        get;
-    }
     public ManagedObjectContext $context {
         get => $this->manager->managedObjectContext;
     }
@@ -29,6 +23,12 @@ abstract class Authorization
             }
             return new IdentityManager($username, $this->context, $this->request->serialization)->currenUser;
         }
+    }
+    abstract public ?URLCredential $credential {
+        get;
+    }
+    abstract public bool $isValid {
+        get;
     }
 
     public function __construct(public readonly AccessManager $manager)

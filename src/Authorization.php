@@ -19,6 +19,9 @@ abstract class Authorization
     public Request $request {
         get => $this->manager->request;
     }
+    public string $data {
+        get => $this->manager->data;
+    }
     public ?Authenticatable $user {
         get {
             if (!($username = $this->credential?->user)) {
@@ -27,18 +30,8 @@ abstract class Authorization
             return new IdentityManager($this->context, $username, $this->request->serialization)->currenUser;
         }
     }
-    private(set) AuthenticationScheme $scheme;
-    private(set) string $data;
 
     public function __construct(public readonly AccessManager $manager)
     {
-        $value = $this->request->valueForHttpHeaderField("Authorization") ?? "";
-        $components = explode(" ", $value, 2);
-        if (count($components) !== 2) {
-            $components = [AuthenticationScheme::basic->value, ""];
-        }
-        [$name, $credentials] = $components;
-        $this->scheme = AuthenticationScheme::tryFrom($name) ?? AuthenticationScheme::basic;
-        $this->data = $credentials;
     }
 }

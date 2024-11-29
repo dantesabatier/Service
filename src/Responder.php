@@ -22,7 +22,7 @@ use function Sabatier\Foundation\url_validate;
  */
 abstract class Responder extends ObjectClass
 {
-    public const string isFirstResponderKey = "isFirstResponder";
+    private const string isFirstResponderKey = "isFirstResponder";
     private const string selectorKey = "selector";
     public Request $request {
         get => self::$staticAssociatedValues[self::class][__PROPERTY__] ??= new Request();

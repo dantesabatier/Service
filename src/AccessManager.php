@@ -16,9 +16,9 @@ class AccessManager extends Responder
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
     }
-    public readonly AuthenticationScheme $scheme;
-    public readonly string $authentication;
-    public readonly Authorization $authorization;
+    private(set) AuthenticationScheme $scheme;
+    private(set) string $data;
+    private(set) Authorization $authorization;
     public bool $isProtectedContentAvailable {
         get => $this->isProtectedContentAvailable ??= $this->request->httpMethod === HTTPRequestMethod::options || $this->authorization->isValid;
     }
@@ -30,13 +30,13 @@ class AccessManager extends Responder
         if (count($components) !== 2) {
             $components = [AuthenticationScheme::basic->value, ""];
         }
-        [$scheme, $authentication] = $components;
+        [$scheme, $data] = $components;
         $this->scheme = AuthenticationScheme::tryFrom($scheme) ?? AuthenticationScheme::basic;
-        $this->authentication = $authentication;
+        $this->data = $data;
         $this->authorization = match ($this->scheme) {
             AuthenticationScheme::basic => new BasicAuthorization($this),
             AuthenticationScheme::bearer => new BearerAuthorization($this),
-            AuthenticationScheme::digest => new DigestAuthorization($this),
+            AuthenticationScheme::digest => new DigestAuthorization($this)
         };
     }
 

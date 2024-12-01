@@ -16,7 +16,7 @@ use Sabatier\Foundation\URLResourceKey;
 class Uploader extends Responder
 {
     public ArrayClass $allowedMethods {
-        get => $this->allowedMethods ??= new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
+        get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
     }
     public URL $directoryURL {
         get => $this->directoryURL ??= FileManager::default()->url(SearchPathDirectory::sharedPublicDirectory, SearchPathDomainMask::local, null, true);

@@ -15,7 +15,7 @@ use const Sabatier\Foundation\kCFBundleVersionKey;
 class Home extends ViewController
 {
     public ArrayClass $allowedMethods {
-        get => $this->allowedMethods ??= new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::head, HTTPRequestMethod::options]);
+        get => new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::head, HTTPRequestMethod::options]);
     }
     public bool $isProtectedContentAvailable = true;
     public Bundle $bundle {

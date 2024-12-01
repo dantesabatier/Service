@@ -14,7 +14,7 @@ use function Sabatier\Foundation\read_random;
 class AccessManager extends Responder
 {
     public ArrayClass $allowedMethods {
-        get => $this->allowedMethods ??= new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
+        get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
     }
     private(set) AuthenticationScheme $scheme;
     private(set) string $data;

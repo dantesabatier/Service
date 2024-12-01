@@ -15,14 +15,17 @@ class PersistentSpace extends Responder
     public bool $isFirstResponder {
         get => (bool)$this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel?->entitiesByName?->offsetExists($this->request->url->lastPathComponent);
     }
-    public Response $response {
+    public PersistentSpaceRespondent $respondent {
         get => match ($this->request->httpMethod) {
-            HTTPRequestMethod::get => new PersistentSpaceRespondentReader($this)->response,
-            HTTPRequestMethod::post => new PersistentSpaceRespondentCreator($this)->response,
-            HTTPRequestMethod::patch => new PersistentSpaceRespondentUpdater($this)->response,
-            HTTPRequestMethod::delete => new PersistentSpaceRespondentDeleter($this)->response,
+            HTTPRequestMethod::get => new PersistentSpaceRespondentReader($this),
+            HTTPRequestMethod::post => new PersistentSpaceRespondentCreator($this),
+            HTTPRequestMethod::patch => new PersistentSpaceRespondentUpdater($this),
+            HTTPRequestMethod::delete => new PersistentSpaceRespondentDeleter($this),
             HTTPRequestMethod::options => new Response($this),
             default => throw new MethodNotAllowedException()
         };
+    }
+    public Response $response {
+        get => $this->respondent->response;
     }
 }

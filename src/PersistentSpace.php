@@ -21,7 +21,7 @@ class PersistentSpace extends Responder
             HTTPRequestMethod::post => new PersistentSpaceRespondentCreator($this),
             HTTPRequestMethod::patch => new PersistentSpaceRespondentUpdater($this),
             HTTPRequestMethod::delete => new PersistentSpaceRespondentDeleter($this),
-            HTTPRequestMethod::options => new Response($this),
+            HTTPRequestMethod::options => new PersistentSpaceRespondent($this),
             default => throw new MethodNotAllowedException()
         };
     }

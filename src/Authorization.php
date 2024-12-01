@@ -7,13 +7,13 @@ use Sabatier\Foundation\Networking\URLCredential;
 
 abstract class Authorization
 {
-    public ManagedObjectContext $context {
+    protected ManagedObjectContext $context {
         get => $this->manager->managedObjectContext;
     }
-    public Request $request {
+    protected Request $request {
         get => $this->manager->request;
     }
-    public string $data {
+    protected string $data {
         get => $this->manager->data;
     }
     public ?Authenticatable $user {
@@ -24,10 +24,10 @@ abstract class Authorization
             return new IdentityManager($username, $this->context, $this->request->serialization)->currenUser;
         }
     }
-    abstract public ?URLCredential $credential {
+    public abstract ?URLCredential $credential {
         get;
     }
-    abstract public bool $isValid {
+    public abstract bool $isValid {
         get;
     }
 

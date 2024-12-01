@@ -4,7 +4,7 @@ namespace Sabatier\Service;
 
 abstract class Respondent
 {
-    abstract public Response $response {
+    public abstract Response $response {
         get;
     }
 

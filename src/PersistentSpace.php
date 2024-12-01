@@ -15,7 +15,7 @@ class PersistentSpace extends Responder
     public bool $isFirstResponder {
         get => (bool)$this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel?->entitiesByName?->offsetExists($this->request->url->lastPathComponent);
     }
-    public PersistentSpaceRespondent $respondent {
+    public Respondent $respondent {
         get => match ($this->request->httpMethod) {
             HTTPRequestMethod::get => new PersistentSpaceRespondentReader($this),
             HTTPRequestMethod::post => new PersistentSpaceRespondentCreator($this),

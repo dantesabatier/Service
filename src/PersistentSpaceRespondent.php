@@ -12,7 +12,7 @@ use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
 
 /** @internal */
-abstract class PersistentSpaceRespondent extends Respondent
+class PersistentSpaceRespondent extends Respondent
 {
     public function __construct(PersistentSpace $persistentSpace)
     {
@@ -32,5 +32,9 @@ abstract class PersistentSpaceRespondent extends Respondent
         }
         /** @noinspection PhpUnhandledExceptionInspection */
         return $responder->managedObjectContext->fetch($fetchRequest)->first;
+    }
+
+    public Response $response {
+        get => new Response($this->responder);
     }
 }

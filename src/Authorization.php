@@ -14,7 +14,7 @@ abstract class Authorization
         get => $this->manager->request;
     }
     protected string $data {
-        get => $this->manager->data;
+        get => $this->manager->authentication;
     }
     public ?Authenticatable $user {
         get {

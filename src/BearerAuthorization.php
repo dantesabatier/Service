@@ -5,6 +5,7 @@ namespace Sabatier\Service;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\UserDefaults;
 
+/** @internal */
 class BearerAuthorization extends Authorization
 {
     public ?URLCredential $credential {

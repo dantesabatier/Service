@@ -16,15 +16,9 @@ class AccessManager extends Responder
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
     }
-    private(set) AuthenticationScheme $scheme;
-    private(set) string $data;
-    private(set) Authorization $authorization {
-        get => $this->authorization ??= match ($this->scheme) {
-            AuthenticationScheme::basic => new BasicAuthorization($this),
-            AuthenticationScheme::bearer => new BearerAuthorization($this),
-            AuthenticationScheme::digest => new DigestAuthorization($this),
-        };
-    }
+    public readonly AuthenticationScheme $scheme;
+    public readonly string $authentication;
+    public readonly Authorization $authorization;
     public bool $isProtectedContentAvailable {
         get => $this->isProtectedContentAvailable ??= $this->request->httpMethod === HTTPRequestMethod::options || $this->authorization->isValid;
     }
@@ -36,9 +30,14 @@ class AccessManager extends Responder
         if (count($components) !== 2) {
             $components = [AuthenticationScheme::basic->value, ""];
         }
-        [$name, $data] = $components;
-        $this->scheme = AuthenticationScheme::tryFrom($name) ?? AuthenticationScheme::basic;
-        $this->data = $data;
+        [$scheme, $authentication] = $components;
+        $this->scheme = AuthenticationScheme::tryFrom($scheme) ?? AuthenticationScheme::basic;
+        $this->authentication = $authentication;
+        $this->authorization = match ($this->scheme) {
+            AuthenticationScheme::basic => new BasicAuthorization($this),
+            AuthenticationScheme::bearer => new BearerAuthorization($this),
+            AuthenticationScheme::digest => new DigestAuthorization($this),
+        };
     }
 
     /**

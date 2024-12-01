@@ -5,6 +5,7 @@ namespace Sabatier\Service;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\URLCredential;
 
+/** @internal */
 class DigestAuthorization extends Authorization
 {
     /** @var Dictionary<string> */

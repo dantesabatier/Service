@@ -7,15 +7,9 @@ use Sabatier\Foundation\Networking\URLCredential;
 
 abstract class Authorization
 {
-    protected ManagedObjectContext $context {
-        get => $this->manager->managedObjectContext;
-    }
-    protected Request $request {
-        get => $this->manager->request;
-    }
-    protected string $data {
-        get => $this->manager->authentication;
-    }
+    private(set) ManagedObjectContext $context;
+    private(set) Request $request;
+    private(set) string $data;
     public ?Authenticatable $user {
         get {
             if (!($username = $this->credential?->user)) {
@@ -31,7 +25,10 @@ abstract class Authorization
         get;
     }
 
-    public function __construct(public readonly AccessManager $manager)
+    public function __construct(AccessManager $manager)
     {
+        $this->data = $manager->data;
+        $this->context = $manager->managedObjectContext;
+        $this->request = $manager->request;
     }
 }

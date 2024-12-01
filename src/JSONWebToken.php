@@ -12,24 +12,31 @@ class JSONWebToken implements JsonSerializable
 {
     /** @var JSONWebTokenValues */
     private(set) array $allValues;
+    /** @var string|null issuer */
     public ?string $iss {
         get => $this->allValues[__PROPERTY__] ?? null;
     }
+    /** @var string|null subject */
     public ?string $sub {
         get => $this->allValues[__PROPERTY__] ?? null;
     }
+    /** @var string|null expiration time */
     public ?string $exp {
         get => $this->allValues[__PROPERTY__] ?? null;
     }
+    /** @var string|null audience */
     public ?string $aud {
         get => $this->allValues[__PROPERTY__] ?? null;
     }
+    /** @var string|null not before */
     public ?string $nbf {
         get => $this->allValues[__PROPERTY__] ?? null;
     }
+    /** @var string|null issued at */
     public ?string $iat {
         get => $this->allValues[__PROPERTY__] ?? null;
     }
+    /** @var string|null JWT ID */
     public ?string $jti {
         get => $this->allValues[__PROPERTY__] ?? null;
     }

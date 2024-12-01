@@ -18,7 +18,7 @@ class AccessManager extends Responder
     }
     private(set) AuthenticationScheme $scheme;
     private(set) string $data;
-    public Authorization $authorization {
+    private(set) Authorization $authorization {
         get => $this->authorization ??= match ($this->scheme) {
             AuthenticationScheme::basic => new BasicAuthorization($this),
             AuthenticationScheme::bearer => new BearerAuthorization($this),

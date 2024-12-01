@@ -6,7 +6,7 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\URLCredential;
 
 /** @internal */
-class DigestAuthorization extends Authorization
+class DigestAuthentication extends Authentication
 {
     /** @var Dictionary<string> */
     public Dictionary $parameters {

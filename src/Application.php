@@ -194,7 +194,7 @@ class Application extends Responder
                 throw new UnauthorizedException();
             }
             $viewContext->transactionAuthor = match ($this->request->httpMethod) {
-                HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $accessManager->authorization->user?->username,
+                HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $accessManager->authentication->user?->username,
                 default => null
             };
             $response = $responder->response;

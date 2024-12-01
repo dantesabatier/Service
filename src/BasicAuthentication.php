@@ -6,7 +6,7 @@ use Sabatier\Foundation\Networking\URLCredential;
 use function Sabatier\Foundation\is_password;
 
 /** @internal */
-class BasicAuthorization extends Authorization
+class BasicAuthentication extends Authentication
 {
     public ?URLCredential $credential {
         get {

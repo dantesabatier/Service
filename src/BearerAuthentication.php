@@ -6,7 +6,7 @@ use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\UserDefaults;
 
 /** @internal */
-class BearerAuthorization extends Authorization
+class BearerAuthentication extends Authentication
 {
     public ?URLCredential $credential {
         get {

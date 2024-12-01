@@ -18,9 +18,9 @@ class AccessManager extends Responder
     }
     private(set) AuthenticationScheme $scheme;
     private(set) string $data;
-    private(set) Authorization $authorization;
+    private(set) Authentication $authentication;
     public bool $isProtectedContentAvailable {
-        get => $this->isProtectedContentAvailable ??= $this->request->httpMethod === HTTPRequestMethod::options || $this->authorization->isValid;
+        get => $this->isProtectedContentAvailable ??= $this->request->httpMethod === HTTPRequestMethod::options || $this->authentication->isValid;
     }
 
     public function __construct()
@@ -33,10 +33,10 @@ class AccessManager extends Responder
         [$scheme, $data] = $components;
         $this->scheme = AuthenticationScheme::tryFrom($scheme) ?? AuthenticationScheme::basic;
         $this->data = $data;
-        $this->authorization = match ($this->scheme) {
-            AuthenticationScheme::basic => new BasicAuthorization($this),
-            AuthenticationScheme::bearer => new BearerAuthorization($this),
-            AuthenticationScheme::digest => new DigestAuthorization($this)
+        $this->authentication = match ($this->scheme) {
+            AuthenticationScheme::basic => new BasicAuthentication($this),
+            AuthenticationScheme::bearer => new BearerAuthentication($this),
+            AuthenticationScheme::digest => new DigestAuthentication($this)
         };
     }
 
@@ -46,7 +46,7 @@ class AccessManager extends Responder
     #[Action]
     public function login(): void
     {
-        $user = $this->authorization->user ?? throw new UnauthorizedException();
+        $user = $this->authentication->user ?? throw new UnauthorizedException();
         /** @var Dictionary<mixed> $data */
         $data = new Dictionary();
         $data["user"] = $user;

@@ -5,7 +5,7 @@ namespace Sabatier\Service;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\Networking\URLCredential;
 
-abstract class Authorization
+abstract class Authentication
 {
     private(set) ManagedObjectContext $context;
     private(set) Request $request;

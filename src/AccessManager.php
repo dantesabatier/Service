@@ -4,12 +4,14 @@ namespace Sabatier\Service;
 
 use Exception;
 use Sabatier\Foundation\ArrayClass;
+use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\UserDefaults;
 use function Sabatier\Foundation\read_random;
+use function Sabatier\Foundation\string_is_equal;
 
 class AccessManager extends Responder
 {
@@ -80,6 +82,9 @@ class AccessManager extends Responder
             return false;
         }
         $endpoint = $this->request->url->lastPathComponent;
+        if (string_is_equal($endpoint, (string)$this->selector, CompareOptions::caseInsensitive)) {
+            return true;
+        }
         /** @var ArrayClass<Authorization>|null $authorizations */
         $authorizations = $this->authentication->user->authorizationsByName[$endpoint];
         if (!$authorizations instanceof ArrayClass) {

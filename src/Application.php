@@ -186,9 +186,6 @@ class Application extends Responder
             };
             $session = $this->session;
             $session->start();
-            if (!$responder->isProtectedContentAvailable) {
-                $responder->isProtectedContentAvailable = $this->isProtectedContentAvailable;
-            }
             $accessManager = $this->accessManager;
             if (!$responder->isProtectedContentAvailable && !$accessManager->isProtectedContentAvailable) {
                 throw new UnauthorizedException();

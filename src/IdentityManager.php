@@ -11,7 +11,7 @@ use Sabatier\Foundation\Predicates\Expression;
 
 class IdentityManager
 {
-    public ?Authenticatable $currenUser {
+    public ?Authorizable $currenUser {
         get {
             $context = $this->context;
             /** @var FetchRequest<Authenticatable> $fetchRequest */

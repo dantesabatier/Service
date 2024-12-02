@@ -20,7 +20,7 @@ class AccessManager extends Responder
     private(set) string $data;
     private(set) Authentication $authentication;
     public bool $isProtectedContentAvailable {
-        get => $this->isProtectedContentAvailable ??= $this->request->httpMethod === HTTPRequestMethod::options || $this->authentication->isValid;
+        get => $this->isProtectedContentAvailable ??= $this->isProtectedContentAvailable();
     }
 
     public function __construct()
@@ -69,5 +69,27 @@ class AccessManager extends Responder
         $session = Application::shared()->session;
         $session->setValueForKey(null, "username");
         $this->statusCode = HTTPStatusCode::noContent;
+    }
+
+    private function isProtectedContentAvailable(): bool
+    {
+        if ($this->request->httpMethod === HTTPRequestMethod::options) {
+            return true;
+        }
+        if (!$this->authentication->isValid) {
+            return false;
+        }
+        $endpoint = $this->request->url->lastPathComponent;
+        /** @var ArrayClass<Authorization>|null $authorizations */
+        $authorizations = $this->authentication->user->authorizationsByName[$endpoint];
+        if (!$authorizations instanceof ArrayClass) {
+            return false;
+        }
+        return match ($this->request->httpMethod) {
+            HTTPRequestMethod::get, HTTPRequestMethod::head => $authorizations->contains(fn(Authorization $authorization): bool => $authorization->type === AuthorizationType::read),
+            HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::put => $authorizations->contains(fn(Authorization $authorization): bool => $authorization->type === AuthorizationType::write),
+            HTTPRequestMethod::delete => $authorizations->contains(fn(Authorization $authorization): bool => $authorization->type === AuthorizationType::delete),
+            default => false
+        };
     }
 }

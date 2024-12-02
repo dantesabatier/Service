@@ -10,7 +10,7 @@ abstract class Authentication
     private(set) ManagedObjectContext $context;
     private(set) Request $request;
     private(set) string $data;
-    public ?Authenticatable $user {
+    public ?Authorizable $user {
         get {
             if (!($username = $this->credential?->user)) {
                 return null;

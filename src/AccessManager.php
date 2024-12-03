@@ -78,12 +78,12 @@ class AccessManager extends Responder
         if ($this->request->httpMethod === HTTPRequestMethod::options) {
             return true;
         }
-        if (!$this->authentication->isValid) {
-            return false;
-        }
         $endpoint = $this->request->url->lastPathComponent;
         if (string_is_equal($endpoint, (string)$this->selector, CompareOptions::caseInsensitive)) {
             return true;
+        }
+        if (!$this->authentication->isValid) {
+            return false;
         }
         if (!($authorizations = $this->authentication->user?->authorizations)) {
             return false;

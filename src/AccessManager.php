@@ -85,13 +85,13 @@ class AccessManager extends Responder
         if (!$this->authentication->isValid) {
             return false;
         }
-        if (!($authorizations = $this->authentication->user?->authorizations)) {
+        if (!($authorization = $this->authentication->user?->authorization)) {
             return false;
         }
         return match ($this->request->httpMethod) {
-            HTTPRequestMethod::get, HTTPRequestMethod::head => $authorizations->contains(fn(Authorization $authorization): bool => $authorization->type === AuthorizationType::read),
-            HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::put => $authorizations->contains(fn(Authorization $authorization): bool => $authorization->type === AuthorizationType::write),
-            HTTPRequestMethod::delete => $authorizations->contains(fn(Authorization $authorization): bool => $authorization->type === AuthorizationType::delete),
+            HTTPRequestMethod::get, HTTPRequestMethod::head => $authorization->type === AuthorizationType::read,
+            HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::put => $authorization->type === AuthorizationType::write,
+            HTTPRequestMethod::delete => $authorization->type === AuthorizationType::delete,
             default => false
         };
     }

@@ -2,19 +2,11 @@
 
 namespace Sabatier\Service;
 
-use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\URLCredential;
+use Sabatier\Foundation\ObjectClass;
 
-abstract class Authentication
+abstract class Authentication extends ObjectClass
 {
-    public ?Dictionary $serialization {
-        get {
-            if (!($this->manager->isFirstResponder)) {
-                return null;
-            }
-            return $this->manager->request->serialization;
-        }
-    }
     public ?Authorizable $user {
         get => $this->user ??= $this->user();
     }
@@ -34,6 +26,6 @@ abstract class Authentication
         if (!($username = $this->credential?->user)) {
             return null;
         }
-        return new IdentityManager($username, $this->manager->managedObjectContext, $this->serialization)->currenUser;
+        return new IdentityManager($username, $this->manager->managedObjectContext, $this->manager->isFirstResponder ? $this->manager->request->serialization : null)->currenUser;
     }
 }

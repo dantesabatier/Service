@@ -3,9 +3,8 @@
 namespace Sabatier\Service;
 
 use Sabatier\Foundation\Networking\URLCredential;
-use Sabatier\Foundation\ObjectClass;
 
-abstract class Authentication extends ObjectClass
+abstract class Authentication
 {
     public ?Authorizable $user {
         get => $this->user ??= $this->user();

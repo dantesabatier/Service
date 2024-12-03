@@ -10,7 +10,7 @@ class BasicAuthentication extends Authentication
 {
     public ?URLCredential $credential {
         get {
-            $components = explode(":", base64_decode($this->data));
+            $components = explode(":", base64_decode($this->manager->data));
             if (count($components) !== 2) {
                 return null;
             }

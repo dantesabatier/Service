@@ -2,21 +2,21 @@
 
 namespace Sabatier\Service;
 
-use Sabatier\CoreData\ManagedObjectContext;
+use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\URLCredential;
 
 abstract class Authentication
 {
-    private(set) ManagedObjectContext $context;
-    private(set) Request $request;
-    private(set) string $data;
-    public ?Authorizable $user {
+    public ?Dictionary $serialization {
         get {
-            if (!($username = $this->credential?->user)) {
+            if (!($this->manager->isFirstResponder)) {
                 return null;
             }
-            return new IdentityManager($username, $this->context, $this->request->serialization)->currenUser;
+            return $this->manager->request->serialization;
         }
+    }
+    public ?Authorizable $user {
+        get => $this->user ??= $this->user();
     }
     public abstract ?URLCredential $credential {
         get;
@@ -25,10 +25,15 @@ abstract class Authentication
         get;
     }
 
-    public function __construct(AccessManager $manager)
+    public function __construct(public readonly AccessManager $manager)
     {
-        $this->data = $manager->data;
-        $this->context = $manager->managedObjectContext;
-        $this->request = $manager->request;
+    }
+
+    private function user(): ?Authorizable
+    {
+        if (!($username = $this->credential?->user)) {
+            return null;
+        }
+        return new IdentityManager($username, $this->manager->managedObjectContext, $this->serialization)->currenUser;
     }
 }

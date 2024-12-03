@@ -85,9 +85,7 @@ class AccessManager extends Responder
         if (string_is_equal($endpoint, (string)$this->selector, CompareOptions::caseInsensitive)) {
             return true;
         }
-        /** @var ArrayClass<Authorization>|null $authorizations */
-        $authorizations = $this->authentication->user->authorizationsByName[$endpoint];
-        if (!$authorizations instanceof ArrayClass) {
+        if (!($authorizations = $this->authentication->user?->authorizations)) {
             return false;
         }
         return match ($this->request->httpMethod) {

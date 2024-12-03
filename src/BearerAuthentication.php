@@ -13,8 +13,8 @@ class BearerAuthentication extends Authentication
             if (!($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey))) {
                 return null;
             }
-            $decoder = new JSONWebTokenDecoder($key, $this->request->url->host);
-            $username = $decoder->decode($this->data)->username;
+            $decoder = new JSONWebTokenDecoder($key, $this->manager->request->url->host);
+            $username = $decoder->decode($this->manager->data)->username;
             if ($username === null) {
                 return null;
             }

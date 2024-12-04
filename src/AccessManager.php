@@ -90,7 +90,8 @@ class AccessManager extends Responder
         }
         return match ($this->request->httpMethod) {
             HTTPRequestMethod::get, HTTPRequestMethod::head => $authorization->type === AuthorizationType::read,
-            HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::put => $authorization->type === AuthorizationType::write,
+            HTTPRequestMethod::post => $authorization->type === AuthorizationType::create,
+            HTTPRequestMethod::patch, HTTPRequestMethod::put => $authorization->type === AuthorizationType::update,
             HTTPRequestMethod::delete => $authorization->type === AuthorizationType::delete,
             default => false
         };

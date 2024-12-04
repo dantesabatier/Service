@@ -5,6 +5,7 @@ namespace Sabatier\Service;
 enum AuthorizationType: int
 {
     case read = 0;
-    case write = 1;
-    case delete = 2;
+    case create = 1;
+    case update = 2;
+    case delete = 3;
 }

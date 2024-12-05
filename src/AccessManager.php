@@ -52,6 +52,30 @@ class AccessManager extends Responder
         Authentication::registerClass(DigestAuthentication::class);
     }
 
+    private function isProtectedContentAvailable(): bool
+    {
+        if ($this->request->httpMethod === HTTPRequestMethod::options) {
+            return true;
+        }
+        $endpoint = $this->request->url->lastPathComponent;
+        if (string_is_equal($endpoint, (string)$this->selector, CompareOptions::caseInsensitive)) {
+            return true;
+        }
+        if (!$this->authentication->isValid) {
+            return false;
+        }
+        if (!($authorization = $this->authentication->user?->authorization)) {
+            return false;
+        }
+        return match ($this->request->httpMethod) {
+            HTTPRequestMethod::get, HTTPRequestMethod::head => $authorization->type === AuthorizationType::read,
+            HTTPRequestMethod::post => $authorization->type === AuthorizationType::create,
+            HTTPRequestMethod::patch, HTTPRequestMethod::put => $authorization->type === AuthorizationType::update,
+            HTTPRequestMethod::delete => $authorization->type === AuthorizationType::delete,
+            default => false
+        };
+    }
+
     /**
      * @throws Exception
      */
@@ -81,29 +105,5 @@ class AccessManager extends Responder
         $session = Application::shared()->session;
         $session->setValueForKey(null, "username");
         $this->statusCode = HTTPStatusCode::noContent;
-    }
-
-    private function isProtectedContentAvailable(): bool
-    {
-        if ($this->request->httpMethod === HTTPRequestMethod::options) {
-            return true;
-        }
-        $endpoint = $this->request->url->lastPathComponent;
-        if (string_is_equal($endpoint, (string)$this->selector, CompareOptions::caseInsensitive)) {
-            return true;
-        }
-        if (!$this->authentication->isValid) {
-            return false;
-        }
-        if (!($authorization = $this->authentication->user?->authorization)) {
-            return false;
-        }
-        return match ($this->request->httpMethod) {
-            HTTPRequestMethod::get, HTTPRequestMethod::head => $authorization->type === AuthorizationType::read,
-            HTTPRequestMethod::post => $authorization->type === AuthorizationType::create,
-            HTTPRequestMethod::patch, HTTPRequestMethod::put => $authorization->type === AuthorizationType::update,
-            HTTPRequestMethod::delete => $authorization->type === AuthorizationType::delete,
-            default => false
-        };
     }
 }

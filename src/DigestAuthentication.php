@@ -43,4 +43,9 @@ class DigestAuthentication extends Authentication
             return $parameters["response"] === $response;
         }
     }
+
+    public static function canInit(AuthenticationScheme $scheme): bool
+    {
+        return $scheme === AuthenticationScheme::digest;
+    }
 }

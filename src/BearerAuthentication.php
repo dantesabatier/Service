@@ -29,4 +29,9 @@ class BearerAuthentication extends Authentication
             return $credential->user === $username;
         }
     }
+
+    public static function canInit(AuthenticationScheme $scheme): bool
+    {
+        return $scheme === AuthenticationScheme::bearer;
+    }
 }

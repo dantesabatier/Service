@@ -29,4 +29,9 @@ class BasicAuthentication extends Authentication
             return $credential->password === $password;
         }
     }
+
+    public static function canInit(AuthenticationScheme $scheme): bool
+    {
+        return $scheme === AuthenticationScheme::basic;
+    }
 }

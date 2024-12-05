@@ -24,6 +24,12 @@ class AccessManager extends Responder
     public bool $isProtectedContentAvailable {
         get => $this->isProtectedContentAvailable ??= $this->isProtectedContentAvailable();
     }
+    public string $authenticationClass {
+        get {
+            $authenticationClasses = Authentication::getAuthentications() ?? new ArrayClass();
+            return Authentication::getAuthenticationClass($authenticationClasses, $this->scheme) ?? BasicAuthentication::class;
+        }
+    }
 
     public function __construct()
     {
@@ -33,13 +39,17 @@ class AccessManager extends Responder
             $components = [AuthenticationScheme::basic->value, ""];
         }
         [$scheme, $data] = $components;
+        self::registerAuthentications();
         $this->scheme = AuthenticationScheme::tryFrom($scheme) ?? AuthenticationScheme::basic;
         $this->data = $data;
-        $this->authentication = match ($this->scheme) {
-            AuthenticationScheme::basic => new BasicAuthentication($this),
-            AuthenticationScheme::bearer => new BearerAuthentication($this),
-            AuthenticationScheme::digest => new DigestAuthentication($this)
-        };
+        $this->authentication = new ($this->authenticationClass)($this);
+    }
+
+    private static function registerAuthentications(): void
+    {
+        Authentication::registerClass(BasicAuthentication::class);
+        Authentication::registerClass(BearerAuthentication::class);
+        Authentication::registerClass(DigestAuthentication::class);
     }
 
     /**

@@ -42,26 +42,23 @@ class Application extends Responder
     /** @var ApplicationDelegate|null The delegate of the app object. */
     public ?ApplicationDelegate $delegate {
         get {
-            if (!isset($this->associatedValues[__PROPERTY__])) {
+            if (!isset($this->delegate)) {
                 if (($principalClass = Bundle::main()->principalClass) && isset(class_implements($principalClass)[ApplicationDelegate::class])) {
                     /** @var class-string<ApplicationDelegate> $delegateClass */
                     $delegateClass = $principalClass;
                     if (is_subclass_of($delegateClass, ObjectClass::class)) {
                         $delegateClass::initialize();
                     }
-                    $this->associatedValues[__PROPERTY__] = new $delegateClass();
+                    $this->delegate = new $delegateClass();
                 }
-                $this->associatedValues[__PROPERTY__] ??= null;
+                $this->delegate ??= null;
             }
-            return $this->associatedValues[__PROPERTY__];
-        }
-        set {
-            $this->associatedValues[__PROPERTY__] = $value;
+            return $this->delegate;
         }
     }
-    public PersistentContainer $persistentContainer {
+    private(set) PersistentContainer $persistentContainer {
         get {
-            if (!isset($this->associatedValues[__PROPERTY__])) {
+            if (!isset($this->persistentContainer)) {
                 $persistentContainer = new PersistentContainer(Bundle::main()->object(kCFBundleNameKey));
                 if ($description = $persistentContainer->persistentStoreDescriptions->first) {
                     $description->setOptionForKey(UserDefaults::standard()->bool(PersistentHistoryTrackingKey), PersistentHistoryTrackingKey);
@@ -83,9 +80,9 @@ class Application extends Responder
                     $request->fetchRequest = PersistentHistoryTransaction::fetchRequest();
                     $context->execute($request);
                 });
-                $this->associatedValues[__PROPERTY__] = $persistentContainer;
+                $this->persistentContainer = $persistentContainer;
             }
-            return $this->associatedValues[__PROPERTY__];
+            return $this->persistentContainer;
         }
     }
     public Session $session {

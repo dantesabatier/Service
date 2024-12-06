@@ -10,8 +10,8 @@ abstract class Authentication
 {
     /** @var ArrayClass<class-string<Authentication>>|null */
     private static ?ArrayClass $registeredAuthenticationClasses = null;
-    public ?Authorizable $user {
-        get => $this->user ??= $this->user();
+    private(set) ?Authorizable $user {
+        get => $this->user ??= ($username = $this->credential?->user) ? new IdentityManager($username, $this->manager->managedObjectContext, $this->manager->isFirstResponder ? $this->manager->request->serialization : null)->currenUser : null;
     }
     public abstract ?URLCredential $credential {
         get;
@@ -63,14 +63,6 @@ abstract class Authentication
     public static function canInit(AuthenticationScheme $scheme): bool
     {
         request_concrete_implementation(static::class, __FUNCTION__);
-    }
-
-    private function user(): ?Authorizable
-    {
-        if (!($username = $this->credential?->user)) {
-            return null;
-        }
-        return new IdentityManager($username, $this->manager->managedObjectContext, $this->manager->isFirstResponder ? $this->manager->request->serialization : null)->currenUser;
     }
 }
 

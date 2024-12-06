@@ -43,9 +43,9 @@ class AccessManager extends Responder
             $components = [AuthenticationScheme::basic->value, ""];
         }
         [$scheme, $data] = $components;
-        self::registerAuthentications();
         $this->scheme = AuthenticationScheme::tryFrom($scheme) ?? AuthenticationScheme::basic;
         $this->authenticationData = $data;
+        self::registerAuthentications();
     }
 
     private static function registerAuthentications(): void

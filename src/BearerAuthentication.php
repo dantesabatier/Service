@@ -8,26 +8,23 @@ use Sabatier\Foundation\UserDefaults;
 /** @internal */
 class BearerAuthentication extends Authentication
 {
-    public ?URLCredential $credential {
+    private(set) ?URLCredential $credential {
         get {
-            if (!($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey))) {
-                return null;
+            if (!isset($this->credential)) {
+                if ($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) {
+                    $decoder = new JSONWebTokenDecoder($key, $this->manager->request->url->host);
+                    $username = $decoder->decode($this->manager->authenticationData)->username;
+                    if ($username) {
+                        $this->credential = new URLCredential($username);
+                    }
+                }
+                $this->credential ??= null;
             }
-            $decoder = new JSONWebTokenDecoder($key, $this->manager->request->url->host);
-            $username = $decoder->decode($this->manager->authenticationData)->username;
-            if ($username === null) {
-                return null;
-            }
-            return new URLCredential($username);
+            return $this->credential;
         }
     }
     public bool $isValid {
-        get {
-            if (!($credential = $this->credential) || !($username = $this->user?->username)) {
-                return false;
-            }
-            return $credential->user === $username;
-        }
+        get => $this->credential instanceof URLCredential;
     }
 
     public static function canInit(AuthenticationScheme $scheme): bool

@@ -27,6 +27,7 @@ class AccessManager extends Responder
     public bool $isProtectedContentAvailable {
         get => $this->isProtectedContentAvailable ??= $this->isProtectedContentAvailable();
     }
+    /** @var class-string<Authentication> */
     public string $authenticationClass {
         get {
             $authenticationClasses = Authentication::getAuthentications() ?? new ArrayClass();

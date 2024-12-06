@@ -21,7 +21,9 @@ class AccessManager extends Responder
     private(set) AuthenticationScheme $scheme;
     /** @internal */
     private(set) string $authenticationData;
-    private(set) Authentication $authentication;
+    private(set) Authentication $authentication {
+        get => $this->authentication ??= new ($this->authenticationClass)($this);
+    }
     public bool $isProtectedContentAvailable {
         get => $this->isProtectedContentAvailable ??= $this->isProtectedContentAvailable();
     }
@@ -43,7 +45,6 @@ class AccessManager extends Responder
         self::registerAuthentications();
         $this->scheme = AuthenticationScheme::tryFrom($scheme) ?? AuthenticationScheme::basic;
         $this->authenticationData = $data;
-        $this->authentication = new ($this->authenticationClass)($this);
     }
 
     private static function registerAuthentications(): void

@@ -7,11 +7,16 @@ use Sabatier\Foundation\Networking\HTTPURLResponse;
 
 class Response extends HTTPURLResponse
 {
-    public Emitter $emitter;
-    public readonly ?string $body;
+    public Emitter $emitter {
+        get => $this->emitter ??= new Emitter();
+    }
+    public ?string $body {
+        get => $this->responder->content;
+    }
 
-    public function __construct(Responder $responder)
+    public function __construct(private readonly Responder $responder)
     {
+        $responder = $this->responder;
         $request = $responder->request;
         $headerFields = $responder->headerFields;
         if ($origin = $request->valueForHttpHeaderField("Origin")) {
@@ -35,8 +40,6 @@ class Response extends HTTPURLResponse
             });
         }
         parent::__construct($request->url, $responder->statusCode, headerFields: $headerFields);
-        $this->body = $responder->content;
-        $this->emitter = new Emitter();
     }
 
     public function send(): never

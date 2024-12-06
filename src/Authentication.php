@@ -4,7 +4,6 @@ namespace Sabatier\Service;
 
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Networking\URLCredential;
-use function Sabatier\Foundation\request_concrete_implementation;
 
 abstract class Authentication
 {
@@ -77,9 +76,6 @@ abstract class Authentication
         }
     }
 
-    public static function canInit(AuthenticationScheme $scheme): bool
-    {
-        request_concrete_implementation(static::class, __FUNCTION__);
-    }
+    public abstract static function canInit(AuthenticationScheme $scheme): bool;
 }
 

@@ -9,19 +9,17 @@ use Sabatier\Foundation\Networking\URLCredential;
 class DigestAuthentication extends Authentication
 {
     /** @var Dictionary<string> */
-    public Dictionary $parameters {
+    private(set) Dictionary $parameters {
         get {
-            preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->manager->authenticationData, $matches);
-            return new Dictionary(array_combine($matches[1], $matches[2]));
+            if (!isset($this->parameters)) {
+                preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->manager->authenticationData, $matches);
+                $this->parameters = new Dictionary(array_combine($matches[1], $matches[2]));
+            }
+            return $this->parameters;
         }
     }
-    public ?URLCredential $credential {
-        get {
-            if (!($username = $this->parameters["username"])) {
-                return null;
-            }
-            return new URLCredential($username);
-        }
+    private(set) ?URLCredential $credential {
+        get => $this->credential ??= ($username = $this->parameters["username"]) ? new URLCredential($username) : null;
     }
     public bool $isValid {
         get {

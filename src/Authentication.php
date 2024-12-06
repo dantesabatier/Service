@@ -24,12 +24,19 @@ abstract class Authentication
     {
     }
 
+    /**
+     * @return ArrayClass<class-string<Authentication>>
+     */
     private static function registeredAuthenticationClasses(): ArrayClass
     {
         self::$registeredAuthenticationClasses ??= new ArrayClass();
         return self::$registeredAuthenticationClasses;
     }
 
+    /**
+     * @param class-string<Authentication> $authenticationClass
+     * @return bool
+     */
     public static function registerClass(string $authenticationClass): bool
     {
         $registeredAuthenticationClasses = self::registeredAuthenticationClasses();
@@ -38,6 +45,12 @@ abstract class Authentication
         }
         return true;
     }
+
+    /**
+     * @param ArrayClass<class-string<Authentication>> $authenticationClasses
+     * @param AuthenticationScheme $scheme
+     * @return class-string<Authentication>|null
+     */
 
     public static function getAuthenticationClass(ArrayClass $authenticationClasses, AuthenticationScheme $scheme): ?string
     {
@@ -53,6 +66,9 @@ abstract class Authentication
         return self::$registeredAuthenticationClasses;
     }
 
+    /**
+     * @param class-string<Authentication> $authenticationClass
+     */
     public function unregisterClass(string $authenticationClass): void
     {
         if ($registeredAuthenticationClasses = self::$registeredAuthenticationClasses) {

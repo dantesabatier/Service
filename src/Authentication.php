@@ -50,6 +50,7 @@ abstract class Authentication
      * @param ArrayClass<class-string<Authentication>> $authenticationClasses
      * @param AuthenticationScheme $scheme
      * @return class-string<Authentication>|null
+     * @internal
      */
 
     public static function getAuthenticationClass(ArrayClass $authenticationClasses, AuthenticationScheme $scheme): ?string

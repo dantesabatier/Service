@@ -14,7 +14,7 @@ class BearerAuthentication extends Authentication
                 return null;
             }
             $decoder = new JSONWebTokenDecoder($key, $this->manager->request->url->host);
-            $username = $decoder->decode($this->manager->data)->username;
+            $username = $decoder->decode($this->manager->authenticationData)->username;
             if ($username === null) {
                 return null;
             }

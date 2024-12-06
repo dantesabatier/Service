@@ -11,7 +11,7 @@ class DigestAuthentication extends Authentication
     /** @var Dictionary<string> */
     public Dictionary $parameters {
         get {
-            preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->manager->data, $matches);
+            preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->manager->authenticationData, $matches);
             return new Dictionary(array_combine($matches[1], $matches[2]));
         }
     }

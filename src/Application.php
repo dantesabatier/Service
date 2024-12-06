@@ -103,6 +103,9 @@ class Application extends Responder
     public Uploader $uploader {
         get => $this->uploader ??= new Uploader();
     }
+    public Downloader $downloader {
+        get => $this->downloader ??= new Downloader();
+    }
     private(set) PersistentHistoryToken $persistentHistoryToken {
         get => UserDefaults::standard()->object(PersistentHistoryTokenKey) ? KeyedUnarchiver::unarchiveTopLevelObjectWithData(UserDefaults::standard()->object(PersistentHistoryTokenKey)) : new PersistentHistoryToken(new Dictionary([(string)$this->persistentContainer->persistentStoreCoordinator->persistentStores->first?->identifier => new Number(0)]));
         set {
@@ -164,7 +167,7 @@ class Application extends Responder
 
     private function internalResponder(): ?Responder
     {
-        return new ArrayClass([$this->accessManager, $this->persistentSpace, $this->resourceManager, $this->preferences, $this->uploader, new Home()])->first(fn(Responder $responder): bool => $responder->isFirstResponder);
+        return new ArrayClass([$this->accessManager, $this->persistentSpace, $this->resourceManager, $this->preferences, $this->uploader, $this->downloader, new Home()])->first(fn(Responder $responder): bool => $responder->isFirstResponder);
     }
 
     public function run(): never

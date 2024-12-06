@@ -41,10 +41,52 @@ class Application extends Responder
     private static ?Application $shared = null;
     /** @var ApplicationDelegate|null The delegate of the app object. */
     public ?ApplicationDelegate $delegate {
-        get => $this->delegate ??= $this->delegate();
+        get {
+            if (!isset($this->associatedValues[__PROPERTY__])) {
+                if (($principalClass = Bundle::main()->principalClass) && isset(class_implements($principalClass)[ApplicationDelegate::class])) {
+                    /** @var class-string<ApplicationDelegate> $delegateClass */
+                    $delegateClass = $principalClass;
+                    if (is_subclass_of($delegateClass, ObjectClass::class)) {
+                        $delegateClass::initialize();
+                    }
+                    $this->associatedValues[__PROPERTY__] = new $delegateClass();
+                }
+                $this->associatedValues[__PROPERTY__] ??= null;
+            }
+            return $this->associatedValues[__PROPERTY__];
+        }
+        set {
+            $this->associatedValues[__PROPERTY__] = $value;
+        }
     }
     public PersistentContainer $persistentContainer {
-        get => $this->persistentContainer ??= $this->persistentContainer();
+        get {
+            if (!isset($this->associatedValues[__PROPERTY__])) {
+                $persistentContainer = new PersistentContainer(Bundle::main()->object(kCFBundleNameKey));
+                if ($description = $persistentContainer->persistentStoreDescriptions->first) {
+                    $description->setOptionForKey(UserDefaults::standard()->bool(PersistentHistoryTrackingKey), PersistentHistoryTrackingKey);
+                    $description->setOptionForKey(UserDefaults::standard()->bool(PersistentStoreRemoteChangeNotificationPostOptionKey), PersistentStoreRemoteChangeNotificationPostOptionKey);
+                }
+                $persistentContainer->loadPersistentStores(function (PersistentStoreDescription $description, ?Error $error): void {
+                    if ($error) {
+                        throw new InternalInconsistencyException(error: $error);
+                    }
+                });
+                NotificationCenter::default()->addObserverForName(PersistentStoreRemoteChange, $persistentContainer->persistentStoreCoordinator, function (Notification $notification): void {
+                    /** @var Dictionary<mixed> $userInfo */
+                    $userInfo = $notification->userInfo;
+                    /** @var PersistentHistoryToken $persistentHistoryToken */
+                    $persistentHistoryToken = $userInfo[PersistentHistoryTokenKey];
+                    $this->persistentHistoryToken = $persistentHistoryToken;
+                    $context = $this->persistentContainer->viewContext;
+                    $request = PersistentHistoryChangeRequest::deleteHistoryBeforeToken($this->persistentHistoryToken);
+                    $request->fetchRequest = PersistentHistoryTransaction::fetchRequest();
+                    $context->execute($request);
+                });
+                $this->associatedValues[__PROPERTY__] = $persistentContainer;
+            }
+            return $this->associatedValues[__PROPERTY__];
+        }
     }
     public Session $session {
         get => $this->session ??= new Session();
@@ -82,45 +124,6 @@ class Application extends Responder
     {
         static::$shared ??= new static();
         return static::$shared;
-    }
-
-    private function delegate(): ?ApplicationDelegate
-    {
-        if (($principalClass = Bundle::main()->principalClass) && isset(class_implements($principalClass)[ApplicationDelegate::class])) {
-            /** @var class-string<ApplicationDelegate> $delegateClass */
-            $delegateClass = $principalClass;
-            if (is_subclass_of($delegateClass, ObjectClass::class)) {
-                $delegateClass::initialize();
-            }
-            return new $delegateClass();
-        }
-        return null;
-    }
-
-    private function persistentContainer(): PersistentContainer
-    {
-        $persistentContainer = new PersistentContainer(Bundle::main()->object(kCFBundleNameKey));
-        if ($description = $persistentContainer->persistentStoreDescriptions->first) {
-            $description->setOptionForKey(UserDefaults::standard()->bool(PersistentHistoryTrackingKey), PersistentHistoryTrackingKey);
-            $description->setOptionForKey(UserDefaults::standard()->bool(PersistentStoreRemoteChangeNotificationPostOptionKey), PersistentStoreRemoteChangeNotificationPostOptionKey);
-        }
-        $persistentContainer->loadPersistentStores(function (PersistentStoreDescription $description, ?Error $error): void {
-            if ($error) {
-                throw new InternalInconsistencyException(error: $error);
-            }
-        });
-        NotificationCenter::default()->addObserverForName(PersistentStoreRemoteChange, $persistentContainer->persistentStoreCoordinator, function (Notification $notification): void {
-            /** @var Dictionary<mixed> $userInfo */
-            $userInfo = $notification->userInfo;
-            /** @var PersistentHistoryToken $persistentHistoryToken */
-            $persistentHistoryToken = $userInfo[PersistentHistoryTokenKey];
-            $this->persistentHistoryToken = $persistentHistoryToken;
-            $context = $this->persistentContainer->viewContext;
-            $request = PersistentHistoryChangeRequest::deleteHistoryBeforeToken($this->persistentHistoryToken);
-            $request->fetchRequest = PersistentHistoryTransaction::fetchRequest();
-            $context->execute($request);
-        });
-        return $persistentContainer;
     }
 
     private function mainResponder(): ?Responder

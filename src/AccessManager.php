@@ -18,21 +18,21 @@ class AccessManager extends Responder
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
     }
-    private(set) AuthenticationScheme $scheme;
+    private(set) AuthenticationScheme $authenticationScheme;
     /** @internal */
     private(set) string $authenticationData;
+    /** @var class-string<Authentication> */
+    public string $authenticationClass {
+        get {
+            $authenticationClasses = Authentication::getAuthentications() ?? new ArrayClass();
+            return Authentication::getAuthenticationClass($authenticationClasses, $this->authenticationScheme) ?? BasicAuthentication::class;
+        }
+    }
     private(set) Authentication $authentication {
         get => $this->authentication ??= new ($this->authenticationClass)($this);
     }
     public bool $isProtectedContentAvailable {
         get => $this->isProtectedContentAvailable ??= $this->isProtectedContentAvailable();
-    }
-    /** @var class-string<Authentication> */
-    public string $authenticationClass {
-        get {
-            $authenticationClasses = Authentication::getAuthentications() ?? new ArrayClass();
-            return Authentication::getAuthenticationClass($authenticationClasses, $this->scheme) ?? BasicAuthentication::class;
-        }
     }
 
     public function __construct()
@@ -43,7 +43,7 @@ class AccessManager extends Responder
             $components = [AuthenticationScheme::basic->value, ""];
         }
         [$scheme, $data] = $components;
-        $this->scheme = AuthenticationScheme::tryFrom($scheme) ?? AuthenticationScheme::basic;
+        $this->authenticationScheme = AuthenticationScheme::tryFrom($scheme) ?? AuthenticationScheme::basic;
         $this->authenticationData = $data;
         self::registerAuthentications();
     }

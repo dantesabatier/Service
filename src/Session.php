@@ -47,9 +47,7 @@ class Session extends ObjectClass
     /** @var string The session name. */
     public string $name {
         get => unsafe_value(fn(): string => session_name());
-        set {
-            unsafe_value(fn(): string => session_name($value));
-        }
+        set => unsafe_value(fn(): string => session_name($value));
     }
     /** @var SessionStatus The session status. */
     public SessionStatus $status {

@@ -73,6 +73,7 @@ abstract class Authentication
     }
 
     /**
+     * Unregisters the specified subclass of Authentication.
      * @param class-string<Authentication> $authenticationClass
      */
     public function unregisterClass(string $authenticationClass): void
@@ -82,6 +83,11 @@ abstract class Authentication
         }
     }
 
+    /**
+     * Determines whether the authentication subclass can handle the specified authentication scheme.
+     * @param AuthenticationScheme $scheme The authentication scheme.
+     * @return bool true if the authentication subclass can handle authentication scheme, otherwise false.
+     */
     public abstract static function canInit(AuthenticationScheme $scheme): bool;
 }
 

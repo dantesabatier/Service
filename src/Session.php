@@ -30,7 +30,15 @@ class Session extends ObjectClass
     }
     /** @var URL The session save url. */
     public URL $saveURL {
-        get => $this->saveURL ??= $this->saveURL();
+        get {
+            if (!isset($this->saveURL)) {
+                $this->saveURL = FileManager::default()->url(SearchPathDirectory::cachesDirectory)->appendingPathComponent(Bundle::main()->bundleIdentifier ?? ProcessInfo::processInfo()->processName)->appendingPathComponent("Session");
+                if (!FileManager::default()->fileExists($this->saveURL->path)) {
+                    FileManager::default()->createDirectory($this->saveURL, true, new Dictionary([FileAttributeKey::posixPermissions => 0777]));
+                }
+            }
+            return $this->saveURL;
+        }
     }
     /** @var string The session id. */
     public string $id {
@@ -79,18 +87,6 @@ class Session extends ObjectClass
             } catch (Exception) {
             }
         }
-    }
-
-    /**
-     * @throws Exception
-     */
-    private function saveURL(): URL
-    {
-        $saveURL = FileManager::default()->url(SearchPathDirectory::cachesDirectory)->appendingPathComponent(Bundle::main()->bundleIdentifier ?? ProcessInfo::processInfo()->processName)->appendingPathComponent("Session");
-        if (!FileManager::default()->fileExists($saveURL->path)) {
-            FileManager::default()->createDirectory($saveURL, true, new Dictionary([FileAttributeKey::posixPermissions => 0777]));
-        }
-        return $saveURL;
     }
 
     #[Override]

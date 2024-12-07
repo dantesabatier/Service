@@ -34,10 +34,13 @@ abstract class Authentication
 
     /**
      * @param class-string<Authentication> $authenticationClass
-     * @return bool
+     * @return bool true if the registration is successful, false otherwise. The only failure condition is if authenticationClass is not a subclass of Authentication.
      */
     public static function registerClass(string $authenticationClass): bool
     {
+        if (!is_subclass_of($authenticationClass, Authentication::class)) {
+            return false;
+        }
         $registeredAuthenticationClasses = self::registeredAuthenticationClasses();
         if (!$registeredAuthenticationClasses->containsElement($authenticationClass)) {
             $registeredAuthenticationClasses[] = $authenticationClass;

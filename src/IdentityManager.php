@@ -5,10 +5,8 @@ namespace Sabatier\Service;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObjectContext;
-use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
-use Sabatier\Foundation\Predicates\CompoundPredicate;
 use Sabatier\Foundation\Predicates\Expression;
 
 class IdentityManager
@@ -19,7 +17,7 @@ class IdentityManager
             /** @var FetchRequest<Authenticatable> $fetchRequest */
             $fetchRequest = new FetchRequest();
             $fetchRequest->entity = EntityDescription::entity("User", $context);
-            $fetchRequest->predicate = CompoundPredicate::andPredicateWithSubpredicates(new ArrayClass([new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($this->username)), new ComparisonPredicate(Expression::expressionForKeyPath("isEnabled"), Expression::expressionForConstantValue(true))]));
+            $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($this->username));
             if ($serialization = $this->serialization) {
                 $fetchRequest->serialization = $serialization;
             }

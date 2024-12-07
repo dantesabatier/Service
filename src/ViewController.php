@@ -18,7 +18,7 @@ abstract class ViewController extends Responder
     public static string $rendererClass = Renderer::class;
     /** @var string The name of the view controller's template file, if one was specified. */
     public string $name {
-        get => $this->name ??= class_name(get_class($this));
+        get => $this->name ??= class_name($this->class);
     }
     /** @var View The view that the controller manages. */
     private(set) View $view;

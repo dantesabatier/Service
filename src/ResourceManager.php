@@ -4,7 +4,6 @@
 
 namespace Sabatier\Service;
 
-use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\URL;
@@ -12,9 +11,6 @@ use Sabatier\Foundation\URLFileTypeMappings;
 
 class ResourceManager extends Responder
 {
-    public ArrayClass $allowedMethods {
-        get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::head, HTTPRequestMethod::get]);
-    }
     public bool $isProtectedContentAvailable = true;
     public URL $resourceURL {
         get => $this->resourceURL ??= new URL($this->request->url->path, FileManager::default()->documentRootDirectory)->absoluteURL;

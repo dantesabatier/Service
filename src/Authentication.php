@@ -33,6 +33,9 @@ abstract class Authentication
     }
 
     /**
+     * Attempts to register a subclass of Authentication, making it visible to the access manager.
+     *
+     * The first Authentication subclass to return true when sent a {@see canInit()} message is used to authenticate the request. There is no guarantee that all registered authentication classes will be consulted.
      * @param class-string<Authentication> $authenticationClass
      * @return bool true if the registration is successful, false otherwise. The only failure condition is if authenticationClass is not a subclass of Authentication.
      */

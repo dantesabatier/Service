@@ -23,7 +23,11 @@ class AccessManager extends Responder
     private(set) string $authenticationData;
     /** @var class-string<Authentication> */
     public string $authenticationClass {
-        get => Authentication::getAuthenticationClass(Authentication::getAuthentications() ?? new ArrayClass(), $this->authenticationScheme) ?? BasicAuthentication::class;
+        get {
+            /** @var ArrayClass<class-string<Authentication>> $authenticationClasses */
+            $authenticationClasses = Authentication::getAuthentications() ?? new ArrayClass();
+            return Authentication::getAuthenticationClass($authenticationClasses, $this->authenticationScheme) ?? BasicAuthentication::class;
+        }
     }
     private(set) Authentication $authentication {
         get => $this->authentication ??= new ($this->authenticationClass)($this);

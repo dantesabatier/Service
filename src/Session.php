@@ -26,7 +26,7 @@ use function Sabatier\Foundation\unsafe_value;
 class Session extends ObjectClass
 {
     public CookieParameters $cookieParameters {
-        get => $this->cookieParameters ??= new CookieParameters(new URL(request_url())->host ?? "");
+        get => $this->cookieParameters ??= new CookieParameters(parse_url(request_url(), PHP_URL_HOST) ?? "");
     }
     /** @var URL The session save url. */
     public URL $saveURL {

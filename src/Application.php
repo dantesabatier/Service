@@ -23,6 +23,7 @@ use Sabatier\Foundation\Notification;
 use Sabatier\Foundation\NotificationCenter;
 use Sabatier\Foundation\Number;
 use Sabatier\Foundation\ObjectClass;
+use Sabatier\Foundation\OperationQueue;
 use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Foundation\UserDefaults;
 use Throwable;
@@ -75,10 +76,13 @@ class Application extends Responder
                     /** @var PersistentHistoryToken $persistentHistoryToken */
                     $persistentHistoryToken = $userInfo[PersistentHistoryTokenKey];
                     $this->persistentHistoryToken = $persistentHistoryToken;
-                    $context = $this->persistentContainer->viewContext;
-                    $request = PersistentHistoryChangeRequest::deleteHistoryBeforeToken($this->persistentHistoryToken);
-                    $request->fetchRequest = PersistentHistoryTransaction::fetchRequest();
-                    $context->execute($request);
+                    $queue = OperationQueue::main();
+                    $queue->addOperationWithBlock(function (): void {
+                        $context = $this->persistentContainer->viewContext;
+                        $request = PersistentHistoryChangeRequest::deleteHistoryBeforeToken($this->persistentHistoryToken);
+                        $request->fetchRequest = PersistentHistoryTransaction::fetchRequest();
+                        $context->execute($request);
+                    });
                 });
                 $this->persistentContainer = $persistentContainer;
             }

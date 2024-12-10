@@ -16,12 +16,9 @@ use Sabatier\Foundation\DirectoryEnumerationOptions;
 use Sabatier\Foundation\Error;
 use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\InternalInconsistencyException;
-use Sabatier\Foundation\KeyedArchiver;
-use Sabatier\Foundation\KeyedUnarchiver;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Notification;
 use Sabatier\Foundation\NotificationCenter;
-use Sabatier\Foundation\Number;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Foundation\UserDefaults;
@@ -74,9 +71,8 @@ class Application extends Responder
                     $userInfo = $notification->userInfo;
                     /** @var PersistentHistoryToken $persistentHistoryToken */
                     $persistentHistoryToken = $userInfo[PersistentHistoryTokenKey];
-                    $this->persistentHistoryToken = $persistentHistoryToken;
                     $context = $this->persistentContainer->viewContext;
-                    $request = PersistentHistoryChangeRequest::deleteHistoryBeforeToken($this->persistentHistoryToken);
+                    $request = PersistentHistoryChangeRequest::deleteHistoryBeforeToken($persistentHistoryToken);
                     $request->fetchRequest = PersistentHistoryTransaction::fetchRequest();
                     $context->execute($request);
                 });
@@ -106,12 +102,7 @@ class Application extends Responder
     public Downloader $downloader {
         get => $this->downloader ??= new Downloader();
     }
-    private(set) PersistentHistoryToken $persistentHistoryToken {
-        get => UserDefaults::standard()->object(PersistentHistoryTokenKey) ? KeyedUnarchiver::unarchiveTopLevelObjectWithData(UserDefaults::standard()->object(PersistentHistoryTokenKey)) : new PersistentHistoryToken(new Dictionary([(string)$this->persistentContainer->persistentStoreCoordinator->persistentStores->first?->identifier => new Number(0)]));
-        set {
-            UserDefaults::standard()->setObject(KeyedArchiver::archivedData($value), PersistentHistoryTokenKey);
-        }
-    }
+
     private(set) ?Responder $firstResponder {
         get => $this->firstResponder ??= $this->mainResponder() ?? $this->internalResponder();
     }

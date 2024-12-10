@@ -76,13 +76,10 @@ class Application extends Responder
                     /** @var PersistentHistoryToken $persistentHistoryToken */
                     $persistentHistoryToken = $userInfo[PersistentHistoryTokenKey];
                     $this->persistentHistoryToken = $persistentHistoryToken;
-                    $queue = OperationQueue::main();
-                    $queue->addOperationWithBlock(function (): void {
-                        $context = $this->persistentContainer->viewContext;
-                        $request = PersistentHistoryChangeRequest::deleteHistoryBeforeToken($this->persistentHistoryToken);
-                        $request->fetchRequest = PersistentHistoryTransaction::fetchRequest();
-                        $context->execute($request);
-                    });
+                    $context = $this->persistentContainer->viewContext;
+                    $request = PersistentHistoryChangeRequest::deleteHistoryBeforeToken($this->persistentHistoryToken);
+                    $request->fetchRequest = PersistentHistoryTransaction::fetchRequest();
+                    $context->execute($request);
                 });
                 $this->persistentContainer = $persistentContainer;
             }

@@ -22,7 +22,7 @@ abstract class ViewController extends Responder
     }
     /** @var View The view that the controller manages. */
     private(set) View $view;
-    /** @var object|array<string, mixed> */
+    /** @var array<string, mixed> */
     public array $context {
         get => $this->context ??= array_reduce(new ReflectionClass($this)->getProperties(ReflectionProperty::IS_PUBLIC), function (array $context, ReflectionProperty $property): array {
             if ($property->getAttributes(Outlet::class) !== []) {

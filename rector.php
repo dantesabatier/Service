@@ -7,15 +7,13 @@ use Rector\CodeQuality\Rector\ClassMethod\LocallyCalledStaticMethodToNonStaticRe
 use Rector\CodeQuality\Rector\Identical\FlipTypeControlToUseExclusiveTypeRector;
 use Rector\CodeQuality\Rector\If_\ExplicitBoolCompareRector;
 use Rector\Config\RectorConfig;
-use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPrivateMethodParameterRector;
-use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPrivateMethodRector;
-use Rector\DeadCode\Rector\ClassMethod\RemoveUselessParamTagRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessReturnTagRector;
 use Rector\Exception\Configuration\InvalidConfigurationException;
 use Rector\Php73\Rector\ConstFetch\SensitiveConstantNameRector;
 use Rector\Php74\Rector\Property\RestoreDefaultNullToNullableTypePropertyRector;
 use Rector\Php80\Rector\Class_\ClassPropertyAssignToConstructorPromotionRector;
 use Rector\Php81\Rector\ClassMethod\NewInInitializerRector;
+use Rector\Php81\Rector\Property\ReadOnlyPropertyRector;
 use Rector\Strict\Rector\Empty_\DisallowedEmptyRuleFixerRector;
 
 try {
@@ -30,14 +28,12 @@ try {
             FlipTypeControlToUseExclusiveTypeRector::class,
             DisallowedEmptyRuleFixerRector::class,
             LocallyCalledStaticMethodToNonStaticRector::class,
-            RemoveUnusedPrivateMethodRector::class,
-            RemoveUnusedPrivateMethodParameterRector::class,
-            RemoveUselessReturnTagRector::class,
-            RemoveUselessParamTagRector::class,
             ExplicitReturnNullRector::class,
+            RemoveUselessReturnTagRector::class,
+            ReadOnlyPropertyRector::class,
             RestoreDefaultNullToNullableTypePropertyRector::class => [
-                __DIR__ . "/src/JSONWebToken.php",
-            ]
+                __DIR__ . "/src/JSONWebToken.php"
+            ],
         ])->withPreparedSets(deadCode: true, codeQuality: true, earlyReturn: true);
 } catch (InvalidConfigurationException $e) {
     error_log($e->getMessage());

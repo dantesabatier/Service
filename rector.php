@@ -13,8 +13,8 @@ use Rector\DeadCode\Rector\ClassMethod\RemoveUselessParamTagRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessReturnTagRector;
 use Rector\Exception\Configuration\InvalidConfigurationException;
 use Rector\Php73\Rector\ConstFetch\SensitiveConstantNameRector;
+use Rector\Php74\Rector\Property\RestoreDefaultNullToNullableTypePropertyRector;
 use Rector\Php80\Rector\Class_\ClassPropertyAssignToConstructorPromotionRector;
-use Rector\Php80\Rector\FunctionLike\MixedTypeRector;
 use Rector\Php81\Rector\ClassMethod\NewInInitializerRector;
 use Rector\Strict\Rector\Empty_\DisallowedEmptyRuleFixerRector;
 
@@ -26,7 +26,6 @@ try {
             SensitiveConstantNameRector::class,
             ClassPropertyAssignToConstructorPromotionRector::class,
             NewInInitializerRector::class,
-            MixedTypeRector::class,
             ExplicitBoolCompareRector::class,
             FlipTypeControlToUseExclusiveTypeRector::class,
             DisallowedEmptyRuleFixerRector::class,
@@ -36,6 +35,9 @@ try {
             RemoveUselessReturnTagRector::class,
             RemoveUselessParamTagRector::class,
             ExplicitReturnNullRector::class,
+            RestoreDefaultNullToNullableTypePropertyRector::class => [
+                __DIR__ . "/src/JSONWebToken.php",
+            ]
         ])->withPreparedSets(deadCode: true, codeQuality: true, earlyReturn: true);
 } catch (InvalidConfigurationException $e) {
     error_log($e->getMessage());

@@ -2,11 +2,13 @@
 
 namespace Sabatier\Service;
 
+use Override;
 use Sabatier\Foundation\Dictionary;
 use function Sabatier\Foundation\human_readable_value;
 
 class BatchEmitter extends Emitter
 {
+    #[Override]
     public function emit(Response $response, Dictionary $headers, ?string $content = null): never
     {
         assert($response instanceof BatchResponse);

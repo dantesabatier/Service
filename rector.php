@@ -7,6 +7,7 @@ use Rector\CodeQuality\Rector\ClassMethod\LocallyCalledStaticMethodToNonStaticRe
 use Rector\CodeQuality\Rector\Identical\FlipTypeControlToUseExclusiveTypeRector;
 use Rector\CodeQuality\Rector\If_\ExplicitBoolCompareRector;
 use Rector\Config\RectorConfig;
+use Rector\DeadCode\Rector\ClassMethod\RemoveUselessParamTagRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessReturnTagRector;
 use Rector\Exception\Configuration\InvalidConfigurationException;
 use Rector\Php73\Rector\ConstFetch\SensitiveConstantNameRector;
@@ -31,9 +32,8 @@ try {
             ExplicitReturnNullRector::class,
             RemoveUselessReturnTagRector::class,
             ReadOnlyPropertyRector::class,
-            RestoreDefaultNullToNullableTypePropertyRector::class => [
-                __DIR__ . "/src/JSONWebToken.php"
-            ],
+            RestoreDefaultNullToNullableTypePropertyRector::class,
+            RemoveUselessParamTagRector::class,
         ])->withPreparedSets(deadCode: true, codeQuality: true, earlyReturn: true);
 } catch (InvalidConfigurationException $e) {
     error_log($e->getMessage());

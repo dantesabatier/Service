@@ -61,7 +61,6 @@ abstract class ViewController extends Responder
         $this->viewDidLoad();
         $this->content = $this->view->render();
         $this->headerFields["Content-Type"] = "text/html; charset=utf-8";
-        $this->headerFields["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0";
     }
 
     public function viewWillLoad(): void

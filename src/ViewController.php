@@ -58,9 +58,9 @@ abstract class ViewController extends Responder
     {
         $this->viewWillLoad();
         $this->view = new View($this->name, $this->context, new self::$rendererClass($this->bundle));
-        $this->viewDidLoad();
         $this->content = $this->view->render();
         $this->headerFields["Content-Type"] = "text/html; charset=utf-8";
+        $this->viewDidLoad();
     }
 
     public function viewWillLoad(): void

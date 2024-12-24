@@ -19,6 +19,7 @@ use function Sabatier\Foundation\url_validate;
 /**
  * An abstract interface for responding to and handling url requests.
  * @psalm-consistent-constructor
+ * @phpstan-consistent-constructor
  */
 abstract class Responder extends ObjectClass
 {

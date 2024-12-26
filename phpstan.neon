@@ -1,0 +1,7 @@
+parameters:
+	level: 3
+	paths:
+		- src
+	ignoreErrors:
+		- identifier: staticClassAccess.privateProperty
+		- identifier: new.static

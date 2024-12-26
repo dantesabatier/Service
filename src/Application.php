@@ -32,12 +32,13 @@ use const Sabatier\Foundation\kCFBundleNameKey;
 
 /**
  * An object that manages an app's main url request and resources used by all of that app's objects.
+ * @phpstan-consistent-constructor
  */
 class Application extends Responder
 {
     private static ?Application $shared = null;
     /** @var ApplicationDelegate|null The delegate of the app object. */
-    public ?ApplicationDelegate $delegate {
+    private(set) ?ApplicationDelegate $delegate {
         get {
             if (!isset($this->delegate)) {
                 if (($principalClass = Bundle::main()->principalClass) && isset(class_implements($principalClass)[ApplicationDelegate::class])) {
@@ -81,28 +82,27 @@ class Application extends Responder
             return $this->persistentContainer;
         }
     }
-    public Session $session {
+    private(set) Session $session {
         get => $this->session ??= new Session();
     }
-    public AccessManager $accessManager {
+    private(set) AccessManager $accessManager {
         get => $this->accessManager ??= new AccessManager();
     }
-    public PersistentSpace $persistentSpace {
+    private(set) PersistentSpace $persistentSpace {
         get => $this->persistentSpace ??= new PersistentSpace();
     }
-    public ResourceManager $resourceManager {
+    private(set) ResourceManager $resourceManager {
         get => $this->resourceManager ??= new ResourceManager();
     }
-    public Preferences $preferences {
+    private(set) Preferences $preferences {
         get => $this->preferences ??= new Preferences();
     }
-    public Uploader $uploader {
+    private(set) Uploader $uploader {
         get => $this->uploader ??= new Uploader();
     }
-    public Downloader $downloader {
+    private(set) Downloader $downloader {
         get => $this->downloader ??= new Downloader();
     }
-
     private(set) ?Responder $firstResponder {
         get => $this->firstResponder ??= $this->mainResponder() ?? $this->internalResponder();
     }

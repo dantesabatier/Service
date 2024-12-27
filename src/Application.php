@@ -32,7 +32,6 @@ use const Sabatier\Foundation\kCFBundleNameKey;
 
 /**
  * An object that manages an app's main url request and resources used by all of that app's objects.
- * @phpstan-consistent-constructor
  */
 class Application extends Responder
 {
@@ -88,22 +87,22 @@ class Application extends Responder
     private(set) ?Responder $firstResponder {
         get => $this->firstResponder ??= $this->mainResponder() ?? $this->internalResponder();
     }
-    private AccessManager $accessManager {
+    private(set) AccessManager $accessManager {
         get => $this->accessManager ??= new AccessManager();
     }
-    private PersistentSpace $persistentSpace {
+    private(set) PersistentSpace $persistentSpace {
         get => $this->persistentSpace ??= new PersistentSpace();
     }
-    private ResourceManager $resourceManager {
+    private(set) ResourceManager $resourceManager {
         get => $this->resourceManager ??= new ResourceManager();
     }
-    private Preferences $preferences {
+    private(set) Preferences $preferences {
         get => $this->preferences ??= new Preferences();
     }
-    private Uploader $uploader {
+    private(set) Uploader $uploader {
         get => $this->uploader ??= new Uploader();
     }
-    private Downloader $downloader {
+    private(set) Downloader $downloader {
         get => $this->downloader ??= new Downloader();
     }
 

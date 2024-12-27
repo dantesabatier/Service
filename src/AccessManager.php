@@ -13,7 +13,6 @@ use Sabatier\Foundation\UserDefaults;
 use function Sabatier\Foundation\read_random;
 use function Sabatier\Foundation\string_is_equal;
 
-/** @internal */
 class AccessManager extends Responder
 {
     public ArrayClass $allowedMethods {

@@ -13,6 +13,7 @@ use Sabatier\Foundation\Set;
 use Sabatier\Foundation\URL;
 use Sabatier\Foundation\URLResourceKey;
 
+/** @internal */
 class Uploader extends Responder
 {
     public ArrayClass $allowedMethods {

@@ -6,6 +6,7 @@ use Override;
 use Sabatier\Foundation\Dictionary;
 use function Sabatier\Foundation\human_readable_value;
 
+/** @internal */
 class BatchEmitter extends Emitter
 {
     #[Override]

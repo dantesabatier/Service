@@ -85,26 +85,26 @@ class Application extends Responder
     private(set) Session $session {
         get => $this->session ??= new Session();
     }
-    private(set) AccessManager $accessManager {
-        get => $this->accessManager ??= new AccessManager();
-    }
-    private(set) PersistentSpace $persistentSpace {
-        get => $this->persistentSpace ??= new PersistentSpace();
-    }
-    private(set) ResourceManager $resourceManager {
-        get => $this->resourceManager ??= new ResourceManager();
-    }
-    private(set) Preferences $preferences {
-        get => $this->preferences ??= new Preferences();
-    }
-    private(set) Uploader $uploader {
-        get => $this->uploader ??= new Uploader();
-    }
-    private(set) Downloader $downloader {
-        get => $this->downloader ??= new Downloader();
-    }
     private(set) ?Responder $firstResponder {
         get => $this->firstResponder ??= $this->mainResponder() ?? $this->internalResponder();
+    }
+    private AccessManager $accessManager {
+        get => $this->accessManager ??= new AccessManager();
+    }
+    private PersistentSpace $persistentSpace {
+        get => $this->persistentSpace ??= new PersistentSpace();
+    }
+    private ResourceManager $resourceManager {
+        get => $this->resourceManager ??= new ResourceManager();
+    }
+    private Preferences $preferences {
+        get => $this->preferences ??= new Preferences();
+    }
+    private Uploader $uploader {
+        get => $this->uploader ??= new Uploader();
+    }
+    private Downloader $downloader {
+        get => $this->downloader ??= new Downloader();
     }
 
     /**

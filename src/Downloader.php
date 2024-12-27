@@ -11,6 +11,7 @@ use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\URL;
 use Sabatier\Foundation\URLFileTypeMappings;
 
+/** @internal */
 class Downloader extends Responder
 {
     public ArrayClass $allowedMethods {

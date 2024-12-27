@@ -7,6 +7,7 @@ namespace Sabatier\Service;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 
+/** @internal */
 class PersistentSpace extends Responder
 {
     public EntityDescription $entity {

@@ -15,6 +15,7 @@ use Traversable;
 
 /**
  * @extends DirectoryEnumerator<URL>
+ * @internal
  */
 class UploadsEnumerator extends DirectoryEnumerator
 {

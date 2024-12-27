@@ -10,6 +10,7 @@ use Traversable;
 
 /**
  * @template-implements IteratorAggregate<int, string>
+ * @internal
  */
 class BatchResponse extends Response implements IteratorAggregate
 {

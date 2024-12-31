@@ -60,7 +60,7 @@ abstract class Authentication
 
     public static function getAuthenticationClass(ArrayClass $authenticationClasses, AuthenticationScheme $scheme): ?string
     {
-        return $authenticationClasses->first(fn(mixed $authenticationClass) => $authenticationClass::canInit($scheme));
+        return $authenticationClasses->first(fn(mixed $authenticationClass): bool => $authenticationClass::canInit($scheme));
     }
 
     /**

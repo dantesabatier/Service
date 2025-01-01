@@ -7,6 +7,8 @@ use Rector\CodeQuality\Rector\ClassMethod\LocallyCalledStaticMethodToNonStaticRe
 use Rector\CodeQuality\Rector\Identical\FlipTypeControlToUseExclusiveTypeRector;
 use Rector\CodeQuality\Rector\If_\ExplicitBoolCompareRector;
 use Rector\Config\RectorConfig;
+use Rector\DeadCode\Rector\ClassMethod\RemoveEmptyClassMethodRector;
+use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPromotedPropertyRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessParamTagRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessReturnTagRector;
 use Rector\Exception\Configuration\InvalidConfigurationException;
@@ -34,6 +36,12 @@ try {
             ReadOnlyPropertyRector::class,
             RestoreDefaultNullToNullableTypePropertyRector::class,
             RemoveUselessParamTagRector::class,
+            RemoveEmptyClassMethodRector::class => [
+                __DIR__ . "/src/IdentityManager.php"
+            ],
+            RemoveUnusedPromotedPropertyRector::class => [
+                __DIR__ . "/src/IdentityManager.php"
+            ],
         ])->withPreparedSets(deadCode: true, codeQuality: true, earlyReturn: true);
 } catch (InvalidConfigurationException $e) {
     error_log($e->getMessage());

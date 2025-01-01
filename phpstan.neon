@@ -5,3 +5,4 @@ parameters:
 	ignoreErrors:
 		- identifier: staticClassAccess.privateProperty
 		- identifier: new.static
+		- identifier: property.staticAccess

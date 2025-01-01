@@ -14,7 +14,7 @@ class IdentityManager
     public ?Authorizable $currenUser {
         get {
             $context = $this->context;
-            /** @var FetchRequest<Authenticatable> $fetchRequest */
+            /** @var FetchRequest<Authorizable> $fetchRequest */
             $fetchRequest = new FetchRequest();
             $fetchRequest->entity = EntityDescription::entity("User", $context);
             $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($this->username));

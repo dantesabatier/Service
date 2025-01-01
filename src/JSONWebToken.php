@@ -20,20 +20,20 @@ class JSONWebToken implements JsonSerializable
     public ?string $sub {
         get => $this->allValues[__PROPERTY__] ?? null;
     }
-    /** @var string|null expiration time */
-    public ?string $exp {
+    /** @var float|null expiration time */
+    public ?float $exp {
         get => $this->allValues[__PROPERTY__] ?? null;
     }
     /** @var string|null audience */
     public ?string $aud {
         get => $this->allValues[__PROPERTY__] ?? null;
     }
-    /** @var string|null not before */
-    public ?string $nbf {
+    /** @var float|null not before */
+    public ?float $nbf {
         get => $this->allValues[__PROPERTY__] ?? null;
     }
-    /** @var string|null issued at */
-    public ?string $iat {
+    /** @var float|null issued at */
+    public ?float $iat {
         get => $this->allValues[__PROPERTY__] ?? null;
     }
     /** @var string|null JWT ID */
@@ -44,7 +44,7 @@ class JSONWebToken implements JsonSerializable
         get => $this->allValues[__PROPERTY__] ?? null;
     }
 
-    public function __construct(?string $iss = null, ?string $sub = null, ?string $aud = null, ?float $exp = null, ?float $nbf = null, ?float $iat = null, ?string $jti = null, mixed $username = null)
+    public function __construct(?string $iss = null, ?string $sub = null, ?string $aud = null, ?float $exp = null, ?float $nbf = null, ?float $iat = null, ?string $jti = null, ?string $username = null)
     {
         $this->allValues = ["iss" => $iss, "sub" => $sub, "aud" => $aud, "exp" => $exp, "nbf" => $nbf, "iat" => $iat, "jti" => $jti, "username" => $username];
     }

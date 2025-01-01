@@ -8,7 +8,7 @@ use Sabatier\Foundation\Networking\URLCredential;
 /** @internal */
 class DigestAuthentication extends Authentication
 {
-    /** @var Dictionary<string> */
+    /** @var Dictionary<covariant string> */
     private(set) Dictionary $parameters {
         get {
             if (!isset($this->parameters)) {

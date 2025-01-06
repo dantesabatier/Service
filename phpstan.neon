@@ -6,6 +6,5 @@ parameters:
 		- identifier: staticClassAccess.privateProperty
 		- identifier: new.static
 		- identifier: property.staticAccess
-		- identifier: assign.propertyReadOnly
 		- identifier: staticMethod.notFound
 		- identifier: propertyGetHook.noRead

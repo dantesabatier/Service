@@ -4,14 +4,12 @@ namespace Sabatier\Service;
 
 use Exception;
 use Sabatier\Foundation\ArrayClass;
-use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\UserDefaults;
 use function Sabatier\Foundation\read_random;
-use function Sabatier\Foundation\string_is_equal;
 
 class AccessManager extends Responder
 {
@@ -61,10 +59,6 @@ class AccessManager extends Responder
         if ($this->request->httpMethod === HTTPRequestMethod::options) {
             return true;
         }
-        $endpoint = $this->request->url->lastPathComponent;
-        if (string_is_equal($endpoint, (string)$this->selector, CompareOptions::caseInsensitive)) {
-            return true;
-        }
         if (!$this->authentication->isValid) {
             return false;
         }
@@ -96,6 +90,7 @@ class AccessManager extends Responder
             $encoder = new JSONWebTokenEncoder($key);
             $data["token"] = $encoder->encode(new JSONWebToken(iss: $this->request->url->host, exp: $date->addingTimeInterval(UserDefaults::standard()->float(JWTValidityTimeIntervalPreferenceKey))->timeIntervalSinceReferenceDate, nbf: $date->timeIntervalSinceReferenceDate, iat: $date->timeIntervalSinceReferenceDate, jti: base64_encode(read_random(16)), username: $username));
         }
+        error_log(json_encode($user, JSON_PRETTY_PRINT));
         $session = Application::shared()->session;
         $session->regenerateID();
         $session->setValueForKey($username, "username");

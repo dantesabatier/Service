@@ -9,6 +9,9 @@ abstract class Authentication
 {
     /** @var ArrayClass<class-string<Authentication>>|null */
     private static ?ArrayClass $registeredAuthenticationClasses = null;
+    public abstract ?URLCredential $credential {
+        get;
+    }
     public ?Authorizable $user {
         get {
             if (!($username = $this->credential?->user)) {
@@ -16,9 +19,6 @@ abstract class Authentication
             }
             return new IdentityManager($username, $this->manager->managedObjectContext, $this->manager->isFirstResponder ? $this->manager->request->serialization : null)->currenUser;
         }
-    }
-    public abstract ?URLCredential $credential {
-        get;
     }
     public abstract bool $isValid {
         get;

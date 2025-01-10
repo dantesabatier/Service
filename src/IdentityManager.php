@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use Sabatier\CoreData\AttributeType;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObjectContext;
@@ -19,6 +20,9 @@ class IdentityManager
             $fetchRequest->entity = EntityDescription::entity("User", $context);
             $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($this->username));
             if ($serialization = $this->serialization) {
+                if (!$serialization->offsetExists("password")) {
+                    $serialization["password"] = AttributeType::string;
+                }
                 $fetchRequest->serialization = $serialization;
             }
             return $context->fetch($fetchRequest)->first;

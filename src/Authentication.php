@@ -9,8 +9,13 @@ abstract class Authentication
 {
     /** @var ArrayClass<class-string<Authentication>>|null */
     private static ?ArrayClass $registeredAuthenticationClasses = null;
-    private(set) ?Authorizable $user {
-        get => $this->user ??= ($username = $this->credential?->user) ? new IdentityManager($username, $this->manager->managedObjectContext, $this->manager->isFirstResponder ? $this->manager->request->serialization : null)->currenUser : null;
+    public ?Authorizable $user {
+        get {
+            if (!($username = $this->credential?->user)) {
+                return null;
+            }
+            return new IdentityManager($username, $this->manager->managedObjectContext, $this->manager->isFirstResponder ? $this->manager->request->serialization : null)->currenUser;
+        }
     }
     public abstract ?URLCredential $credential {
         get;

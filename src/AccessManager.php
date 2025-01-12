@@ -91,7 +91,6 @@ class AccessManager extends Responder
             $encoder = new JSONWebTokenEncoder($key);
             $data["token"] = $encoder->encode($token);
         }
-        error_log(json_encode($user, JSON_PRETTY_PRINT));
         $session = Application::shared()->session;
         $session->regenerateID();
         $session->setValueForKey($username, "username");

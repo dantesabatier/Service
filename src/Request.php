@@ -14,9 +14,35 @@ use function Sabatier\Foundation\request_url;
 
 class Request extends URLRequest
 {
-    private(set) Dictionary $parsedBody;
+    private(set) Dictionary $parsedBody {
+        get {
+            if (!isset($this->parsedBody)) {
+                $this->parsedBody = Dictionary::dictionaryWithArray($this->getParsedBody());
+                if ($this->parsedBody->isEmpty) {
+                    $components = new URLComponents($this->url->absoluteString);
+                    if ($dictionary = $components->queryItems?->reduce(new Dictionary(), function (Dictionary $result, URLQueryItem $queryItem): Dictionary {
+                        $result[$queryItem->name] = $queryItem->value;
+                        return $result;
+                    })) {
+                        $this->parsedBody->merge($dictionary);
+                    }
+                }
+            }
+            return $this->parsedBody;
+        }
+    }
     /** @var Dictionary<mixed>|null */
-    private(set) ?Dictionary $serialization = null;
+    private(set) ?Dictionary $serialization {
+        get {
+            if (!isset($this->serialization)) {
+                if (($string = $this->valueForHttpHeaderField("Serialization")) && json_validate($string) && ($array = json_decode($string, true))) {
+                    $this->serialization = Dictionary::dictionaryWithArray($array);
+                }
+                $this->serialization ??= null;
+            }
+            return $this->serialization;
+        }
+    }
 
     public function __construct()
     {
@@ -39,18 +65,5 @@ class Request extends URLRequest
             default => null
         };
         $this->attribution = URLRequestAttribution::user;
-        $this->parsedBody = Dictionary::dictionaryWithArray($this->getParsedBody());
-        if ($this->parsedBody->isEmpty) {
-            $components = new URLComponents($this->url->absoluteString);
-            if ($dictionary = $components->queryItems?->reduce(new Dictionary(), function (Dictionary $result, URLQueryItem $queryItem): Dictionary {
-                $result[$queryItem->name] = $queryItem->value;
-                return $result;
-            })) {
-                $this->parsedBody->merge($dictionary);
-            }
-        }
-        if (($string = $this->valueForHttpHeaderField("Serialization")) && json_validate($string) && ($array = json_decode($string, true))) {
-            $this->serialization = Dictionary::dictionaryWithArray($array);
-        }
     }
 }

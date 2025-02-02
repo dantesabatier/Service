@@ -41,9 +41,8 @@ abstract class Authentication
             return false;
         }
         self::$registeredAuthenticationClasses ??= new ArrayClass();
-        $registeredAuthenticationClasses = self::$registeredAuthenticationClasses;
-        if (!$registeredAuthenticationClasses->containsElement($authenticationClass)) {
-            $registeredAuthenticationClasses[] = $authenticationClass;
+        if (!self::$registeredAuthenticationClasses->containsElement($authenticationClass)) {
+            self::$registeredAuthenticationClasses[] = $authenticationClass;
         }
         return true;
     }

@@ -29,15 +29,6 @@ abstract class Authentication
     }
 
     /**
-     * @return ArrayClass<class-string<Authentication>>
-     */
-    private static function registeredAuthenticationClasses(): ArrayClass
-    {
-        self::$registeredAuthenticationClasses ??= new ArrayClass();
-        return self::$registeredAuthenticationClasses;
-    }
-
-    /**
      * Attempts to register a subclass of Authentication, making it visible to the access manager.
      *
      * The first Authentication subclass to return true when sent a {@see canInit()} message is used to authenticate the request. There is no guarantee that all registered authentication classes will be consulted.
@@ -49,7 +40,8 @@ abstract class Authentication
         if (!is_subclass_of($authenticationClass, Authentication::class)) {
             return false;
         }
-        $registeredAuthenticationClasses = self::registeredAuthenticationClasses();
+        self::$registeredAuthenticationClasses ??= new ArrayClass();
+        $registeredAuthenticationClasses = self::$registeredAuthenticationClasses;
         if (!$registeredAuthenticationClasses->containsElement($authenticationClass)) {
             $registeredAuthenticationClasses[] = $authenticationClass;
         }

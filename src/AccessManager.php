@@ -19,19 +19,14 @@ class AccessManager extends Responder
     private(set) AuthenticationScheme $authenticationScheme;
     /** @internal */
     private(set) string $authenticationData;
-    /** @var class-string<Authentication> */
-    private string $authenticationClass {
-        get {
-            if (!isset($this->authenticationClass)) {
-                /** @var ArrayClass<class-string<Authentication>> $authenticationClasses */
-                $authenticationClasses = Authentication::getAuthentications() ?? new ArrayClass();
-                $this->authenticationClass = Authentication::getAuthenticationClass($authenticationClasses, $this->authenticationScheme) ?? BasicAuthentication::class;
-            }
-            return $this->authenticationClass;
-        }
-    }
     private(set) Authentication $authentication {
-        get => $this->authentication ??= new ($this->authenticationClass)($this);
+        get {
+            if (!isset($this->authentication)) {
+                $authenticationClass = Authentication::getAuthenticationClass(Authentication::getAuthentications() ?? new ArrayClass(), $this->authenticationScheme) ?? BasicAuthentication::class;
+                $this->authentication = new $authenticationClass($this);
+            }
+            return $this->authentication;
+        }
     }
     public bool $isProtectedContentAvailable {
         get => $this->isProtectedContentAvailable ??= $this->isProtectedContentAvailable();

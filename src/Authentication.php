@@ -17,7 +17,7 @@ abstract class Authentication
             if (!($username = $this->credential?->user)) {
                 return null;
             }
-            return new IdentityManager($username, $this->manager->managedObjectContext, $this->manager->isFirstResponder ? $this->manager->request->serialization : null)->currenUser;
+            return new IdentityManager($username, $this->manager->managedObjectContext, $this->manager->isFirstResponder ? $this->manager->request->serialization : null)->user;
         }
     }
     public abstract bool $isValid {

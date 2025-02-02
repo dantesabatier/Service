@@ -12,7 +12,7 @@ use Sabatier\Foundation\Predicates\Expression;
 
 class IdentityManager
 {
-    public ?Authorizable $currenUser {
+    public ?Authorizable $user {
         get {
             $context = $this->context;
             /** @var FetchRequest<Authorizable> $fetchRequest */

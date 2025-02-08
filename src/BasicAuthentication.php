@@ -8,10 +8,13 @@ use function Sabatier\Foundation\is_password;
 /** @internal */
 class BasicAuthentication extends Authentication
 {
+    public AuthenticationScheme $scheme {
+        get => AuthenticationScheme::basic;
+    }
     private(set) ?URLCredential $credential {
         get {
             if (!isset($this->credential)) {
-                $components = explode(":", base64_decode($this->manager->authenticationData));
+                $components = explode(":", base64_decode((string)$this->request->authenticationData));
                 if (count($components) === 2) {
                     [$username, $password] = $components;
                     $this->credential = new URLCredential($username, $password);
@@ -33,8 +36,8 @@ class BasicAuthentication extends Authentication
         }
     }
 
-    public static function canInit(AuthenticationScheme $scheme): bool
+    public static function canInit(Request $request): bool
     {
-        return $scheme === AuthenticationScheme::basic;
+        return $request->authenticationScheme === AuthenticationScheme::basic;
     }
 }

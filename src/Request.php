@@ -5,7 +5,6 @@ namespace Sabatier\Service;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLRequest;
-use Sabatier\Foundation\Networking\URLRequestAttribution;
 use Sabatier\Foundation\URL;
 use Sabatier\Foundation\URLComponents;
 use Sabatier\Foundation\URLQueryItem;
@@ -14,6 +13,8 @@ use function Sabatier\Foundation\request_url;
 
 class Request extends URLRequest
 {
+    private(set) ?AuthenticationScheme $authenticationScheme;
+    private(set) ?string $authenticationData;
     private(set) Dictionary $parsedBody {
         get {
             if (!isset($this->parsedBody)) {
@@ -64,6 +65,13 @@ class Request extends URLRequest
             })(),
             default => null
         };
-        $this->attribution = URLRequestAttribution::user;
+        $value = $this->valueForHttpHeaderField("Authorization") ?? "";
+        $components = explode(" ", $value, 2);
+        if (count($components) !== 2) {
+            $components = [AuthenticationScheme::basic->value, null];
+        }
+        [$scheme, $data] = $components;
+        $this->authenticationScheme = AuthenticationScheme::tryFrom($scheme);
+        $this->authenticationData = $data;
     }
 }

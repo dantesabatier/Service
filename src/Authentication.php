@@ -2,13 +2,18 @@
 
 namespace Sabatier\Service;
 
+use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
+use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\URLCredential;
 
 abstract class Authentication
 {
     /** @var ArrayClass<class-string<Authentication>>|null */
     private static ?ArrayClass $registeredAuthenticationClasses = null;
+    public abstract AuthenticationScheme $scheme {
+        get;
+    }
     public abstract ?URLCredential $credential {
         get;
     }
@@ -17,14 +22,14 @@ abstract class Authentication
             if (!($username = $this->credential?->user)) {
                 return null;
             }
-            return new IdentityManager($username, $this->manager->managedObjectContext, $this->manager->isFirstResponder ? $this->manager->request->serialization : null)->user;
+            return new IdentityManager($username, $this->context, $this->serialization)->user;
         }
     }
     public abstract bool $isValid {
         get;
     }
 
-    public function __construct(public readonly AccessManager $manager)
+    public function __construct(public readonly Request $request, public readonly ManagedObjectContext $context, public readonly ?Dictionary $serialization = null)
     {
     }
 
@@ -58,14 +63,20 @@ abstract class Authentication
 
     /**
      * @param ArrayClass<class-string<Authentication>> $authenticationClasses
-     * @param AuthenticationScheme $scheme
+     * @param Request $request
      * @return class-string<Authentication>|null
      * @internal
      */
 
-    public static function getAuthenticationClass(ArrayClass $authenticationClasses, AuthenticationScheme $scheme): ?string
+    public static function getAuthenticationClass(ArrayClass $authenticationClasses, Request $request): ?string
     {
-        return $authenticationClasses->first(fn(mixed $authenticationClass): bool => $authenticationClass::canInit($scheme));
+        return $authenticationClasses->first(
+        /**
+         * @param class-string<Authentication> $authenticationClass
+         * @return bool
+         */
+            fn(string $authenticationClass): bool => $authenticationClass::canInit($request)
+        );
     }
 
     /**
@@ -89,10 +100,10 @@ abstract class Authentication
     }
 
     /**
-     * Determines whether the authentication subclass can handle the specified authentication scheme.
-     * @param AuthenticationScheme $scheme The authentication scheme.
-     * @return bool true if the authentication subclass can handle authentication scheme, otherwise false.
+     * Determines whether the authentication subclass can handle the specified request.
+     * @param Request $request The request.
+     * @return bool true if the authentication subclass can handle the request, otherwise false.
      */
-    public abstract static function canInit(AuthenticationScheme $scheme): bool;
+    public abstract static function canInit(Request $request): bool;
 }
 

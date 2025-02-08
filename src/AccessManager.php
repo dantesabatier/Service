@@ -16,14 +16,11 @@ class AccessManager extends Responder
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
     }
-    private(set) AuthenticationScheme $authenticationScheme;
-    /** @internal */
-    private(set) string $authenticationData;
     private(set) Authentication $authentication {
         get {
             if (!isset($this->authentication)) {
-                $authenticationClass = Authentication::getAuthenticationClass(Authentication::getAuthentications() ?? new ArrayClass(), $this->authenticationScheme) ?? BasicAuthentication::class;
-                $this->authentication = new $authenticationClass($this);
+                $authenticationClass = Authentication::getAuthenticationClass(Authentication::getAuthentications() ?? new ArrayClass(), $this->request) ?? BasicAuthentication::class;
+                $this->authentication = new $authenticationClass($this->request, $this->managedObjectContext, $this->isFirstResponder ? $this->request->serialization : null);
             }
             return $this->authentication;
         }
@@ -34,14 +31,6 @@ class AccessManager extends Responder
 
     public function __construct()
     {
-        $value = $this->request->valueForHttpHeaderField("Authorization") ?? "";
-        $components = explode(" ", $value, 2);
-        if (count($components) !== 2) {
-            $components = [AuthenticationScheme::basic->value, ""];
-        }
-        [$scheme, $data] = $components;
-        $this->authenticationScheme = AuthenticationScheme::tryFrom($scheme) ?? AuthenticationScheme::basic;
-        $this->authenticationData = $data;
         self::registerAuthentications();
     }
 

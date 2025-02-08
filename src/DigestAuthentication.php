@@ -8,11 +8,14 @@ use Sabatier\Foundation\Networking\URLCredential;
 /** @internal */
 class DigestAuthentication extends Authentication
 {
+    public AuthenticationScheme $scheme {
+        get => AuthenticationScheme::digest;
+    }
     /** @var Dictionary<covariant string> */
     private(set) Dictionary $parameters {
         get {
             if (!isset($this->parameters)) {
-                preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->manager->authenticationData, $matches);
+                preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", (string)$this->request->authenticationData, $matches);
                 $this->parameters = new Dictionary(array_combine($matches[1], $matches[2]));
             }
             return $this->parameters;
@@ -35,15 +38,15 @@ class DigestAuthentication extends Authentication
                 "SHA-256" => "sha256",
                 default => "md5"
             };
-            $HA1 = hash($algo, "$username:{$this->manager->request->url->host}:$password");
-            $HA2 = hash($algo, "{$this->manager->request->httpMethod}:$uri");
+            $HA1 = hash($algo, "$username:{$this->request->url->host}:$password");
+            $HA2 = hash($algo, "{$this->request->httpMethod}:$uri");
             $response = hash($algo, "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
             return $parameters["response"] === $response;
         }
     }
 
-    public static function canInit(AuthenticationScheme $scheme): bool
+    public static function canInit(Request $request): bool
     {
-        return $scheme === AuthenticationScheme::digest;
+        return $request->authenticationScheme === AuthenticationScheme::digest;
     }
 }

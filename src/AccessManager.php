@@ -19,7 +19,7 @@ class AccessManager extends Responder
     private(set) Authentication $authentication {
         get {
             if (!isset($this->authentication)) {
-                $authenticationClass = Authentication::getAuthenticationClass(Authentication::getAuthentications() ?? new ArrayClass(), $this->request) ?? BasicAuthentication::class;
+                $authenticationClass = Authentication::getAuthenticationClass(Authentication::getAuthentications() ?? new ArrayClass(), $this->request) ?? throw new UnimplementedException();
                 $this->authentication = new $authenticationClass($this->request, $this->managedObjectContext, $this->isFirstResponder ? $this->request->serialization : null);
             }
             return $this->authentication;

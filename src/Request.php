@@ -69,7 +69,7 @@ class Request extends URLRequest
         $parameter = $this->valueForHttpHeaderField("Authorization") ?? "";
         $components = explode(" ", $parameter, 2);
         if (count($components) !== 2) {
-            $components = [AuthenticationScheme::basic->value, null];
+            $components = [AuthenticationScheme::basic->value, ""];
         }
         [$name, $value] = $components;
         $this->authParameter = new AuthParameter($name, $value);

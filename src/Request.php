@@ -1,8 +1,9 @@
-<?php
+<?php /** @noinspection PhpInternalEntityUsedInspection */
 
 namespace Sabatier\Service;
 
 use Sabatier\Foundation\Dictionary;
+use Sabatier\Foundation\Networking\AuthParameter;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Foundation\URL;
@@ -13,8 +14,8 @@ use function Sabatier\Foundation\request_url;
 
 class Request extends URLRequest
 {
-    private(set) ?AuthenticationScheme $authenticationScheme;
-    private(set) ?string $authenticationData;
+    /** @internal */
+    private(set) AuthParameter $authParameter;
     private(set) Dictionary $parsedBody {
         get {
             if (!isset($this->parsedBody)) {
@@ -65,13 +66,12 @@ class Request extends URLRequest
             })(),
             default => null
         };
-        $value = $this->valueForHttpHeaderField("Authorization") ?? "";
-        $components = explode(" ", $value, 2);
+        $parameter = $this->valueForHttpHeaderField("Authorization") ?? "";
+        $components = explode(" ", $parameter, 2);
         if (count($components) !== 2) {
             $components = [AuthenticationScheme::basic->value, null];
         }
-        [$scheme, $data] = $components;
-        $this->authenticationScheme = AuthenticationScheme::tryFrom($scheme);
-        $this->authenticationData = $data;
+        [$name, $value] = $components;
+        $this->authParameter = new AuthParameter($name, $value);
     }
 }

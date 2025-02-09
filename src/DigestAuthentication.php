@@ -2,8 +2,10 @@
 
 namespace Sabatier\Service;
 
+use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\URLCredential;
+use function Sabatier\Foundation\string_is_equal;
 
 /** @internal */
 class DigestAuthentication extends Authentication
@@ -15,7 +17,7 @@ class DigestAuthentication extends Authentication
     private(set) Dictionary $parameters {
         get {
             if (!isset($this->parameters)) {
-                preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", (string)$this->request->authenticationData, $matches);
+                preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->request->authParameter->value, $matches);
                 $this->parameters = new Dictionary(array_combine($matches[1], $matches[2]));
             }
             return $this->parameters;
@@ -47,6 +49,6 @@ class DigestAuthentication extends Authentication
 
     public static function canInit(Request $request): bool
     {
-        return $request->authenticationScheme === AuthenticationScheme::digest;
+        return string_is_equal($request->authParameter->name, AuthenticationScheme::digest->value, CompareOptions::caseInsensitive);
     }
 }

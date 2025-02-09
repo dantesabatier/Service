@@ -2,8 +2,10 @@
 
 namespace Sabatier\Service;
 
+use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Networking\URLCredential;
 use function Sabatier\Foundation\is_password;
+use function Sabatier\Foundation\string_is_equal;
 
 /** @internal */
 class BasicAuthentication extends Authentication
@@ -14,7 +16,7 @@ class BasicAuthentication extends Authentication
     private(set) ?URLCredential $credential {
         get {
             if (!isset($this->credential)) {
-                $components = explode(":", base64_decode((string)$this->request->authenticationData));
+                $components = explode(":", base64_decode($this->request->authParameter->value));
                 if (count($components) === 2) {
                     [$username, $password] = $components;
                     $this->credential = new URLCredential($username, $password);
@@ -38,6 +40,6 @@ class BasicAuthentication extends Authentication
 
     public static function canInit(Request $request): bool
     {
-        return $request->authenticationScheme === AuthenticationScheme::basic;
+        return string_is_equal($request->authParameter->name, AuthenticationScheme::basic->value, CompareOptions::caseInsensitive);
     }
 }

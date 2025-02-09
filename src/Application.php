@@ -181,10 +181,13 @@ class Application extends Responder
             $session->start();
             $accessManager = $this->accessManager;
             if (!$responder->isProtectedContentAvailable && !$accessManager->isProtectedContentAvailable) {
-                throw new UnauthorizedException(match ($this->request->httpMethod) {
-                    HTTPRequestMethod::get => "You do not have access to this resource.",
-                    default => "You do not have permission to perform this action."
-                });
+                if ($accessManager->authentication->isValid) {
+                    throw new ForbiddenException(match ($this->request->httpMethod) {
+                        HTTPRequestMethod::get => "You do not have access to this resource.",
+                        default => "You do not have permission to perform this action."
+                    });
+                }
+                throw new UnauthorizedException();
             }
             $viewContext->transactionAuthor = match ($this->request->httpMethod) {
                 HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $accessManager->authentication->user?->username,

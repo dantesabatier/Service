@@ -14,8 +14,6 @@ use function Sabatier\Foundation\request_url;
 
 class Request extends URLRequest
 {
-    /** @internal */
-    private(set) AuthParameter $authParameter;
     private(set) Dictionary $parsedBody {
         get {
             if (!isset($this->parsedBody)) {
@@ -45,6 +43,8 @@ class Request extends URLRequest
             return $this->serialization;
         }
     }
+    /** @internal */
+    private(set) AuthParameter $authParameter;
 
     public function __construct()
     {

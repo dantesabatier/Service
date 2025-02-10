@@ -42,7 +42,7 @@ class Request extends URLRequest
             return $this->serialization;
         }
     }
-    private(set) AuthorizationParameter $authorizationParameter;
+    private(set) AuthParameter $authParameter;
 
     public function __construct()
     {
@@ -70,6 +70,6 @@ class Request extends URLRequest
             $components = [AuthenticationScheme::basic->value, ""];
         }
         [$name, $value] = $components;
-        $this->authorizationParameter = new AuthorizationParameter($name, $value);
+        $this->authParameter = new AuthParameter($name, $value);
     }
 }

@@ -16,7 +16,7 @@ class BasicAuthentication extends Authentication
     private(set) ?URLCredential $credential {
         get {
             if (!isset($this->credential)) {
-                $components = explode(":", base64_decode($this->request->authorizationParameter->value));
+                $components = explode(":", base64_decode($this->request->authParameter->value));
                 if (count($components) === 2) {
                     [$username, $password] = $components;
                     $this->credential = new URLCredential($username, $password);
@@ -40,6 +40,6 @@ class BasicAuthentication extends Authentication
 
     public static function canInit(Request $request): bool
     {
-        return string_is_equal($request->authorizationParameter->name, AuthenticationScheme::basic->value, CompareOptions::caseInsensitive);
+        return string_is_equal($request->authParameter->name, AuthenticationScheme::basic->value, CompareOptions::caseInsensitive);
     }
 }

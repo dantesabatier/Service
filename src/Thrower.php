@@ -32,7 +32,7 @@ class Thrower extends Responder
             $this->content = json_encode(["error" => $error]);
             $this->headerFields["Content-Type"] = "application/json";
             if ($throwable instanceof UnauthorizedException) {
-                $scheme = AuthenticationScheme::tryFrom($request->authorizationParameter->name) ?? AuthenticationScheme::basic;
+                $scheme = AuthenticationScheme::tryFrom($request->authParameter->name) ?? AuthenticationScheme::basic;
                 $this->headerFields["WWW-Authenticate"] = "$scheme->value realm=\"{$request->url->host}\"" . match ($scheme) {
                         AuthenticationScheme::digest => sprintf(", uri=\"%s\", algorithm=\"%s\", nonce=\"%s\", qop=\"%s\", opaque=\"%s\"", $request->url->path, "SHA-256", ProcessInfo::processInfo()->globallyUniqueString, "auth", base64_encode((string)$request->url->host)),
                         AuthenticationScheme::bearer => sprintf(", error=\"%s\", error_description=\"%s\"", $error->localizedDescription, $error->localizedFailureReason ?? ""),

@@ -1,9 +1,8 @@
-<?php /** @noinspection PhpInternalEntityUsedInspection */
+<?php
 
 namespace Sabatier\Service;
 
 use Sabatier\Foundation\Dictionary;
-use Sabatier\Foundation\Networking\AuthParameter;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Foundation\URL;
@@ -43,8 +42,7 @@ class Request extends URLRequest
             return $this->serialization;
         }
     }
-    /** @internal */
-    private(set) AuthParameter $authParameter;
+    private(set) AuthorizationParameter $authorizationParameter;
 
     public function __construct()
     {
@@ -72,6 +70,6 @@ class Request extends URLRequest
             $components = [AuthenticationScheme::basic->value, ""];
         }
         [$name, $value] = $components;
-        $this->authParameter = new AuthParameter($name, $value);
+        $this->authorizationParameter = new AuthorizationParameter($name, $value);
     }
 }

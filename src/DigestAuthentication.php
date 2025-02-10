@@ -17,7 +17,7 @@ class DigestAuthentication extends Authentication
     private(set) Dictionary $parameters {
         get {
             if (!isset($this->parameters)) {
-                preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->request->authParameter->value, $matches);
+                preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->request->authorizationParameter->value, $matches);
                 $this->parameters = new Dictionary(array_combine($matches[1], $matches[2]));
             }
             return $this->parameters;
@@ -49,6 +49,6 @@ class DigestAuthentication extends Authentication
 
     public static function canInit(Request $request): bool
     {
-        return string_is_equal($request->authParameter->name, AuthenticationScheme::digest->value, CompareOptions::caseInsensitive);
+        return string_is_equal($request->authorizationParameter->name, AuthenticationScheme::digest->value, CompareOptions::caseInsensitive);
     }
 }

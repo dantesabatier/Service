@@ -18,7 +18,7 @@ class BearerAuthentication extends Authentication
             if (!isset($this->credential)) {
                 if ($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) {
                     $decoder = new JSONWebTokenDecoder($key, $this->request->url->host);
-                    $token = $decoder->decode($this->request->authParameter->value);
+                    $token = $decoder->decode($this->request->authorizationParameter->value);
                     if ($username = $token->username) {
                         $this->credential = new URLCredential($username);
                     }
@@ -34,6 +34,6 @@ class BearerAuthentication extends Authentication
 
     public static function canInit(Request $request): bool
     {
-        return string_is_equal($request->authParameter->name, AuthenticationScheme::bearer->value, CompareOptions::caseInsensitive);
+        return string_is_equal($request->authorizationParameter->name, AuthenticationScheme::bearer->value, CompareOptions::caseInsensitive);
     }
 }

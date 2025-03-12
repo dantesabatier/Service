@@ -8,6 +8,6 @@ readonly class AuthParameter
 
     public function __construct(public string $name, public string $value)
     {
-        $this->scheme = AuthenticationScheme::tryFrom($this->name) ?? AuthenticationScheme::basic;
+        $this->scheme = AuthenticationScheme::tryFrom(ucfirst($this->name)) ?? AuthenticationScheme::basic;
     }
 }

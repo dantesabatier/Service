@@ -2,13 +2,12 @@
 
 namespace Sabatier\Service;
 
-class AuthParameter
+readonly class AuthParameter
 {
-    private(set) AuthenticationScheme $scheme {
-        get => $this->scheme ??= AuthenticationScheme::tryFrom($this->name) ?? AuthenticationScheme::basic;
-    }
+    public AuthenticationScheme $scheme;
 
-    public function __construct(readonly public string $name, readonly public string $value)
+    public function __construct(public string $name, public string $value)
     {
+        $this->scheme = AuthenticationScheme::tryFrom($this->name) ?? AuthenticationScheme::basic;
     }
 }

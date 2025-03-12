@@ -2,10 +2,8 @@
 
 namespace Sabatier\Service;
 
-use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\URLCredential;
-use function Sabatier\Foundation\string_is_equal;
 
 /** @internal */
 class DigestAuthentication extends Authentication
@@ -49,6 +47,6 @@ class DigestAuthentication extends Authentication
 
     public static function canInit(Request $request): bool
     {
-        return string_is_equal($request->authParameter->name, AuthenticationScheme::digest->value, CompareOptions::caseInsensitive);
+        return $request->authParameter->scheme === AuthenticationScheme::digest;
     }
 }

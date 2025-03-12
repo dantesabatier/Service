@@ -2,10 +2,8 @@
 
 namespace Sabatier\Service;
 
-use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Networking\URLCredential;
 use function Sabatier\Foundation\is_password;
-use function Sabatier\Foundation\string_is_equal;
 
 /** @internal */
 class BasicAuthentication extends Authentication
@@ -40,6 +38,6 @@ class BasicAuthentication extends Authentication
 
     public static function canInit(Request $request): bool
     {
-        return string_is_equal($request->authParameter->name, AuthenticationScheme::basic->value, CompareOptions::caseInsensitive);
+        return $request->authParameter->scheme === AuthenticationScheme::basic;
     }
 }

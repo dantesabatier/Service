@@ -2,10 +2,8 @@
 
 namespace Sabatier\Service;
 
-use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\UserDefaults;
-use function Sabatier\Foundation\string_is_equal;
 
 /** @internal */
 class BearerAuthentication extends Authentication
@@ -34,6 +32,6 @@ class BearerAuthentication extends Authentication
 
     public static function canInit(Request $request): bool
     {
-        return string_is_equal($request->authParameter->name, AuthenticationScheme::bearer->value, CompareOptions::caseInsensitive);
+        return $request->authParameter->scheme === AuthenticationScheme::bearer;
     }
 }

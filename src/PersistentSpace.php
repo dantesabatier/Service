@@ -17,7 +17,6 @@ class PersistentSpace extends Responder
     }
     public Response $response {
         get {
-            /** @var $respondentClass class-string<PersistentSpaceRespondent> */
             $respondentClass = match ($this->request->httpMethod) {
                 HTTPRequestMethod::get => PersistentSpaceRespondentReader::class,
                 HTTPRequestMethod::post => PersistentSpaceRespondentCreator::class,

@@ -183,8 +183,8 @@ class Application extends Responder
             if (!$responder->isProtectedContentAvailable && !$accessManager->isProtectedContentAvailable) {
                 if ($accessManager->authentication->isValid) {
                     throw new ForbiddenException(match ($this->request->httpMethod) {
-                        HTTPRequestMethod::get => "You do not have access to this resource.",
-                        default => "You do not have permission to perform this action."
+                        HTTPRequestMethod::get => "You don't have permission to access this resource.",
+                        default => "You don't have permission to perform this action."
                     });
                 }
                 throw new UnauthorizedException();

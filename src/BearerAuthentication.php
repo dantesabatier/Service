@@ -14,12 +14,8 @@ class BearerAuthentication extends Authentication
     private(set) ?URLCredential $credential {
         get {
             if (!isset($this->credential)) {
-                if ($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) {
-                    $decoder = new JSONWebTokenDecoder($key, $this->request->url->host);
-                    $token = $decoder->decode($this->request->authParameter->value);
-                    if ($username = $token->username) {
-                        $this->credential = new URLCredential($username);
-                    }
+                if (($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) && ($username = new JSONWebTokenDecoder($key, $this->request->url->host)->decode($this->request->authParameter->value)->username)) {
+                    $this->credential = new URLCredential($username);
                 }
                 $this->credential ??= null;
             }

@@ -6,7 +6,7 @@ use JetBrains\PhpStorm\ExpectedValues;
 use Sabatier\Foundation\Networking\HTTPCookieStringPolicy;
 
 /**
- * @psalm-type CookieParametersValues = array{lifetime: int, path: string, domain: string, secure: bool, httponly: bool, samesite: string}
+ * @phpstan-type CookieParametersValues array{lifetime: int, path: string, domain: string, secure: bool, httponly: bool, samesite: string}
  */
 readonly class CookieParameters
 {

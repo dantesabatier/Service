@@ -5,7 +5,7 @@ namespace Sabatier\Service;
 use Sabatier\Foundation\Date;
 
 /**
- * @psalm-import-type JSONWebTokenValues from JSONWebToken
+ * @phpstan-import-type JSONWebTokenValues from JSONWebToken
  */
 readonly class JSONWebTokenDecoder
 {

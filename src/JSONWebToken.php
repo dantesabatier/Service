@@ -6,6 +6,7 @@ use JsonSerializable;
 use Override;
 
 /**
+ * Represents a JSON Web Token (JWT) and provides properties for common JWT claims.
  * @phpstan-type JSONWebTokenValues array{iss: string|null, sub: string|null, aud: string|null, exp: float|null, nbf: float|null, iat: float|null, jti: string|null, username: string|null}
  */
 class JSONWebToken implements JsonSerializable

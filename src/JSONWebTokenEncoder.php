@@ -4,6 +4,9 @@ namespace Sabatier\Service;
 
 use Exception;
 
+/**
+ * This class provides functionality to encode a JSON Web Token (JWT) using the HS256 algorithm. The generated token includes a header, payload, and signature.
+ */
 readonly class JSONWebTokenEncoder
 {
     public function __construct(private string $key)
@@ -11,6 +14,10 @@ readonly class JSONWebTokenEncoder
     }
 
     /**
+     * Encodes a JSON Web Token (JWT) into a string representation by creating a header, payload, and signature using HMAC-SHA256 algorithm.
+     *
+     * @param JSONWebToken $token The JSON Web Token object to be encoded.
+     * @return string The encoded JSON Web Token as a string.
      * @throws Exception
      */
     public function encode(JSONWebToken $token): string

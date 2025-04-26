@@ -28,7 +28,7 @@ class Session extends ObjectClass
     public CookieParameters $cookieParameters {
         get => $this->cookieParameters ??= new CookieParameters(parse_url(request_url(), PHP_URL_HOST) ?? "");
     }
-    /** @var URL The session save url. */
+    /** @var URL The url to save the session. */
     public URL $saveURL {
         get {
             if (!isset($this->saveURL)) {

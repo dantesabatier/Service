@@ -2,6 +2,9 @@
 
 namespace Sabatier\Service;
 
+/**
+ * Represents an authorization entity.
+ */
 interface Authorization
 {
     public ?string $name {

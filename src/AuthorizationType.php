@@ -2,6 +2,9 @@
 
 namespace Sabatier\Service;
 
+/**
+ * Represents types of authorization for various actions.
+ */
 enum AuthorizationType: int
 {
     case read = 0;

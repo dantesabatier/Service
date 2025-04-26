@@ -7,6 +7,9 @@ use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\URLCredential;
 
+/**
+ * Represents a class for managing authentication mechanisms.
+ */
 abstract class Authentication
 {
     /** @var ArrayClass<class-string<Authentication>>|null */

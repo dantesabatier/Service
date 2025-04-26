@@ -43,18 +43,7 @@ class Request extends URLRequest
         }
     }
     private(set) AuthParameter $authParameter {
-        get {
-            if (!isset($this->authParameter)) {
-                $parameter = $this->valueForHttpHeaderField("Authorization") ?? "";
-                $components = explode(" ", $parameter, 2);
-                if (count($components) !== 2) {
-                    $components = [AuthenticationScheme::basic->value, ""];
-                }
-                [$name, $value] = $components;
-                $this->authParameter = new AuthParameter($name, $value);
-            }
-            return $this->authParameter;
-        }
+        get => $this->authParameter ??= new AuthParameter($this->valueForHttpHeaderField("Authorization") ?? "");
     }
 
     public function __construct()

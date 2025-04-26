@@ -5,6 +5,9 @@ namespace Sabatier\Service;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
 
+/**
+ * A service response.
+ */
 class Response extends HTTPURLResponse
 {
     public Emitter $emitter {

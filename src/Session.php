@@ -116,7 +116,7 @@ class Session extends ObjectClass
     }
 
     /**
-     * Write session data and end session
+     * Write session data and end the session
      */
     public function commit(): void
     {
@@ -124,7 +124,7 @@ class Session extends ObjectClass
     }
 
     /**
-     * Re-initialize session with original values
+     * Re-initialize the session with original values
      */
     public function reset(): void
     {
@@ -132,7 +132,7 @@ class Session extends ObjectClass
     }
 
     /**
-     * Discard changes and finish session
+     * Discard changes and finish the session
      */
     public function invalidate(): void
     {

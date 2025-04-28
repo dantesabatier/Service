@@ -45,6 +45,8 @@ abstract class Responder extends ObjectClass
     public ?string $selector {
         get => $this->associatedValues[__PROPERTY__];
     }
+    /** @var Responder|null The next responder. */
+    public ?Responder $nextResponder = null;
     /** @var bool Returns a Boolean value indicating whether this object is the first responder. */
     public bool $isFirstResponder {
         get {

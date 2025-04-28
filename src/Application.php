@@ -2,12 +2,14 @@
 
 namespace Sabatier\Service;
 
+use Exception;
 use ReflectionClass;
 use Sabatier\CoreData\PersistentContainer;
 use Sabatier\CoreData\PersistentHistoryChangeRequest;
 use Sabatier\CoreData\PersistentHistoryToken;
 use Sabatier\CoreData\PersistentHistoryTransaction;
 use Sabatier\CoreData\PersistentStoreDescription;
+use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Dictionary;
@@ -37,48 +39,10 @@ class Application extends Responder
     private static ?Application $shared = null;
     /** @var ApplicationDelegate|null The delegate of the app object. */
     private(set) ?ApplicationDelegate $delegate {
-        get {
-            if (!isset($this->delegate)) {
-                if (($principalClass = Bundle::main()->principalClass) && isset(class_implements($principalClass)[ApplicationDelegate::class])) {
-                    /** @var class-string<ApplicationDelegate> $delegateClass */
-                    $delegateClass = $principalClass;
-                    if (is_subclass_of($delegateClass, ObjectClass::class)) {
-                        $delegateClass::initialize();
-                    }
-                    $this->delegate = new $delegateClass();
-                }
-                $this->delegate ??= null;
-            }
-            return $this->delegate;
-        }
+        get => $this->delegate ??= $this->initializeDelegate();
     }
     private(set) PersistentContainer $persistentContainer {
-        get {
-            if (!isset($this->persistentContainer)) {
-                $persistentContainer = new PersistentContainer(Bundle::main()->object(kCFBundleNameKey));
-                if ($description = $persistentContainer->persistentStoreDescriptions->first) {
-                    $description->setOptionForKey(UserDefaults::standard()->bool(PersistentHistoryTrackingKey), PersistentHistoryTrackingKey);
-                    $description->setOptionForKey(UserDefaults::standard()->bool(PersistentStoreRemoteChangeNotificationPostOptionKey), PersistentStoreRemoteChangeNotificationPostOptionKey);
-                }
-                $persistentContainer->loadPersistentStores(function (PersistentStoreDescription $description, ?Error $error): void {
-                    if ($error) {
-                        throw new InternalInconsistencyException(error: $error);
-                    }
-                });
-                NotificationCenter::default()->addObserverForName(PersistentStoreRemoteChange, $persistentContainer->persistentStoreCoordinator, function (Notification $notification): void {
-                    /** @var Dictionary<mixed> $userInfo */
-                    $userInfo = $notification->userInfo;
-                    /** @var PersistentHistoryToken $persistentHistoryToken */
-                    $persistentHistoryToken = $userInfo[PersistentHistoryTokenKey];
-                    $context = $this->persistentContainer->viewContext;
-                    $request = PersistentHistoryChangeRequest::deleteHistoryBeforeToken($persistentHistoryToken);
-                    $request->fetchRequest = PersistentHistoryTransaction::fetchRequest();
-                    $context->execute($request);
-                });
-                $this->persistentContainer = $persistentContainer;
-            }
-            return $this->persistentContainer;
-        }
+        get => $this->persistentContainer ??= $this->createPersistentContainer();
     }
     private(set) Session $session {
         get => $this->session ??= new Session();
@@ -90,17 +54,87 @@ class Application extends Responder
         get => $this->accessManager ??= new AccessManager();
     }
 
-    private function customResponder(): ?Responder
+    private function initializeDelegate(): ?ApplicationDelegate
     {
-        if (!($delegate = $this->delegate)) {
+        $principalClass = (string)Bundle::main()->principalClass;
+        if (!class_implements($principalClass)[ApplicationDelegate::class]) {
             return null;
         }
-        $initialResponder = null;
-        $namespaceName = new ReflectionClass($delegate)->getNamespaceName();
-        $directories = [RespondersDirectory, ViewControllersDirectory];
+        /** @var class-string<ApplicationDelegate> $delegateClass */
+        $delegateClass = $principalClass;
+        if (is_subclass_of($delegateClass, ObjectClass::class)) {
+            $this->initializeDelegateClass($delegateClass);
+        }
+        return new $delegateClass();
+    }
+
+    /**
+     * @param class-string<ApplicationDelegate> $delegateClass
+     */
+    private function initializeDelegateClass(string $delegateClass): void
+    {
+        $delegateClass::initialize();
+    }
+
+    private function createPersistentContainer(): PersistentContainer
+    {
+        $persistentContainer = new PersistentContainer(Bundle::main()->object(kCFBundleNameKey));
+        $this->configurePersistentStoreDescriptions($persistentContainer);
+        $this->initializePersistentStores($persistentContainer);
+        $this->addPersistentStoreObservers($persistentContainer);
+        return $persistentContainer;
+    }
+
+    private function configurePersistentStoreDescriptions(PersistentContainer $persistentContainer): void
+    {
+        $description = $persistentContainer->persistentStoreDescriptions->first;
+        if ($description) {
+            $description->setOptionForKey(UserDefaults::standard()->bool(PersistentHistoryTrackingKey), PersistentHistoryTrackingKey);
+            $description->setOptionForKey(UserDefaults::standard()->bool(PersistentStoreRemoteChangeNotificationPostOptionKey), PersistentStoreRemoteChangeNotificationPostOptionKey);
+        }
+    }
+
+    private function initializePersistentStores(PersistentContainer $persistentContainer): void
+    {
+        $persistentContainer->loadPersistentStores(function (PersistentStoreDescription $description, ?Error $error): void {
+            if ($error !== null) {
+                throw new InternalInconsistencyException(error: $error);
+            }
+        });
+    }
+
+    private function addPersistentStoreObservers(PersistentContainer $persistentContainer): void
+    {
+        NotificationCenter::default()->addObserverForName(
+            PersistentStoreRemoteChange,
+            $persistentContainer->persistentStoreCoordinator,
+            function (Notification $notification): void {
+                $this->handlePersistentStoreRemoteChange($notification);
+            }
+        );
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function handlePersistentStoreRemoteChange(Notification $notification): void
+    {
+        /** @var Dictionary<mixed> $userInfo */
+        $userInfo = $notification->userInfo;
+        /** @var PersistentHistoryToken $persistentHistoryToken */
+        $persistentHistoryToken = $userInfo[PersistentHistoryTokenKey];
+        $context = $this->persistentContainer->viewContext;
+        $request = PersistentHistoryChangeRequest::deleteHistoryBeforeToken($persistentHistoryToken);
+        $request->fetchRequest = PersistentHistoryTransaction::fetchRequest();
+        $context->execute($request);
+    }
+
+    private function discoverResponderClasses(string $namespaceName): array
+    {
         $fileManager = FileManager::default();
         $baseURL = Bundle::main()->bundleURL->appendingPathComponent("src");
-        foreach ($directories as $directory) {
+        $responderClasses = [];
+        foreach ([RespondersDirectory, ViewControllersDirectory] as $directory) {
             $directoryURL = $baseURL->appendingPathComponent($directory);
             if (!$fileManager->fileExists($directoryURL->path)) {
                 continue;
@@ -110,38 +144,63 @@ class Application extends Responder
                 if (!string_is_equal($url->pathExtension, "php", CompareOptions::caseInsensitive)) {
                     continue;
                 }
-                $responderClass = "$namespaceName\\$directoryURL->lastPathComponent\\{$fileManager->displayName($url->path)}";
-                if (class_exists($responderClass) && is_subclass_of($responderClass, Responder::class)) {
-                    $firstResponder = new $responderClass();
-                    $firstResponder->nextResponder = $initialResponder;
-                    $initialResponder = $firstResponder;
+                $className = "$namespaceName\\$directoryURL->lastPathComponent\\{$fileManager->displayName($url->path)}";
+                if (class_exists($className) && is_subclass_of($className, Responder::class)) {
+                    $responderClasses[] = $className;
                 }
             }
         }
-        return $initialResponder;
+        return $responderClasses;
+    }
+
+    private function buildResponderChain(ArrayClass $responders): Responder
+    {
+        $previous = null;
+        foreach ($responders as $responder) {
+            if ($previous) {
+                $previous->nextResponder = $responder;
+            }
+            $previous = $responder;
+        }
+        return $responders[0];
+    }
+
+    private function mergeChains(?Responder $responder1, ?Responder $responder2): ?Responder
+    {
+        if (!$responder1) {
+            return $responder2;
+        }
+        $last = $responder1;
+        while ($last->nextResponder) {
+            $last = $last->nextResponder;
+        }
+        $last->nextResponder = $responder2;
+        return $responder1;
+    }
+
+    private function customResponder(): ?Responder
+    {
+        if (!($delegate = $this->delegate)) {
+            return null;
+        }
+        $namespaceName = new ReflectionClass($delegate)->getNamespaceName();
+        $responderClasses = $this->discoverResponderClasses($namespaceName);
+        $responders = new ArrayClass();
+        foreach ($responderClasses as $class) {
+            $responders[] = new $class();
+        }
+        if ($responders->isEmpty) {
+            return null;
+        }
+        return $this->buildResponderChain($responders);
     }
 
     private function initialResponder(): ?Responder
     {
-        $initialResponder = $this->customResponder();
-        $persistentSpace = new PersistentSpace();
-        $resourceManager = new ResourceManager();
-        $preferences = new Preferences();
-        $uploader = new Uploader();
-        $downloader = new Downloader();
-        $home = new Home();
-        $persistentSpace->nextResponder = $resourceManager;
-        $resourceManager->nextResponder = $preferences;
-        $preferences->nextResponder = $uploader;
-        $uploader->nextResponder = $downloader;
-        $downloader->nextResponder = $home;
-        $accessManager = $this->accessManager;
-        $initialResponder ??= $accessManager;
-        if (!$initialResponder instanceof AccessManager) {
-            $initialResponder->nextResponder = $accessManager;
-        }
-        $accessManager->nextResponder = $persistentSpace;
-        return $initialResponder;
+        $base = $this->buildResponderChain(new ArrayClass([new PersistentSpace(), new ResourceManager(), new Preferences(), new Uploader(), new Downloader(), new Home()]));
+        $base->nextResponder = $this->accessManager;
+        $custom = $this->customResponder();
+        return $this->mergeChains($custom, $base);
     }
 
     private function findFirstResponder(): Responder
@@ -164,6 +223,63 @@ class Application extends Responder
         };
     }
 
+    private function initializeApplication(): void
+    {
+        $delegate = $this->delegate;
+        $delegate?->applicationWillFinishLaunching($this);
+        $persistentContainer = $this->persistentContainer;
+        $viewContext = $persistentContainer->viewContext;
+        $viewContext->name = $persistentContainer->name;
+        ProcessInfo::processInfo()->processName = $persistentContainer->name;
+        register_shutdown_function(function () use ($delegate): bool {
+            $delegate?->applicationWillTerminate($this);
+            return true;
+        });
+    }
+
+    private function initializeSession(): void
+    {
+        $this->session->start();
+    }
+
+    private function checkAccessPermissions(): void
+    {
+        if ($this->isProtectedContentAvailable) {
+            $this->accessManager->isProtectedContentAvailable = true;
+        }
+        if (!$this->firstResponder->isProtectedContentAvailable && !$this->accessManager->isProtectedContentAvailable) {
+            if ($this->accessManager->authentication->isValid) {
+                throw new ForbiddenException(match ($this->request->httpMethod) {
+                    HTTPRequestMethod::get => "You don't have permission to access this resource.",
+                    default => "You don't have permission to perform this action."
+                });
+            }
+            throw new UnauthorizedException();
+        }
+    }
+
+    private function setTransactionAuthor(): void
+    {
+        $this->persistentContainer->viewContext->transactionAuthor = match ($this->request->httpMethod) {
+            HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $this->accessManager->authentication->user?->username,
+            default => null
+        };
+    }
+
+    private function processResponse(): never
+    {
+        $response = $this->firstResponder->response;
+        $this->session->commit();
+        $this->delegate?->applicationDidFinishLaunching($this);
+        $response->send();
+    }
+
+    private function handleException(Throwable $throwable): never
+    {
+        $responder = new Thrower();
+        $responder->throw($throwable);
+    }
+
     /**
      * The singleton app instance.
      * @return Application
@@ -177,40 +293,13 @@ class Application extends Responder
     public function run(): never
     {
         try {
-            $delegate = $this->delegate;
-            $delegate?->applicationWillFinishLaunching($this);
-            $persistentContainer = $this->persistentContainer;
-            $viewContext = $persistentContainer->viewContext;
-            $viewContext->name = $persistentContainer->name;
-            ProcessInfo::processInfo()->processName = $persistentContainer->name;
-            register_shutdown_function(function () use ($delegate): bool {
-                $delegate?->applicationWillTerminate($this);
-                return true;
-            });
-            $responder = $this->firstResponder;
-            $session = $this->session;
-            $session->start();
-            $accessManager = $this->accessManager;
-            if (!$responder->isProtectedContentAvailable && !$accessManager->isProtectedContentAvailable) {
-                if ($accessManager->authentication->isValid) {
-                    throw new ForbiddenException(match ($this->request->httpMethod) {
-                        HTTPRequestMethod::get => "You don't have permission to access this resource.",
-                        default => "You don't have permission to perform this action."
-                    });
-                }
-                throw new UnauthorizedException();
-            }
-            $viewContext->transactionAuthor = match ($this->request->httpMethod) {
-                HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $accessManager->authentication->user?->username,
-                default => null
-            };
-            $response = $responder->response;
-            $session->commit();
-            $delegate?->applicationDidFinishLaunching($this);
-            $response->send();
+            $this->initializeApplication();
+            $this->initializeSession();
+            $this->checkAccessPermissions();
+            $this->setTransactionAuthor();
+            $this->processResponse();
         } catch (Throwable $throwable) {
-            $responder = new Thrower();
-            $responder->throw($throwable);
+            $this->handleException($throwable);
         }
     }
 

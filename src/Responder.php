@@ -51,7 +51,7 @@ abstract class Responder extends ObjectClass
     public bool $isFirstResponder {
         get {
             if (!isset($this->associatedValues[__PROPERTY__])) {
-                $this->initializeInstance();
+                $this->initializeResponder();
             }
             return $this->associatedValues[__PROPERTY__];
         }
@@ -74,7 +74,7 @@ abstract class Responder extends ObjectClass
         }
     }
 
-    private function initializeInstance(): void
+    private function initializeResponder(): void
     {
         $path = $this->request->url->path;
         $reflectionClass = new ReflectionClass($this);

@@ -8,7 +8,6 @@ use Sabatier\CoreData\PersistentHistoryChangeRequest;
 use Sabatier\CoreData\PersistentHistoryToken;
 use Sabatier\CoreData\PersistentHistoryTransaction;
 use Sabatier\CoreData\PersistentStoreDescription;
-use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Dictionary;
@@ -84,48 +83,23 @@ class Application extends Responder
     private(set) Session $session {
         get => $this->session ??= new Session();
     }
-    private(set) ?Responder $firstResponder {
-        get => $this->firstResponder ??= $this->mainResponder() ?? $this->internalResponder();
+    private(set) Responder $firstResponder {
+        get => $this->firstResponder ??= $this->resolveFirstResponder();
     }
-    private(set) AccessManager $accessManager {
+    private AccessManager $accessManager {
         get => $this->accessManager ??= new AccessManager();
     }
-    private(set) PersistentSpace $persistentSpace {
-        get => $this->persistentSpace ??= new PersistentSpace();
-    }
-    private(set) ResourceManager $resourceManager {
-        get => $this->resourceManager ??= new ResourceManager();
-    }
-    private(set) Preferences $preferences {
-        get => $this->preferences ??= new Preferences();
-    }
-    private(set) Uploader $uploader {
-        get => $this->uploader ??= new Uploader();
-    }
-    private(set) Downloader $downloader {
-        get => $this->downloader ??= new Downloader();
-    }
 
-    /**
-     * The singleton app instance.
-     * @return Application
-     */
-    public static function shared(): Application
-    {
-        static::$shared ??= new static();
-        return static::$shared;
-    }
-
-    private function mainResponder(): ?Responder
+    private function customResponder(): ?Responder
     {
         if (!($delegate = $this->delegate)) {
             return null;
         }
-        $reflectionClass = new ReflectionClass($delegate);
-        $namespaceName = $reflectionClass->getNamespaceName();
+        $initialResponder = null;
+        $namespaceName = new ReflectionClass($delegate)->getNamespaceName();
+        $directories = [RespondersDirectory, ViewControllersDirectory];
         $fileManager = FileManager::default();
         $baseURL = Bundle::main()->bundleURL->appendingPathComponent("src");
-        $directories = ["Responders", "ViewControllers"];
         foreach ($directories as $directory) {
             $directoryURL = $baseURL->appendingPathComponent($directory);
             if (!$fileManager->fileExists($directoryURL->path)) {
@@ -136,28 +110,68 @@ class Application extends Responder
                 if (!string_is_equal($url->pathExtension, "php", CompareOptions::caseInsensitive)) {
                     continue;
                 }
-                $filePath = $url->path;
-                /** @psalm-suppress UnresolvableInclude */
-                require_once $filePath;
-                $responderClass = "$namespaceName\\$directoryURL->lastPathComponent\\{$fileManager->displayName($filePath)}";
-                if (!class_exists($responderClass)) {
-                    continue;
-                }
-                if (!is_subclass_of($responderClass, Responder::class)) {
-                    continue;
-                }
-                $responder = new $responderClass();
-                if ($responder->isFirstResponder) {
-                    return $responder;
+                $responderClass = "$namespaceName\\$directoryURL->lastPathComponent\\{$fileManager->displayName($url->path)}";
+                if (class_exists($responderClass) && is_subclass_of($responderClass, Responder::class)) {
+                    $firstResponder = new $responderClass();
+                    $firstResponder->nextResponder = $initialResponder;
+                    $initialResponder = $firstResponder;
                 }
             }
         }
-        return null;
+        return $initialResponder;
     }
 
-    private function internalResponder(): ?Responder
+    private function initialResponder(): ?Responder
     {
-        return new ArrayClass([$this->accessManager, $this->persistentSpace, $this->resourceManager, $this->preferences, $this->uploader, $this->downloader, new Home()])->first(fn(Responder $responder): bool => $responder->isFirstResponder);
+        $initialResponder = $this->customResponder();
+        $persistentSpace = new PersistentSpace();
+        $resourceManager = new ResourceManager();
+        $preferences = new Preferences();
+        $uploader = new Uploader();
+        $downloader = new Downloader();
+        $home = new Home();
+        $persistentSpace->nextResponder = $resourceManager;
+        $resourceManager->nextResponder = $preferences;
+        $preferences->nextResponder = $uploader;
+        $uploader->nextResponder = $downloader;
+        $downloader->nextResponder = $home;
+        $accessManager = $this->accessManager;
+        $initialResponder ??= $accessManager;
+        if (!$initialResponder instanceof AccessManager) {
+            $initialResponder->nextResponder = $accessManager;
+        }
+        $accessManager->nextResponder = $persistentSpace;
+        return $initialResponder;
+    }
+
+    private function findFirstResponder(): Responder
+    {
+        $responder = $this->initialResponder();
+        while ($responder) {
+            if ($responder->isFirstResponder) {
+                return $responder;
+            }
+            $responder = $responder->nextResponder;
+        }
+        throw new NotFoundException();
+    }
+
+    private function resolveFirstResponder(): Responder
+    {
+        return match ($this->request->httpMethod) {
+            HTTPRequestMethod::options => $this,
+            default => $this->findFirstResponder()
+        };
+    }
+
+    /**
+     * The singleton app instance.
+     * @return Application
+     */
+    public static function shared(): Application
+    {
+        static::$shared ??= new static();
+        return static::$shared;
     }
 
     public function run(): never
@@ -173,10 +187,7 @@ class Application extends Responder
                 $delegate?->applicationWillTerminate($this);
                 return true;
             });
-            $responder = $this->firstResponder ?? match ($this->request->httpMethod) {
-                HTTPRequestMethod::options => $this,
-                default => throw new NotFoundException()
-            };
+            $responder = $this->firstResponder;
             $session = $this->session;
             $session->start();
             $accessManager = $this->accessManager;

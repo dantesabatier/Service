@@ -18,31 +18,19 @@ class AccessManager extends Responder
         get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
     }
     private(set) Authentication $authentication {
-        get {
-            if (!isset($this->authentication)) {
-                $authenticationClass = Authentication::getAuthenticationClass(Authentication::getAuthentications() ?? new ArrayClass(), $this->request) ?? throw new UnimplementedException();
-                $this->authentication = new $authenticationClass($this->request, $this->managedObjectContext, $this->isFirstResponder ? $this->request->serialization : null);
-            }
-            return $this->authentication;
-        }
+        get => $this->authentication ??= $this->resolveAuthentication();
     }
     public bool $isProtectedContentAvailable {
-        get => $this->isProtectedContentAvailable ??= $this->isProtectedContentAvailable();
+        get => $this->isProtectedContentAvailable ??= $this->isRequestAuthorized();
     }
 
-    public function __construct()
+    public function resolveAuthentication(): Authentication
     {
-        self::registerAuthentications();
+        $authenticationClass = Authentication::getAuthenticationClass(Authentication::getAuthentications() ?? new ArrayClass(), $this->request) ?? throw new UnimplementedException();
+        return new $authenticationClass($this->request, $this->managedObjectContext, $this->isFirstResponder ? $this->request->serialization : null);
     }
 
-    private static function registerAuthentications(): void
-    {
-        Authentication::registerClass(BasicAuthentication::class);
-        Authentication::registerClass(BearerAuthentication::class);
-        Authentication::registerClass(DigestAuthentication::class);
-    }
-
-    private function isProtectedContentAvailable(): bool
+    private function isRequestAuthorized(): bool
     {
         if ($this->request->httpMethod === HTTPRequestMethod::options) {
             return true;
@@ -60,6 +48,18 @@ class AccessManager extends Responder
             HTTPRequestMethod::delete => $authorization->type === AuthorizationType::delete,
             default => false
         };
+    }
+
+    public function __construct()
+    {
+        self::registerAuthentications();
+    }
+
+    private static function registerAuthentications(): void
+    {
+        Authentication::registerClass(BasicAuthentication::class);
+        Authentication::registerClass(BearerAuthentication::class);
+        Authentication::registerClass(DigestAuthentication::class);
     }
 
     /**

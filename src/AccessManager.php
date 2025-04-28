@@ -11,6 +11,7 @@ use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\UserDefaults;
 use function Sabatier\Foundation\read_random;
 
+/** @internal */
 class AccessManager extends Responder
 {
     public ArrayClass $allowedMethods {

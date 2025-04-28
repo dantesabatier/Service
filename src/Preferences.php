@@ -6,6 +6,7 @@ use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\UserDefaults;
 
+/** @internal */
 #[Endpoint]
 class Preferences extends Responder
 {

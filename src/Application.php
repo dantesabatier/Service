@@ -197,9 +197,8 @@ class Application extends Responder
 
     private function initialResponder(): ?Responder
     {
-        $base = $this->buildResponderChain(new ArrayClass([new PersistentSpace(), new ResourceManager(), new Preferences(), new Uploader(), new Downloader(), new Home()]));
+        $base = $this->buildResponderChain(new ArrayClass([$this->accessManager, new PersistentSpace(), new ResourceManager(), new Preferences(), new Uploader(), new Downloader(), new Home()]));
         $custom = $this->customResponder();
-        $custom->nextResponder = $this->accessManager;
         return $this->mergeChains($custom, $base);
     }
 
@@ -207,6 +206,7 @@ class Application extends Responder
     {
         $responder = $this->initialResponder();
         while ($responder) {
+            error_log("$responder");
             if ($responder->isFirstResponder) {
                 return $responder;
             }

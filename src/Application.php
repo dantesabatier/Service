@@ -204,7 +204,6 @@ class Application extends Responder
     {
         $responder = $this->initialResponder();
         while ($responder) {
-            error_log("$responder");
             if ($responder->isFirstResponder) {
                 return $responder;
             }

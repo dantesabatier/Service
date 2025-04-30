@@ -129,6 +129,10 @@ class Application extends Responder
         $context->execute($request);
     }
 
+    /**
+     * @param string $namespaceName
+     * @return array<class-string<Responder>>
+     */
     private function discoverResponderClasses(string $namespaceName): array
     {
         $fileManager = FileManager::default();
@@ -185,6 +189,7 @@ class Application extends Responder
         }
         $namespaceName = new ReflectionClass($delegate)->getNamespaceName();
         $responderClasses = $this->discoverResponderClasses($namespaceName);
+        /** @var ArrayClass<Responder> $responders */
         $responders = new ArrayClass();
         foreach ($responderClasses as $class) {
             $responders[] = new $class();

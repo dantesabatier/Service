@@ -158,6 +158,10 @@ class Application extends Responder
         return $responderClasses;
     }
 
+    /**
+     * @param ArrayClass<Responder> $responders
+     * @return Responder
+     */
     private function buildResponderChain(ArrayClass $responders): Responder
     {
         $previous = null;

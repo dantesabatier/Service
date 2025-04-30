@@ -191,7 +191,11 @@ class Application extends Responder
         $namespaceName = new ReflectionClass($delegate)->getNamespaceName();
         $responderClasses = $this->discoverResponderClasses($namespaceName);
         /** @var ArrayClass<Responder> $responders */
-        $responders = $responderClasses->map(fn(string $responderClass): Responder => new $responderClass());
+        $responders = $responderClasses->map(
+        /**
+         * @param class-string<Responder> $responderClass
+         */
+            fn(string $responderClass): Responder => new $responderClass());
         if ($responders->isEmpty) {
             return null;
         }

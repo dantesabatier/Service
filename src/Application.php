@@ -131,12 +131,12 @@ class Application extends Responder
 
     /**
      * @param string $namespaceName
-     * @return array<class-string<Responder>>
+     * @return ArrayClass<class-string<Responder>>
      */
-    private function discoverResponderClasses(string $namespaceName): array
+    private function discoverResponderClasses(string $namespaceName): ArrayClass
     {
-        /** @var array<class-string<Responder>> $responderClasses */
-        $responderClasses = [];
+        /** @var ArrayClass<class-string<Responder>> $responderClasses */
+        $responderClasses = new ArrayClass();
         $fileManager = FileManager::default();
         $baseURL = Bundle::main()->bundleURL->appendingPathComponent("src");
         foreach ([RespondersDirectory, ViewControllersDirectory] as $directory) {
@@ -191,10 +191,7 @@ class Application extends Responder
         $namespaceName = new ReflectionClass($delegate)->getNamespaceName();
         $responderClasses = $this->discoverResponderClasses($namespaceName);
         /** @var ArrayClass<Responder> $responders */
-        $responders = new ArrayClass();
-        foreach ($responderClasses as $class) {
-            $responders[] = new $class();
-        }
+        $responders = $responderClasses->map(fn(string $responderClass): Responder => new $responderClass());
         if ($responders->isEmpty) {
             return null;
         }

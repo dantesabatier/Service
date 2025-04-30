@@ -135,9 +135,10 @@ class Application extends Responder
      */
     private function discoverResponderClasses(string $namespaceName): array
     {
+        /** @var array<class-string<Responder>> $responderClasses */
+        $responderClasses = [];
         $fileManager = FileManager::default();
         $baseURL = Bundle::main()->bundleURL->appendingPathComponent("src");
-        $responderClasses = [];
         foreach ([RespondersDirectory, ViewControllersDirectory] as $directory) {
             $directoryURL = $baseURL->appendingPathComponent($directory);
             if (!$fileManager->fileExists($directoryURL->path)) {

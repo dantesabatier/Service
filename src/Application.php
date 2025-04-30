@@ -209,7 +209,7 @@ class Application extends Responder
             }
             $responder = $responder->nextResponder;
         }
-        throw new NotFoundException();
+        throw new NotFoundException("The requested URL was not found on this server {$this->request->url}");
     }
 
     private function resolveFirstResponder(): Responder

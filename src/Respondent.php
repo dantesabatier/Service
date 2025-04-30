@@ -3,7 +3,7 @@
 namespace Sabatier\Service;
 
 /**
- * A class designed to provide a {@see Responder}'s response in more complex cases.
+ * A strategy to provide a {@see Responder}'s for a specific HTTP method.
  */
 abstract class Respondent
 {

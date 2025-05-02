@@ -17,7 +17,7 @@ abstract class ViewController extends Responder
 {
     /** @var class-string<Renderer> The class used to render the view controller's view */
     public static string $rendererClass = Renderer::class;
-    /** @var string The name of the view controller's template file, if one was specified. */
+    /** @var string The name of the view controller's template file. The default value is the name of the class */
     public string $name {
         get => $this->name ??= class_name($this->class);
     }
@@ -55,7 +55,7 @@ abstract class ViewController extends Responder
      *
      * You should never call this method directly.
      */
-    public function loadView(): void
+    final public function loadView(): void
     {
         $this->viewWillLoad();
         $this->view = new View($this->name, $this->context, new self::$rendererClass($this->bundle));

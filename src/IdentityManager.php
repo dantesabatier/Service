@@ -11,6 +11,7 @@ use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Foundation\Predicates\PredicateOperatorType;
 
+/** @internal */
 class IdentityManager
 {
     public ?Authorizable $user {

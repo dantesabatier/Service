@@ -23,8 +23,6 @@ readonly class CookieParameters
      * @param bool $isSecure Whether the cookie is marked as secure. Default is true.
      * @param bool $isHTTPOnly Whether the cookie is marked as HTTP-only. Default is true.
      * @param string $sameSitePolicy The SameSite policy for the cookie. Must be a value defined in HTTPCookieStringPolicy.
-     *
-     * @return void
      */
     public function __construct(public string $domain, public string $path = "/", public int $lifetime = 0, public bool $isSecure = true, public bool $isHTTPOnly = true, #[ExpectedValues(valuesFromClass: HTTPCookieStringPolicy::class)] public string $sameSitePolicy = HTTPCookieStringPolicy::sameSiteLax)
     {

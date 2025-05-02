@@ -7,7 +7,7 @@ use JetBrains\PhpStorm\ExpectedValues;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 
 /**
- * Attribute used to mark an instance method of a {@see Responder} subclass as an endpoint for an HTTP request whose function is to manipulate the state of server resources.
+ * Attribute used to mark an instance method of a {@see Responder} subclass as an endpoint for an HTTP request.
  */
 #[Attribute(Attribute::TARGET_METHOD)]
 final readonly class Action

@@ -38,8 +38,8 @@ abstract class ViewController extends Responder
     }
     /** @var string|null A localized string that represents the view this controller manages. */
     #[Outlet]
-    public ?string $title = null {
-        get => $this->title ??= $this->bundle->object(kCFBundleNameKey);
+    public ?string $title {
+        get => $this->bundle->object(kCFBundleNameKey);
     }
     public Response $response {
         get {

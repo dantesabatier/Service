@@ -12,6 +12,11 @@ readonly class View
     {
     }
 
+    /**
+     * Renders the output using the provided renderer, name, and context.
+     *
+     * @return string Returns the rendered output as a string.
+     */
     public function render(): string
     {
         return $this->renderer->render($this->name, $this->context);

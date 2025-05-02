@@ -22,8 +22,8 @@ class Home extends ViewController
         get => $this->bundle ??= Bundle::bundleForClass(self::class);
     }
     #[Outlet]
-    public ?string $title = null {
-        get => $this->title ??= Bundle::main()->object(kCFBundleNameKey);
+    public ?string $title {
+        get => Bundle::main()->object(kCFBundleNameKey);
     }
     #[Outlet]
     public ?string $version {

@@ -22,7 +22,7 @@ abstract class ViewController extends Responder
     }
     /** @var View The view that the controller manages. */
     private(set) View $view;
-    /** @var array<string, mixed> An associative array consisting of the property names and the properties marked as {@see Outlet} passed to the view. */
+    /** @var array<string, mixed> An associative array consisting of the property names and the properties marked as outlet passed to the view's rendering system. */
     public array $context {
         get => $this->context ??= array_reduce(new ReflectionClass($this)->getProperties(ReflectionProperty::IS_PUBLIC), function (array $context, ReflectionProperty $property): array {
             if ($property->getAttributes(Outlet::class) !== []) {

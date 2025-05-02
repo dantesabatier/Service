@@ -5,7 +5,7 @@ namespace Sabatier\Service;
 use Exception;
 
 /**
- * Abstract class representing a strategy for encoding a JSON Web Token (JWT).
+ * Class representing a strategy for encoding a JSON Web Token (JWT).
  */
 abstract class JSONWebTokenEncoderStrategy
 {

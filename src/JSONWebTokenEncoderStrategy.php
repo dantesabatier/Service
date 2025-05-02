@@ -9,7 +9,7 @@ use Exception;
  */
 abstract class JSONWebTokenEncoderStrategy
 {
-    public function __construct(public string $key)
+    public function __construct(public readonly string $key)
     {
     }
 

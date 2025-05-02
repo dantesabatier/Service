@@ -75,7 +75,7 @@ class AccessManager extends Responder
         $username = $user->username;
         if ($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) {
             $date = new Date();
-            $data["token"] = new JSONWebTokenEncoder($key)->encode(new JSONWebToken(iss: $this->request->url->host, exp: $date->addingTimeInterval(UserDefaults::standard()->float(JWTValidityTimeIntervalPreferenceKey))->timeIntervalSinceReferenceDate, nbf: $date->timeIntervalSinceReferenceDate, iat: $date->timeIntervalSinceReferenceDate, jti: base64_encode(read_random(16)), username: $username));
+            $data["token"] = new JSONWebTokenEncoder(new JSONWebTokenHS256EncoderStrategy($key))->encode(new JSONWebToken(iss: $this->request->url->host, exp: $date->addingTimeInterval(UserDefaults::standard()->float(JWTValidityTimeIntervalPreferenceKey))->timeIntervalSinceReferenceDate, nbf: $date->timeIntervalSinceReferenceDate, iat: $date->timeIntervalSinceReferenceDate, jti: base64_encode(read_random(16)), username: $username));
         }
         $session = Application::shared()->session;
         $session->regenerateID();

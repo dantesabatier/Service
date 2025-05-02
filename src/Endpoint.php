@@ -4,6 +4,11 @@ namespace Sabatier\Service;
 
 use Attribute;
 
+/**
+ * An attribute to designate a class as an endpoint with an optional path parameter.
+ *
+ * The specified path can be used to define a particular route or location; if not provided, the class name will serve as the endpoint path.
+ */
 #[Attribute(Attribute::TARGET_CLASS)]
 final readonly class Endpoint
 {

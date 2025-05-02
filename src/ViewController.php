@@ -10,12 +10,12 @@ use function Sabatier\Foundation\class_name;
 use const Sabatier\Foundation\kCFBundleNameKey;
 
 /**
- * @property-read bool $isViewLoaded A Boolean value indicating whether the view is currently loaded into memory.
+ * An abstract class that acts as a base for view controllers, managing the creation, rendering of views and encapsulating the associated contextual data.
+ * All view controllers must be {@see Endpoint} annotated.
  */
-#[Endpoint]
 abstract class ViewController extends Responder
 {
-    /** @var class-string<Renderer> */
+    /** @var class-string<Renderer> The class used to render the view controller's view */
     public static string $rendererClass = Renderer::class;
     /** @var string The name of the view controller's template file, if one was specified. */
     public string $name {

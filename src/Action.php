@@ -7,12 +7,12 @@ use JetBrains\PhpStorm\ExpectedValues;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 
 /**
- * Represents an attribute that can be used to annotate methods with an HTTP request method and an optional path.
+ * Attribute used to mark an instance method of a {@see Responder} subclass as an endpoint for an HTTP request whose function is to manipulate the state of server resources.
  */
 #[Attribute(Attribute::TARGET_METHOD)]
 final readonly class Action
 {
-    public function __construct(#[ExpectedValues(valuesFromClass: HTTPRequestMethod::class)] public string $method = HTTPRequestMethod::post, public ?string $path = null)
+    public function __construct(#[ExpectedValues([HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::patch, HTTPRequestMethod::delete])] public string $method = HTTPRequestMethod::post, public ?string $path = null)
     {
     }
 }

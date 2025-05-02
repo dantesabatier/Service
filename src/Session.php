@@ -28,16 +28,16 @@ class Session extends ObjectClass
     public CookieParameters $cookieParameters {
         get => $this->cookieParameters ??= new CookieParameters(parse_url(request_url(), PHP_URL_HOST) ?? "");
     }
-    /** @var URL The url to save the session. */
-    public URL $saveURL {
+    /** @var URL The location where session data is stored. */
+    public URL $storageURL {
         get {
-            if (!isset($this->saveURL)) {
-                $this->saveURL = FileManager::default()->url(SearchPathDirectory::cachesDirectory)->appendingPathComponent(Bundle::main()->bundleIdentifier ?? ProcessInfo::processInfo()->processName)->appendingPathComponent("Session");
-                if (!FileManager::default()->fileExists($this->saveURL->path)) {
-                    FileManager::default()->createDirectory($this->saveURL, true, new Dictionary([FileAttributeKey::posixPermissions => 0777]));
+            if (!isset($this->storageURL)) {
+                $this->storageURL = FileManager::default()->url(SearchPathDirectory::cachesDirectory)->appendingPathComponent(Bundle::main()->bundleIdentifier ?? ProcessInfo::processInfo()->processName)->appendingPathComponent("Session");
+                if (!FileManager::default()->fileExists($this->storageURL->path)) {
+                    FileManager::default()->createDirectory($this->storageURL, true, new Dictionary([FileAttributeKey::posixPermissions => 0777]));
                 }
             }
-            return $this->saveURL;
+            return $this->storageURL;
         }
     }
     /** @var string The session id. */
@@ -59,7 +59,7 @@ class Session extends ObjectClass
         $id = $this->id;
         $lifetime = $this->cookieParameters->lifetime;
         $keys = new Set([URLResourceKey::creationDateKey, URLResourceKey::nameKey]);
-        $urls = FileManager::default()->contentsOfDirectory($this->saveURL, new ArrayClass($keys), DirectoryEnumerationOptions::skipsHiddenFiles);
+        $urls = FileManager::default()->contentsOfDirectory($this->storageURL, new ArrayClass($keys), DirectoryEnumerationOptions::skipsHiddenFiles);
         foreach ($urls as $url) {
             try {
                 $resourceValues = $url->resourceValues($keys);
@@ -110,7 +110,7 @@ class Session extends ObjectClass
     {
         unsafe_value(function (): bool {
             session_set_cookie_params($this->cookieParameters->allValues);
-            session_save_path($this->saveURL->path);
+            session_save_path($this->storageURL->path);
             return session_start();
         });
     }

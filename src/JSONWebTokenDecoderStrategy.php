@@ -3,7 +3,7 @@
 namespace Sabatier\Service;
 
 /**
- * Abstract class responsible for defining the strategy to decode and validate JSON Web Tokens (JWT).
+ * Class responsible for defining the strategy to decode and validate JSON Web Tokens (JWT).
  */
 abstract class JSONWebTokenDecoderStrategy
 {

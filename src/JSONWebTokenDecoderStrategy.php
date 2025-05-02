@@ -7,7 +7,7 @@ namespace Sabatier\Service;
  */
 abstract class JSONWebTokenDecoderStrategy
 {
-    public function __construct(public string $key, public ?string $issuer = null)
+    public function __construct(public readonly string $key, public readonly ?string $issuer = null)
     {
     }
 

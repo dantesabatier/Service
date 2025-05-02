@@ -25,20 +25,10 @@ use function Sabatier\Foundation\unsafe_value;
  */
 class Session extends ObjectClass
 {
+    /** @var URL The location where session data is stored. */
+    public readonly URL $storageURL;
     public CookieParameters $cookieParameters {
         get => $this->cookieParameters ??= new CookieParameters(parse_url(request_url(), PHP_URL_HOST) ?? "");
-    }
-    /** @var URL The location where session data is stored. */
-    public URL $storageURL {
-        get {
-            if (!isset($this->storageURL)) {
-                $this->storageURL = FileManager::default()->url(SearchPathDirectory::cachesDirectory)->appendingPathComponent(Bundle::main()->bundleIdentifier ?? ProcessInfo::processInfo()->processName)->appendingPathComponent("Session");
-                if (!FileManager::default()->fileExists($this->storageURL->path)) {
-                    FileManager::default()->createDirectory($this->storageURL, true, new Dictionary([FileAttributeKey::posixPermissions => 0777]));
-                }
-            }
-            return $this->storageURL;
-        }
     }
     /** @var string The session id. */
     public string $id {
@@ -52,6 +42,17 @@ class Session extends ObjectClass
     /** @var SessionStatus The session status. */
     public SessionStatus $status {
         get => SessionStatus::from(unsafe_value(fn(): int => session_status()));
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function __construct()
+    {
+        $this->storageURL = FileManager::default()->url(SearchPathDirectory::cachesDirectory)->appendingPathComponent(Bundle::main()->bundleIdentifier ?? ProcessInfo::processInfo()->processName)->appendingPathComponent("Session");
+        if (!FileManager::default()->fileExists($this->storageURL->path)) {
+            FileManager::default()->createDirectory($this->storageURL, true, new Dictionary([FileAttributeKey::posixPermissions => 0777]));
+        }
     }
 
     public function __destruct()

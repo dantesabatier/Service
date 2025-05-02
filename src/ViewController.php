@@ -12,6 +12,7 @@ use const Sabatier\Foundation\kCFBundleNameKey;
 /**
  * @property-read bool $isViewLoaded A Boolean value indicating whether the view is currently loaded into memory.
  */
+#[Endpoint]
 abstract class ViewController extends Responder
 {
     /** @var class-string<Renderer> */

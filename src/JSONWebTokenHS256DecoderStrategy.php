@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use Override;
 use Sabatier\Foundation\Date;
 
 /**
@@ -10,6 +11,7 @@ use Sabatier\Foundation\Date;
  */
 class JSONWebTokenHS256DecoderStrategy extends JSONWebTokenDecoderStrategy
 {
+    #[Override]
     public function decode(string $data): JSONWebToken
     {
         $components = explode(".", $data);

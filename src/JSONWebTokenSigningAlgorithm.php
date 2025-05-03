@@ -3,7 +3,7 @@
 namespace Sabatier\Service;
 
 /**
- * Enum representing the supported signing algorithms for JSON Web Tokens (JWTs).
+ * Signing algorithms for JSON Web Tokens (JWTs).
  */
 enum JSONWebTokenSigningAlgorithm: string
 {

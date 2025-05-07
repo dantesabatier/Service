@@ -298,6 +298,11 @@ class Application extends Responder
         return static::$shared;
     }
 
+    /**
+     * Executes the main process of the application and manages the workflow, including initialization, handling access permissions, and processing the response. Manages exceptions that occur during execution.
+     *
+     * @return never
+     */
     public function run(): never
     {
         try {

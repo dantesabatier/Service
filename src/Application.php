@@ -151,7 +151,10 @@ class Application extends Responder
                 }
                 $className = "$namespaceName\\$directoryURL->lastPathComponent\\{$fileManager->displayName($url->path)}";
                 if (class_exists($className) && is_subclass_of($className, Responder::class)) {
-                    $responderClasses[] = $className;
+                    $reflectionClass = new ReflectionClass($className);
+                    if (!$reflectionClass->isInstantiable()) {
+                        $responderClasses[] = $className;
+                    }
                 }
             }
         }

@@ -149,11 +149,11 @@ class Application extends Responder
                 if (!string_is_equal($url->pathExtension, "php", CompareOptions::caseInsensitive)) {
                     continue;
                 }
-                $className = "$namespaceName\\$directoryURL->lastPathComponent\\{$fileManager->displayName($url->path)}";
-                if (class_exists($className) && is_subclass_of($className, Responder::class)) {
-                    $reflectionClass = new ReflectionClass($className);
+                $responderClass = "$namespaceName\\$directoryURL->lastPathComponent\\{$fileManager->displayName($url->path)}";
+                if (class_exists($responderClass) && is_subclass_of($responderClass, Responder::class)) {
+                    $reflectionClass = new ReflectionClass($responderClass);
                     if ($reflectionClass->isInstantiable()) {
-                        $responderClasses[] = $className;
+                        $responderClasses[] = $responderClass;
                     }
                 }
             }

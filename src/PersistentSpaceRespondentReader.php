@@ -47,12 +47,7 @@ class PersistentSpaceRespondentReader extends PersistentSpaceRespondent
                         $fetchRequest->fetchOffset = $decoded->fetchOffset ?? 0;
                         $fetchRequest->fetchBatchSize = $decoded->fetchBatchSize ?? 0;
                         if (isset($decoded->sortDescriptors)) {
-                            $fetchRequest->sortDescriptors = new ArrayClass($decoded->sortDescriptors)->compactMap(
-                            /**
-                             * @param object{key: string, ascending?: bool} $obj
-                             * @return SortDescriptor|null
-                             */
-                                fn(object $obj): ?SortDescriptor => isset($obj->key) ? new SortDescriptor($obj->key, $obj->ascending ?? true) : null);
+                            $fetchRequest->sortDescriptors = new ArrayClass($decoded->sortDescriptors)->compactMap(fn(object $obj): ?SortDescriptor => isset($obj->key) ? new SortDescriptor($obj->key, $obj->ascending ?? true) : null);
                         }
                         if (isset($decoded->resultType)) {
                             $fetchRequest->resultType = FetchRequestResultType::from($decoded->resultType);

@@ -52,36 +52,37 @@ class PersistentSpaceRespondentReader extends PersistentSpaceRespondent
                         if (isset($decoded->resultType)) {
                             $fetchRequest->resultType = FetchRequestResultType::from($decoded->resultType);
                         }
+                        $propertyTransform = function (mixed $element): ExpressionDescription|string|null {
+                            if (is_string($element)) {
+                                return $element;
+                            }
+                            if (!is_object($element)) {
+                                return null;
+                            }
+                            if (!isset($element->name)) {
+                                return null;
+                            }
+                            if (!isset($element->expression)) {
+                                return null;
+                            }
+                            $expression = $element->expression;
+                            if (!isset($expression->format)) {
+                                return null;
+                            }
+                            $expressionDescription = new ExpressionDescription();
+                            $expressionDescription->name = $element->name;
+                            $expressionDescription->expression = Expression::expressionWithFormat($expression->format, ArrayClass::arrayWithArray($expression->arguments ?? []));
+                            if (isset($element->resultType)) {
+                                $expressionDescription->resultType = AttributeType::from($element->resultType);
+                            }
+                            return $expressionDescription;
+                        };
                         if (isset($decoded->propertiesToFetch)) {
-                            $fetchRequest->propertiesToFetch = new ArrayClass($decoded->propertiesToFetch)->compactMap(function (mixed $element): ExpressionDescription|string|null {
-                                if (is_string($element)) {
-                                    return $element;
-                                }
-                                if (!is_object($element)) {
-                                    return null;
-                                }
-                                if (!isset($element->name)) {
-                                    return null;
-                                }
-                                if (!isset($element->expression)) {
-                                    return null;
-                                }
-                                $expression = $element->expression;
-                                if (!isset($expression->format)) {
-                                    return null;
-                                }
-                                $expressionDescription = new ExpressionDescription();
-                                $expressionDescription->name = $element->name;
-                                $expressionDescription->expression = Expression::expressionWithFormat($expression->format, ArrayClass::arrayWithArray($expression->arguments ?? []));
-                                if (isset($element->resultType)) {
-                                    $expressionDescription->resultType = AttributeType::from($element->resultType);
-                                }
-                                return $expressionDescription;
-                            });
+                            $fetchRequest->propertiesToFetch = new ArrayClass($decoded->propertiesToFetch)->compactMap($propertyTransform);
                         }
                         $fetchRequest->returnsDistinctResults = $decoded->returnsDistinctResults ?? false;
                         if (isset($decoded->propertiesToGroupBy)) {
-                            $fetchRequest->propertiesToGroupBy = new ArrayClass($decoded->propertiesToGroupBy);
+                            $fetchRequest->propertiesToGroupBy = new ArrayClass($decoded->propertiesToGroupBy)->compactMap($propertyTransform);
                         }
                         if (isset($decoded->havingPredicate)) {
                             $havingPredicate = $decoded->havingPredicate;

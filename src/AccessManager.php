@@ -24,7 +24,19 @@ class AccessManager extends Responder
         get => $this->isProtectedContentAvailable ??= $this->isRequestAuthorized();
     }
 
-    public function resolveAuthentication(): Authentication
+    public function __construct()
+    {
+        self::registerAuthentications();
+    }
+
+    private static function registerAuthentications(): void
+    {
+        Authentication::registerClass(BasicAuthentication::class);
+        Authentication::registerClass(BearerAuthentication::class);
+        Authentication::registerClass(DigestAuthentication::class);
+    }
+
+    private function resolveAuthentication(): Authentication
     {
         $authenticationClass = Authentication::getAuthenticationClass(Authentication::getAuthentications() ?? new ArrayClass(), $this->request) ?? throw new UnimplementedException();
         return new $authenticationClass($this->request, $this->managedObjectContext, $this->isFirstResponder ? $this->request->serialization : null);
@@ -48,18 +60,6 @@ class AccessManager extends Responder
             HTTPRequestMethod::delete => $authorization->type === AuthorizationType::delete,
             default => false
         };
-    }
-
-    public function __construct()
-    {
-        self::registerAuthentications();
-    }
-
-    private static function registerAuthentications(): void
-    {
-        Authentication::registerClass(BasicAuthentication::class);
-        Authentication::registerClass(BearerAuthentication::class);
-        Authentication::registerClass(DigestAuthentication::class);
     }
 
     /**

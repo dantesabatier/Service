@@ -5,14 +5,10 @@ namespace Sabatier\Service;
 use Exception;
 use ReflectionClass;
 use Sabatier\CoreData\PersistentContainer;
-use Sabatier\CoreData\PersistentHistoryChangeRequest;
-use Sabatier\CoreData\PersistentHistoryToken;
-use Sabatier\CoreData\PersistentHistoryTransaction;
 use Sabatier\CoreData\PersistentStoreDescription;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\CompareOptions;
-use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\DirectoryEnumerationOptions;
 use Sabatier\Foundation\Error;
 use Sabatier\Foundation\FileManager;
@@ -25,7 +21,6 @@ use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Foundation\UserDefaults;
 use Throwable;
 use function Sabatier\Foundation\string_is_equal;
-use const Sabatier\CoreData\PersistentHistoryTokenKey;
 use const Sabatier\CoreData\PersistentHistoryTrackingKey;
 use const Sabatier\CoreData\PersistentStoreRemoteChange;
 use const Sabatier\CoreData\PersistentStoreRemoteChangeNotificationPostOptionKey;
@@ -119,14 +114,6 @@ class Application extends Responder
      */
     private function handlePersistentStoreRemoteChange(Notification $notification): void
     {
-        /** @var Dictionary<mixed> $userInfo */
-        $userInfo = $notification->userInfo;
-        /** @var PersistentHistoryToken $persistentHistoryToken */
-        $persistentHistoryToken = $userInfo[PersistentHistoryTokenKey];
-        $context = $this->persistentContainer->viewContext;
-        $request = PersistentHistoryChangeRequest::deleteHistoryBeforeToken($persistentHistoryToken);
-        $request->fetchRequest = PersistentHistoryTransaction::fetchRequest();
-        $context->execute($request);
     }
 
     /**

@@ -8,28 +8,13 @@ use Sabatier\Foundation\Set;
 class JSONWebTokenCoderStrategyFactory
 {
     private static ?JSONWebTokenCoderStrategyFactory $shared = null;
-    /** @var Set<class-string<covariant JSONWebTokenCoderStrategy>> $strategies */
-    private(set) Set $strategies {
-        get => $this->strategies ??= new Set();
-    }
     /** @var Set<class-string<covariant JSONWebTokenEncoderStrategy>> $encoderStrategies */
-    public Set $encoderStrategies {
-        get => $this->computedStrategiesOfClass(JSONWebTokenEncoderStrategy::class);
+    private(set) Set $encoderStrategies {
+        get => $this->encoderStrategies ??= new Set();
     }
     /** @var Set<class-string<covariant JSONWebTokenDecoderStrategy>> $decoderStrategies */
-    public Set $decoderStrategies {
-        get => $this->computedStrategiesOfClass(JSONWebTokenDecoderStrategy::class);
-    }
-
-    /**
-     * @template T of JSONWebTokenCoderStrategy
-     * @param class-string<T> $strategyClass
-     * @return Set<class-string<T>>
-     */
-    private function computedStrategiesOfClass(string $strategyClass): Set
-    {
-        /** @var Set<class-string<T>> */
-        return $this->strategies->filter(fn(string $strategy) => is_subclass_of($strategy, $strategyClass));
+    private(set) Set $decoderStrategies {
+        get => $this->decoderStrategies ??= new Set();
     }
 
     public static function shared(): JSONWebTokenCoderStrategyFactory
@@ -47,7 +32,11 @@ class JSONWebTokenCoderStrategyFactory
         if (!is_subclass_of($strategyClass, JSONWebTokenCoderStrategy::class)) {
             return false;
         }
-        $this->strategies[] = $strategyClass;
+        if (is_subclass_of($strategyClass, JSONWebTokenEncoderStrategy::class)) {
+            $this->encoderStrategies[] = $strategyClass;
+        } elseif (is_subclass_of($strategyClass, JSONWebTokenDecoderStrategy::class)) {
+            $this->decoderStrategies[] = $strategyClass;
+        }
         return true;
     }
 
@@ -73,6 +62,10 @@ class JSONWebTokenCoderStrategyFactory
      */
     public function unregister(string $strategyClass): void
     {
-        $this->strategies->remove($strategyClass);
+        if (is_subclass_of($strategyClass, JSONWebTokenEncoderStrategy::class)) {
+            $this->encoderStrategies->remove($strategyClass);
+        } elseif (is_subclass_of($strategyClass, JSONWebTokenDecoderStrategy::class)) {
+            $this->decoderStrategies->remove($strategyClass);
+        }
     }
 }

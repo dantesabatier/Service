@@ -7,7 +7,7 @@ use Exception;
 /**
  * Class representing a strategy for encoding a JSON Web Token (JWT).
  */
-abstract class JSONWebTokenEncoderStrategy
+abstract class JSONWebTokenEncoderStrategy extends JSONWebTokenCoderStrategy
 {
     public function __construct(public readonly string $key)
     {

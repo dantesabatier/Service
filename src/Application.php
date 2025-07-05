@@ -100,13 +100,9 @@ class Application extends Responder
 
     private function addPersistentStoreObservers(PersistentContainer $persistentContainer): void
     {
-        NotificationCenter::default()->addObserverForName(
-            PersistentStoreRemoteChange,
-            $persistentContainer->persistentStoreCoordinator,
-            function (Notification $notification): void {
-                $this->handlePersistentStoreRemoteChange($notification);
-            }
-        );
+        NotificationCenter::default()->addObserverForName(PersistentStoreRemoteChange, $persistentContainer->persistentStoreCoordinator, function (Notification $notification): void {
+            $this->handlePersistentStoreRemoteChange($notification);
+        });
     }
 
     /**

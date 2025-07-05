@@ -7,6 +7,8 @@ use Override;
 /** @internal */
 class JSONWebTokenHS256EncoderStrategy extends JSONWebTokenEncoderStrategy
 {
+    public static JSONWebTokenSigningAlgorithm $algorithm = JSONWebTokenSigningAlgorithm::hs256;
+
     #[Override]
     public function encode(JSONWebToken $token): string
     {

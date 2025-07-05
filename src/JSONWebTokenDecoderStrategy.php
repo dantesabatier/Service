@@ -5,7 +5,7 @@ namespace Sabatier\Service;
 /**
  * Class responsible for defining the strategy to decode and validate JSON Web Tokens (JWT).
  */
-abstract class JSONWebTokenDecoderStrategy
+abstract class JSONWebTokenDecoderStrategy extends JSONWebTokenCoderStrategy
 {
     public function __construct(public readonly string $key, public readonly ?string $issuer = null)
     {

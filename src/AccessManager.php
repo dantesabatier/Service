@@ -27,6 +27,7 @@ class AccessManager extends Responder
     public function __construct()
     {
         self::registerAuthentications();
+        self::registerJSONWebTokenCodingStrategies();
     }
 
     private static function registerAuthentications(): void
@@ -34,6 +35,12 @@ class AccessManager extends Responder
         Authentication::registerClass(BasicAuthentication::class);
         Authentication::registerClass(BearerAuthentication::class);
         Authentication::registerClass(DigestAuthentication::class);
+    }
+
+    private static function registerJSONWebTokenCodingStrategies(): void
+    {
+        JSONWebTokenStrategyFactory::registerClass(JSONWebTokenHS256EncoderStrategy::class);
+        JSONWebTokenStrategyFactory::registerClass(JSONWebTokenHS256DecoderStrategy::class);
     }
 
     private function resolveAuthentication(): Authentication
@@ -73,9 +80,11 @@ class AccessManager extends Responder
         $data = new Dictionary();
         $data["user"] = $user;
         $username = $user->username;
-        if ($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) {
+        if (($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) && ($strategyClass = JSONWebTokenStrategyFactory::getStrategyClass(JSONWebTokenStrategyFactory::getEncoderStrategies() ?? new ArrayClass(), JSONWebTokenSigningAlgorithm::tryFrom((string)UserDefaults::standard()->string(JWTSignatureAlgorithmKey)) ?? JSONWebTokenSigningAlgorithm::hs256))) {
             $date = new Date();
-            $data["token"] = new JSONWebTokenEncoder(new JSONWebTokenHS256EncoderStrategy($key))->encode(new JSONWebToken(iss: $this->request->url->host, exp: $date->addingTimeInterval(UserDefaults::standard()->float(JWTValidityTimeIntervalPreferenceKey))->timeIntervalSinceReferenceDate, nbf: $date->timeIntervalSinceReferenceDate, iat: $date->timeIntervalSinceReferenceDate, jti: base64_encode(read_random(16)), username: $username));
+            $token = new JSONWebToken(iss: $this->request->url->host, exp: $date->addingTimeInterval(UserDefaults::standard()->float(JWTValidityTimeIntervalPreferenceKey))->timeIntervalSinceReferenceDate, nbf: $date->timeIntervalSinceReferenceDate, iat: $date->timeIntervalSinceReferenceDate, jti: base64_encode(read_random(16)), username: $username);
+            $encoded = new JSONWebTokenEncoder(new $strategyClass($key))->encode($token);
+            $data["token"] = $encoded;
         }
         $session = Application::shared()->session;
         $session->regenerateID();

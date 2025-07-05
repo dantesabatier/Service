@@ -11,6 +11,8 @@ use Sabatier\Foundation\Date;
  */
 class JSONWebTokenHS256DecoderStrategy extends JSONWebTokenDecoderStrategy
 {
+    public static JSONWebTokenSigningAlgorithm $algorithm = JSONWebTokenSigningAlgorithm::hs256;
+
     #[Override]
     public function decode(string $data): JSONWebToken
     {

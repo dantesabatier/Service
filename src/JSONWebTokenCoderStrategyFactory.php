@@ -2,23 +2,34 @@
 
 namespace Sabatier\Service;
 
-use Sabatier\Foundation\ArrayClass;
+use Sabatier\Foundation\Set;
 
 /** @internal */
 class JSONWebTokenCoderStrategyFactory
 {
     private static ?JSONWebTokenCoderStrategyFactory $shared = null;
-    /** @var ArrayClass<class-string<covariant JSONWebTokenCoderStrategy>> $strategies */
-    private(set) ArrayClass $strategies {
-        get => $this->strategies ??= new ArrayClass();
+    /** @var Set<class-string<covariant JSONWebTokenCoderStrategy>> $strategies */
+    private(set) Set $strategies {
+        get => $this->strategies ??= new Set();
     }
-    /** @var ArrayClass<class-string<covariant JSONWebTokenEncoderStrategy>> $encoderStrategies */
-    public ArrayClass $encoderStrategies {
-        get => $this->strategies->filter(fn(string $strategy) => is_subclass_of($strategy, JSONWebTokenEncoderStrategy::class));
+    /** @var Set<class-string<covariant JSONWebTokenEncoderStrategy>> $encoderStrategies */
+    public Set $encoderStrategies {
+        get => $this->computedStrategiesOfClass(JSONWebTokenEncoderStrategy::class);
     }
-    /** @var ArrayClass<class-string<covariant JSONWebTokenDecoderStrategy>> $decoderStrategies */
-    public ArrayClass $decoderStrategies {
-        get => $this->strategies->filter(fn(string $strategy) => is_subclass_of($strategy, JSONWebTokenDecoderStrategy::class));
+    /** @var Set<class-string<covariant JSONWebTokenDecoderStrategy>> $decoderStrategies */
+    public Set $decoderStrategies {
+        get => $this->computedStrategiesOfClass(JSONWebTokenDecoderStrategy::class);
+    }
+
+    /**
+     * @template T of JSONWebTokenCoderStrategy
+     * @param class-string<T> $strategyClass
+     * @return Set<class-string<T>>
+     */
+    private function computedStrategiesOfClass(string $strategyClass): Set
+    {
+        /** @var Set<class-string<T>> */
+        return $this->strategies->filter(fn(string $strategy) => is_subclass_of($strategy, $strategyClass));
     }
 
     public static function shared(): JSONWebTokenCoderStrategyFactory
@@ -36,19 +47,17 @@ class JSONWebTokenCoderStrategyFactory
         if (!is_subclass_of($strategyClass, JSONWebTokenCoderStrategy::class)) {
             return false;
         }
-        if (!$this->strategies->containsElement($strategyClass)) {
-            $this->strategies[] = $strategyClass;
-        }
+        $this->strategies[] = $strategyClass;
         return true;
     }
 
     /**
      * @template T of JSONWebTokenCoderStrategy
-     * @param ArrayClass<class-string<T>> $strategyClasses
+     * @param Set<class-string<T>> $strategyClasses
      * @param JSONWebTokenSigningAlgorithm $algorithm
      * @return class-string<T>|null
      */
-    public function getStrategyClass(ArrayClass $strategyClasses, JSONWebTokenSigningAlgorithm $algorithm): ?string
+    public function getStrategyClass(Set $strategyClasses, JSONWebTokenSigningAlgorithm $algorithm): ?string
     {
         return $strategyClasses->first(
         /**

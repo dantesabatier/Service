@@ -11,7 +11,7 @@ class JSONWebTokenStrategyFactory
     private static ?ArrayClass $strategies = null;
 
     /**
-     * @return ArrayClass<class-string<JSONWebTokenCoderStrategy>>
+     * @return ArrayClass<class-string<covariant JSONWebTokenCoderStrategy>>
      */
     private static function strategies(): ArrayClass
     {
@@ -20,7 +20,7 @@ class JSONWebTokenStrategyFactory
     }
 
     /**
-     * @return ArrayClass<class-string<JSONWebTokenCoderStrategy>>|null
+     * @return ArrayClass<class-string<covariant JSONWebTokenCoderStrategy>>|null
      * @internal
      */
     public static function getStrategies(): ?ArrayClass
@@ -29,7 +29,7 @@ class JSONWebTokenStrategyFactory
     }
 
     /**
-     * @return ArrayClass<class-string<JSONWebTokenEncoderStrategy>>|null
+     * @return ArrayClass<class-string<covariant JSONWebTokenEncoderStrategy>>|null
      * @internal
      */
     public static function getEncoderStrategies(): ?ArrayClass
@@ -39,7 +39,7 @@ class JSONWebTokenStrategyFactory
     }
 
     /**
-     * @return ArrayClass<class-string<JSONWebTokenDecoderStrategy>>|null
+     * @return ArrayClass<class-string<covariant JSONWebTokenDecoderStrategy>>|null
      * @internal
      */
     public static function getDecoderStrategies(): ?ArrayClass
@@ -82,7 +82,7 @@ class JSONWebTokenStrategyFactory
     }
 
     /**
-     * @param class-string<JSONWebTokenCoderStrategy> $strategyClass
+     * @param class-string<covariant JSONWebTokenCoderStrategy> $strategyClass
      */
     public static function unregisterClass(string $strategyClass): void
     {

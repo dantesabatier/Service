@@ -26,6 +26,11 @@ class AccessManager extends Responder
 
     public function __construct()
     {
+        self::initialize();
+    }
+
+    public static function initialize(): void
+    {
         self::registerAuthentications();
         self::registerJSONWebTokenCodingStrategies();
     }

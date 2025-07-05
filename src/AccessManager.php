@@ -39,8 +39,8 @@ class AccessManager extends Responder
 
     private static function registerJSONWebTokenCodingStrategies(): void
     {
-        JSONWebTokenCoderStrategyFactory::registerClass(JSONWebTokenHS256EncoderStrategy::class);
-        JSONWebTokenCoderStrategyFactory::registerClass(JSONWebTokenHS256DecoderStrategy::class);
+        JSONWebTokenCoderStrategyFactory::shared()->register(JSONWebTokenHS256EncoderStrategy::class);
+        JSONWebTokenCoderStrategyFactory::shared()->register(JSONWebTokenHS256DecoderStrategy::class);
     }
 
     private function resolveAuthentication(): Authentication
@@ -80,10 +80,10 @@ class AccessManager extends Responder
         $data = new Dictionary();
         $data["user"] = $user;
         $username = $user->username;
-        if (($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) && ($strategyClass = JSONWebTokenCoderStrategyFactory::getStrategyClass(JSONWebTokenCoderStrategyFactory::getEncoderStrategies() ?? new ArrayClass(), JSONWebTokenSigningAlgorithm::tryFrom((string)UserDefaults::standard()->string(JWTSignatureAlgorithmKey)) ?? JSONWebTokenSigningAlgorithm::hs256))) {
+        if (($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) && ($JSONWebTokenEncoderStrategyClass = JSONWebTokenCoderStrategyFactory::shared()->getStrategyClass(JSONWebTokenCoderStrategyFactory::shared()->encoderStrategies, JSONWebTokenSigningAlgorithm::tryFrom((string)UserDefaults::standard()->string(JWTSignatureAlgorithmKey)) ?? JSONWebTokenSigningAlgorithm::hs256))) {
             $date = new Date();
             $token = new JSONWebToken(iss: $this->request->url->host, exp: $date->addingTimeInterval(UserDefaults::standard()->float(JWTValidityTimeIntervalPreferenceKey))->timeIntervalSinceReferenceDate, nbf: $date->timeIntervalSinceReferenceDate, iat: $date->timeIntervalSinceReferenceDate, jti: base64_encode(read_random(16)), username: $username);
-            $encoded = new JSONWebTokenEncoder(new $strategyClass($key))->encode($token);
+            $encoded = new JSONWebTokenEncoder(new $JSONWebTokenEncoderStrategyClass($key))->encode($token);
             $data["token"] = $encoded;
         }
         $session = Application::shared()->session;

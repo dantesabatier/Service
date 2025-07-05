@@ -5,7 +5,7 @@ namespace Sabatier\Service;
 use Sabatier\Foundation\ArrayClass;
 
 /** @internal */
-class JSONWebTokenStrategyFactory
+class JSONWebTokenCoderStrategyFactory
 {
     /** @var ArrayClass<class-string<covariant JSONWebTokenCoderStrategy>>|null */
     private static ?ArrayClass $strategies = null;

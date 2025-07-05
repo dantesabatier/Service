@@ -13,12 +13,12 @@ class JSONWebTokenCoderStrategyFactory
         get => $this->strategies ??= new ArrayClass();
     }
     /** @var ArrayClass<class-string<covariant JSONWebTokenEncoderStrategy>> $encoderStrategies */
-    private(set) ArrayClass $encoderStrategies {
-        get => $this->encoderStrategies ??= $this->strategies->filter(fn(string $strategy) => is_subclass_of($strategy, JSONWebTokenEncoderStrategy::class));
+    public ArrayClass $encoderStrategies {
+        get => $this->strategies->filter(fn(string $strategy) => is_subclass_of($strategy, JSONWebTokenEncoderStrategy::class));
     }
     /** @var ArrayClass<class-string<covariant JSONWebTokenDecoderStrategy>> $decoderStrategies */
-    private(set) ArrayClass $decoderStrategies {
-        get => $this->decoderStrategies ??= $this->strategies->filter(fn(string $strategy) => is_subclass_of($strategy, JSONWebTokenDecoderStrategy::class));
+    public ArrayClass $decoderStrategies {
+        get => $this->strategies->filter(fn(string $strategy) => is_subclass_of($strategy, JSONWebTokenDecoderStrategy::class));
     }
 
     public static function shared(): JSONWebTokenCoderStrategyFactory

@@ -7,59 +7,37 @@ use Sabatier\Foundation\ArrayClass;
 /** @internal */
 class JSONWebTokenCoderStrategyFactory
 {
-    /** @var ArrayClass<class-string<covariant JSONWebTokenCoderStrategy>>|null */
-    private static ?ArrayClass $strategies = null;
-
-    /**
-     * @return ArrayClass<class-string<covariant JSONWebTokenCoderStrategy>>
-     */
-    private static function strategies(): ArrayClass
-    {
-        self::$strategies ??= new ArrayClass();
-        return self::$strategies;
+    private static ?JSONWebTokenCoderStrategyFactory $shared = null;
+    /** @var ArrayClass<class-string<covariant JSONWebTokenCoderStrategy>> $strategies */
+    private(set) ArrayClass $strategies {
+        get => $this->strategies ??= new ArrayClass();
+    }
+    /** @var ArrayClass<class-string<covariant JSONWebTokenEncoderStrategy>> $encoderStrategies */
+    private(set) ArrayClass $encoderStrategies {
+        get => $this->encoderStrategies ??= $this->strategies->filter(fn(string $strategy) => is_subclass_of($strategy, JSONWebTokenEncoderStrategy::class));
+    }
+    /** @var ArrayClass<class-string<covariant JSONWebTokenDecoderStrategy>> $decoderStrategies */
+    private(set) ArrayClass $decoderStrategies {
+        get => $this->decoderStrategies ??= $this->strategies->filter(fn(string $strategy) => is_subclass_of($strategy, JSONWebTokenDecoderStrategy::class));
     }
 
-    /**
-     * @return ArrayClass<class-string<covariant JSONWebTokenCoderStrategy>>|null
-     * @internal
-     */
-    public static function getStrategies(): ?ArrayClass
+    public static function shared(): JSONWebTokenCoderStrategyFactory
     {
-        return self::$strategies;
-    }
-
-    /**
-     * @return ArrayClass<class-string<covariant JSONWebTokenEncoderStrategy>>|null
-     * @internal
-     */
-    public static function getEncoderStrategies(): ?ArrayClass
-    {
-        /** @var ArrayClass<class-string<JSONWebTokenEncoderStrategy>>|null */
-        return self::$strategies?->filter(fn(string $strategy) => is_subclass_of($strategy, JSONWebTokenEncoderStrategy::class));
-    }
-
-    /**
-     * @return ArrayClass<class-string<covariant JSONWebTokenDecoderStrategy>>|null
-     * @internal
-     */
-    public static function getDecoderStrategies(): ?ArrayClass
-    {
-        /** @var ArrayClass<class-string<JSONWebTokenDecoderStrategy>>|null */
-        return self::$strategies?->filter(fn(string $strategy) => is_subclass_of($strategy, JSONWebTokenDecoderStrategy::class));
+        self::$shared ??= new self();
+        return self::$shared;
     }
 
     /**
      * @param class-string<covariant JSONWebTokenCoderStrategy> $strategyClass
      * @return bool
      */
-    public static function registerClass(string $strategyClass): bool
+    public function register(string $strategyClass): bool
     {
         if (!is_subclass_of($strategyClass, JSONWebTokenCoderStrategy::class)) {
             return false;
         }
-        $strategies = self::strategies();
-        if (!$strategies->containsElement($strategyClass)) {
-            $strategies[] = $strategyClass;
+        if (!$this->strategies->containsElement($strategyClass)) {
+            $this->strategies[] = $strategyClass;
         }
         return true;
     }
@@ -70,7 +48,7 @@ class JSONWebTokenCoderStrategyFactory
      * @param JSONWebTokenSigningAlgorithm $algorithm
      * @return class-string<T>|null
      */
-    public static function getStrategyClass(ArrayClass $strategyClasses, JSONWebTokenSigningAlgorithm $algorithm): ?string
+    public function getStrategyClass(ArrayClass $strategyClasses, JSONWebTokenSigningAlgorithm $algorithm): ?string
     {
         return $strategyClasses->first(
         /**
@@ -84,10 +62,8 @@ class JSONWebTokenCoderStrategyFactory
     /**
      * @param class-string<covariant JSONWebTokenCoderStrategy> $strategyClass
      */
-    public static function unregisterClass(string $strategyClass): void
+    public function unregister(string $strategyClass): void
     {
-        if ($strategies = self::$strategies) {
-            $strategies->remove($strategyClass);
-        }
+        $this->strategies->remove($strategyClass);
     }
 }

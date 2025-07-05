@@ -7,7 +7,7 @@ use Sabatier\Foundation\ArrayClass;
 /** @internal */
 class JSONWebTokenStrategyFactory
 {
-    /** @var ArrayClass<class-string<JSONWebTokenCoderStrategy>>|null */
+    /** @var ArrayClass<class-string<covariant JSONWebTokenCoderStrategy>>|null */
     private static ?ArrayClass $strategies = null;
 
     /**

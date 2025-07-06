@@ -32,7 +32,7 @@ class JSONWebTokenRS256DecoderStrategy extends JSONWebTokenDecoderStrategy
         return $token;
     }
 
-    public static function canInit(JSONWebTokenSigningAlgorithm $algorithm): bool
+    public static function isSupported(JSONWebTokenSigningAlgorithm $algorithm): bool
     {
         return $algorithm === JSONWebTokenSigningAlgorithm::rs256;
     }

@@ -4,9 +4,7 @@ namespace Sabatier\Service;
 
 use Override;
 
-/**
- * @internal
- */
+/** @internal */
 class JSONWebTokenRS256EncoderStrategy extends JSONWebTokenEncoderStrategy
 {
     public static JSONWebTokenSigningAlgorithm $algorithm = JSONWebTokenSigningAlgorithm::rs256;

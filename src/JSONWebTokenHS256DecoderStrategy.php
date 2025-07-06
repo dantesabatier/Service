@@ -21,7 +21,7 @@ class JSONWebTokenHS256DecoderStrategy extends JSONWebTokenDecoderStrategy
             throw new JSONWebTokenException("Access token is missing.");
         }
         [$header, $payload, $signature] = $components;
-        $unsigned = sprintf("%s.%s", $header, $payload);
+        $unsigned = "$header.$payload";
         $signed = base64_encode(hash_hmac("sha256", $unsigned, $this->key, true));
         if ($signature !== $signed) {
             throw new JSONWebTokenException("Access token is not valid.");

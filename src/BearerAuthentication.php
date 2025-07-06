@@ -26,8 +26,8 @@ class BearerAuthentication extends Authentication
         get => $this->credential instanceof URLCredential;
     }
 
-    public static function canHandle(Request $request): bool
+    public static function isSupported(AuthenticationScheme $scheme): bool
     {
-        return $request->authParameter->scheme === AuthenticationScheme::bearer;
+        return $scheme === AuthenticationScheme::bearer;
     }
 }

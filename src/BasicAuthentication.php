@@ -36,8 +36,8 @@ class BasicAuthentication extends Authentication
         }
     }
 
-    public static function canHandle(Request $request): bool
+    public static function isSupported(AuthenticationScheme $scheme): bool
     {
-        return $request->authParameter->scheme === AuthenticationScheme::basic;
+        return $scheme === AuthenticationScheme::basic;
     }
 }

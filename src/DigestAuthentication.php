@@ -45,8 +45,8 @@ class DigestAuthentication extends Authentication
         }
     }
 
-    public static function canHandle(Request $request): bool
+    public static function isSupported(AuthenticationScheme $scheme): bool
     {
-        return $request->authParameter->scheme === AuthenticationScheme::digest;
+        return $scheme === AuthenticationScheme::digest;
     }
 }

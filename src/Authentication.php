@@ -64,21 +64,23 @@ abstract class Authentication
         return true;
     }
 
+
     /**
-     * @param ArrayClass<class-string<Authentication>> $authenticationClasses
-     * @param Request $request
-     * @return class-string<Authentication>|null
+     * Retrieves the authentication class that supports the specified authentication scheme.
+     *
+     * @param ArrayClass<class-string<Authentication>> $authenticationClasses List of authentication classes.
+     * @param AuthenticationScheme $scheme The authentication scheme to check for support.
+     * @return class-string<Authentication>|null The authentication class that supports the scheme or null if none is found.
      * @internal
      */
-
-    public static function getAuthenticationClass(ArrayClass $authenticationClasses, Request $request): ?string
+    public static function getAuthenticationClass(ArrayClass $authenticationClasses, AuthenticationScheme $scheme): ?string
     {
         return $authenticationClasses->first(
         /**
          * @param class-string<Authentication> $authenticationClass
          * @return bool
          */
-            fn(string $authenticationClass): bool => $authenticationClass::canHandle($request)
+            fn(string $authenticationClass): bool => $authenticationClass::isSupported($scheme)
         );
     }
 
@@ -103,10 +105,11 @@ abstract class Authentication
     }
 
     /**
-     * Determines whether the authentication subclass can handle the specified request.
-     * @param Request $request The request.
-     * @return bool true if the authentication subclass can handle the request, otherwise false.
+     * Checks whether the given authentication scheme is supported.
+     *
+     * @param AuthenticationScheme $scheme The authentication scheme to check.
+     * @return bool True if the authentication scheme is supported, false otherwise.
      */
-    public abstract static function canHandle(Request $request): bool;
+    public abstract static function isSupported(AuthenticationScheme $scheme): bool;
 }
 

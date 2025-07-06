@@ -52,7 +52,7 @@ class AccessManager extends Responder
 
     private function resolveAuthentication(): Authentication
     {
-        $authenticationClass = Authentication::getAuthenticationClass(Authentication::getAuthentications() ?? new ArrayClass(), $this->request) ?? throw new UnimplementedException();
+        $authenticationClass = Authentication::getAuthenticationClass(Authentication::getAuthentications() ?? new ArrayClass(), $this->request->authParameter->scheme) ?? throw new UnimplementedException();
         return new $authenticationClass($this->request, $this->managedObjectContext, $this->isFirstResponder ? $this->request->serialization : null);
     }
 

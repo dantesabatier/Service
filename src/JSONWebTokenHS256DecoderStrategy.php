@@ -3,7 +3,6 @@
 namespace Sabatier\Service;
 
 use Override;
-use Sabatier\Foundation\Date;
 
 /**
  * @phpstan-import-type JSONWebTokenValues from JSONWebToken
@@ -26,19 +25,11 @@ class JSONWebTokenHS256DecoderStrategy extends JSONWebTokenDecoderStrategy
         if ($signature !== $signed) {
             throw new JSONWebTokenException("Access token is not valid.");
         }
-        $date = new Date();
         /** @var JSONWebTokenValues $values */
         $values = json_decode(base64_decode($payload), true);
         $token = JSONWebToken::token($values);
-        if ($token->nbf && $token->nbf > $date->timeIntervalSinceReferenceDate) {
-            throw new JSONWebTokenException("Access token is not yet valid.");
-        }
-        if ($token->exp && $token->exp < $date->timeIntervalSinceReferenceDate) {
-            throw new JSONWebTokenException("Access token has expired.");
-        }
-        if ($token->iss && $token->iss !== $this->issuer) {
-            throw new JSONWebTokenException("Access token issuer is invalid.");
-        }
+        $validator = new JSONWebTokenValidator($this->issuer);
+        $validator->validate($token);
         return $token;
     }
 }

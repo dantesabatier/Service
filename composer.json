@@ -22,7 +22,8 @@
   "config": {
     "platform": {
       "ext-pcntl": "8.4",
-      "ext-posix": "8.4"
+      "ext-posix": "8.4",
+      "ext-openssl": "*"
     }
   },
   "autoload": {

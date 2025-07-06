@@ -16,6 +16,6 @@ class JSONWebTokenHS256EncoderStrategy extends JSONWebTokenEncoderStrategy
         $encoded = base64_encode(json_encode($token, JSON_THROW_ON_ERROR));
         $unsigned = "$header.$encoded";
         $signed = base64_encode(hash_hmac("sha256", $unsigned, $this->key, true));
-        return "$unsigned.$signed"; 
+        return "$unsigned.$signed";
     }
 }

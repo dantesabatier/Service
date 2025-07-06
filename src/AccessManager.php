@@ -44,8 +44,10 @@ class AccessManager extends Responder
 
     private static function registerJSONWebTokenCodingStrategies(): void
     {
-        JSONWebTokenCoderStrategyFactory::shared()->register(JSONWebTokenHS256EncoderStrategy::class);
-        JSONWebTokenCoderStrategyFactory::shared()->register(JSONWebTokenHS256DecoderStrategy::class);
+        $classes = [JSONWebTokenHS256EncoderStrategy::class, JSONWebTokenHS256DecoderStrategy::class, JSONWebTokenRS256EncoderStrategy::class, JSONWebTokenRS256DecoderStrategy::class];
+        foreach ($classes as $class) {
+            JSONWebTokenCoderStrategyFactory::shared()->register($class);
+        }
     }
 
     private function resolveAuthentication(): Authentication

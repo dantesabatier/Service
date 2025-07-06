@@ -53,7 +53,7 @@ class JSONWebTokenCoderStrategyFactory
          * @param class-string<T> $strategyClass
          * @return bool
          */
-            fn(string $strategyClass) => $strategyClass::$algorithm === $algorithm
+            fn(string $strategyClass) => $strategyClass::canInit($algorithm)
         );
     }
 

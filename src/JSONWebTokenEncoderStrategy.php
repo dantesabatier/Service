@@ -9,10 +9,6 @@ use Exception;
  */
 abstract class JSONWebTokenEncoderStrategy extends JSONWebTokenCoderStrategy
 {
-    public function __construct(public readonly string $key)
-    {
-    }
-
     /**
      * Encodes a JSON Web Token (JWT) into a string representation.
      *

@@ -10,7 +10,10 @@ use Override;
  */
 class JSONWebTokenRS256DecoderStrategy extends JSONWebTokenDecoderStrategy
 {
-    public static JSONWebTokenSigningAlgorithm $algorithm = JSONWebTokenSigningAlgorithm::rs256;
+    public static function canInit(JSONWebTokenSigningAlgorithm $algorithm): bool
+    {
+        return $algorithm === JSONWebTokenSigningAlgorithm::rs256;
+    }
 
     #[Override]
     public function decode(string $data): JSONWebToken
@@ -22,8 +25,9 @@ class JSONWebTokenRS256DecoderStrategy extends JSONWebTokenDecoderStrategy
         [$header, $payload, $signature] = $components;
         $unsigned = "$header.$payload";
         $signature = base64_decode($signature);
-        if (!openssl_verify($unsigned, $signature, $this->key, OPENSSL_ALGO_SHA256)) {
-            throw new JSONWebTokenException("Access token is not valid.");
+        $pkey = openssl_pkey_get_public($this->key);
+        if (!openssl_verify($unsigned, $signature, $pkey, OPENSSL_ALGO_SHA256)) {
+            throw new JSONWebTokenException(openssl_error_string() ?: "Access token is not valid.");
         }
         /** @var JSONWebTokenValues $values */
         $values = json_decode(base64_decode($payload), true);

@@ -10,7 +10,10 @@ use Override;
  */
 class JSONWebTokenHS256DecoderStrategy extends JSONWebTokenDecoderStrategy
 {
-    public static JSONWebTokenSigningAlgorithm $algorithm = JSONWebTokenSigningAlgorithm::hs256;
+    public static function canInit(JSONWebTokenSigningAlgorithm $algorithm): bool
+    {
+        return $algorithm === JSONWebTokenSigningAlgorithm::hs256;
+    }
 
     #[Override]
     public function decode(string $data): JSONWebToken

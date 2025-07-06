@@ -2,13 +2,16 @@
 
 namespace Sabatier\Service;
 
+use OpenSSLAsymmetricKey;
+
 /**
  * Class responsible for defining the strategy to decode and validate JSON Web Tokens (JWT).
  */
 abstract class JSONWebTokenDecoderStrategy extends JSONWebTokenCoderStrategy
 {
-    public function __construct(public readonly string $key, public readonly ?string $issuer = null)
+    public function __construct(OpenSSLAsymmetricKey|string $key, public readonly ?string $issuer = null)
     {
+        parent::__construct($key);
     }
 
     /**

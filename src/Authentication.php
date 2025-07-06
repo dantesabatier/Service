@@ -48,7 +48,7 @@ abstract class Authentication
     /**
      * Attempts to register a subclass of Authentication, making it visible to the access manager.
      *
-     * The first Authentication subclass to return true when sent a {@see canInit()} message is used to authenticate the request. There is no guarantee that all registered authentication classes will be consulted.
+     * The first Authentication subclass to return true when sent a {@see canHandle()} message is used to authenticate the request. There is no guarantee that all registered authentication classes will be consulted.
      * @param class-string<Authentication> $authenticationClass
      * @return bool true if the registration is successful, false otherwise. The only failure condition is if authenticationClass is not a subclass of Authentication.
      */
@@ -78,7 +78,7 @@ abstract class Authentication
          * @param class-string<Authentication> $authenticationClass
          * @return bool
          */
-            fn(string $authenticationClass): bool => $authenticationClass::canInit($request)
+            fn(string $authenticationClass): bool => $authenticationClass::canHandle($request)
         );
     }
 
@@ -107,6 +107,6 @@ abstract class Authentication
      * @param Request $request The request.
      * @return bool true if the authentication subclass can handle the request, otherwise false.
      */
-    public abstract static function canInit(Request $request): bool;
+    public abstract static function canHandle(Request $request): bool;
 }
 

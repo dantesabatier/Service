@@ -5,7 +5,7 @@ namespace Sabatier\Service;
 use Override;
 
 /**
- * @phpstan-import-type JSONWebTokenValues from JSONWebToken
+ * @internal
  */
 class JSONWebTokenRS256EncoderStrategy extends JSONWebTokenEncoderStrategy
 {

@@ -17,13 +17,13 @@
     "php": "^8.4",
     "ext-mbstring": "*",
     "sabatier/foundation": "@dev",
-    "sabatier/coredata": "@dev"
+    "sabatier/coredata": "@dev",
+    "ext-openssl": "*"
   },
   "config": {
     "platform": {
       "ext-pcntl": "8.4",
-      "ext-posix": "8.4",
-      "ext-openssl": "*"
+      "ext-posix": "8.4"
     }
   },
   "autoload": {

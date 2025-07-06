@@ -5,8 +5,9 @@ namespace Sabatier\Service;
 use Override;
 
 /**
- * @phpstan-import-type JSONWebTokenValues from JSONWebToken
  * @internal
+ * @phpstan-import-type JSONWebTokenHeaderRawValue from JSONWebTokenHeader
+ * @phpstan-import-type JSONWebTokenPayloadRawValue from JSONWebTokenPayload
  */
 class JSONWebTokenRS256DecoderStrategy extends JSONWebTokenDecoderStrategy
 {
@@ -24,10 +25,12 @@ class JSONWebTokenRS256DecoderStrategy extends JSONWebTokenDecoderStrategy
         if (!openssl_verify($unsigned, $signature, $pkey, OPENSSL_ALGO_SHA256)) {
             throw new JSONWebTokenException(openssl_error_string() ?: "Access token is not valid.");
         }
-        /** @var JSONWebTokenValues $values */
-        $values = json_decode(base64_decode($payload), true);
-        $token = JSONWebToken::token($values);
-        $validator = new JSONWebTokenValidator($this->issuer);
+        /** @var JSONWebTokenHeaderRawValue $headerRawValue */
+        $headerRawValue = json_decode(base64_decode($header), true);
+        /** @var JSONWebTokenPayloadRawValue $payloadRawValue */
+        $payloadRawValue = json_decode(base64_decode($payload), true);
+        $token = new JSONWebToken(JSONWebTokenHeader::header($headerRawValue), JSONWebTokenPayload::payload($payloadRawValue), new JSONWebTokenSignature($signature));
+        $validator = new JSONWebTokenValidator($this->issuer, JSONWebTokenSigningAlgorithm::rs256->value);
         $validator->validate($token);
         return $token;
     }

@@ -9,8 +9,11 @@ use Sabatier\Foundation\Date;
  */
 readonly class JSONWebTokenValidator
 {
-    public function __construct(private string $issuer)
+    private float $now;
+
+    public function __construct(private string $issuer, private string $algorithm)
     {
+        $this->now = new Date()->timeIntervalSinceReferenceDate;
     }
 
     /**
@@ -21,14 +24,18 @@ readonly class JSONWebTokenValidator
      */
     public function validate(JSONWebToken $token): void
     {
-        $date = new Date();
-        if ($token->nbf && $token->nbf > $date->timeIntervalSinceReferenceDate) {
+        $header = $token->header;
+        if ($header->alg !== $this->algorithm) {
+            throw new JSONWebTokenException("Access token algorithm is invalid.");
+        }
+        $payload = $token->payload;
+        if ($payload->nbf && $payload->nbf > $this->now) {
             throw new JSONWebTokenException("Access token is not yet valid.");
         }
-        if ($token->exp && $token->exp < $date->timeIntervalSinceReferenceDate) {
+        if ($payload->exp && $payload->exp < $this->now) {
             throw new JSONWebTokenException("Access token has expired.");
         }
-        if ($token->iss && $token->iss !== $this->issuer) {
+        if ($payload->iss && $payload->iss !== $this->issuer) {
             throw new JSONWebTokenException("Access token issuer is invalid.");
         }
     }

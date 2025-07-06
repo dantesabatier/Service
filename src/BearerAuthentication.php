@@ -14,8 +14,17 @@ class BearerAuthentication extends Authentication
     private(set) ?URLCredential $credential {
         get {
             if (!isset($this->credential)) {
-                if (($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) && ($JSONWebTokenDecoderStrategyClass = JSONWebTokenCoderStrategyFactory::shared()->getStrategyClass(JSONWebTokenCoderStrategyFactory::shared()->decoderStrategies, JSONWebTokenSigningAlgorithm::tryFrom((string)UserDefaults::standard()->string(JWTSignatureAlgorithmPreferenceKey)) ?? JSONWebTokenSigningAlgorithm::hs256)) && ($username = new JSONWebTokenDecoder(new $JSONWebTokenDecoderStrategyClass($key, $this->request->url->host))->decode($this->request->authParameter->value)->username)) {
-                    $this->credential = new URLCredential($username);
+                if ($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) {
+                    $algorithm = JSONWebTokenSigningAlgorithm::tryFrom((string)UserDefaults::standard()->string(JWTSignatureAlgorithmPreferenceKey)) ?? JSONWebTokenSigningAlgorithm::hs256;
+                    if ($JSONWebTokenDecoderStrategyClass = JSONWebTokenCoderStrategyFactory::shared()->getStrategyClass(JSONWebTokenCoderStrategyFactory::shared()->decoderStrategies, $algorithm)) {
+                        $data = $this->request->authParameter->value;
+                        $strategy = new $JSONWebTokenDecoderStrategyClass($key, $this->request->url->host);
+                        $decoder = new JSONWebTokenDecoder($strategy);
+                        $token = $decoder->decode($data);
+                        if ($username = $token->payload->username) {
+                            $this->credential = new URLCredential($username);
+                        }
+                    }
                 }
                 $this->credential ??= null;
             }

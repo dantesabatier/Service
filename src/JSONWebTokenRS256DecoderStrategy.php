@@ -10,11 +10,6 @@ use Override;
  */
 class JSONWebTokenRS256DecoderStrategy extends JSONWebTokenDecoderStrategy
 {
-    public static function canInit(JSONWebTokenSigningAlgorithm $algorithm): bool
-    {
-        return $algorithm === JSONWebTokenSigningAlgorithm::rs256;
-    }
-
     #[Override]
     public function decode(string $data): JSONWebToken
     {
@@ -35,5 +30,10 @@ class JSONWebTokenRS256DecoderStrategy extends JSONWebTokenDecoderStrategy
         $validator = new JSONWebTokenValidator($this->issuer);
         $validator->validate($token);
         return $token;
+    }
+
+    public static function canInit(JSONWebTokenSigningAlgorithm $algorithm): bool
+    {
+        return $algorithm === JSONWebTokenSigningAlgorithm::rs256;
     }
 }

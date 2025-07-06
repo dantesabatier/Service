@@ -7,11 +7,6 @@ use Override;
 /** @internal */
 class JSONWebTokenRS256EncoderStrategy extends JSONWebTokenEncoderStrategy
 {
-    public static function canInit(JSONWebTokenSigningAlgorithm $algorithm): bool
-    {
-        return $algorithm === JSONWebTokenSigningAlgorithm::rs256;
-    }
-
     #[Override]
     public function encode(JSONWebToken $token): string
     {
@@ -23,5 +18,10 @@ class JSONWebTokenRS256EncoderStrategy extends JSONWebTokenEncoderStrategy
         }
         $signed = base64_encode($signature);
         return "$unsigned.$signed";
+    }
+
+    public static function canInit(JSONWebTokenSigningAlgorithm $algorithm): bool
+    {
+        return $algorithm === JSONWebTokenSigningAlgorithm::rs256;
     }
 }

@@ -9,6 +9,9 @@ use Sabatier\Foundation\Networking\HTTPURLResponse;
 use const Sabatier\Foundation\LocalizedDescriptionKey;
 use const Sabatier\Foundation\LocalizedFailureReasonErrorKey;
 
+/**
+ * Represents an exception thrown when an invalid request is encountered.
+ */
 class InvalidRequestException extends InternalInconsistencyException
 {
     public Error $error {

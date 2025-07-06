@@ -14,7 +14,7 @@ class JSONWebTokenRS256EncoderStrategy extends JSONWebTokenEncoderStrategy
         $encoded = base64_encode(json_encode($token, JSON_THROW_ON_ERROR));
         $unsigned = "$header.$encoded";
         if (!openssl_sign($unsigned, $signature, $this->key, OPENSSL_ALGO_SHA256)) {
-            throw new JSONWebTokenException("Unable to sign JWT with RS256.");
+            throw new JSONWebTokenException(openssl_error_string() ?: "Unable to sign JWT with RS256.");
         }
         $signed = base64_encode($signature);
         return "$unsigned.$signed";

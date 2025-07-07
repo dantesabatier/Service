@@ -2,7 +2,6 @@
 
 namespace Sabatier\Service;
 
-use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\URLCredential;
 
 /** @internal */
@@ -11,25 +10,15 @@ class DigestAuthentication extends Authentication
     public AuthenticationScheme $scheme {
         get => AuthenticationScheme::digest;
     }
-    /** @var Dictionary<covariant string> */
-    private(set) Dictionary $parameters {
-        get {
-            if (!isset($this->parameters)) {
-                preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->request->authParameter->value, $matches);
-                $this->parameters = new Dictionary(array_combine($matches[1], $matches[2]));
-            }
-            return $this->parameters;
-        }
-    }
     private(set) ?URLCredential $credential {
-        get => $this->credential ??= ($username = $this->parameters["username"]) ? new URLCredential($username) : null;
+        get => $this->credential ??= ($username = $this->request->authenticationToken->parameters["username"]) ? new URLCredential($username) : null;
     }
     public bool $isValid {
         get {
             if (!($password = $this->user?->password)) {
                 return false;
             }
-            $parameters = $this->parameters;
+            $parameters = $this->request->authenticationToken->parameters;
             if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"])) {
                 return false;
             }

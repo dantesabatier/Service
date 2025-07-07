@@ -5,7 +5,7 @@ namespace Sabatier\Service;
 use Sabatier\Foundation\Dictionary;
 
 /**
- * Represents an authentication token used for validating authentication parameters.
+ * Represents an HTTP Authorization header containing authentication parameters and scheme information.
  */
 readonly class AuthorizationHeader extends RequestHeader
 {

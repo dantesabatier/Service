@@ -11,14 +11,14 @@ class DigestAuthentication extends Authentication
         get => AuthenticationScheme::digest;
     }
     private(set) ?URLCredential $credential {
-        get => $this->credential ??= ($username = $this->request->authenticationToken->parameters["username"]) ? new URLCredential($username) : null;
+        get => $this->credential ??= ($username = $this->request->authorizationHeader->parameters["username"]) ? new URLCredential($username) : null;
     }
     public bool $isValid {
         get {
             if (!($password = $this->user?->password)) {
                 return false;
             }
-            $parameters = $this->request->authenticationToken->parameters;
+            $parameters = $this->request->authorizationHeader->parameters;
             if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"])) {
                 return false;
             }

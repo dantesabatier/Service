@@ -42,8 +42,8 @@ class Request extends URLRequest
             return $this->serialization;
         }
     }
-    private(set) AuthenticationToken $authenticationToken {
-        get => $this->authenticationToken ??= new AuthenticationToken($this->valueForHttpHeaderField("Authorization") ?? "");
+    private(set) AuthorizationHeader $authorizationHeader {
+        get => $this->authorizationHeader ??= new AuthorizationHeader($this->valueForHttpHeaderField("Authorization") ?? "");
     }
 
     public function __construct()

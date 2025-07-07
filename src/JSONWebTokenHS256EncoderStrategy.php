@@ -14,6 +14,7 @@ class JSONWebTokenHS256EncoderStrategy extends JSONWebTokenEncoderStrategy
         return base64_url_encode(hash_hmac("sha256", $unsigned, $this->key, true));
     }
 
+    #[Override]
     public static function isSupported(JSONWebTokenSigningAlgorithm $algorithm): bool
     {
         return $algorithm === JSONWebTokenSigningAlgorithm::hs256;

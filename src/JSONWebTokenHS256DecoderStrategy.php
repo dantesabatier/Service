@@ -3,37 +3,25 @@
 namespace Sabatier\Service;
 
 use Override;
+use function Sabatier\Foundation\base64_url_encode;
 
-/**
- * @internal
- * @phpstan-import-type JSONWebTokenHeaderRawValue from JSONWebTokenHeader
- * @phpstan-import-type JSONWebTokenPayloadRawValue from JSONWebTokenPayload
- */
+/** @internal */
 class JSONWebTokenHS256DecoderStrategy extends JSONWebTokenDecoderStrategy
 {
+    public JSONWebTokenSigningAlgorithm $algorithm {
+        get => JSONWebTokenSigningAlgorithm::hs256;
+    }
+
     #[Override]
-    public function decode(string $data): JSONWebToken
+    protected function verify(string $unsigned, string $signature, string $header, string $payload): void
     {
-        $components = explode(".", $data);
-        if (count($components) !== 3) {
-            throw new JSONWebTokenException("Access token is missing.");
-        }
-        [$header, $payload, $signature] = $components;
-        $unsigned = "$header.$payload";
-        $signed = base64_encode(hash_hmac("sha256", $unsigned, $this->key, true));
+        $signed = base64_url_encode(hash_hmac("sha256", $unsigned, $this->key, true));
         if ($signature !== $signed) {
             throw new JSONWebTokenException("Access token is not valid.");
         }
-        /** @var JSONWebTokenHeaderRawValue $headerRawValue */
-        $headerRawValue = json_decode(base64_decode($header), true);
-        /** @var JSONWebTokenPayloadRawValue $payloadRawValue */
-        $payloadRawValue = json_decode(base64_decode($payload), true);
-        $token = new JSONWebToken(JSONWebTokenHeader::header($headerRawValue), JSONWebTokenPayload::payload($payloadRawValue), new JSONWebTokenSignature($signature));
-        $validator = new JSONWebTokenValidator($this->issuer, JSONWebTokenSigningAlgorithm::hs256->value);
-        $validator->validate($token);
-        return $token;
     }
 
+    #[Override]
     public static function isSupported(JSONWebTokenSigningAlgorithm $algorithm): bool
     {
         return $algorithm === JSONWebTokenSigningAlgorithm::hs256;

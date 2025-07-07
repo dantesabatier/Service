@@ -2,6 +2,9 @@
 
 namespace Sabatier\Service;
 
+/**
+ * Represents an HTTP request header with its name and value extracted from a raw input string.
+ */
 readonly class RequestHeader
 {
     /** @var string $name The name of the authentication parameter */

@@ -7,7 +7,7 @@ use Override;
 /** @internal */
 class JSONWebTokenRS256DecoderStrategy extends JSONWebTokenDecoderStrategy
 {
-    public JSONWebTokenSigningAlgorithm $algorithm {
+    protected JSONWebTokenSigningAlgorithm $algorithm {
         get => JSONWebTokenSigningAlgorithm::rs256;
     }
 

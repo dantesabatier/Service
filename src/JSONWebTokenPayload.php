@@ -45,14 +45,28 @@ class JSONWebTokenPayload implements JsonSerializable
         get => $this->rawValue[__PROPERTY__] ?? null;
     }
 
+    /**
+     * Constructor to initialize the object with JWT-related properties.
+     *
+     * @param string|null $iss Issuer of the token.
+     * @param string|null $sub Subject of the token.
+     * @param string|null $aud Audience for which the token is intended.
+     * @param Date|null $exp Expiration time of the token.
+     * @param Date|null $nbf Not before time (the token is valid on or after this time).
+     * @param Date|null $iat Issued at time (the time at which the token was issued).
+     * @param string|null $jti Unique identifier for the token.
+     * @param string|null $username Username associated with the token.
+     */
     public function __construct(?string $iss = null, ?string $sub = null, ?string $aud = null, ?Date $exp = null, ?Date $nbf = null, ?Date $iat = null, ?string $jti = null, ?string $username = null)
     {
         $this->rawValue = ["iss" => $iss, "sub" => $sub, "aud" => $aud, "exp" => $exp?->timeIntervalSinceReferenceDate, "nbf" => $nbf?->timeIntervalSinceReferenceDate, "iat" => $iat?->timeIntervalSinceReferenceDate, "jti" => $jti, "username" => $username];
     }
 
     /**
-     * @param JSONWebTokenPayloadRawValue $rawValue
-     * @return JSONWebTokenPayload
+     * Creates a new JSONWebTokenPayload instance with the given raw value.
+     *
+     * @param JSONWebTokenPayloadRawValue $rawValue The raw value to be assigned to the payload.
+     * @return JSONWebTokenPayload The created JSONWebTokenPayload instance.
      */
     public static function payload(array $rawValue): JSONWebTokenPayload
     {

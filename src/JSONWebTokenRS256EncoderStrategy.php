@@ -15,6 +15,7 @@ class JSONWebTokenRS256EncoderStrategy extends JSONWebTokenEncoderStrategy
         return base64_url_encode($signature);
     }
 
+    #[Override]
     public static function isSupported(JSONWebTokenSigningAlgorithm $algorithm): bool
     {
         return $algorithm === JSONWebTokenSigningAlgorithm::rs256;

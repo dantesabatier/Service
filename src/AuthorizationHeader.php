@@ -2,8 +2,6 @@
 
 namespace Sabatier\Service;
 
-use Sabatier\Foundation\Dictionary;
-
 /**
  * Represents an HTTP Authorization header containing authentication parameters and scheme information.
  */

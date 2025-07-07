@@ -9,16 +9,10 @@ use function Sabatier\Foundation\base64_url_encode;
 class JSONWebTokenRS256EncoderStrategy extends JSONWebTokenEncoderStrategy
 {
     #[Override]
-    public function encode(JSONWebToken $token): string
+    protected function sign(string $unsigned): string
     {
-        $header = base64_url_encode(json_encode($token->header, JSON_THROW_ON_ERROR));
-        $encoded = base64_url_encode(json_encode($token->payload, JSON_THROW_ON_ERROR));
-        $unsigned = "$header.$encoded";
-        if (!openssl_sign($unsigned, $signature, $this->key, OPENSSL_ALGO_SHA256)) {
-            throw new JSONWebTokenException(openssl_error_string() ?: "Unable to sign JWT with RS256.");
-        }
-        $signed = base64_encode($signature);
-        return "$unsigned.$signed";
+        openssl_sign($unsigned, $signature, $this->key, OPENSSL_ALGO_SHA256);
+        return base64_url_encode($signature);
     }
 
     public static function isSupported(JSONWebTokenSigningAlgorithm $algorithm): bool

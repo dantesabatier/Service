@@ -9,13 +9,9 @@ use function Sabatier\Foundation\base64_url_encode;
 class JSONWebTokenHS256EncoderStrategy extends JSONWebTokenEncoderStrategy
 {
     #[Override]
-    public function encode(JSONWebToken $token): string
+    protected function sign(string $unsigned): string
     {
-        $header = base64_url_encode(json_encode($token->header, JSON_THROW_ON_ERROR));
-        $encoded = base64_url_encode(json_encode($token->payload, JSON_THROW_ON_ERROR));
-        $unsigned = "$header.$encoded";
-        $signed = base64_url_encode(hash_hmac("sha256", $unsigned, $this->key, true));
-        return "$unsigned.$signed";
+        return base64_url_encode(hash_hmac("sha256", $unsigned, $this->key, true));
     }
 
     public static function isSupported(JSONWebTokenSigningAlgorithm $algorithm): bool

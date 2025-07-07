@@ -8,7 +8,7 @@ use function Sabatier\Foundation\base64_url_encode;
 /** @internal */
 class JSONWebTokenHS256DecoderStrategy extends JSONWebTokenDecoderStrategy
 {
-    public JSONWebTokenSigningAlgorithm $algorithm {
+    protected JSONWebTokenSigningAlgorithm $algorithm {
         get => JSONWebTokenSigningAlgorithm::hs256;
     }
 

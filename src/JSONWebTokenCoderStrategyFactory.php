@@ -54,7 +54,7 @@ class JSONWebTokenCoderStrategyFactory
          * @return bool
          */
             fn(string $strategyClass) => $strategyClass::isSupported($algorithm)
-        ) ?? throw new UnimplementedException("No strategy available for algorithm: $algorithm->value");
+        ) ?? throw new UnimplementedException("Unsupported algorithm: $algorithm->value");
     }
 
     /**

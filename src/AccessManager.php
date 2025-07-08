@@ -37,9 +37,10 @@ class AccessManager extends Responder
 
     private static function registerAuthentications(): void
     {
-        Authentication::registerClass(BasicAuthentication::class);
-        Authentication::registerClass(BearerAuthentication::class);
-        Authentication::registerClass(DigestAuthentication::class);
+        $classes = [BasicAuthentication::class, BearerAuthentication::class, DigestAuthentication::class];
+        foreach ($classes as $class) {
+            AuthenticationFactory::registerClass($class);
+        }
     }
 
     private static function registerJSONWebTokenCodingStrategies(): void
@@ -52,7 +53,7 @@ class AccessManager extends Responder
 
     private function resolveAuthentication(): Authentication
     {
-        $authenticationClass = Authentication::getAuthenticationClass(Authentication::getAuthentications() ?? new ArrayClass(), $this->request->authorizationHeader->scheme) ?? throw new UnimplementedException();
+        $authenticationClass = AuthenticationFactory::getAuthenticationClass(AuthenticationFactory::getAuthentications() ?? new ArrayClass(), $this->request->authorizationHeader->scheme) ?? throw new UnimplementedException();
         return new $authenticationClass($this->request, $this->managedObjectContext, $this->isFirstResponder ? $this->request->serialization : null);
     }
 

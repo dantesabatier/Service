@@ -14,12 +14,15 @@ abstract class Authentication
 {
     /** @var ArrayClass<class-string<Authentication>>|null */
     private static ?ArrayClass $registeredAuthenticationClasses = null;
+    /** @var AuthenticationScheme The authentication scheme */
     public abstract AuthenticationScheme $scheme {
         get;
     }
+    /** @var URLCredential|null Allows subclasses to represent and manage authentication credentials uniquely. */
     public abstract ?URLCredential $credential {
         get;
     }
+    /** @var Authorizable|null Provides a mechanism for resolving and associating a user entity with an authenticated request. */
     public ?Authorizable $user {
         get {
             if (!($username = $this->credential?->user)) {
@@ -28,6 +31,7 @@ abstract class Authentication
             return new IdentityManager($username, $this->context, $this->serialization)->user;
         }
     }
+    /** @var bool Validates a request's authentication state. */
     public abstract bool $isValid {
         get;
     }

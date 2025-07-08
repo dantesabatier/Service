@@ -244,7 +244,7 @@ class Application extends Responder
         if (!$this->firstResponder->isProtectedContentAvailable && !$this->accessManager->isProtectedContentAvailable) {
             if ($this->accessManager->authentication->isValid) {
                 throw new ForbiddenException(match ($this->request->httpMethod) {
-                    HTTPRequestMethod::get => "You don't have permission to access this resource.",
+                    HTTPRequestMethod::get => "You don't have permission to access this resource {$this->request->url->path}.",
                     default => "You don't have permission to perform this action."
                 });
             }

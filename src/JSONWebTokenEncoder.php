@@ -14,6 +14,10 @@ readonly class JSONWebTokenEncoder
     }
 
     /**
+     * Encodes the given JSON Web Token (JWT) using the defined strategy.
+     *
+     * @param JSONWebToken $token The JSON Web Token to be encoded.
+     * @return string The encoded representation of the JSON Web Token.
      * @throws Exception
      */
     public function encode(JSONWebToken $token): string

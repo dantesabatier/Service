@@ -64,6 +64,7 @@ class JSONWebTokenService
      *
      * @param string $token The encoded JSON web token string that needs to be decoded.
      * @return JSONWebToken The decoded JSONWebToken object.
+     * @throws Exception
      */
     public function decode(string $token): JSONWebToken
     {

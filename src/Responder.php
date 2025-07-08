@@ -43,7 +43,7 @@ abstract class Responder extends ObjectClass
     public int $statusCode = HTTPStatusCode::ok;
     public ?string $content = null;
     public ?string $selector {
-        get => $this->associatedValues[__PROPERTY__];
+        get => $this->associatedValues[__PROPERTY__] ?? null;
     }
     /** @var Responder|null The next responder. */
     public ?Responder $nextResponder = null;

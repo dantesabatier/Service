@@ -11,6 +11,12 @@ readonly class JSONWebTokenDecoder
     {
     }
 
+    /**
+     * Decodes the given string data into a JSONWebToken object.
+     *
+     * @param string $data The encoded data to be decoded.
+     * @return JSONWebToken The decoded JSON Web Token object.
+     */
     public function decode(string $data): JSONWebToken
     {
         return $this->strategy->decode($data);

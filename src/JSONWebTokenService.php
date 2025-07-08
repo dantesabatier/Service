@@ -14,11 +14,11 @@ use Sabatier\Foundation\UserDefaults;
 class JSONWebTokenService
 {
     /** @var JSONWebTokenSigningAlgorithm The signing algorithm for JSON Web Tokens (JWT), defaults to the HS256 algorithm. */
-    public JSONWebTokenSigningAlgorithm $algorithm {
+    private JSONWebTokenSigningAlgorithm $algorithm {
         get => $this->algorithm ??= JSONWebTokenSigningAlgorithm::tryFrom((string)UserDefaults::standard()->string(JWTSignatureAlgorithmPreferenceKey)) ?? JSONWebTokenSigningAlgorithm::hs256;
     }
     /** @var JSONWebTokenEncoderStrategy The encoder strategy instance based on the algorithm and key. */
-    public JSONWebTokenEncoderStrategy $encoderStrategy {
+    private JSONWebTokenEncoderStrategy $encoderStrategy {
         get {
             if (!isset($this->encoderStrategy)) {
                 $strategyClass = JSONWebTokenCoderStrategyFactory::shared()->getStrategyClass(JSONWebTokenCoderStrategyFactory::shared()->encoderStrategies, $this->algorithm);
@@ -28,7 +28,7 @@ class JSONWebTokenService
         }
     }
     /** @var JSONWebTokenDecoderStrategy The decoder strategy instance based on the algorithm and key. */
-    public JSONWebTokenDecoderStrategy $decoderStrategy {
+    private JSONWebTokenDecoderStrategy $decoderStrategy {
         get {
             if (!isset($this->decoderStrategy)) {
                 $strategyClass = JSONWebTokenCoderStrategyFactory::shared()->getStrategyClass(JSONWebTokenCoderStrategyFactory::shared()->decoderStrategies, $this->algorithm);
@@ -38,7 +38,7 @@ class JSONWebTokenService
         }
     }
 
-    public function __construct(public readonly OpenSSLAsymmetricKey|string $key, public readonly ?string $issuer = null)
+    public function __construct(private readonly OpenSSLAsymmetricKey|string $key, private readonly ?string $issuer = null)
     {
     }
 

@@ -11,6 +11,9 @@ use Sabatier\Foundation\URLQueryItem;
 use function Sabatier\Foundation\getallheaders;
 use function Sabatier\Foundation\request_url;
 
+/**
+ * A service request
+ */
 class Request extends URLRequest
 {
     private(set) Dictionary $parsedBody {

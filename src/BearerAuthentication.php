@@ -15,15 +15,10 @@ class BearerAuthentication extends Authentication
         get {
             if (!isset($this->credential)) {
                 if ($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) {
-                    $algorithm = JSONWebTokenSigningAlgorithm::tryFrom((string)UserDefaults::standard()->string(JWTSignatureAlgorithmPreferenceKey)) ?? JSONWebTokenSigningAlgorithm::hs256;
-                    if ($JSONWebTokenDecoderStrategyClass = JSONWebTokenCoderStrategyFactory::shared()->getStrategyClass(JSONWebTokenCoderStrategyFactory::shared()->decoderStrategies, $algorithm)) {
-                        $data = $this->request->authorizationHeader->value;
-                        $strategy = new $JSONWebTokenDecoderStrategyClass($key, $this->request->url->host);
-                        $decoder = new JSONWebTokenDecoder($strategy);
-                        $token = $decoder->decode($data);
-                        if ($username = $token->payload->username) {
-                            $this->credential = new URLCredential($username);
-                        }
+                    $data = $this->request->authorizationHeader->value;
+                    $token = new JSONWebTokenService($key, $this->request->url->host)->decode($data);
+                    if ($username = $token->payload->username) {
+                        $this->credential = new URLCredential($username);
                     }
                 }
                 $this->credential ??= null;

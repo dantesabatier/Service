@@ -44,9 +44,9 @@ class JSONWebTokenCoderStrategyFactory
      * @template T of JSONWebTokenCoderStrategy
      * @param Set<class-string<T>> $strategyClasses
      * @param JSONWebTokenSigningAlgorithm $algorithm
-     * @return class-string<T>|null
+     * @return class-string<T>
      */
-    public function getStrategyClass(Set $strategyClasses, JSONWebTokenSigningAlgorithm $algorithm): ?string
+    public function getStrategyClass(Set $strategyClasses, JSONWebTokenSigningAlgorithm $algorithm): string
     {
         return $strategyClasses->first(
         /**
@@ -54,7 +54,7 @@ class JSONWebTokenCoderStrategyFactory
          * @return bool
          */
             fn(string $strategyClass) => $strategyClass::isSupported($algorithm)
-        );
+        ) ?? throw new UnimplementedException("No strategy available for algorithm: $algorithm->value");
     }
 
     /**

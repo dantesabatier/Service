@@ -11,11 +11,7 @@ use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\UserDefaults;
 use function Sabatier\Foundation\read_random;
 
-/**
- * @internal
- * @phpstan-import-type JSONWebTokenHeaderRawValue from JSONWebTokenHeader
- * @phpstan-import-type JSONWebTokenPayloadRawValue from JSONWebTokenPayload
- */
+/** @internal */
 class AccessManager extends Responder
 {
     public ArrayClass $allowedMethods {
@@ -92,20 +88,9 @@ class AccessManager extends Responder
         $data["user"] = $user;
         $username = $user->username;
         if ($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) {
-            $algorithm = JSONWebTokenSigningAlgorithm::tryFrom((string)UserDefaults::standard()->string(JWTSignatureAlgorithmPreferenceKey)) ?? JSONWebTokenSigningAlgorithm::hs256;
-            if ($JSONWebTokenEncoderStrategyClass = JSONWebTokenCoderStrategyFactory::shared()->getStrategyClass(JSONWebTokenCoderStrategyFactory::shared()->encoderStrategies, $algorithm)) {
-                $date = new Date();
-                /** @var JSONWebTokenHeaderRawValue $headerRawValue */
-                $headerRawValue = ["alg" => $algorithm->value, "typ" => "JWT"];
-                /** @var JSONWebTokenPayloadRawValue $payloadRawValue */
-                $payloadRawValue = ["iss" => $this->request->url->host, "exp" => $date->addingTimeInterval(UserDefaults::standard()->float(JWTValidityTimeIntervalPreferenceKey))->timeIntervalSinceReferenceDate, "nbf" => $date->timeIntervalSinceReferenceDate, "iat" => $date->timeIntervalSinceReferenceDate, "jti" => base64_encode(read_random(16)), "username" => $username];
-                $header = JSONWebTokenHeader::header($headerRawValue);
-                $payload = JSONWebTokenPayload::payload($payloadRawValue);
-                $token = new JSONWebToken($header, $payload);
-                $strategy = new $JSONWebTokenEncoderStrategyClass($key);
-                $encoded = new JSONWebTokenEncoder($strategy)->encode($token);
-                $data["token"] = $encoded;
-            }
+            $date = new Date();
+            $payloadRawValue = ["iss" => $this->request->url->host, "exp" => $date->addingTimeInterval(UserDefaults::standard()->float(JWTValidityTimeIntervalPreferenceKey))->timeIntervalSinceReferenceDate, "nbf" => $date->timeIntervalSinceReferenceDate, "iat" => $date->timeIntervalSinceReferenceDate, "jti" => base64_encode(read_random(16)), "username" => $username];
+            $data["token"] = new JSONWebTokenService($key)->encode($payloadRawValue);
         }
         $session = Application::shared()->session;
         $session->regenerateID();

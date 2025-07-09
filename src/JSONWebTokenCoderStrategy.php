@@ -24,5 +24,5 @@ abstract class JSONWebTokenCoderStrategy
      * @param JSONWebTokenSigningAlgorithm $algorithm An instance of a JWT signing algorithm.
      * @return bool Returns true if this class can be initialized using the specified algorithm; otherwise, false.
      */
-    public abstract static function isSupported(JSONWebTokenSigningAlgorithm $algorithm): bool;
+    abstract public static function isSupported(JSONWebTokenSigningAlgorithm $algorithm): bool;
 }

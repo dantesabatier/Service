@@ -12,11 +12,11 @@ use Sabatier\Foundation\Networking\URLCredential;
 abstract class Authentication
 {
     /** @var AuthenticationScheme The authentication scheme */
-    public abstract AuthenticationScheme $scheme {
+    abstract public AuthenticationScheme $scheme {
         get;
     }
     /** @var URLCredential|null Allows subclasses to represent and manage authentication credentials uniquely. */
-    public abstract ?URLCredential $credential {
+    abstract public ?URLCredential $credential {
         get;
     }
     /** @var Authorizable|null Provides a mechanism for resolving and associating a user entity with an authenticated request. */
@@ -29,7 +29,7 @@ abstract class Authentication
         }
     }
     /** @var bool Validates a request's authentication state. */
-    public abstract bool $isValid {
+    abstract public bool $isValid {
         get;
     }
 
@@ -43,6 +43,6 @@ abstract class Authentication
      * @param AuthenticationScheme $scheme The authentication scheme to check.
      * @return bool True if the authentication scheme is supported, false otherwise.
      */
-    public abstract static function isSupported(AuthenticationScheme $scheme): bool;
+    abstract public static function isSupported(AuthenticationScheme $scheme): bool;
 }
 

@@ -11,7 +11,7 @@ use OpenSSLAsymmetricKey;
  */
 abstract class JSONWebTokenDecoderStrategy extends JSONWebTokenCoderStrategy
 {
-    protected abstract JSONWebTokenSigningAlgorithm $algorithm {
+    abstract protected JSONWebTokenSigningAlgorithm $algorithm {
         get;
     }
 

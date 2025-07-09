@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<ruleset name="CustomStandard" namespace="MyProject\CS\CustomStandard">
+    <description>The coding standard for PHP_CodeSniffer itself.</description>
+    <autoload>./vendor/autoload.php</autoload>
+</ruleset>

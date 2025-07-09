@@ -7,7 +7,7 @@ use JetBrains\PhpStorm\ExpectedValues;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 
 /**
- * An attribute to mark a method as an endpoint for an HTTP request.
+ * An attribute to mark an instance public method as an endpoint for an HTTP request.
  */
 #[Attribute(Attribute::TARGET_METHOD)]
 final readonly class Action

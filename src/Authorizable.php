@@ -7,8 +7,11 @@ namespace Sabatier\Service;
  */
 interface Authorizable extends Authenticatable
 {
-    /** @var Authorization|null Provides access to an {@see Authorization} object, defining the authorization capabilities and access levels of the entity. */
-    public ?Authorization $authorization {
-        get;
-    }
+    /**
+     * Provides the authorization for a given request.
+     *
+     * @param Request $request The incoming request that requires authorization.
+     * @return Authorization|null Returns an Authorization object for the given request if Authorizable has one.
+     */
+    public function authorization(Request $request): ?Authorization;
 }

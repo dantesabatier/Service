@@ -7,9 +7,11 @@ namespace Sabatier\Service;
  */
 interface Authenticatable
 {
+    /** @var string|null The username associated with the authentication process. */
     public ?string $username {
         get;
     }
+    /** @var string|null The password associated with the authentication process. */
     public ?string $password {
         get;
     }

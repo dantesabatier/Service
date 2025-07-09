@@ -65,7 +65,7 @@ class AccessManager extends Responder
         if (!$this->authentication->isValid) {
             return false;
         }
-        if (!($authorization = $this->authentication->user?->authorization)) {
+        if (!($authorization = $this->authentication->user?->authorization($this->request))) {
             return false;
         }
         return match ($this->request->httpMethod) {

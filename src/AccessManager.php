@@ -65,16 +65,7 @@ class AccessManager extends Responder
         if (!$this->authentication->isValid) {
             return false;
         }
-        if (!($authorization = $this->authentication->user?->authorization)) {
-            return false;
-        }
-        return match ($this->request->httpMethod) {
-            HTTPRequestMethod::get, HTTPRequestMethod::head => $authorization->type === AuthorizationType::read,
-            HTTPRequestMethod::post => $authorization->type === AuthorizationType::create,
-            HTTPRequestMethod::patch, HTTPRequestMethod::put => $authorization->type === AuthorizationType::update,
-            HTTPRequestMethod::delete => $authorization->type === AuthorizationType::delete,
-            default => false
-        };
+        return $this->authentication->user?->authorization instanceof Authorization;
     }
 
     /**

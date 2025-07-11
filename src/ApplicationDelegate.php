@@ -5,7 +5,7 @@ namespace Sabatier\Service;
 /**
  * A set of methods to manage shared behaviors for your app.
  */
-interface ApplicationDelegate extends AuthorizationService
+interface ApplicationDelegate
 {
     /**
      * Tells the delegate that the app's initialization is about to complete.

@@ -5,8 +5,6 @@ namespace Sabatier\Service;
 use Sabatier\CoreData\ManagedObjectContext;
 
 /**
- * Interface AccessControlProvider
- *
  * Provides a contract for implementing access control mechanisms.
  * This interface defines the necessary method to authorize access based
  * on the provided authorizable entity.

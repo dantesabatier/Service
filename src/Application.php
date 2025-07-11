@@ -238,28 +238,26 @@ class Application extends Responder
         if ($this->isProtectedContentAvailable) {
             $this->accessManager->isProtectedContentAvailable = true;
         }
-        if (!$this->firstResponder->isProtectedContentAvailable) {
-            if (!$this->request->isPreflight) {
-                $user = $this->accessManager->authentication->user;
-                if ($user instanceof Authorizable) {
-                    $this->delegate?->authorize($user, $this->request->url->lastPathComponent, match ($this->request->httpMethod) {
-                        HTTPRequestMethod::head, HTTPRequestMethod::get => AuthorizationType::read,
-                        HTTPRequestMethod::post => AuthorizationType::create,
-                        HTTPRequestMethod::put, HTTPRequestMethod::patch => AuthorizationType::update,
-                        HTTPRequestMethod::delete => AuthorizationType::delete,
-                        default => throw new MethodNotAllowedException()
-                    }, $this->managedObjectContext);
-                }
+        if (!$this->request->isPreflight) {
+            $user = $this->accessManager->authentication->user;
+            if ($user instanceof Authorizable) {
+                $this->delegate?->authorize($user, $this->request->url->lastPathComponent, match ($this->request->httpMethod) {
+                    HTTPRequestMethod::head, HTTPRequestMethod::get => AuthorizationType::read,
+                    HTTPRequestMethod::post => AuthorizationType::create,
+                    HTTPRequestMethod::put, HTTPRequestMethod::patch => AuthorizationType::update,
+                    HTTPRequestMethod::delete => AuthorizationType::delete,
+                    default => throw new MethodNotAllowedException()
+                }, $this->managedObjectContext);
             }
-            if (!$this->accessManager->isProtectedContentAvailable) {
-                if ($this->accessManager->authentication->isValid) {
-                    throw new ForbiddenException(match ($this->request->httpMethod) {
-                        HTTPRequestMethod::get => "You don't have permission to access this resource.",
-                        default => "You don't have permission to perform this action."
-                    });
-                }
-                throw new UnauthorizedException();
+        }
+        if (!$this->firstResponder->isProtectedContentAvailable && !$this->accessManager->isProtectedContentAvailable) {
+            if ($this->accessManager->authentication->isValid) {
+                throw new ForbiddenException(match ($this->request->httpMethod) {
+                    HTTPRequestMethod::get => "You don't have permission to access this resource.",
+                    default => "You don't have permission to perform this action."
+                });
             }
+            throw new UnauthorizedException();
         }
     }
 

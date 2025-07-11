@@ -36,6 +36,7 @@ class Application extends Responder
     private(set) ?ApplicationDelegate $delegate {
         get => $this->delegate ??= $this->initializeDelegate();
     }
+    public ?AuthorizationService $authorizationService = null;
     private(set) PersistentContainer $persistentContainer {
         get => $this->persistentContainer ??= $this->createPersistentContainer();
     }
@@ -238,7 +239,7 @@ class Application extends Responder
         if ($this->isProtectedContentAvailable) {
             $this->accessManager->isProtectedContentAvailable = true;
         }
-        if (!$this->request->isPreflight) {
+        if (!$this->request->isPreflight && $this->authorizationService instanceof AuthorizationService) {
             $user = $this->accessManager->authentication->user;
             if ($user instanceof Authorizable) {
                 $resource = $this->request->url->lastPathComponent;
@@ -252,7 +253,7 @@ class Application extends Responder
                 if (!$action instanceof AuthorizationType) {
                     throw new MethodNotAllowedException();
                 }
-                $this->delegate?->authorize($user, $resource, $action, $this->managedObjectContext);
+                $this->authorizationService->authorize($user, $resource, $action, $this->managedObjectContext);
             }
         }
         if (!$this->firstResponder->isProtectedContentAvailable && !$this->accessManager->isProtectedContentAvailable) {

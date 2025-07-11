@@ -11,7 +11,7 @@ use Sabatier\CoreData\ManagedObjectContext;
  * This interface defines the necessary method to authorize access based
  * on the provided authorizable entity.
  */
-interface AccessControlProvider
+interface AuthorizationService
 {
     /**
      * Checks and enforces the authorization of an entity for a specific action on a resource within a managed context.

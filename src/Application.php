@@ -241,16 +241,18 @@ class Application extends Responder
         if (!$this->request->isPreflight) {
             $user = $this->accessManager->authentication->user;
             if ($user instanceof Authorizable) {
-                if (!($action = match ($this->request->httpMethod) {
+                $resource = $this->request->url->lastPathComponent;
+                $action = match ($this->request->httpMethod) {
                     HTTPRequestMethod::head, HTTPRequestMethod::get => AuthorizationType::read,
                     HTTPRequestMethod::post => AuthorizationType::create,
                     HTTPRequestMethod::put, HTTPRequestMethod::patch => AuthorizationType::update,
                     HTTPRequestMethod::delete => AuthorizationType::delete,
                     default => null
-                })) {
+                };
+                if (!$action instanceof AuthorizationType) {
                     throw new MethodNotAllowedException();
                 }
-                $this->delegate?->authorize($user, $this->request->url->lastPathComponent, $action, $this->managedObjectContext);
+                $this->delegate?->authorize($user, $resource, $action, $this->managedObjectContext);
             }
         }
         if (!$this->firstResponder->isProtectedContentAvailable && !$this->accessManager->isProtectedContentAvailable) {

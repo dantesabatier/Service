@@ -59,7 +59,7 @@ class AccessManager extends Responder
 
     private function isRequestAuthorized(): bool
     {
-        if ($this->request->httpMethod === HTTPRequestMethod::options) {
+        if ($this->request->isPreflight) {
             return true;
         }
         if (!$this->authentication->isValid) {

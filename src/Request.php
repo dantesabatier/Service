@@ -48,6 +48,9 @@ class Request extends URLRequest
     private(set) AuthorizationHeader $authorizationHeader {
         get => $this->authorizationHeader ??= new AuthorizationHeader($this->valueForHttpHeaderField("Authorization") ?? "");
     }
+    public bool $isPreflight {
+        get => $this->httpMethod === HTTPRequestMethod::options;
+    }
 
     public function __construct()
     {

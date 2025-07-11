@@ -36,7 +36,9 @@ class Application extends Responder
     private(set) ?ApplicationDelegate $delegate {
         get => $this->delegate ??= $this->initializeDelegate();
     }
-    public ?AuthorizationService $authorizationService = null;
+    public AuthorizationService $authorizationService {
+        get => $this->authorizationService ?? new DefaultAuthorizationService();
+    }
     private(set) PersistentContainer $persistentContainer {
         get => $this->persistentContainer ??= $this->createPersistentContainer();
     }
@@ -239,7 +241,7 @@ class Application extends Responder
         if ($this->isProtectedContentAvailable) {
             $this->accessManager->isProtectedContentAvailable = true;
         }
-        if (!$this->request->isPreflight && $this->authorizationService instanceof AuthorizationService) {
+        if (!$this->request->isPreflight) {
             $user = $this->accessManager->authentication->user;
             if ($user instanceof Authorizable) {
                 $resource = $this->request->url->lastPathComponent;

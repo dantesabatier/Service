@@ -12,7 +12,7 @@ use Sabatier\CoreData\ManagedObjectContext;
 interface AuthorizationService
 {
     /**
-     * Checks and enforces the authorization of an entity for a specific action on a resource within a managed context.
+     * Provides the receiver an opportunity to assign an Authorization to the receiving Authorizable object {@see Authorizable::$authorization} for a specific action on a resource within a managed context.
      *
      * @param Authorizable $entity The entity being authorized.
      * @param string $resource The resource to be accessed or manipulated.

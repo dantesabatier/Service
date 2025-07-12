@@ -12,6 +12,7 @@ use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPrivateMethodParameterRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPromotedPropertyRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessParamTagRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessReturnTagRector;
+use Rector\DeadCode\Rector\Node\RemoveNonExistingVarAnnotationRector;
 use Rector\Exception\Configuration\InvalidConfigurationException;
 use Rector\Php73\Rector\ConstFetch\SensitiveConstantNameRector;
 use Rector\Php74\Rector\Property\RestoreDefaultNullToNullableTypePropertyRector;
@@ -43,6 +44,9 @@ try {
                 __DIR__ . "/src/IdentityManager.php"
             ],
             RemoveUnusedPrivateMethodParameterRector::class => [
+                __DIR__ . "/src/Application.php"
+            ],
+            RemoveNonExistingVarAnnotationRector::class => [
                 __DIR__ . "/src/Application.php"
             ],
             NullToStrictStringFuncCallArgRector::class => [

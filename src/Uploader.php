@@ -42,7 +42,7 @@ class Uploader extends Responder
             $path = $values->path;
             $files[] = new Dictionary([URLResourceKey::nameKey => $name, URLResourceKey::pathKey => $path]);
         }
-        $this->content = json_encode($files);
+        $this->content = json_encode($files, JSON_THROW_ON_ERROR);
         $this->headerFields["Content-Type"] = "application/json";
     }
 }

@@ -18,6 +18,7 @@ use Sabatier\Foundation\Notification;
 use Sabatier\Foundation\NotificationCenter;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\ProcessInfo;
+use Sabatier\Foundation\URL;
 use Sabatier\Foundation\UserDefaults;
 use Throwable;
 use function Sabatier\Foundation\string_is_equal;
@@ -117,38 +118,62 @@ class Application extends Responder
 
     /**
      * @param string $namespaceName
-     * @return ArrayClass<class-string<Responder>>
+     * @param URL $directoryURL
+     * @param FileManager $fileManager
+     * @param URL $fileURL
+     * @return class-string<covariant Responder>
+     */
+    private function buildClassName(string $namespaceName, URL $directoryURL, FileManager $fileManager, URL $fileURL): string
+    {
+        $directoryComponent = $directoryURL->lastPathComponent;
+        $fileNameWithoutExtension = $fileManager->displayName($fileURL->path);
+        return "$namespaceName\\$directoryComponent\\$fileNameWithoutExtension";
+    }
+
+    private function isValidResponderClass(string $className): bool
+    {
+        if (!class_exists($className) || !is_subclass_of($className, Responder::class)) {
+            return false;
+        }
+        $reflectionClass = new ReflectionClass($className);
+        return $reflectionClass->isInstantiable();
+    }
+
+    private function filteredFileURLs(URL $directoryURL, FileManager $fileManager): ArrayClass
+    {
+        return $fileManager->contentsOfDirectory($directoryURL, null, DirectoryEnumerationOptions::skipsHiddenFiles)->filter(fn(URL $url): bool => string_is_equal($url->pathExtension, "php", CompareOptions::caseInsensitive));
+    }
+
+
+    /**
+     * @param string $namespaceName
+     * @return ArrayClass<class-string<covariant Responder>>
      */
     private function discoverResponderClasses(string $namespaceName): ArrayClass
     {
-        /** @var ArrayClass<class-string<Responder>> $responderClasses */
-        $responderClasses = new ArrayClass();
+        /** @var ArrayClass<class-string<Responder>> $classNames */
+        $classNames = new ArrayClass();
         $fileManager = FileManager::default();
         $baseURL = Bundle::main()->bundleURL->appendingPathComponent("src");
-        foreach ([RespondersDirectory, ViewControllersDirectory] as $directory) {
-            $directoryURL = $baseURL->appendingPathComponent($directory);
+        $directoryNames = [RespondersDirectory, ViewControllersDirectory];
+        foreach ($directoryNames as $directoryName) {
+            $directoryURL = $baseURL->appendingPathComponent($directoryName);
             if (!$fileManager->fileExists($directoryURL->path)) {
                 continue;
             }
-            $urls = $fileManager->contentsOfDirectory($directoryURL, null, DirectoryEnumerationOptions::skipsHiddenFiles);
-            foreach ($urls as $url) {
-                if (!string_is_equal($url->pathExtension, "php", CompareOptions::caseInsensitive)) {
-                    continue;
-                }
-                $responderClass = "$namespaceName\\$directoryURL->lastPathComponent\\{$fileManager->displayName($url->path)}";
-                if (class_exists($responderClass) && is_subclass_of($responderClass, Responder::class)) {
-                    $reflectionClass = new ReflectionClass($responderClass);
-                    if ($reflectionClass->isInstantiable()) {
-                        $responderClasses[] = $responderClass;
-                    }
+            $fileURLs = $this->filteredFileURLs($directoryURL, $fileManager);
+            foreach ($fileURLs as $fileURL) {
+                $className = $this->buildClassName($namespaceName, $directoryURL, $fileManager, $fileURL);
+                if ($this->isValidResponderClass($className)) {
+                    $classNames[] = $className;
                 }
             }
         }
-        return $responderClasses;
+        return $classNames;
     }
 
     /**
-     * @param ArrayClass<Responder> $responders
+     * @param ArrayClass<covariant Responder> $responders
      * @return Responder
      */
     private function buildResponderChain(ArrayClass $responders): Responder

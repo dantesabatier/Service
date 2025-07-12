@@ -172,7 +172,6 @@ class Application extends Responder
         $directoryURL = Bundle::main()->bundleURL->appendingPathComponent("src");
         /** @var FlattenSequence<class-string<covariant Responder>> */
         return new ArrayClass([RespondersDirectory, ViewControllersDirectory])->compactMap(fn(string $directoryName): ?ArrayClass => $this->responderClassesFromDirectory($namespaceName, $directoryURL->appendingPathComponent($directoryName)))->joined();
-
     }
 
     /**

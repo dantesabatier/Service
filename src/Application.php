@@ -149,6 +149,11 @@ class Application extends Responder
         return FileManager::default()->contentsOfDirectory($directoryURL, null, DirectoryEnumerationOptions::skipsHiddenFiles)->filter(fn(URL $url): bool => string_is_equal($url->pathExtension, "php", CompareOptions::caseInsensitive));
     }
 
+    /**
+     * @param string $namespaceName
+     * @param URL $directoryURL
+     * @return ArrayClass<class-string<covariant Responder>>|null
+     */
     private function getClassesFromDirectory(string $namespaceName, URL $directoryURL): ?ArrayClass
     {
         if (!FileManager::default()->fileExists($directoryURL->path)) {

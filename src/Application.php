@@ -250,11 +250,8 @@ class Application extends Responder
                     HTTPRequestMethod::post => AuthorizationType::create,
                     HTTPRequestMethod::put, HTTPRequestMethod::patch => AuthorizationType::update,
                     HTTPRequestMethod::delete => AuthorizationType::delete,
-                    default => null
+                    default => throw new MethodNotAllowedException()
                 };
-                if (!$action instanceof AuthorizationType) {
-                    throw new MethodNotAllowedException();
-                }
                 $this->authorizationService->authorize($user, $resource, $action, $this->managedObjectContext);
             }
         }

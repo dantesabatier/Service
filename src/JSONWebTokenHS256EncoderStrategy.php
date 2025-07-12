@@ -11,6 +11,7 @@ class JSONWebTokenHS256EncoderStrategy extends JSONWebTokenEncoderStrategy
     #[Override]
     protected function sign(string $unsigned): string
     {
+        assert(is_string($this->key));
         return base64_url_encode(hash_hmac("sha256", $unsigned, $this->key, true));
     }
 

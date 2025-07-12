@@ -15,7 +15,7 @@ abstract class JSONWebTokenDecoderStrategy extends JSONWebTokenCoderStrategy
         get;
     }
 
-    public function __construct(OpenSSLAsymmetricKey|string $key, public readonly ?string $issuer = null)
+    public function __construct(OpenSSLAsymmetricKey|string $key, public readonly string $issuer = "")
     {
         parent::__construct($key);
     }

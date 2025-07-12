@@ -15,6 +15,7 @@ class JSONWebTokenHS256DecoderStrategy extends JSONWebTokenDecoderStrategy
     #[Override]
     protected function verify(string $unsigned, string $signature, string $header, string $payload): void
     {
+        assert(is_string($this->key));
         $signed = base64_url_encode(hash_hmac("sha256", $unsigned, $this->key, true));
         if ($signature !== $signed) {
             throw new JSONWebTokenException("Access token is not valid.");

@@ -2,11 +2,11 @@
 
 namespace Sabatier\Service;
 
+use Generator;
 use IteratorAggregate;
 use Override;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\Foundation\ArrayClass;
-use Traversable;
 
 /**
  * @template-implements IteratorAggregate<int, string>
@@ -34,7 +34,7 @@ class BatchResponse extends Response implements IteratorAggregate
     }
 
     #[Override]
-    public function getIterator(): Traversable
+    public function getIterator(): Generator
     {
         return (function () {
             $cursor = 1;

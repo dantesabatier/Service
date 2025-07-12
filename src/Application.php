@@ -154,7 +154,7 @@ class Application extends Responder
      * @param URL $directoryURL
      * @return ArrayClass<class-string<covariant Responder>>|null
      */
-    private function getClassesFromDirectory(string $namespaceName, URL $directoryURL): ?ArrayClass
+    private function responderClassesFromDirectory(string $namespaceName, URL $directoryURL): ?ArrayClass
     {
         if (!FileManager::default()->fileExists($directoryURL->path)) {
             return null;
@@ -170,7 +170,7 @@ class Application extends Responder
     private function discoverResponderClasses(string $namespaceName): FlattenSequence
     {
         /** @var FlattenSequence<class-string<covariant Responder>> */
-        return new ArrayClass([RespondersDirectory, ViewControllersDirectory])->compactMap(fn(string $directoryName): ?ArrayClass => $this->getClassesFromDirectory($namespaceName, Bundle::main()->bundleURL->appendingPathComponent("src")->appendingPathComponent($directoryName)))->joined();
+        return new ArrayClass([RespondersDirectory, ViewControllersDirectory])->compactMap(fn(string $directoryName): ?ArrayClass => $this->responderClassesFromDirectory($namespaceName, Bundle::main()->bundleURL->appendingPathComponent("src")->appendingPathComponent($directoryName)))->joined();
 
     }
 

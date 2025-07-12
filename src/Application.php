@@ -12,6 +12,7 @@ use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\DirectoryEnumerationOptions;
 use Sabatier\Foundation\Error;
 use Sabatier\Foundation\FileManager;
+use Sabatier\Foundation\FlattenSequence;
 use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Notification;
@@ -148,22 +149,24 @@ class Application extends Responder
         return FileManager::default()->contentsOfDirectory($directoryURL, null, DirectoryEnumerationOptions::skipsHiddenFiles)->filter(fn(URL $url): bool => string_is_equal($url->pathExtension, "php", CompareOptions::caseInsensitive));
     }
 
+    private function getClassesFromDirectory(string $namespaceName, URL $directoryURL): ?ArrayClass
+    {
+        if (!FileManager::default()->fileExists($directoryURL->path)) {
+            return null;
+        }
+        return $this->filteredFileURLs($directoryURL)->map(fn(URL $fileURL): ?string => $this->buildClassName($namespaceName, $directoryURL, $fileURL))->filter(fn(?string $className): bool => $className !== null && $this->isValidResponderClass($className));
+    }
+
 
     /**
      * @param string $namespaceName
-     * @return ArrayClass<class-string<covariant Responder>>
+     * @return FlattenSequence<class-string<covariant Responder>>
      */
-    private function discoverResponderClasses(string $namespaceName): ArrayClass
+    private function discoverResponderClasses(string $namespaceName): FlattenSequence
     {
-        $baseURL = Bundle::main()->bundleURL->appendingPathComponent("src");
-        /** @var ArrayClass<class-string<covariant Responder>> */
-        return new ArrayClass([RespondersDirectory, ViewControllersDirectory])->flatMap(function (string $directoryName) use ($baseURL, $namespaceName): ArrayClass {
-            $directoryURL = $baseURL->appendingPathComponent($directoryName);
-            if (!FileManager::default()->fileExists($directoryURL->path)) {
-                return new ArrayClass();
-            }
-            return $this->filteredFileURLs($directoryURL)->map(fn(URL $fileURL): string => $this->buildClassName($namespaceName, $directoryURL, $fileURL))->filter(fn(string $className): bool => $this->isValidResponderClass($className));
-        });
+        /** @var FlattenSequence<class-string<covariant Responder>> */
+        return new ArrayClass([RespondersDirectory, ViewControllersDirectory])->compactMap(fn(string $directoryName): ?ArrayClass => $this->getClassesFromDirectory($namespaceName, Bundle::main()->bundleURL->appendingPathComponent("src")->appendingPathComponent($directoryName)))->joined();
+
     }
 
     /**

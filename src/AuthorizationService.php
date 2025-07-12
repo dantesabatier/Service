@@ -5,14 +5,12 @@ namespace Sabatier\Service;
 use Sabatier\CoreData\ManagedObjectContext;
 
 /**
- * Provides a contract for implementing access control mechanisms.
- * This interface defines the necessary method to authorize access based
- * on the provided authorizable entity.
+ * Service interface responsible for handling authorization logic.
  */
 interface AuthorizationService
 {
     /**
-     * Provides the receiver an opportunity to assign an Authorization to the receiving Authorizable object {@see Authorizable::$authorization} for a specific action on a resource within a managed context.
+     * Authorizes the given entity to perform the specified action on the specified resource.
      *
      * @param Authorizable $entity The entity being authorized.
      * @param string $resource The resource to be accessed or manipulated.

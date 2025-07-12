@@ -169,8 +169,9 @@ class Application extends Responder
      */
     private function discoverResponderClasses(string $namespaceName): FlattenSequence
     {
+        $directoryURL = Bundle::main()->bundleURL->appendingPathComponent("src");
         /** @var FlattenSequence<class-string<covariant Responder>> */
-        return new ArrayClass([RespondersDirectory, ViewControllersDirectory])->compactMap(fn(string $directoryName): ?ArrayClass => $this->responderClassesFromDirectory($namespaceName, Bundle::main()->bundleURL->appendingPathComponent("src")->appendingPathComponent($directoryName)))->joined();
+        return new ArrayClass([RespondersDirectory, ViewControllersDirectory])->compactMap(fn(string $directoryName): ?ArrayClass => $this->responderClassesFromDirectory($namespaceName, $directoryURL->appendingPathComponent($directoryName)))->joined();
 
     }
 

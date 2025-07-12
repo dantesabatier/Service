@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use Override;
 use Sabatier\Foundation\Networking\URLCredential;
 
 /** @internal */
@@ -34,6 +35,7 @@ class DigestAuthentication extends Authentication
         }
     }
 
+    #[Override]
     public static function isSupported(AuthenticationScheme $scheme): bool
     {
         return $scheme === AuthenticationScheme::digest;

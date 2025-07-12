@@ -12,14 +12,13 @@
         <MissingConstructor errorLevel="suppress"/>
         <RedundantPropertyInitializationCheck errorLevel="suppress"/>
         <InaccessibleProperty errorLevel="suppress"/>
-        <PropertyTypeCoercion>
-            <errorLevel type="suppress">
-                <referencedProperty name="Sabatier\Service\Authentication::$userClass"/>
-            </errorLevel>
-        </PropertyTypeCoercion>
         <InternalClass errorLevel="suppress"/>
         <InternalProperty errorLevel="suppress"/>
         <RiskyTruthyFalsyComparison errorLevel="suppress"/>
         <DuplicateClass errorLevel="suppress"/>
+        <NoInterfaceProperties errorLevel="suppress"/>
+        <UndefinedDocblockClass errorLevel="suppress"/>
+        <NonInvariantDocblockPropertyType errorLevel="suppress"/>
+        <ClassMustBeFinal errorLevel="suppress"/>
     </issueHandlers>
 </psalm>

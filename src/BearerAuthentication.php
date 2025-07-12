@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use Override;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\UserDefaults;
 
@@ -31,6 +32,7 @@ class BearerAuthentication extends Authentication
         get => $this->credential instanceof URLCredential;
     }
 
+    #[Override]
     public static function isSupported(AuthenticationScheme $scheme): bool
     {
         return $scheme === AuthenticationScheme::bearer;

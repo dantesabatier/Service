@@ -8,6 +8,7 @@ use Sabatier\Foundation\Networking\URLCredential;
 
 /**
  * Represents a class for managing authentication mechanisms.
+ * @psalm-consistent-constructor
  */
 abstract class Authentication
 {

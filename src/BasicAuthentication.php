@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use Override;
 use Sabatier\Foundation\Networking\URLCredential;
 use function Sabatier\Foundation\is_password;
 
@@ -36,6 +37,7 @@ class BasicAuthentication extends Authentication
         }
     }
 
+    #[Override]
     public static function isSupported(AuthenticationScheme $scheme): bool
     {
         return $scheme === AuthenticationScheme::basic;

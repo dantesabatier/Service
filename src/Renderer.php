@@ -6,6 +6,7 @@ use Sabatier\Foundation\Bundle;
 
 /**
  * The Renderer class is responsible for rendering views using a provided Bundle.
+ * @psalm-consistent-constructor
  */
 class Renderer
 {

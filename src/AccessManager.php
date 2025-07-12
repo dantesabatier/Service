@@ -3,6 +3,7 @@
 namespace Sabatier\Service;
 
 use Exception;
+use Override;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
@@ -29,6 +30,7 @@ class AccessManager extends Responder
         self::initialize();
     }
 
+    #[Override]
     public static function initialize(): void
     {
         self::registerAuthentications();

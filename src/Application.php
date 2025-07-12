@@ -119,14 +119,14 @@ class Application extends Responder
     /**
      * @param string $namespaceName
      * @param URL $directoryURL
-     * @param FileManager $fileManager
      * @param URL $fileURL
      * @return class-string<covariant Responder>
      */
-    private function buildClassName(string $namespaceName, URL $directoryURL, FileManager $fileManager, URL $fileURL): string
+    private function buildClassName(string $namespaceName, URL $directoryURL, URL $fileURL): string
     {
         $directoryComponent = $directoryURL->lastPathComponent;
-        $fileNameWithoutExtension = $fileManager->displayName($fileURL->path);
+        $fileNameWithoutExtension = FileManager::default()->displayName($fileURL->path);
+        /** @var class-string<covariant Responder> */
         return "$namespaceName\\$directoryComponent\\$fileNameWithoutExtension";
     }
 
@@ -139,9 +139,13 @@ class Application extends Responder
         return $reflectionClass->isInstantiable();
     }
 
-    private function filteredFileURLs(URL $directoryURL, FileManager $fileManager): ArrayClass
+    /**
+     * @param URL $directoryURL
+     * @return ArrayClass<URL>
+     */
+    private function filteredFileURLs(URL $directoryURL): ArrayClass
     {
-        return $fileManager->contentsOfDirectory($directoryURL, null, DirectoryEnumerationOptions::skipsHiddenFiles)->filter(fn(URL $url): bool => string_is_equal($url->pathExtension, "php", CompareOptions::caseInsensitive));
+        return FileManager::default()->contentsOfDirectory($directoryURL, null, DirectoryEnumerationOptions::skipsHiddenFiles)->filter(fn(URL $url): bool => string_is_equal($url->pathExtension, "php", CompareOptions::caseInsensitive));
     }
 
 
@@ -151,25 +155,15 @@ class Application extends Responder
      */
     private function discoverResponderClasses(string $namespaceName): ArrayClass
     {
-        /** @var ArrayClass<class-string<Responder>> $classNames */
-        $classNames = new ArrayClass();
-        $fileManager = FileManager::default();
         $baseURL = Bundle::main()->bundleURL->appendingPathComponent("src");
-        $directoryNames = [RespondersDirectory, ViewControllersDirectory];
-        foreach ($directoryNames as $directoryName) {
+        /** @var ArrayClass<class-string<covariant Responder>> */
+        return new ArrayClass([RespondersDirectory, ViewControllersDirectory])->flatMap(function (string $directoryName) use ($baseURL, $namespaceName): ArrayClass {
             $directoryURL = $baseURL->appendingPathComponent($directoryName);
-            if (!$fileManager->fileExists($directoryURL->path)) {
-                continue;
+            if (!FileManager::default()->fileExists($directoryURL->path)) {
+                return new ArrayClass();
             }
-            $fileURLs = $this->filteredFileURLs($directoryURL, $fileManager);
-            foreach ($fileURLs as $fileURL) {
-                $className = $this->buildClassName($namespaceName, $directoryURL, $fileManager, $fileURL);
-                if ($this->isValidResponderClass($className)) {
-                    $classNames[] = $className;
-                }
-            }
-        }
-        return $classNames;
+            return $this->filteredFileURLs($directoryURL)->map(fn(URL $fileURL): string => $this->buildClassName($namespaceName, $directoryURL, $fileURL))->filter(fn(string $className): bool => $this->isValidResponderClass($className));
+        });
     }
 
     /**

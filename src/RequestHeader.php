@@ -13,7 +13,7 @@ readonly class RequestHeader
     public string $name;
     /** @var string $value The value of the authentication parameter */
     public string $value;
-    /** @var Dictionary<covariant string> */
+    /** @var Dictionary<string> */
     public Dictionary $parameters;
 
     /**

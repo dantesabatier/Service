@@ -8,11 +8,11 @@ use Sabatier\Foundation\Set;
 class JSONWebTokenCoderStrategyFactory
 {
     private static ?JSONWebTokenCoderStrategyFactory $shared = null;
-    /** @var Set<class-string<covariant JSONWebTokenEncoderStrategy>> $encoderStrategies */
+    /** @var Set<class-string<JSONWebTokenEncoderStrategy>> $encoderStrategies */
     private(set) Set $encoderStrategies {
         get => $this->encoderStrategies ??= new Set();
     }
-    /** @var Set<class-string<covariant JSONWebTokenDecoderStrategy>> $decoderStrategies */
+    /** @var Set<class-string<JSONWebTokenDecoderStrategy>> $decoderStrategies */
     private(set) Set $decoderStrategies {
         get => $this->decoderStrategies ??= new Set();
     }
@@ -24,7 +24,7 @@ class JSONWebTokenCoderStrategyFactory
     }
 
     /**
-     * @param class-string<covariant JSONWebTokenCoderStrategy> $strategyClass
+     * @param class-string<JSONWebTokenCoderStrategy> $strategyClass
      * @return bool
      */
     public function register(string $strategyClass): bool
@@ -58,7 +58,7 @@ class JSONWebTokenCoderStrategyFactory
     }
 
     /**
-     * @param class-string<covariant JSONWebTokenCoderStrategy> $strategyClass
+     * @param class-string<JSONWebTokenCoderStrategy> $strategyClass
      */
     public function unregister(string $strategyClass): void
     {

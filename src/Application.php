@@ -62,9 +62,7 @@ class Application extends Responder
         }
         /** @var class-string<ApplicationDelegate> $delegateClass */
         $delegateClass = $principalClass;
-        if (is_subclass_of($delegateClass, ObjectClass::class)) {
-            $this->initializeDelegateClass($delegateClass);
-        }
+        $this->initializeDelegateClass($delegateClass);
         return new $delegateClass();
     }
 
@@ -73,7 +71,9 @@ class Application extends Responder
      */
     private function initializeDelegateClass(string $delegateClass): void
     {
-        $delegateClass::initialize();
+        if (is_subclass_of($delegateClass, ObjectClass::class)) {
+            $delegateClass::initialize();
+        }
     }
 
     private function createPersistentContainer(): PersistentContainer
@@ -121,13 +121,13 @@ class Application extends Responder
      * @param string $namespaceName
      * @param URL $directoryURL
      * @param URL $fileURL
-     * @return class-string<covariant Responder>
+     * @return class-string<Responder>
      */
     private function buildClassName(string $namespaceName, URL $directoryURL, URL $fileURL): string
     {
         $directoryComponent = $directoryURL->lastPathComponent;
         $fileNameWithoutExtension = FileManager::default()->displayName($fileURL->path);
-        /** @var class-string<covariant Responder> */
+        /** @var class-string<Responder> */
         return "$namespaceName\\$directoryComponent\\$fileNameWithoutExtension";
     }
 
@@ -152,30 +152,30 @@ class Application extends Responder
     /**
      * @param string $namespaceName
      * @param URL $directoryURL
-     * @return ArrayClass<class-string<covariant Responder>>|null
+     * @return ArrayClass<class-string<Responder>>|null
      */
     private function responderClassesFromDirectory(string $namespaceName, URL $directoryURL): ?ArrayClass
     {
         if (!FileManager::default()->fileExists($directoryURL->path)) {
             return null;
         }
-        return $this->filteredFileURLs($directoryURL)->map(fn(URL $fileURL): ?string => $this->buildClassName($namespaceName, $directoryURL, $fileURL))->filter(fn(?string $className): bool => $className !== null && $this->isValidResponderClass($className));
+        return $this->filteredFileURLs($directoryURL)->map(fn(URL $fileURL): string => $this->buildClassName($namespaceName, $directoryURL, $fileURL))->filter(fn(string $className): bool => $this->isValidResponderClass($className));
     }
 
 
     /**
      * @param string $namespaceName
-     * @return FlattenSequence<class-string<covariant Responder>>
+     * @return FlattenSequence<class-string<Responder>>
      */
     private function discoverResponderClasses(string $namespaceName): FlattenSequence
     {
         $directoryURL = Bundle::main()->bundleURL->appendingPathComponent("src");
-        /** @var FlattenSequence<class-string<covariant Responder>> */
+        /** @var FlattenSequence<class-string<Responder>> */
         return new ArrayClass([RespondersDirectory, ViewControllersDirectory])->compactMap(fn(string $directoryName): ?ArrayClass => $this->responderClassesFromDirectory($namespaceName, $directoryURL->appendingPathComponent($directoryName)))->joined();
     }
 
     /**
-     * @param ArrayClass<covariant Responder> $responders
+     * @param ArrayClass<Responder> $responders
      * @return Responder
      */
     private function buildResponderChain(ArrayClass $responders): Responder

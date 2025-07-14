@@ -34,7 +34,7 @@ class Emitter
         ob_start("ob_gzhandler");
         echo $content;
         ob_end_flush();
-        header("Content-Length: " . ob_get_length());
+        header(sprintf("Content-Length: %s", human_readable_value(ob_get_length())));
         ob_end_flush();
         die();
     }

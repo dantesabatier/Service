@@ -57,7 +57,9 @@ class Application extends Responder
     private function initializeDelegate(): ?ApplicationDelegate
     {
         $principalClass = (string)Bundle::main()->principalClass;
-        if (!class_implements($principalClass)[ApplicationDelegate::class]) {
+        /** @var array<string, string> $implements */
+        $implements = class_implements($principalClass);
+        if (!$implements[ApplicationDelegate::class]) {
             return null;
         }
         /** @var class-string<ApplicationDelegate> $delegateClass */
@@ -224,6 +226,7 @@ class Application extends Responder
 
     private function initialResponder(): ?Responder
     {
+        /** @psalm-suppress InvalidArgument */
         return $this->mergeChains($this->customResponder(), $this->buildResponderChain(new ArrayClass([$this->accessManager, new PersistentSpace(), new ResourceManager(), new Preferences(), new Uploader(), new Downloader(), new Home()])));
     }
 

@@ -57,7 +57,7 @@ class Application extends Responder
     private function initializeDelegate(): ?ApplicationDelegate
     {
         $principalClass = (string)Bundle::main()->principalClass;
-        /** @var array<string, string> $implements */
+        /** @var array<string, class-string> $implements */
         $implements = class_implements($principalClass);
         if (!$implements[ApplicationDelegate::class]) {
             return null;

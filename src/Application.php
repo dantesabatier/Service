@@ -59,7 +59,7 @@ class Application extends Responder
         $principalClass = (string)Bundle::main()->principalClass;
         /** @var array<string, class-string> $implements */
         $implements = class_implements($principalClass);
-        if (!$implements[ApplicationDelegate::class]) {
+        if (!isset($implements[ApplicationDelegate::class])) {
             return null;
         }
         /** @var class-string<ApplicationDelegate> $delegateClass */

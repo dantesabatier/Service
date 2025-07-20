@@ -21,7 +21,10 @@ use Sabatier\Foundation\URLComponents;
 use Sabatier\Foundation\URLQueryItem;
 use function Sabatier\Foundation\string_is_equal;
 
-/** @internal */
+/**
+ * @psalm-type FetchRequestRepresentation object{predicate: object{format: string, arguments?: array}, includesSubentities?: bool, fetchLimit?: int, fetchOffset?: int, fetchBatchSize?: int, sortDescriptors?: object{key: string, ascending: bool}[], resultType: int, propertiesToFetch?: array, returnsDistinctResults?: bool, propertiesToGroupBy?: array, havingPredicate: object{format: string, arguments?: array}}
+ * @internal
+ */
 class PersistentSpaceRespondentReader extends PersistentSpaceRespondent
 {
     public FetchRequest $fetchRequest {
@@ -34,23 +37,23 @@ class PersistentSpaceRespondentReader extends PersistentSpaceRespondent
             if ($queryItems = $components->queryItems) {
                 if ($item = $queryItems->first(fn(URLQueryItem $item): bool => string_is_equal($item->name, "fetchRequest", CompareOptions::caseInsensitive))) {
                     if (($value = $item->value) && ($json = base64_decode($value)) && (json_validate($json))) {
-                        /** @var object{predicate: object{format: string, arguments?: array}, includesSubentities?: bool, fetchLimit?: int, fetchOffset?: int, fetchBatchSize?: int, sortDescriptors?: object{key: string, ascending: bool}[], resultType: int, propertiesToFetch?: array, returnsDistinctResults?: bool, propertiesToGroupBy?: array, havingPredicate: object{format: string, arguments?: array}} $decoded */
-                        $decoded = json_decode($json);
-                        if (isset($decoded->predicate)) {
-                            $predicate = $decoded->predicate;
+                        /** @var FetchRequestRepresentation $fetchRequestRepresentation */
+                        $fetchRequestRepresentation = json_decode($json);
+                        if (isset($fetchRequestRepresentation->predicate)) {
+                            $predicate = $fetchRequestRepresentation->predicate;
                             if (isset($predicate->format)) {
                                 $fetchRequest->predicate = Predicate::format($predicate->format, ArrayClass::arrayWithArray($predicate->arguments ?? []));
                             }
                         }
-                        $fetchRequest->includesSubentities = $decoded->includesSubentities ?? true;
-                        $fetchRequest->fetchLimit = $decoded->fetchLimit ?? 0;
-                        $fetchRequest->fetchOffset = $decoded->fetchOffset ?? 0;
-                        $fetchRequest->fetchBatchSize = $decoded->fetchBatchSize ?? 0;
-                        if (isset($decoded->sortDescriptors)) {
-                            $fetchRequest->sortDescriptors = new ArrayClass($decoded->sortDescriptors)->compactMap(fn(object $obj): ?SortDescriptor => isset($obj->key) ? new SortDescriptor($obj->key, $obj->ascending ?? true) : null);
+                        $fetchRequest->includesSubentities = $fetchRequestRepresentation->includesSubentities ?? true;
+                        $fetchRequest->fetchLimit = $fetchRequestRepresentation->fetchLimit ?? 0;
+                        $fetchRequest->fetchOffset = $fetchRequestRepresentation->fetchOffset ?? 0;
+                        $fetchRequest->fetchBatchSize = $fetchRequestRepresentation->fetchBatchSize ?? 0;
+                        if (isset($fetchRequestRepresentation->sortDescriptors)) {
+                            $fetchRequest->sortDescriptors = new ArrayClass($fetchRequestRepresentation->sortDescriptors)->compactMap(fn(object $obj): ?SortDescriptor => isset($obj->key) ? new SortDescriptor($obj->key, $obj->ascending ?? true) : null);
                         }
-                        if (isset($decoded->resultType)) {
-                            $fetchRequest->resultType = FetchRequestResultType::from($decoded->resultType);
+                        if (isset($fetchRequestRepresentation->resultType)) {
+                            $fetchRequest->resultType = FetchRequestResultType::from($fetchRequestRepresentation->resultType);
                         }
                         $propertyTransform = function (mixed $element): ExpressionDescription|string|null {
                             if (is_string($element)) {
@@ -77,15 +80,15 @@ class PersistentSpaceRespondentReader extends PersistentSpaceRespondent
                             }
                             return $expressionDescription;
                         };
-                        if (isset($decoded->propertiesToFetch)) {
-                            $fetchRequest->propertiesToFetch = new ArrayClass($decoded->propertiesToFetch)->compactMap($propertyTransform);
+                        if (isset($fetchRequestRepresentation->propertiesToFetch)) {
+                            $fetchRequest->propertiesToFetch = new ArrayClass($fetchRequestRepresentation->propertiesToFetch)->compactMap($propertyTransform);
                         }
-                        $fetchRequest->returnsDistinctResults = $decoded->returnsDistinctResults ?? false;
-                        if (isset($decoded->propertiesToGroupBy)) {
-                            $fetchRequest->propertiesToGroupBy = new ArrayClass($decoded->propertiesToGroupBy)->compactMap($propertyTransform);
+                        $fetchRequest->returnsDistinctResults = $fetchRequestRepresentation->returnsDistinctResults ?? false;
+                        if (isset($fetchRequestRepresentation->propertiesToGroupBy)) {
+                            $fetchRequest->propertiesToGroupBy = new ArrayClass($fetchRequestRepresentation->propertiesToGroupBy)->compactMap($propertyTransform);
                         }
-                        if (isset($decoded->havingPredicate)) {
-                            $havingPredicate = $decoded->havingPredicate;
+                        if (isset($fetchRequestRepresentation->havingPredicate)) {
+                            $havingPredicate = $fetchRequestRepresentation->havingPredicate;
                             if (isset($havingPredicate->format)) {
                                 $fetchRequest->havingPredicate = Predicate::format($havingPredicate->format, ArrayClass::arrayWithArray($havingPredicate->arguments ?? []));
                             }

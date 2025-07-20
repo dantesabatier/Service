@@ -57,12 +57,12 @@ class Session extends ObjectClass
 
     public function __destruct()
     {
-        $id = $this->id;
-        $lifetime = $this->cookieParameters->lifetime;
-        $keys = new Set([URLResourceKey::creationDateKey, URLResourceKey::nameKey]);
-        $urls = FileManager::default()->contentsOfDirectory($this->storageURL, new ArrayClass($keys), DirectoryEnumerationOptions::skipsHiddenFiles);
-        foreach ($urls as $url) {
-            try {
+        try {
+            $id = $this->id;
+            $lifetime = $this->cookieParameters->lifetime;
+            $keys = new Set([URLResourceKey::creationDateKey, URLResourceKey::nameKey]);
+            $urls = FileManager::default()->contentsOfDirectory($this->storageURL, new ArrayClass($keys), DirectoryEnumerationOptions::skipsHiddenFiles);
+            foreach ($urls as $url) {
                 $resourceValues = $url->resourceValues($keys);
                 /** @var string $name */
                 $name = $resourceValues->name;
@@ -83,8 +83,8 @@ class Session extends ObjectClass
                     continue;
                 }
                 FileManager::default()->removeItem($url);
-            } catch (Exception) {
             }
+        } catch (Exception) {
         }
     }
 

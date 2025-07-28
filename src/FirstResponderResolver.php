@@ -15,7 +15,7 @@ use function Sabatier\Foundation\string_is_equal;
 /** @internal */
 readonly class FirstResponderResolver
 {
-    public function __construct(private Responder $defaultResponder, private Responder $primaryResponder, private ApplicationDelegate $delegate)
+    public function __construct(private Responder $defaultResponder, private Responder $primaryResponder, private ?ApplicationDelegate $delegate)
     {
     }
 

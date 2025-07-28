@@ -47,7 +47,7 @@ try {
                 __DIR__ . "/src/Application.php"
             ],
             RemoveNonExistingVarAnnotationRector::class => [
-                __DIR__ . "/src/Application.php"
+                __DIR__ . "/src/FirstResponderResolver.php"
             ],
             NullToStrictStringFuncCallArgRector::class => [
                 __DIR__ . "/src/JSONWebTokenRS256EncoderStrategy.php"

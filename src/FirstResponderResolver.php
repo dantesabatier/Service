@@ -125,7 +125,6 @@ readonly class FirstResponderResolver
 
     private function initialResponder(): ?Responder
     {
-        /** @psalm-suppress InvalidArgument */
         return $this->mergeResponderChains($this->customResponder(), $this->buildResponderChain(new ArrayClass([$this->primaryResponder, new PersistentSpace(), new ResourceManager(), new Preferences(), new Uploader(), new Downloader(), new Home()])));
     }
 

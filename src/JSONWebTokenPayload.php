@@ -59,7 +59,7 @@ class JSONWebTokenPayload implements JsonSerializable
      */
     public function __construct(?string $iss = null, ?string $sub = null, ?string $aud = null, ?Date $exp = null, ?Date $nbf = null, ?Date $iat = null, ?string $jti = null, ?string $username = null)
     {
-        $this->rawValue = ["iss" => $iss, "sub" => $sub, "aud" => $aud, "exp" => $exp?->timeIntervalSinceReferenceDate, "nbf" => $nbf?->timeIntervalSinceReferenceDate, "iat" => $iat?->timeIntervalSinceReferenceDate, "jti" => $jti, "username" => $username];
+        $this->rawValue = [JWTIssuerKey => $iss, JWTSubjectKey => $sub, JWTAudienceKey => $aud, JWTExpirationTimeKey => $exp?->timeIntervalSinceReferenceDate, JWTNotBeforeTimeKey => $nbf?->timeIntervalSinceReferenceDate, JWTIssuedAtTimeKey => $iat?->timeIntervalSinceReferenceDate, JWTIdKey => $jti, JWTUsernameKey => $username];
     }
 
     /**

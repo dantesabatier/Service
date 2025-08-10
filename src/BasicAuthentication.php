@@ -15,8 +15,8 @@ class BasicAuthentication extends Authentication
     private(set) ?URLCredential $credential {
         get {
             if (!isset($this->credential)) {
-                $components = explode(":", base64_decode($this->request->authorizationHeader->value));
-                if (count($components) === 2) {
+                $components = explode(BasicAuthenticationComponentDelimiter, base64_decode($this->request->authorizationHeader->value));
+                if (count($components) === BasicAuthenticationComponentCount) {
                     [$username, $password] = $components;
                     $this->credential = new URLCredential($username, $password);
                 }

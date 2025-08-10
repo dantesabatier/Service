@@ -83,7 +83,7 @@ class AccessManager extends Responder
         $username = $user->username;
         if ($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) {
             $date = new Date();
-            $payloadRawValue = ["iss" => $this->request->url->host, "exp" => $date->addingTimeInterval(UserDefaults::standard()->float(JWTValidityTimeIntervalPreferenceKey))->timeIntervalSinceReferenceDate, "nbf" => $date->timeIntervalSinceReferenceDate, "iat" => $date->timeIntervalSinceReferenceDate, "jti" => base64_encode(read_random(16)), "username" => $username];
+            $payloadRawValue = [JWTIssuerKey => $this->request->url->host, JWTExpirationTimeKey => $date->addingTimeInterval(UserDefaults::standard()->float(JWTValidityTimeIntervalPreferenceKey))->timeIntervalSinceReferenceDate, JWTNotBeforeTimeKey => $date->timeIntervalSinceReferenceDate, JWTIssuedAtTimeKey => $date->timeIntervalSinceReferenceDate, JWTIdKey => base64_encode(read_random(16)), JWTUsernameKey => $username];
             $data["token"] = new JSONWebTokenService($key)->encode($payloadRawValue);
         }
         $session = Application::shared()->session;

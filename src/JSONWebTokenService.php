@@ -52,7 +52,7 @@ class JSONWebTokenService
     public function encode(array $payloadRawValue): string
     {
         /** @var JSONWebTokenHeaderRawValue $headerRawValue */
-        $headerRawValue = ["alg" => $this->algorithm->value, "typ" => "JWT"];
+        $headerRawValue = [JWTAlgorithmKey => $this->algorithm->value, JWTTypeKey => JWTTypeValue];
         $header = JSONWebTokenHeader::header($headerRawValue);
         $payload = JSONWebTokenPayload::payload($payloadRawValue);
         $token = new JSONWebToken($header, $payload);

@@ -26,6 +26,33 @@ class UploadsEnumerator extends DirectoryEnumerator
         get => $this->count === 0;
     }
     private ?URL $currentURL = null;
+    public ?Dictionary $directoryAttributes {
+        get {
+            try {
+                return FileManager::default()->attributesOfItem($this->directoryURL->path);
+            } catch (Exception) {
+                return null;
+            }
+        }
+    }
+    public ?Dictionary $fileAttributes {
+        get {
+            if (!($currentURL = $this->currentURL)) {
+                return null;
+            }
+            try {
+                return FileManager::default()->attributesOfItem($currentURL->path);
+            } catch (Exception) {
+                return null;
+            }
+        }
+    }
+    public int $level {
+        get => 0;
+    }
+    public bool $isEnumeratingDirectoryPostOrder {
+        get => false;
+    }
 
     /**
      * @param URL $directoryURL
@@ -33,29 +60,6 @@ class UploadsEnumerator extends DirectoryEnumerator
      */
     public function __construct(public readonly URL $directoryURL, public readonly ?Set $keys = null)
     {
-    }
-
-    #[Override]
-    public function directoryAttributes(): ?Dictionary
-    {
-        try {
-            return FileManager::default()->attributesOfItem($this->directoryURL->path);
-        } catch (Exception) {
-            return null;
-        }
-    }
-
-    #[Override]
-    public function fileAttributes(): ?Dictionary
-    {
-        if (!($currentURL = $this->currentURL)) {
-            return null;
-        }
-        try {
-            return FileManager::default()->attributesOfItem($currentURL->path);
-        } catch (Exception) {
-            return null;
-        }
     }
 
     #[Override]

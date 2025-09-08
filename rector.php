@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Rector\CodeQuality\Rector\Class_\ConvertStaticToSelfRector;
 use Rector\CodeQuality\Rector\ClassMethod\ExplicitReturnNullRector;
 use Rector\CodeQuality\Rector\ClassMethod\LocallyCalledStaticMethodToNonStaticRector;
 use Rector\CodeQuality\Rector\Identical\FlipTypeControlToUseExclusiveTypeRector;
@@ -51,6 +52,9 @@ try {
             ],
             NullToStrictStringFuncCallArgRector::class => [
                 __DIR__ . "/src/JSONWebTokenRS256EncoderStrategy.php"
+            ],
+            ConvertStaticToSelfRector::class => [
+                __DIR__ . "/src/Application.php"
             ],
         ])->withPreparedSets(deadCode: true, codeQuality: true, earlyReturn: true);
 } catch (InvalidConfigurationException $e) {

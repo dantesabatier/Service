@@ -113,7 +113,7 @@ class Application extends Responder
 
     private function resolveFirstResponder(): Responder
     {
-        return new FirstResponderResolver($this, $this->accessManager, $this->delegate)->resolveFirstResponder();
+        return new FirstResponderResolver($this, $this->accessManager)->resolveFirstResponder();
     }
 
     private function initializeApplication(): void

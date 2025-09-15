@@ -15,7 +15,7 @@ use function Sabatier\Foundation\string_is_equal;
 /** @internal */
 readonly class FirstResponderResolver
 {
-    public function __construct(private Responder $defaultResponder, private Responder $primaryResponder, private ?ApplicationDelegate $delegate)
+    public function __construct(private Application $application, private Responder $defaultResponder)
     {
     }
 
@@ -106,7 +106,7 @@ readonly class FirstResponderResolver
 
     private function customResponder(): ?Responder
     {
-        if (!($delegate = $this->delegate)) {
+        if (!($delegate = $this->application->delegate)) {
             return null;
         }
         $namespaceName = new ReflectionClass($delegate)->getNamespaceName();
@@ -125,7 +125,7 @@ readonly class FirstResponderResolver
 
     private function initialResponder(): ?Responder
     {
-        return $this->mergeResponderChains($this->customResponder(), $this->buildResponderChain(new ArrayClass([$this->primaryResponder, new PersistentSpace(), new ResourceManager(), new Preferences(), new Uploader(), new Downloader(), new Home()])));
+        return $this->mergeResponderChains($this->customResponder(), $this->buildResponderChain(new ArrayClass([$this->defaultResponder, new PersistentSpace(), new ResourceManager(), new Preferences(), new Uploader(), new Downloader(), new Home()])));
     }
 
     private function findFirstResponder(): Responder
@@ -137,13 +137,13 @@ readonly class FirstResponderResolver
             }
             $responder = $responder->nextResponder;
         }
-        throw new NotFoundException("The requested URL was not found on this server {$this->defaultResponder->request->url}");
+        throw new NotFoundException("The requested URL was not found on this server {$this->application->request->url}");
     }
 
     public function resolveFirstResponder(): Responder
     {
-        if ($this->defaultResponder->request->isPreflight) {
-            return $this->defaultResponder;
+        if ($this->application->request->isPreflight) {
+            return $this->application;
         }
         return $this->findFirstResponder();
     }

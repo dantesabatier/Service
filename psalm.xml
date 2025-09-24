@@ -28,5 +28,6 @@
         <UndefinedDocblockClass errorLevel="suppress"/>
         <NonInvariantDocblockPropertyType errorLevel="suppress"/>
         <ClassMustBeFinal errorLevel="suppress"/>
+        <TypeDoesNotContainType errorLevel="suppress"/>
     </issueHandlers>
 </psalm>

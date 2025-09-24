@@ -5,7 +5,6 @@
 namespace Sabatier\Service;
 
 use Sabatier\CoreData\EntityDescription;
-use Sabatier\Foundation\Networking\HTTPRequestMethod;
 
 /** @internal */
 class PersistentSpace extends Responder
@@ -16,20 +15,7 @@ class PersistentSpace extends Responder
     public bool $isFirstResponder {
         get => (bool)$this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel?->entitiesByName?->offsetExists($this->request->url->lastPathComponent);
     }
-    public Respondent $respondent {
-        get {
-            $respondentClass = match ($this->request->httpMethod) {
-                HTTPRequestMethod::get => PersistentSpaceRespondentReader::class,
-                HTTPRequestMethod::post => PersistentSpaceRespondentCreator::class,
-                HTTPRequestMethod::patch => PersistentSpaceRespondentUpdater::class,
-                HTTPRequestMethod::delete => PersistentSpaceRespondentDeleter::class,
-                HTTPRequestMethod::options => PersistentSpaceRespondentDefault::class,
-                default => throw new MethodNotAllowedException()
-            };
-            return new $respondentClass($this);
-        }
-    }
     public Response $response {
-        get => $this->respondent->response;
+        get => new PersistentSpaceResponseStrategyResolver($this)->strategy->response;
     }
 }

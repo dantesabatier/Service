@@ -3,7 +3,7 @@
 namespace Sabatier\Service;
 
 /** @internal */
-class PersistentSpaceRespondentDefault extends PersistentSpaceRespondent
+class DefaultResponseStrategy extends ResponseStrategy
 {
     public Response $response {
         get => new Response($this->responder);

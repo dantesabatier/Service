@@ -13,7 +13,7 @@ use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
 
 /** @internal */
-class PersistentSpaceRespondentCreator extends PersistentSpaceRespondent
+class PersistentSpacePostResponseStrategy extends PersistentSpaceResponseStrategy
 {
     public Response $response {
         get {

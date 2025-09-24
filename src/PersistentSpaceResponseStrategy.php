@@ -12,14 +12,14 @@ use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
 
 /** @internal */
-abstract class PersistentSpaceRespondent extends Respondent
+abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
 {
     public function __construct(PersistentSpace $persistentSpace)
     {
         parent::__construct($persistentSpace);
     }
 
-    public function managedObject(ManagedObjectID|int $objectID): ?ManagedObject
+    protected function managedObject(ManagedObjectID|int $objectID): ?ManagedObject
     {
         /** @var PersistentSpace $responder */
         $responder = $this->responder;

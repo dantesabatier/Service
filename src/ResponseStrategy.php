@@ -5,7 +5,7 @@ namespace Sabatier\Service;
 /**
  * A strategy to provide a {@see Response} for a specific HTTP method.
  */
-abstract class Respondent
+abstract class ResponseStrategy
 {
     abstract public Response $response {
         get;

@@ -25,7 +25,7 @@ use function Sabatier\Foundation\string_is_equal;
  * @psalm-type FetchRequestRepresentation object{predicate: object{format: string, arguments?: array}, includesSubentities?: bool, fetchLimit?: int, fetchOffset?: int, fetchBatchSize?: int, sortDescriptors?: object{key: string, ascending: bool}[], resultType: int, propertiesToFetch?: array, returnsDistinctResults?: bool, propertiesToGroupBy?: array, havingPredicate: object{format: string, arguments?: array}}
  * @internal
  */
-class PersistentSpaceRespondentReader extends PersistentSpaceRespondent
+class PersistentSpaceGetResponseStrategy extends PersistentSpaceResponseStrategy
 {
     public FetchRequest $fetchRequest {
         get {
@@ -116,7 +116,6 @@ class PersistentSpaceRespondentReader extends PersistentSpaceRespondent
                 FetchRequestResultType::dictionaryResultType => $context->fetch($fetchRequest),
                 FetchRequestResultType::countResultType => new Dictionary(["count" => $context->count($fetchRequest)])
             };
-            /** @psalm-suppress TypeDoesNotContainType */
             if ($fetchRequestResult instanceof BatchFaultingArray) {
                 return new BatchResponse($responder, $fetchRequest, $fetchRequestResult);
             }

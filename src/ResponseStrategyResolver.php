@@ -7,13 +7,13 @@ use Sabatier\Foundation\Dictionary;
 abstract class ResponseStrategyResolver
 {
     /** @var Dictionary<class-string<ResponseStrategy>> */
-    protected(set) Dictionary $byHTTPMethodResponseStrategyCLassesTable {
-        get => $this->byHTTPMethodResponseStrategyCLassesTable ??= new Dictionary();
+    protected(set) Dictionary $byHTTPMethodResponseStrategyClassesTable {
+        get => $this->byHTTPMethodResponseStrategyClassesTable ??= new Dictionary();
     }
     public ResponseStrategy $strategy {
         get {
             $responder = $this->responder;
-            $responseStrategyClass = $this->byHTTPMethodResponseStrategyCLassesTable[$responder->request->httpMethod] ?? throw new MethodNotAllowedException();
+            $responseStrategyClass = $this->byHTTPMethodResponseStrategyClassesTable[$responder->request->httpMethod] ?? throw new MethodNotAllowedException();
             return new $responseStrategyClass($responder);
         }
     }

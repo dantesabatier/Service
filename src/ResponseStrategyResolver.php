@@ -15,12 +15,9 @@ abstract class ResponseStrategyResolver
     }
     public ResponseStrategy $strategy {
         get {
-            if (!isset($this->strategy)) {
-                $responder = $this->responder;
-                $responseStrategyClass = $this->byHTTPMethodResponseStrategyClassesTable[$responder->request->httpMethod] ?? throw new MethodNotAllowedException();
-                $this->strategy = new $responseStrategyClass($responder);
-            }
-            return $this->strategy;
+            $responder = $this->responder;
+            $responseStrategyClass = $this->byHTTPMethodResponseStrategyClassesTable[$responder->request->httpMethod] ?? throw new MethodNotAllowedException();
+            return new $responseStrategyClass($responder);
         }
     }
 

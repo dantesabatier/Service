@@ -4,6 +4,9 @@ namespace Sabatier\Service;
 
 use Sabatier\Foundation\Dictionary;
 
+/**
+ * Provides an abstract base class for resolving a response strategy based on the HTTP method of a given request.
+ */
 abstract class ResponseStrategyResolver
 {
     /** @var Dictionary<class-string<ResponseStrategy>> */
@@ -12,9 +15,12 @@ abstract class ResponseStrategyResolver
     }
     public ResponseStrategy $strategy {
         get {
-            $responder = $this->responder;
-            $responseStrategyClass = $this->byHTTPMethodResponseStrategyClassesTable[$responder->request->httpMethod] ?? throw new MethodNotAllowedException();
-            return new $responseStrategyClass($responder);
+            if (!isset($this->strategy)) {
+                $responder = $this->responder;
+                $responseStrategyClass = $this->byHTTPMethodResponseStrategyClassesTable[$responder->request->httpMethod] ?? throw new MethodNotAllowedException();
+                $this->strategy = new $responseStrategyClass($responder);
+            }
+            return $this->strategy;
         }
     }
 

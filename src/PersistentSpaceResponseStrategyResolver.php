@@ -5,24 +5,15 @@ namespace Sabatier\Service;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 
 /** @internal */
-class PersistentSpaceResponseStrategyResolver
+class PersistentSpaceResponseStrategyResolver extends ResponseStrategyResolver
 {
-    public PersistentSpaceResponseStrategy $strategy {
-        get {
-            $persistentSpace = $this->persistentSpace;
-            $responseStrategyClass = match ($persistentSpace->request->httpMethod) {
-                HTTPRequestMethod::get => PersistentSpaceGetResponseStrategy::class,
-                HTTPRequestMethod::post => PersistentSpacePostResponseStrategy::class,
-                HTTPRequestMethod::patch => PersistentSpacePatchResponseStrategy::class,
-                HTTPRequestMethod::delete => PersistentSpaceDeleteResponseStrategy::class,
-                HTTPRequestMethod::options => DefaultResponseStrategy::class,
-                default => throw new MethodNotAllowedException()
-            };
-            return new $responseStrategyClass($persistentSpace);
-        }
-    }
-
-    public function __construct(private readonly PersistentSpace $persistentSpace)
+    public function __construct(Responder $responder)
     {
+        parent::__construct($responder);
+        $this->byHTTPMethodResponseStrategyCLassesTable[HTTPRequestMethod::get] = PersistentSpaceGetResponseStrategy::class;
+        $this->byHTTPMethodResponseStrategyCLassesTable[HTTPRequestMethod::post] = PersistentSpacePostResponseStrategy::class;
+        $this->byHTTPMethodResponseStrategyCLassesTable[HTTPRequestMethod::patch] = PersistentSpacePatchResponseStrategy::class;
+        $this->byHTTPMethodResponseStrategyCLassesTable[HTTPRequestMethod::delete] = PersistentSpaceDeleteResponseStrategy::class;
+        $this->byHTTPMethodResponseStrategyCLassesTable[HTTPRequestMethod::options] = DefaultResponseStrategy::class;
     }
 }

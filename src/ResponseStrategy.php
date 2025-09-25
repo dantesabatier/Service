@@ -3,7 +3,7 @@
 namespace Sabatier\Service;
 
 /**
- * A strategy to provide a {@see Response} for a specific HTTP method.
+ * A strategy to provide a {@see Response} for a specific {@see Responder}.
  */
 abstract class ResponseStrategy
 {

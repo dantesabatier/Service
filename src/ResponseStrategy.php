@@ -11,7 +11,7 @@ abstract class ResponseStrategy
         get;
     }
 
-    public function __construct(public Responder $responder)
+    public function __construct(public readonly Responder $responder)
     {
     }
 }

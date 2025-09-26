@@ -24,6 +24,6 @@ readonly class AccessControl
 
     public function setTransactionAuthor(Request $request): void
     {
-        $this->policy->applyTransactionAuthor($this->accessManager->authentication->user, $this->accessManager->managedObjectContext, $request->httpMethod);
+        $this->policy->applyTransactionAuthor($request, $this->accessManager->authentication->user, $this->accessManager->managedObjectContext);
     }
 }

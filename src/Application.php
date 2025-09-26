@@ -29,9 +29,6 @@ class Application extends Responder
     private(set) ?ApplicationDelegate $delegate {
         get => $this->delegate ??= $this->initializeDelegate();
     }
-    public AuthorizationService $authorizationService {
-        get => $this->authorizationService ??= new DefaultAuthorizationService();
-    }
     private(set) PersistentContainer $persistentContainer {
         get => $this->persistentContainer ??= $this->createPersistentContainer();
     }
@@ -40,6 +37,9 @@ class Application extends Responder
     }
     private(set) Responder $firstResponder {
         get => $this->firstResponder ??= $this->resolveFirstResponder();
+    }
+    public AuthorizationService $authorizationService {
+        get => $this->authorizationService ??= new DefaultAuthorizationService();
     }
     private AccessManager $accessManager {
         get => $this->accessManager ??= new AccessManager();

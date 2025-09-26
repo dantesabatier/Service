@@ -21,9 +21,9 @@ readonly class AccessControl
      * If authorization is required, the user's access is validated for a specific resource and action.
      *
      * @param Request $request The incoming request containing necessary data for authorization.
-     * @param Responder $firstResponder The responder used to enforce access policies or handle protected content.
+     * @param Responder $responder The responder used to enforce access policies or handle protected content.
      */
-    public function check(Request $request, Responder $firstResponder): void
+    public function check(Request $request, Responder $responder): void
     {
         if ($this->policy->shouldAuthorize($request)) {
             $user = $this->accessManager->authentication->user;
@@ -33,7 +33,7 @@ readonly class AccessControl
                 $this->authorizationService->authorize($user, $resource, $action, $this->persistentContainer->viewContext);
             }
         }
-        $this->policy->enforceProtectedContent($firstResponder, $this->accessManager, $request);
+        $this->policy->enforceProtectedContent($responder, $this->accessManager, $request);
     }
 
     /**

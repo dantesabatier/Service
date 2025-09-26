@@ -84,7 +84,7 @@ final class FetchRequestAdapter
     /**
      * @param FetchRequestRepresentation $fetchRequestRepresentation
      */
-    public function __construct(public readonly object $fetchRequestRepresentation)
+    public function __construct(private readonly object $fetchRequestRepresentation)
     {
     }
 }

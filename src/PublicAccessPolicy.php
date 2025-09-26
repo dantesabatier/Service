@@ -11,4 +11,9 @@ final class PublicAccessPolicy extends AccessPolicy
     {
         return false;
     }
+
+    #[Override]
+    public function enforceProtectedContent(Request $request, Responder $responder, AccessManager $accessManager): void
+    {
+    }
 }

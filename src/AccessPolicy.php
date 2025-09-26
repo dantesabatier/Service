@@ -72,15 +72,15 @@ class AccessPolicy
     }
 
     /**
-     * Applies the transaction author using the provided user, context, and HTTP request method.
+     * Applies the transaction author to the given managed object context based on the HTTP method of the request.
      *
-     * @param Authenticatable|null $user The user initiating the transaction, or null if the user is not authenticated.
-     * @param ManagedObjectContext $context The context managing the lifecycle of objects involved in the transaction.
-     * @param string $method The HTTP method expected for the transaction, constrained by possible values from the HTTPRequestMethod class.
+     * @param Request $request The request object containing HTTP method details.
+     * @param Authenticatable|null $user An optional user object representing the authenticated user.
+     * @param ManagedObjectContext $context The managed object context to which the transaction author is applied.
      */
-    public function applyTransactionAuthor(?Authenticatable $user, ManagedObjectContext $context, #[ExpectedValues(valuesFromClass: HTTPRequestMethod::class)] string $method): void
+    public function applyTransactionAuthor(Request $request, ?Authenticatable $user, ManagedObjectContext $context): void
     {
-        $context->transactionAuthor = match ($method) {
+        $context->transactionAuthor = match ($request->httpMethod) {
             HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $user?->username,
             default => null
         };

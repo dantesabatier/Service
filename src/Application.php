@@ -8,7 +8,6 @@ use Sabatier\CoreData\PersistentStoreDescription;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Error;
 use Sabatier\Foundation\InternalInconsistencyException;
-use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Notification;
 use Sabatier\Foundation\NotificationCenter;
 use Sabatier\Foundation\ObjectClass;
@@ -44,6 +43,12 @@ class Application extends Responder
     }
     private AccessManager $accessManager {
         get => $this->accessManager ??= new AccessManager();
+    }
+    public AccessPolicy $accessPolicy {
+        get => $this->accessPolicy ??= new DefaultAccessPolicy();
+    }
+    private AccessControl $accessControl {
+        get => $this->accessControl ??= new AccessControl($this->authorizationService, $this->accessManager, $this->persistentContainer, $this->accessPolicy);
     }
 
     private function initializeDelegate(): ?ApplicationDelegate
@@ -140,37 +145,12 @@ class Application extends Responder
         if ($this->isProtectedContentAvailable) {
             $this->accessManager->isProtectedContentAvailable = true;
         }
-        if (!$this->request->isPreflight) {
-            $user = $this->accessManager->authentication->user;
-            if ($user instanceof Authorizable) {
-                $resource = $this->request->url->lastPathComponent;
-                $action = match ($this->request->httpMethod) {
-                    HTTPRequestMethod::head, HTTPRequestMethod::get => AuthorizationType::read,
-                    HTTPRequestMethod::post => AuthorizationType::create,
-                    HTTPRequestMethod::put, HTTPRequestMethod::patch => AuthorizationType::update,
-                    HTTPRequestMethod::delete => AuthorizationType::delete,
-                    default => throw new MethodNotAllowedException()
-                };
-                $this->authorizationService->authorize($user, $resource, $action, $this->managedObjectContext);
-            }
-        }
-        if (!$this->firstResponder->isProtectedContentAvailable && !$this->accessManager->isProtectedContentAvailable) {
-            if ($this->accessManager->authentication->isValid) {
-                throw new ForbiddenException(match ($this->request->httpMethod) {
-                    HTTPRequestMethod::get => "You don't have permission to access this resource.",
-                    default => "You don't have permission to perform this action."
-                });
-            }
-            throw new UnauthorizedException();
-        }
+        $this->accessControl->check($this->request, $this->firstResponder);
     }
 
     private function setTransactionAuthor(): void
     {
-        $this->persistentContainer->viewContext->transactionAuthor = match ($this->request->httpMethod) {
-            HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $this->accessManager->authentication->user?->username,
-            default => null
-        };
+        $this->accessControl->setTransactionAuthor($this->request);
     }
 
     private function processResponse(): never

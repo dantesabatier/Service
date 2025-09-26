@@ -4,7 +4,7 @@ namespace Sabatier\Service;
 
 use Override;
 
-final class DefaultAccessPolicy extends AccessPolicy
+final class PublicAccessPolicy extends AccessPolicy
 {
     #[Override]
     public function shouldCheck(Request $request): bool

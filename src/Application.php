@@ -48,7 +48,7 @@ class Application extends Responder
         get => $this->accessPolicy ??= new DefaultAccessPolicy();
     }
     private AccessControl $accessControl {
-        get => $this->accessControl ??= new AccessControl($this->authorizationService, $this->accessManager, $this->persistentContainer, $this->accessPolicy);
+        get => $this->accessControl ??= new AccessControl($this->authorizationService, $this->accessManager, $this->accessPolicy);
     }
 
     private function initializeDelegate(): ?ApplicationDelegate
@@ -142,9 +142,6 @@ class Application extends Responder
 
     private function checkAccessPermissions(): void
     {
-        if ($this->isProtectedContentAvailable) {
-            $this->accessManager->isProtectedContentAvailable = true;
-        }
         $this->accessControl->check($this->request, $this->firstResponder);
     }
 

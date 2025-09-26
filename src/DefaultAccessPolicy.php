@@ -2,37 +2,16 @@
 
 namespace Sabatier\Service;
 
-use JetBrains\PhpStorm\ExpectedValues;
-use Sabatier\CoreData\PersistentContainer;
+use Override;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 
 /** @internal */
-class DefaultAccessPolicy implements AccessPolicy
+final class DefaultAccessPolicy extends AccessPolicy
 {
-    public function shouldAuthorize(Request $request): bool
+    #[Override]
+    public function enforceProtectedContent(Request $request, Responder $responder, AccessManager $accessManager): void
     {
-        return !$request->isPreflight;
-    }
-
-    public function action(#[ExpectedValues(valuesFromClass: HTTPRequestMethod::class)] string $method): AuthorizationType
-    {
-        return match ($method) {
-            HTTPRequestMethod::head, HTTPRequestMethod::get => AuthorizationType::read,
-            HTTPRequestMethod::post => AuthorizationType::create,
-            HTTPRequestMethod::put, HTTPRequestMethod::patch => AuthorizationType::update,
-            HTTPRequestMethod::delete => AuthorizationType::delete,
-            default => throw new MethodNotAllowedException()
-        };
-    }
-
-    public function resource(Request $request): string
-    {
-        return $request->url->lastPathComponent;
-    }
-
-    public function enforceProtectedContent(Responder $firstResponder, AccessManager $accessManager, Request $request): void
-    {
-        if ($firstResponder->isProtectedContentAvailable || $accessManager->isProtectedContentAvailable) {
+        if ($responder->isProtectedContentAvailable || $accessManager->isProtectedContentAvailable) {
             return;
         }
         if ($accessManager->authentication->isValid) {
@@ -42,13 +21,5 @@ class DefaultAccessPolicy implements AccessPolicy
             });
         }
         throw new UnauthorizedException();
-    }
-
-    public function applyTransactionAuthor(?Authenticatable $user, PersistentContainer $persistentContainer, #[ExpectedValues(valuesFromClass: HTTPRequestMethod::class)] string $method): void
-    {
-        $persistentContainer->viewContext->transactionAuthor = match ($method) {
-            HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $user?->username,
-            default => null
-        };
     }
 }

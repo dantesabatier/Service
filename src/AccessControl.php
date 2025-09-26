@@ -2,8 +2,6 @@
 
 namespace Sabatier\Service;
 
-use Sabatier\CoreData\PersistentContainer;
-
 /**
  * The AccessControl class enforces authorization and access policies within the application, ensuring secure interaction with resources.
  *
@@ -12,7 +10,7 @@ use Sabatier\CoreData\PersistentContainer;
  */
 readonly class AccessControl
 {
-    public function __construct(private AuthorizationService $authorizationService, private AccessManager $accessManager, private PersistentContainer $persistentContainer, private AccessPolicy $policy)
+    public function __construct(private AuthorizationService $authorizationService, private AccessManager $accessManager, private AccessPolicy $policy)
     {
     }
 
@@ -25,15 +23,15 @@ readonly class AccessControl
      */
     public function check(Request $request, Responder $responder): void
     {
-        if ($this->policy->shouldAuthorize($request)) {
+        if ($this->policy->shouldCheck($request)) {
             $user = $this->accessManager->authentication->user;
             if ($user instanceof Authorizable) {
                 $resource = $this->policy->resource($request);
                 $action = $this->policy->action($request->httpMethod);
-                $this->authorizationService->authorize($user, $resource, $action, $this->persistentContainer->viewContext);
+                $this->authorizationService->authorize($user, $resource, $action, $this->accessManager->managedObjectContext);
             }
         }
-        $this->policy->enforceProtectedContent($responder, $this->accessManager, $request);
+        $this->policy->enforceProtectedContent($request, $responder, $this->accessManager);
     }
 
     /**
@@ -43,6 +41,6 @@ readonly class AccessControl
      */
     public function setTransactionAuthor(Request $request): void
     {
-        $this->policy->applyTransactionAuthor($this->accessManager->authentication->user, $this->persistentContainer, $request->httpMethod);
+        $this->policy->applyTransactionAuthor($this->accessManager->authentication->user, $this->accessManager->managedObjectContext, $request->httpMethod);
     }
 }

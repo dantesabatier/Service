@@ -45,7 +45,7 @@ class Application extends Responder
         get => $this->accessManager ??= new AccessManager();
     }
     public AccessPolicy $accessPolicy {
-        get => $this->accessPolicy ??= new DefaultAccessPolicy();
+        get => $this->accessPolicy ??= new AccessPolicy();
     }
     private AccessControl $accessControl {
         get => $this->accessControl ??= new AccessControl($this->authorizationService, $this->accessManager, $this->accessPolicy);

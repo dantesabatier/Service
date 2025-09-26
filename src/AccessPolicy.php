@@ -9,7 +9,7 @@ use Sabatier\Foundation\Networking\HTTPRequestMethod;
 /**
  * Defines an access control policy to handle authorization for specific actions or resources.
  */
-abstract class AccessPolicy
+class AccessPolicy
 {
     /**
      * Determines if the given request should be checked based on its content and context.
@@ -59,6 +59,16 @@ abstract class AccessPolicy
      */
     public function enforceProtectedContent(Request $request, Responder $responder, AccessManager $accessManager): void
     {
+        if ($responder->isProtectedContentAvailable || $accessManager->isProtectedContentAvailable) {
+            return;
+        }
+        if ($accessManager->authentication->isValid) {
+            throw new ForbiddenException(match ($request->httpMethod) {
+                HTTPRequestMethod::get => "You don't have permission to access this resource.",
+                default => "You don't have permission to perform this action."
+            });
+        }
+        throw new UnauthorizedException();
     }
 
     /**

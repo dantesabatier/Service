@@ -2,12 +2,11 @@
 
 namespace Sabatier\Service;
 
-use JetBrains\PhpStorm\ExpectedValues;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 
 /**
- * Defines an access control policy to handle authorization for specific actions or resources.
+ * A class responsible for defining and enforcing access policies for resource requests.
  */
 class AccessPolicy
 {
@@ -23,14 +22,14 @@ class AccessPolicy
     }
 
     /**
-     * Executes an action based on the provided HTTP request method.
+     * Determines the type of authorization required based on the HTTP method of the request.
      *
-     * @param string $method The HTTP request method.
-     * @return AuthorizationType The type of authorization determined by the action.
+     * @param Request $request The request object containing the HTTP method and other request details.
+     * @return AuthorizationType The type of authorization corresponding to the HTTP method.
      */
-    public function action(#[ExpectedValues(valuesFromClass: HTTPRequestMethod::class)] string $method): AuthorizationType
+    public function action(Request $request): AuthorizationType
     {
-        return match ($method) {
+        return match ($request->httpMethod) {
             HTTPRequestMethod::head, HTTPRequestMethod::get => AuthorizationType::read,
             HTTPRequestMethod::post => AuthorizationType::create,
             HTTPRequestMethod::put, HTTPRequestMethod::patch => AuthorizationType::update,
@@ -75,10 +74,10 @@ class AccessPolicy
      * Applies the transaction author to the given managed object context based on the HTTP method of the request.
      *
      * @param Request $request The request object containing HTTP method details.
-     * @param Authenticatable|null $user An optional user object representing the authenticated user.
      * @param ManagedObjectContext $context The managed object context to which the transaction author is applied.
+     * @param Authenticatable|null $user An optional user object representing the authenticated user.
      */
-    public function applyTransactionAuthor(Request $request, ?Authenticatable $user, ManagedObjectContext $context): void
+    public function applyTransactionAuthor(Request $request, ManagedObjectContext $context, ?Authenticatable $user): void
     {
         $context->transactionAuthor = match ($request->httpMethod) {
             HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $user?->username,

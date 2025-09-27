@@ -41,14 +41,14 @@ class Application extends Responder
     public AuthorizationService $authorizationService {
         get => $this->authorizationService ??= new DefaultAuthorizationService();
     }
-    private AccessManager $accessManager {
-        get => $this->accessManager ??= new AccessManager();
+    private(set) AuthenticationService $authenticationService {
+        get => $this->authenticationService ??= new AuthenticationService();
     }
     public AccessPolicy $accessPolicy {
         get => $this->accessPolicy ??= new AccessPolicy();
     }
     private AccessControl $accessControl {
-        get => $this->accessControl ??= new AccessControl($this->authorizationService, $this->accessManager, $this->accessPolicy);
+        get => $this->accessControl ??= new AccessControl($this->authorizationService, $this->authenticationService, $this->accessPolicy);
     }
 
     private function initializeDelegate(): ?ApplicationDelegate
@@ -118,7 +118,7 @@ class Application extends Responder
 
     private function resolveFirstResponder(): Responder
     {
-        return new FirstResponderResolver($this, $this->accessManager)->resolveFirstResponder();
+        return new FirstResponderResolver($this, $this->authenticationService)->resolveFirstResponder();
     }
 
     private function initializeApplication(): void

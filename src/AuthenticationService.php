@@ -17,7 +17,7 @@ use function Sabatier\Foundation\read_random;
  * The AccessManager class is responsible for managing access control, including handling authentication and authorization for incoming requests.
  * It provides methods for logging in users, generating JSON Web Tokens (JWT), and logging out users, while ensuring that only authorized actions are permitted.
  */
-class AccessManager extends Responder
+class AuthenticationService extends Responder
 {
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);

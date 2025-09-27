@@ -51,18 +51,18 @@ class AccessPolicy
     }
 
     /**
-     * Enforces protection for the requested content by using the provided responder and access manager.
+     * Enforces protection for the requested content by using the provided responder and authentication service.
      *
      * @param Request $request The request object containing details of the content request.
      * @param Responder $responder The responder responsible for handling the content delivery.
-     * @param AccessManager $accessManager The access manager to verify and enforce access rules.
+     * @param AuthenticationService $authenticationService The authentication service to verify and enforce access rules.
      */
-    public function enforceProtectedContent(Request $request, Responder $responder, AccessManager $accessManager): void
+    public function enforceProtectedContent(Request $request, Responder $responder, AuthenticationService $authenticationService): void
     {
-        if ($responder->isProtectedContentAvailable || $accessManager->isProtectedContentAvailable) {
+        if ($responder->isProtectedContentAvailable || $authenticationService->isProtectedContentAvailable) {
             return;
         }
-        if ($accessManager->authentication->isValid) {
+        if ($authenticationService->authentication->isValid) {
             throw new ForbiddenException(match ($request->httpMethod) {
                 HTTPRequestMethod::get => "You don't have permission to access this resource.",
                 default => "You don't have permission to perform this action."

@@ -5,25 +5,25 @@ namespace Sabatier\Service;
 /** @internal */
 readonly class AccessControl
 {
-    public function __construct(private AuthorizationService $authorizationService, private AuthenticationService $authenticationService, private AccessPolicy $policy)
+    public function __construct(private AuthorizationService $authorizationService, private AuthenticationService $authenticationService, private AccessPolicy $accessPolicy)
     {
     }
 
     public function check(Request $request, Responder $responder): void
     {
-        if ($this->policy->shouldCheck($request)) {
+        if ($this->accessPolicy->shouldCheck($request)) {
             $user = $this->authenticationService->authentication->user;
             if ($user instanceof Authorizable) {
-                $resource = $this->policy->resource($request);
-                $action = $this->policy->action($request->httpMethod);
+                $resource = $this->accessPolicy->resource($request);
+                $action = $this->accessPolicy->action($request);
                 $this->authorizationService->authorize($user, $resource, $action, $this->authenticationService->managedObjectContext);
             }
         }
-        $this->policy->enforceProtectedContent($request, $responder, $this->authenticationService);
+        $this->accessPolicy->enforceProtectedContent($request, $responder, $this->authenticationService);
     }
 
     public function setTransactionAuthor(Request $request): void
     {
-        $this->policy->applyTransactionAuthor($request, $this->authenticationService->authentication->user, $this->authenticationService->managedObjectContext);
+        $this->accessPolicy->applyTransactionAuthor($request, $this->authenticationService->managedObjectContext, $this->authenticationService->authentication->user);
     }
 }

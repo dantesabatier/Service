@@ -12,15 +12,21 @@ use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\UserDefaults;
 use function Sabatier\Foundation\read_random;
 
-/** @internal */
+
+/**
+ * The AccessManager class is responsible for managing access control, including handling authentication and authorization for incoming requests.
+ * It provides methods for logging in users, generating JSON Web Tokens (JWT), and logging out users, while ensuring that only authorized actions are permitted.
+ */
 class AccessManager extends Responder
 {
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
     }
+    /** @var Authentication Retrieves the authentication instance. If it is not already set, it resolves and assigns an instance of the authentication. */
     private(set) Authentication $authentication {
         get => $this->authentication ??= $this->resolveAuthentication();
     }
+    /** @var bool Checks if the protected content is available by determining if the request is authorized. */
     public bool $isProtectedContentAvailable {
         get => $this->isProtectedContentAvailable ??= $this->isRequestAuthorized();
     }
@@ -70,8 +76,11 @@ class AccessManager extends Responder
         return $this->authentication->user?->authorization instanceof Authorization;
     }
 
+
     /**
-     * @throws Exception
+     * Handles user login by validating authentication, generating a token if required, and managing the user session. Sets response content and headers based on the authenticated user and token generation process.
+     *
+     * @throws Exception If the authentication fails or the token generation fails.
      */
     #[Action]
     public function login(): void
@@ -93,6 +102,9 @@ class AccessManager extends Responder
         $this->headerFields["Content-Type"] = "application/json";
     }
 
+    /**
+     * Logs out the current user by clearing their session data and setting the response status code.
+     */
     #[Action]
     public function logout(): void
     {

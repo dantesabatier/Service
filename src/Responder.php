@@ -17,7 +17,7 @@ use function Sabatier\Foundation\string_is_equal;
 use function Sabatier\Foundation\url_validate;
 
 /**
- * An abstract interface for responding to and handling url requests.
+ * An abstract class for responding to and handling url requests.
  * @psalm-consistent-constructor
  * @phpstan-consistent-constructor
  */

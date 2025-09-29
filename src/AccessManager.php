@@ -72,11 +72,7 @@ class AccessManager extends Responder implements AuthenticationService
     }
 
 
-    /**
-     * Handles user login by validating authentication, generating a token if required, and managing the user session. Sets response content and headers based on the authenticated user and token generation process.
-     *
-     * @throws Exception If the authentication fails or the token generation fails.
-     */
+    /** @throws Exception */
     #[Action]
     public function login(): void
     {
@@ -97,9 +93,6 @@ class AccessManager extends Responder implements AuthenticationService
         $this->headerFields["Content-Type"] = "application/json";
     }
 
-    /**
-     * Logs out the current user by clearing their session data and setting the response status code.
-     */
     #[Action]
     public function logout(): void
     {

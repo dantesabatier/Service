@@ -5,6 +5,11 @@ namespace Sabatier\Service;
 use Override;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 
+/**
+ * Represents the default access policy enforcement mechanism.
+ *
+ * Ensures that access to protected content is gated by the conditions surrounding content availability and user authentication status.
+ */
 final class DefaultAccessPolicy extends AccessPolicy
 {
     #[Override]

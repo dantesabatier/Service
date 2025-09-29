@@ -45,7 +45,7 @@ class Application extends Responder
         get => $this->authenticationService ??= new AuthenticationManager();
     }
     public AccessPolicy $accessPolicy {
-        get => $this->accessPolicy ??= new DefaultAccessPolicy($this->firstResponder, $this->authenticationService);
+        get => $this->accessPolicy ??= new DefaultAccessPolicy();
     }
     private AccessControl $accessControl {
         get => $this->accessControl ??= new AccessControl($this->authorizationService, $this->authenticationService, $this->accessPolicy);
@@ -144,12 +144,12 @@ class Application extends Responder
 
     private function checkAccessPermissions(): void
     {
-        $this->accessControl->validateAccess();
+        $this->accessControl->validateAccess($this->firstResponder);
     }
 
     private function setTransactionAuthor(): void
     {
-        $this->accessControl->setTransactionAuthor();
+        $this->accessControl->setTransactionAuthor($this->firstResponder);
     }
 
     private function processResponse(): never

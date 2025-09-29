@@ -9,11 +9,26 @@ use Sabatier\Foundation\Networking\HTTPRequestMethod;
  */
 abstract class AccessPolicy
 {
-    public bool $isAuthorizationRequired {
-        get => !$this->responder->request->isPreflight;
+    /**
+     * Determines if authorization is required based on the responder's request.
+     *
+     * @param Responder $responder The responder containing the request to be evaluated.
+     * @return bool Returns true if authorization is required, otherwise false.
+     */
+    public function isAuthorizationRequired(Responder $responder): bool
+    {
+        return !$responder->request->isPreflight;
     }
-    public AuthorizationType $authorizationType {
-        get => match ($this->responder->request->httpMethod) {
+
+    /**
+     * Determines and returns the appropriate authorization type based on the HTTP method of the request.
+     *
+     * @param Responder $responder The responder instance containing the HTTP request details.
+     * @return AuthorizationType The authorization type to be performed on the resource.
+     */
+    public function authorizationType(Responder $responder): AuthorizationType
+    {
+        return match ($responder->request->httpMethod) {
             HTTPRequestMethod::head, HTTPRequestMethod::get => AuthorizationType::read,
             HTTPRequestMethod::post => AuthorizationType::create,
             HTTPRequestMethod::put, HTTPRequestMethod::patch => AuthorizationType::update,
@@ -21,28 +36,38 @@ abstract class AccessPolicy
             default => throw new MethodNotAllowedException()
         };
     }
-    public string $resource {
-        get => $this->responder->request->url->lastPathComponent;
+
+    /**
+     * Retrieves the resource to be accessed or manipulated.
+     *
+     * @param Responder $responder An instance containing the request and URL information.
+     * @return string The resource to be accessed or manipulated by the request.
+     */
+    public function resource(Responder $responder): string
+    {
+        return $responder->request->url->lastPathComponent;
     }
 
-    public function __construct(public readonly Responder $responder, public readonly AuthenticationService $authenticationService)
+    /**
+     * Enforces access control using the provided responder and authentication service.
+     *
+     * @param Responder $responder The responder handling the access response.
+     * @param AuthenticationService $authenticationService The service used for authentication checks.
+     */
+    public function enforceAccess(Responder $responder, AuthenticationService $authenticationService): void
     {
     }
 
     /**
-     * Enforces access control to ensure the current user has the necessary permissions.
+     * Sets the transaction author in the managed object context based on the HTTP method of the request.
+     *
+     * @param Responder $responder The responder providing the context and request details.
+     * @param AuthenticationService $authenticationService The service used to retrieve the authenticated user's information.
      */
-    public function enforceAccess(): void
+    public function setTransactionAuthor(Responder $responder, AuthenticationService $authenticationService): void
     {
-    }
-
-    /**
-     * Sets the author of the transaction based on the HTTP request method.
-     */
-    public function setTransactionAuthor(): void
-    {
-        $this->responder->managedObjectContext->transactionAuthor = match ($this->responder->request->httpMethod) {
-            HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $this->authenticationService->authentication->user?->username,
+        $responder->managedObjectContext->transactionAuthor = match ($responder->request->httpMethod) {
+            HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $authenticationService->authentication->user?->username,
             default => null
         };
     }

@@ -2,10 +2,16 @@
 
 namespace Sabatier\Service;
 
+use Override;
+
 /**
  * A policy that defines public access to resources bypassing checks and enforcement of protected content.
  */
 final class PublicAccessPolicy extends AccessPolicy
 {
-    public bool $isAuthorizationRequired = false;
+    #[Override]
+    public function isAuthorizationRequired(Responder $responder): bool
+    {
+        return false;
+    }
 }

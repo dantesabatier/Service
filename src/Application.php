@@ -118,7 +118,9 @@ class Application extends Responder
 
     private function resolveFirstResponder(): Responder
     {
-        return new FirstResponderResolver($this, $this->authenticationService)->resolveFirstResponder();
+        /** @var AccessManager $accessManager */
+        $accessManager = $this->authenticationService;
+        return new FirstResponderResolver($this, $accessManager)->resolveFirstResponder();
     }
 
     private function initializeApplication(): void

@@ -14,16 +14,19 @@ use function Sabatier\Foundation\read_random;
 
 
 /** @internal */
-class AuthenticationManager extends Responder implements AuthenticationService
+class AuthenticationManager extends Responder
 {
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
     }
-    private(set) Authentication $authentication {
-        get => $this->authentication ??= $this->resolveAuthentication();
+    public AuthenticationService $authenticationService {
+        get => $this->authenticationService ??= new DefaultAuthenticationService($this);
+    }
+    public Authentication $authentication {
+        get => $this->authenticationService->authentication;
     }
     public bool $isProtectedContentAvailable {
-        get => $this->isProtectedContentAvailable ??= $this->isRequestAuthorized();
+        get => $this->authenticationService->isProtectedContentAvailable;
     }
 
     public function __construct()
@@ -53,24 +56,6 @@ class AuthenticationManager extends Responder implements AuthenticationService
             JSONWebTokenCoderStrategyFactory::shared()->register($class);
         }
     }
-
-    private function resolveAuthentication(): Authentication
-    {
-        $authenticationClass = AuthenticationFactory::getAuthenticationClass(AuthenticationFactory::getAuthentications() ?? new ArrayClass(), $this->request->authorizationHeader->scheme) ?? throw new UnimplementedException();
-        return new $authenticationClass($this->request, $this->managedObjectContext, $this->isFirstResponder ? $this->request->serialization : null);
-    }
-
-    private function isRequestAuthorized(): bool
-    {
-        if ($this->request->isPreflight) {
-            return true;
-        }
-        if (!$this->authentication->isValid) {
-            return false;
-        }
-        return $this->authentication->user?->authorization instanceof Authorization;
-    }
-
 
     /** @throws Exception */
     #[Action]

@@ -41,7 +41,7 @@ class Application extends Responder
     public AuthorizationService $authorizationService {
         get => $this->authorizationService ??= new DefaultAuthorizationService();
     }
-    private(set) AuthenticationService $authenticationService {
+    public AuthenticationService $authenticationService {
         get => $this->authenticationService ??= new AuthenticationManager();
     }
     public AccessPolicy $accessPolicy {

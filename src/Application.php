@@ -42,7 +42,7 @@ class Application extends Responder
         get => $this->authorizationService ??= new DefaultAuthorizationService();
     }
     private(set) AuthenticationService $authenticationService {
-        get => $this->authenticationService ??= new AccessManager();
+        get => $this->authenticationService ??= new AuthenticationManager();
     }
     public AccessPolicy $accessPolicy {
         get => $this->accessPolicy ??= new DefaultAccessPolicy($this->firstResponder, $this->authenticationService);
@@ -118,9 +118,9 @@ class Application extends Responder
 
     private function resolveFirstResponder(): Responder
     {
-        /** @var AccessManager $accessManager */
-        $accessManager = $this->authenticationService;
-        return new FirstResponderResolver($this, $accessManager)->resolveFirstResponder();
+        /** @var AuthenticationManager $authenticationManager */
+        $authenticationManager = $this->authenticationService;
+        return new FirstResponderResolver($this, $authenticationManager)->resolveFirstResponder();
     }
 
     private function initializeApplication(): void

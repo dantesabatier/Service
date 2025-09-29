@@ -12,13 +12,13 @@ use Override;
 final class PublicAccessPolicy extends AccessPolicy
 {
     #[Override]
-    public function shouldCheck(Request $request): bool
+    public function isAuthorizationRequired(Request $request): bool
     {
         return false;
     }
 
     #[Override]
-    public function enforceProtectedContent(Request $request, Responder $responder, AuthenticationService $authenticationService): void
+    public function enforceAccess(Request $request, Responder $responder, AuthenticationService $authenticationService): void
     {
     }
 }

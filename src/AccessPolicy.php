@@ -29,10 +29,16 @@ abstract class AccessPolicy
     {
     }
 
+    /**
+     * Enforces access control to ensure the current user has the necessary permissions.
+     */
     public function enforceAccess(): void
     {
     }
 
+    /**
+     * Sets the author of the transaction based on the HTTP request method.
+     */
     public function setTransactionAuthor(): void
     {
         $this->responder->managedObjectContext->transactionAuthor = match ($this->responder->request->httpMethod) {

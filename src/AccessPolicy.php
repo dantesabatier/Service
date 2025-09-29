@@ -16,7 +16,7 @@ class AccessPolicy
      * @param Request $request The incoming request to evaluate for authorization.
      * @return bool Returns true if the request should be checked for authorization, false otherwise.
      */
-    public function shouldCheck(Request $request): bool
+    public function isAuthorizationRequired(Request $request): bool
     {
         return !$request->isPreflight;
     }
@@ -27,7 +27,7 @@ class AccessPolicy
      * @param Request $request The request object containing the HTTP method and other request details.
      * @return AuthorizationType The type of authorization corresponding to the HTTP method.
      */
-    public function action(Request $request): AuthorizationType
+    public function authorizationType(Request $request): AuthorizationType
     {
         return match ($request->httpMethod) {
             HTTPRequestMethod::head, HTTPRequestMethod::get => AuthorizationType::read,
@@ -56,7 +56,7 @@ class AccessPolicy
      * @param Responder $responder The responder responsible for handling the content delivery.
      * @param AuthenticationService $authenticationService The authentication service to verify and enforce access rules.
      */
-    public function enforceProtectedContent(Request $request, Responder $responder, AuthenticationService $authenticationService): void
+    public function enforceAccess(Request $request, Responder $responder, AuthenticationService $authenticationService): void
     {
         if ($responder->isProtectedContentAvailable || $authenticationService->isProtectedContentAvailable) {
             return;
@@ -77,7 +77,7 @@ class AccessPolicy
      * @param ManagedObjectContext $context The managed object context to which the transaction author is applied.
      * @param Authenticatable|null $user An optional user object representing the authenticated user.
      */
-    public function applyTransactionAuthor(Request $request, ManagedObjectContext $context, ?Authenticatable $user): void
+    public function setTransactionAuthor(Request $request, ManagedObjectContext $context, ?Authenticatable $user): void
     {
         $context->transactionAuthor = match ($request->httpMethod) {
             HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $user?->username,

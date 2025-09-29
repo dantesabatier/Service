@@ -9,21 +9,21 @@ readonly class AccessControl
     {
     }
 
-    public function check(Request $request, Responder $responder): void
+    public function validateAccess(): void
     {
-        if ($this->accessPolicy->isAuthorizationRequired($request)) {
+        if ($this->accessPolicy->isAuthorizationRequired) {
             $user = $this->authenticationService->authentication->user;
             if ($user instanceof Authorizable) {
-                $resource = $this->accessPolicy->resource($request);
-                $action = $this->accessPolicy->authorizationType($request);
-                $this->authorizationService->authorize($user, $resource, $action, $this->authenticationService->managedObjectContext);
+                $resource = $this->accessPolicy->resource;
+                $action = $this->accessPolicy->authorizationType;
+                $this->authorizationService->authorize($user, $resource, $action, $this->accessPolicy->responder->managedObjectContext);
             }
         }
-        $this->accessPolicy->enforceAccess($request, $responder, $this->authenticationService);
+        $this->accessPolicy->enforceAccess();
     }
 
-    public function setTransactionAuthor(Request $request): void
+    public function setTransactionAuthor(): void
     {
-        $this->accessPolicy->setTransactionAuthor($request, $this->authenticationService->managedObjectContext, $this->authenticationService->authentication->user);
+        $this->accessPolicy->setTransactionAuthor();
     }
 }

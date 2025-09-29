@@ -36,7 +36,7 @@ class Application extends Responder
         get => $this->session ??= new Session();
     }
     private(set) Responder $firstResponder {
-        get => $this->firstResponder ??= $this->resolveFirstResponder();
+        get => $this->firstResponder ??= new FirstResponderResolver($this, $this->authenticationManager)->firstResponder;
     }
     public AuthorizationService $authorizationService {
         get => $this->authorizationService ??= new DefaultAuthorizationService();
@@ -117,11 +117,6 @@ class Application extends Responder
      */
     private function handlePersistentStoreRemoteChange(Notification $notification): void
     {
-    }
-
-    private function resolveFirstResponder(): Responder
-    {
-        return new FirstResponderResolver($this, $this->authenticationManager)->resolveFirstResponder();
     }
 
     private function initializeApplication(): void

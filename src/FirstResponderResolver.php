@@ -13,9 +13,13 @@ use Sabatier\Foundation\URL;
 use function Sabatier\Foundation\string_is_equal;
 
 /** @internal */
-readonly class FirstResponderResolver
+class FirstResponderResolver
 {
-    public function __construct(private Application $application, private Responder $defaultResponder)
+    public Responder $firstResponder {
+        get => $this->resolveFirstResponder();
+    }
+
+    public function __construct(private readonly Application $application, private readonly Responder $defaultResponder)
     {
     }
 
@@ -140,7 +144,7 @@ readonly class FirstResponderResolver
         throw new NotFoundException("The requested URL was not found on this server {$this->application->request->url}");
     }
 
-    public function resolveFirstResponder(): Responder
+    private function resolveFirstResponder(): Responder
     {
         if ($this->application->request->isPreflight) {
             return $this->application;

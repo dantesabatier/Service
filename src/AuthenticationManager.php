@@ -19,14 +19,14 @@ class AuthenticationManager extends Responder
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
     }
-    public AuthenticationService $authenticationService {
-        get => $this->authenticationService ??= new DefaultAuthenticationService($this);
+    public AuthenticationService $service {
+        get => $this->service ??= new DefaultAuthenticationService($this);
     }
     public Authentication $authentication {
-        get => $this->authenticationService->authentication;
+        get => $this->service->authentication;
     }
     public bool $isProtectedContentAvailable {
-        get => $this->authenticationService->isProtectedContentAvailable;
+        get => $this->service->isProtectedContentAvailable;
     }
 
     public function __construct()

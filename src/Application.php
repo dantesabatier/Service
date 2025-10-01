@@ -45,7 +45,7 @@ class Application extends Responder
         get => $this->authenticationManager ??= new AuthenticationManager();
     }
     public AuthenticationService $authenticationService {
-        get => $this->authenticationService ??= $this->authenticationManager->authenticationService;
+        get => $this->authenticationService ??= $this->authenticationManager->service;
     }
     public AccessPolicy $accessPolicy {
         get => $this->accessPolicy ??= new DefaultAccessPolicy();

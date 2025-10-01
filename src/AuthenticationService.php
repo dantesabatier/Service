@@ -2,6 +2,9 @@
 
 namespace Sabatier\Service;
 
+/**
+ * Authentication service for handling authentication-related functionalities and providing access control to protected content.
+ */
 interface AuthenticationService
 {
     public Authentication $authentication {

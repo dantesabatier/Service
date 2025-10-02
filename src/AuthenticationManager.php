@@ -37,24 +37,7 @@ class AuthenticationManager extends Responder
     #[Override]
     public static function initialize(): void
     {
-        self::registerAuthentications();
-        self::registerJSONWebTokenCodingStrategies();
-    }
-
-    private static function registerAuthentications(): void
-    {
-        $classes = [BasicAuthentication::class, BearerAuthentication::class, DigestAuthentication::class];
-        foreach ($classes as $class) {
-            AuthenticationFactory::registerClass($class);
-        }
-    }
-
-    private static function registerJSONWebTokenCodingStrategies(): void
-    {
-        $classes = [JSONWebTokenHS256EncoderStrategy::class, JSONWebTokenHS256DecoderStrategy::class, JSONWebTokenRS256EncoderStrategy::class, JSONWebTokenRS256DecoderStrategy::class];
-        foreach ($classes as $class) {
-            JSONWebTokenCoderStrategyFactory::shared()->register($class);
-        }
+        ApplicationSecurityBootstrap::boot();
     }
 
     /** @throws Exception */

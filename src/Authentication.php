@@ -46,4 +46,3 @@ abstract class Authentication
      */
     abstract public static function isSupported(AuthenticationScheme $scheme): bool;
 }
-

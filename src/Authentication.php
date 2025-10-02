@@ -26,7 +26,7 @@ abstract class Authentication
             if (!($username = $this->credential?->user)) {
                 return null;
             }
-            return new IdentityManager($username, $this->context, $this->serialization)->user;
+            return new IdentityFinder($this->context)->find($username, $this->serialization);
         }
     }
     /** @var bool Validates a request's authentication state. */

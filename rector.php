@@ -39,10 +39,10 @@ try {
             RestoreDefaultNullToNullableTypePropertyRector::class,
             RemoveUselessParamTagRector::class,
             RemoveEmptyClassMethodRector::class => [
-                __DIR__ . "/src/IdentityManager.php"
+                __DIR__ . "/src/IdentityFinder.php"
             ],
             RemoveUnusedPromotedPropertyRector::class => [
-                __DIR__ . "/src/IdentityManager.php"
+                __DIR__ . "/src/IdentityFinder.php"
             ],
             RemoveUnusedPrivateMethodParameterRector::class => [
                 __DIR__ . "/src/Application.php"

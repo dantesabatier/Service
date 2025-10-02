@@ -20,13 +20,16 @@ abstract class Authentication
     abstract public ?URLCredential $credential {
         get;
     }
+    private IdentityFinder $identityFinder {
+        get => $this->identityFinder ??= new IdentityFinder($this->context);
+    }
     /** @var Authorizable|null Provides a mechanism for resolving and associating a user entity with an authenticated request. */
     public ?Authorizable $user {
         get {
             if (!($username = $this->credential?->user)) {
                 return null;
             }
-            return new IdentityFinder($this->context)->find($username, $this->serialization);
+            return $this->identityFinder->find($username, $this->serialization);
         }
     }
     /** @var bool Validates a request's authentication state. */

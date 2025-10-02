@@ -14,7 +14,7 @@ class DefaultAuthenticationService implements AuthenticationService
         get => $this->isProtectedContentAvailable ??= $this->isRequestAuthorized();
     }
 
-    public function __construct(private readonly Responder $responder)
+    public function __construct(public readonly Responder $responder)
     {
     }
 

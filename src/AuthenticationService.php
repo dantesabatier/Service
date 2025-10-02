@@ -13,4 +13,7 @@ interface AuthenticationService
     public bool $isProtectedContentAvailable {
         get;
     }
+    public Responder $responder {
+        get;
+    }
 }

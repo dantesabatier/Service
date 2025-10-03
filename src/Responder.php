@@ -25,23 +25,28 @@ abstract class Responder extends ObjectClass
 {
     private const string isFirstResponderKey = "isFirstResponder";
     private const string selectorKey = "selector";
+    /** @var Request The request associated with this responder. */
     public Request $request {
         get => self::$staticAssociatedValues[self::class][__PROPERTY__] ??= new Request();
     }
-    /** @var Dictionary<mixed> */
+    /** @var Dictionary<string> The header fields associated with this responder. */
     public Dictionary $headerFields {
         get => $this->headerFields ??= new Dictionary();
     }
+    /** @var ManagedObjectContext The managed object context associated with this responder. */
     public ManagedObjectContext $managedObjectContext {
         get => Application::shared()->persistentContainer->viewContext;
     }
-    /** @var ArrayClass<string> Declares which HTTP methods this responder accepts for incoming requests */
+    /** @var ArrayClass<HTTPRequestMethod> The allowed methods associated with this responder. */
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::head, HTTPRequestMethod::options, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::put, HTTPRequestMethod::delete]);
     }
+    /** @var int The status code associated with this responder. */
     #[ExpectedValues(valuesFromClass: HTTPStatusCode::class)]
     public int $statusCode = HTTPStatusCode::ok;
+    /** @var string|null The content associated with this responder. */
     public ?string $content = null;
+    /** @var string|null The selector associated with this responder. */
     public ?string $selector {
         get => $this->associatedValues[__PROPERTY__] ?? null;
     }
@@ -58,6 +63,7 @@ abstract class Responder extends ObjectClass
     }
     /** @var bool Checks if the protected content is available by determining if the request is authorized. */
     public bool $isProtectedContentAvailable = false;
+    /** @var Response The response associated with this responder. */
     public Response $response {
         get {
             $request = $this->request;

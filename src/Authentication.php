@@ -12,18 +12,18 @@ use Sabatier\Foundation\Networking\URLCredential;
  */
 abstract class Authentication
 {
-    /** @var AuthenticationScheme The authentication scheme */
+    /** @var AuthenticationScheme The authentication scheme used for authentication. */
     abstract public AuthenticationScheme $scheme {
         get;
     }
-    /** @var URLCredential|null Allows subclasses to represent and manage authentication credentials uniquely. */
+    /** @var URLCredential|null The credential associated with the authentication process. */
     abstract public ?URLCredential $credential {
         get;
     }
     private IdentityFinder $identityFinder {
         get => $this->identityFinder ??= new IdentityFinder($this->context);
     }
-    /** @var Authorizable|null Provides a mechanism for resolving and associating a user entity with an authenticated request. */
+    /** @var Authorizable|null Represents the authenticated user. */
     public ?Authorizable $user {
         get {
             if (!($username = $this->credential?->user)) {
@@ -32,7 +32,7 @@ abstract class Authentication
             return $this->identityFinder->find($username, $this->serialization);
         }
     }
-    /** @var bool Validates a request's authentication state. */
+    /** @var bool Indicates whether the authentication is valid. */
     abstract public bool $isValid {
         get;
     }

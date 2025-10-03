@@ -10,9 +10,11 @@ use Sabatier\Foundation\Networking\HTTPURLResponse;
  */
 class Response extends HTTPURLResponse
 {
+    /** @var Emitter */
     public Emitter $emitter {
         get => $this->emitter ??= new Emitter();
     }
+    /** @var string|null The response body. */
     public ?string $body {
         get => $this->responder->content;
     }
@@ -45,6 +47,11 @@ class Response extends HTTPURLResponse
         parent::__construct($request->url, $responder->statusCode, headerFields: $headerFields);
     }
 
+    /**
+     * Sends the current instance by emitting it along with associated header fields and body content.
+     *
+     * @return never
+     */
     public function send(): never
     {
         $this->emitter->emit($this, $this->allHeaderFields, $this->body);

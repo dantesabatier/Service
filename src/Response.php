@@ -10,7 +10,6 @@ use Sabatier\Foundation\Networking\HTTPURLResponse;
  */
 class Response extends HTTPURLResponse
 {
-    /** @var Emitter */
     public Emitter $emitter {
         get => $this->emitter ??= new Emitter();
     }
@@ -26,7 +25,7 @@ class Response extends HTTPURLResponse
         $headerFields = $responder->headerFields;
         if ($origin = $request->valueForHttpHeaderField("Origin")) {
             $headerFields["Access-Control-Allow-Origin"] = $origin;
-            $headerFields["Access-Control-Allow-Credentials"] = true;
+            $headerFields["Access-Control-Allow-Credentials"] = "true";
             $headerFields["Vary"] = "Origin";
         }
         if ($value = $request->valueForHttpHeaderField("Access-Control-Request-Method")) {

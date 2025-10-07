@@ -37,7 +37,7 @@ abstract class Responder extends ObjectClass
     public ManagedObjectContext $managedObjectContext {
         get => Application::shared()->persistentContainer->viewContext;
     }
-    /** @var ArrayClass<HTTPRequestMethod> The allowed methods associated with this responder. */
+    /** @var ArrayClass<string> The allowed methods associated with this responder. */
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::head, HTTPRequestMethod::options, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::put, HTTPRequestMethod::delete]);
     }

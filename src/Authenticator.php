@@ -3,17 +3,18 @@
 namespace Sabatier\Service;
 
 /**
- * Authentication service for handling authentication-related functionalities and providing access control to protected content.
+ * Represents an abstract authenticator responsible for managing authentication and determining the availability of protected content.
  */
-interface Authenticator
+abstract class Authenticator
 {
-    public Authentication $authentication {
+    abstract public Authentication $authentication {
         get;
     }
-    public bool $isProtectedContentAvailable {
+    abstract public bool $isProtectedContentAvailable {
         get;
     }
-    public Responder $responder {
-        get;
+
+    public function __construct(public readonly AuthenticationProtocol $protocol)
+    {
     }
 }

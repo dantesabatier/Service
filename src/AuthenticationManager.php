@@ -14,7 +14,7 @@ use function Sabatier\Foundation\read_random;
 
 
 /** @internal */
-class AuthenticationManager extends Responder
+class AuthenticationManager extends AuthenticationProtocol
 {
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
@@ -42,6 +42,7 @@ class AuthenticationManager extends Responder
 
     /** @throws Exception */
     #[Action]
+    #[Override]
     public function login(): void
     {
         $user = $this->authentication->user ?? throw new UnauthorizedException();
@@ -62,6 +63,7 @@ class AuthenticationManager extends Responder
     }
 
     #[Action]
+    #[Override]
     public function logout(): void
     {
         $session = Application::shared()->session;

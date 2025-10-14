@@ -5,28 +5,24 @@ namespace Sabatier\Service;
 use Sabatier\Foundation\ArrayClass;
 
 /** @internal */
-final class DefaultAuthenticator implements Authenticator
+final class DefaultAuthenticator extends Authenticator
 {
-    public Authentication $authentication {
+    private(set) Authentication $authentication {
         get => $this->authentication ??= $this->resolveAuthentication();
     }
-    public bool $isProtectedContentAvailable {
+    private(set) bool $isProtectedContentAvailable {
         get => $this->isProtectedContentAvailable ??= $this->isRequestAuthorized();
-    }
-
-    public function __construct(public readonly Responder $responder)
-    {
     }
 
     private function resolveAuthentication(): Authentication
     {
-        $authenticationClass = AuthenticationFactory::getAuthenticationClass(AuthenticationFactory::getAuthentications() ?? new ArrayClass(), $this->responder->request->authorizationHeader->scheme) ?? throw new UnimplementedException();
-        return new $authenticationClass($this->responder->request, $this->responder->managedObjectContext, $this->responder->isFirstResponder ? $this->responder->request->serialization : null, $this->responder->authenticationService);
+        $authenticationClass = AuthenticationFactory::getAuthenticationClass(AuthenticationFactory::getAuthentications() ?? new ArrayClass(), $this->protocol->request->authorizationHeader->scheme) ?? throw new UnimplementedException();
+        return new $authenticationClass($this->protocol->request, $this->protocol->managedObjectContext, $this->protocol->isFirstResponder ? $this->protocol->request->serialization : null, $this->protocol->authenticationService);
     }
 
     private function isRequestAuthorized(): bool
     {
-        if ($this->responder->request->isPreflight) {
+        if ($this->protocol->request->isPreflight) {
             return true;
         }
         if (!$this->authentication->isValid) {

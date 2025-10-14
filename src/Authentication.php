@@ -26,7 +26,7 @@ abstract class Authentication
             if (!($username = $this->credential?->user)) {
                 return null;
             }
-            return $this->authenticationService->find($this->context, $username, $this->serialization);
+            return $this->authenticationService->find($username, $this->serialization, $this->context);
         }
     }
     /** @var bool Indicates whether the authentication is valid. */

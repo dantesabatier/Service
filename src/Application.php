@@ -38,20 +38,23 @@ class Application extends Responder
     private(set) Responder $firstResponder {
         get => $this->firstResponder ??= new FirstResponderResolver($this, $this->authenticationManager)->firstResponder;
     }
+    public AuthenticationService $authenticationService {
+        get => $this->authenticationService ??= new DefaultAuthenticationService();
+    }
     public AuthorizationService $authorizationService {
         get => $this->authorizationService ??= new DefaultAuthorizationService();
     }
     private AuthenticationManager $authenticationManager {
         get => $this->authenticationManager ??= new AuthenticationManager();
     }
-    public AuthenticationService $authenticationService {
-        get => $this->authenticationService ??= $this->authenticationManager->service;
+    public Authenticator $authenticator {
+        get => $this->authenticator ??= new DefaultAuthenticator($this->authenticationManager);
     }
     public AccessPolicy $accessPolicy {
         get => $this->accessPolicy ??= new DefaultAccessPolicy();
     }
     private AccessControl $accessControl {
-        get => $this->accessControl ??= new AccessControl($this->authorizationService, $this->authenticationService, $this->accessPolicy);
+        get => $this->accessControl ??= new AccessControl($this->authorizationService, $this->authenticator, $this->accessPolicy);
     }
 
     private function initializeDelegate(): ?ApplicationDelegate

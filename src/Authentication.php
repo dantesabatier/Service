@@ -20,16 +20,13 @@ abstract class Authentication
     abstract public ?URLCredential $credential {
         get;
     }
-    private IdentityFinder $identityFinder {
-        get => $this->identityFinder ??= new IdentityFinder($this->context);
-    }
     /** @var Authorizable|null Represents the authenticated user. */
     public ?Authorizable $user {
         get {
             if (!($username = $this->credential?->user)) {
                 return null;
             }
-            return $this->identityFinder->find($username, $this->serialization);
+            return $this->authenticationService->find($this->context, $username, $this->serialization);
         }
     }
     /** @var bool Indicates whether the authentication is valid. */
@@ -37,7 +34,7 @@ abstract class Authentication
         get;
     }
 
-    public function __construct(public readonly Request $request, public readonly ManagedObjectContext $context, public readonly ?Dictionary $serialization = null)
+    public function __construct(public readonly Request $request, public readonly ManagedObjectContext $context, public readonly ?Dictionary $serialization, public readonly AuthenticationService $authenticationService)
     {
     }
 

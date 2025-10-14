@@ -49,25 +49,25 @@ abstract class AccessPolicy
     }
 
     /**
-     * Enforces access control using the provided responder and authentication service.
+     * Enforces access control by using the provided Responder and Authenticator to validate and manage access permissions.
      *
-     * @param Responder $responder The responder handling the access response.
-     * @param AuthenticationService $authenticationService The service used for authentication checks.
+     * @param Responder $responder The responder instance used to handle response logic.
+     * @param Authenticator $authenticator The authenticator instance used to verify access.
      */
-    public function enforceAccess(Responder $responder, AuthenticationService $authenticationService): void
+    public function enforceAccess(Responder $responder, Authenticator $authenticator): void
     {
     }
 
     /**
-     * Sets the transaction author in the managed object context based on the HTTP method of the request.
+     * Sets the transaction author based on the HTTP request method and the authenticated user.
      *
-     * @param Responder $responder The responder providing the context and request details.
-     * @param AuthenticationService $authenticationService The service used to retrieve the authenticated user's information.
+     * @param Responder $responder The responder instance containing the context and incoming request.
+     * @param Authenticator $authenticator The authenticator instance providing user authentication data.
      */
-    public function setTransactionAuthor(Responder $responder, AuthenticationService $authenticationService): void
+    public function setTransactionAuthor(Responder $responder, Authenticator $authenticator): void
     {
         $responder->managedObjectContext->transactionAuthor = match ($responder->request->httpMethod) {
-            HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $authenticationService->authentication->user?->username,
+            HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $authenticator->authentication->user?->username,
             default => null
         };
     }

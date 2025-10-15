@@ -102,9 +102,7 @@ class Application extends Responder
     private function initializePersistentStores(PersistentContainer $persistentContainer): void
     {
         $persistentContainer->loadPersistentStores(function (PersistentStoreDescription $description, ?Error $error): void {
-            if ($error !== null) {
-                throw new InternalInconsistencyException(error: $error);
-            }
+            $error === null ?: throw new InternalInconsistencyException(error: $error);
         });
     }
 

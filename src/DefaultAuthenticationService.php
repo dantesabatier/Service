@@ -10,7 +10,7 @@ use Sabatier\Foundation\Dictionary;
 final class DefaultAuthenticationService implements AuthenticationService
 {
     #[Override]
-    public function find(ManagedObjectContext $context, string $username, ?Dictionary $serialization = null): ?Authorizable
+    public function find(string $username, ?Dictionary $serialization, ManagedObjectContext $context): ?Authorizable
     {
         return null;
     }

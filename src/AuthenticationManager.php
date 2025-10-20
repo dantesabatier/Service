@@ -14,7 +14,7 @@ use function Sabatier\Foundation\read_random;
 
 
 /** @internal */
-class AuthenticationManager extends Responder implements AuthenticationProtocol
+class AuthenticationManager extends AuthenticationProtocol
 {
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);

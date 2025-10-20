@@ -2,17 +2,17 @@
 
 namespace Sabatier\Service;
 
-interface AuthenticationProtocol
+abstract class AuthenticationProtocol extends Responder
 {
     /**
      * Handles the user authentication process.
      */
     #[Action]
-    public function login(): void;
+    abstract public function login(): void;
 
     /**
      * Logs the user out of the current session.
      */
     #[Action]
-    public function logout(): void;
+    abstract public function logout(): void;
 }

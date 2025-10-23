@@ -7,6 +7,7 @@ use Rector\CodeQuality\Rector\ClassMethod\ExplicitReturnNullRector;
 use Rector\CodeQuality\Rector\ClassMethod\LocallyCalledStaticMethodToNonStaticRector;
 use Rector\CodeQuality\Rector\Identical\FlipTypeControlToUseExclusiveTypeRector;
 use Rector\CodeQuality\Rector\If_\ExplicitBoolCompareRector;
+use Rector\CodingStyle\Rector\FunctionLike\FunctionLikeToFirstClassCallableRector;
 use Rector\Config\RectorConfig;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPrivateMethodParameterRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessParamTagRector;
@@ -48,6 +49,9 @@ try {
             ConvertStaticToSelfRector::class => [
                 __DIR__ . "/src/Application.php"
             ],
+            FunctionLikeToFirstClassCallableRector::class => [
+                __DIR__ . "/src/Session.php"
+            ]
         ])->withPreparedSets(deadCode: true, codeQuality: true, earlyReturn: true);
 } catch (InvalidConfigurationException $e) {
     error_log($e->getMessage());

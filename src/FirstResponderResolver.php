@@ -65,7 +65,7 @@ class FirstResponderResolver
         if (!FileManager::default()->fileExists($directoryURL->path)) {
             return null;
         }
-        return $this->filteredFileURLs($directoryURL)->map(fn(URL $fileURL): string => $this->buildClassName($namespaceName, $directoryURL, $fileURL))->filter(fn(string $className): bool => $this->isValidResponderClass($className));
+        return $this->filteredFileURLs($directoryURL)->map(fn(URL $fileURL): string => $this->buildClassName($namespaceName, $directoryURL, $fileURL))->filter($this->isValidResponderClass(...));
     }
 
     /**

@@ -10,6 +10,11 @@ use Sabatier\Foundation\Bundle;
  */
 class Renderer
 {
+    /**
+     * Initializes a new instance of the class with a specified bundle.
+     *
+     * @param Bundle $bundle The bundle used to locate and manage view files.
+     */
     public function __construct(public Bundle $bundle)
     {
     }

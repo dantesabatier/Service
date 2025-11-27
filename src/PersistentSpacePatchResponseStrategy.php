@@ -10,6 +10,9 @@ use Sabatier\CoreData\SQLEntity;
 class PersistentSpacePatchResponseStrategy extends PersistentSpaceResponseStrategy
 {
     public Response $response {
+        /**
+         * @throws \Exception
+         */
         get {
             $responder = $this->responder;
             $request = $responder->request;

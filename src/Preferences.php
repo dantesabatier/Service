@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use Exception;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
@@ -16,6 +17,9 @@ class Preferences extends Responder
         get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::put, HTTPRequestMethod::delete]);
     }
     public Response $response {
+        /**
+         * @throws Exception
+         */
         get {
             $request = $this->request;
             $this->allowedMethods->containsElement($request->httpMethod) ?: throw new MethodNotAllowedException();

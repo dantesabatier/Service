@@ -20,6 +20,9 @@ class Uploader extends Responder
         get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
     }
     public URL $directoryURL {
+        /**
+         * @throws Exception
+         */
         get => $this->directoryURL ??= FileManager::default()->url(SearchPathDirectory::sharedPublicDirectory, SearchPathDomainMask::local, null, true);
     }
 

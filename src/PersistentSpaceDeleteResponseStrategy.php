@@ -11,6 +11,9 @@ use Sabatier\Foundation\Networking\HTTPStatusCode;
 class PersistentSpaceDeleteResponseStrategy extends PersistentSpaceResponseStrategy
 {
     public Response $response {
+        /**
+         * @throws \Exception
+         */
         get {
             $responder = $this->responder;
             if (!($objectID = $responder->request->parsedBody[SQLEntity::primaryKeyName])) {

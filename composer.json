@@ -14,16 +14,25 @@
     }
   ],
   "require": {
-    "php": "^8.4",
+    "php": "^8.5",
+    "ext-gd": "*",
     "ext-mbstring": "*",
+    "ext-curl": "*",
+    "ext-intl": "*",
+    "ext-gettext": "*",
+    "ext-dom": "*",
+    "ext-ctype": "*",
+    "ext-libxml": "*",
+    "ext-pdo": "*",
+    "ext-zlib": "*",
+    "ext-openssl": "*",
     "sabatier/foundation": "@dev",
-    "sabatier/coredata": "@dev",
-    "ext-openssl": "*"
+    "sabatier/coredata": "@dev"
   },
   "config": {
     "platform": {
-      "ext-pcntl": "8.4",
-      "ext-posix": "8.4"
+      "ext-pcntl": "8.5",
+      "ext-posix": "8.5"
     }
   },
   "autoload": {

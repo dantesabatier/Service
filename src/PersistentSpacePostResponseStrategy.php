@@ -16,6 +16,9 @@ use Sabatier\Foundation\Predicates\Expression;
 class PersistentSpacePostResponseStrategy extends PersistentSpaceResponseStrategy
 {
     public Response $response {
+        /**
+         * @throws \Exception
+         */
         get {
             /** @var PersistentSpace $responder */
             $responder = $this->responder;

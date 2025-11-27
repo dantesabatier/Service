@@ -4,6 +4,7 @@
 
 namespace Sabatier\Service;
 
+use Exception;
 use Sabatier\CoreData\BatchFaultingArray;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\FetchRequestResultType;
@@ -20,6 +21,9 @@ class PersistentSpaceGetResponseStrategy extends PersistentSpaceResponseStrategy
         }
     }
     public Response $response {
+        /**
+         * @throws Exception
+         */
         get {
             $responder = $this->responder;
             $context = $responder->managedObjectContext;

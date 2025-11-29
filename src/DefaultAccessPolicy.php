@@ -11,12 +11,12 @@ use Sabatier\Foundation\Networking\HTTPRequestMethod;
 final class DefaultAccessPolicy extends AccessPolicy
 {
     #[Override]
-    public function enforceAccess(Responder $responder, Authenticator $authenticator): void
+    public function enforceAccess(Responder $responder, AuthenticationManager $authenticationManager): void
     {
-        if ($responder->isProtectedContentAvailable || $authenticator->isProtectedContentAvailable) {
+        if ($responder->isProtectedContentAvailable || $authenticationManager->isProtectedContentAvailable) {
             return;
         }
-        if ($authenticator->authentication->isValid) {
+        if ($authenticationManager->authentication->isValid) {
             throw new ForbiddenException(match ($responder->request->httpMethod) {
                 HTTPRequestMethod::get => "You don't have permission to access this resource.",
                 default => "You don't have permission to perform this action."

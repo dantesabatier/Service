@@ -2,19 +2,36 @@
 
 namespace Sabatier\Service;
 
-/**
- * Represents an abstract authenticator responsible for managing authentication and determining the availability of protected content.
- */
-abstract class Authenticator
+use Sabatier\Foundation\ArrayClass;
+
+/** @internal */
+class Authenticator
 {
-    abstract public Authentication $authentication {
-        get;
+    public Authentication $authentication {
+        get => $this->authentication ??= $this->resolveAuthentication();
     }
-    abstract public bool $isProtectedContentAvailable {
-        get;
+    public bool $isProtectedContentAvailable {
+        get => $this->isProtectedContentAvailable ??= $this->isRequestAuthorized();
     }
 
-    public function __construct(public readonly AuthenticationProtocol $protocol)
+    public function __construct(public readonly AuthenticationManager $authenticationManager)
     {
+    }
+
+    private function resolveAuthentication(): Authentication
+    {
+        $authenticationClass = AuthenticationFactory::getAuthenticationClass(AuthenticationFactory::getAuthentications() ?? new ArrayClass(), $this->authenticationManager->request->authorizationHeader->scheme) ?? throw new UnimplementedException();
+        return new $authenticationClass($this->authenticationManager->request, $this->authenticationManager->managedObjectContext, $this->authenticationManager->isFirstResponder ? $this->authenticationManager->request->serialization : null, $this->authenticationManager->authenticationService);
+    }
+
+    private function isRequestAuthorized(): bool
+    {
+        if ($this->authenticationManager->request->isPreflight) {
+            return true;
+        }
+        if (!$this->authentication->isValid) {
+            return false;
+        }
+        return $this->authentication->user?->authorization instanceof Authorization;
     }
 }

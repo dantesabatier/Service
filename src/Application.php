@@ -44,17 +44,14 @@ class Application extends Responder
     public AuthorizationService $authorizationService {
         get => $this->authorizationService ??= new DefaultAuthorizationService();
     }
-    private AuthenticationManager $authenticationManager {
-        get => $this->authenticationManager ??= new AuthenticationManager();
-    }
-    public Authenticator $authenticator {
-        get => $this->authenticator ??= new DefaultAuthenticator($this->authenticationManager);
+    public AuthenticationManager $authenticationManager {
+        get => $this->authenticationManager ??= new DefaultAuthenticationManager();
     }
     public AccessPolicy $accessPolicy {
         get => $this->accessPolicy ??= new DefaultAccessPolicy();
     }
     private AccessControl $accessControl {
-        get => $this->accessControl ??= new AccessControl($this->authorizationService, $this->authenticator, $this->accessPolicy);
+        get => $this->accessControl ??= new AccessControl($this->authorizationService, $this->authenticationManager, $this->accessPolicy);
     }
 
     private function initializeDelegate(): ?ApplicationDelegate

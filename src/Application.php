@@ -38,11 +38,11 @@ class Application extends Responder
     private(set) Responder $firstResponder {
         get => $this->firstResponder ??= new FirstResponderResolver($this, $this->authenticationManager)->firstResponder;
     }
-    public AuthenticationService $authenticationService {
-        get => $this->authenticationService ??= new DefaultAuthenticationService();
-    }
     public AuthorizationService $authorizationService {
         get => $this->authorizationService ??= new DefaultAuthorizationService();
+    }
+    public AuthenticationService $authenticationService {
+        get => $this->authenticationService ??= new DefaultAuthenticationService();
     }
     public AuthenticationManager $authenticationManager {
         get => $this->authenticationManager ??= new DefaultAuthenticationManager();

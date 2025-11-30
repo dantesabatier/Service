@@ -31,12 +31,6 @@ final class DefaultAuthenticationManager extends AuthenticationManager
 
     public function __construct()
     {
-        self::initialize();
-    }
-
-    #[Override]
-    public static function initialize(): void
-    {
         ApplicationSecurityBootstrap::boot();
     }
 

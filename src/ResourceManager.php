@@ -26,6 +26,7 @@ class ResourceManager extends Responder
             switch ($request->httpMethod) {
                 case HTTPRequestMethod::get:
                 case HTTPRequestMethod::head:
+                    /** @noinspection PhpUnhandledExceptionInspection */
                     $content = FileManager::default()->contents($this->resourceURL->path) ?? throw new InternalServerErrorException();
                     if (($contentType = URLFileTypeMappings::shared()->mimeType($this->resourceURL->pathExtension)) && ($encoding = mb_detect_encoding($content))) {
                         $contentType .= "; charset=$encoding";

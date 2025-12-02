@@ -68,14 +68,17 @@ class UploadsEnumerator extends DirectoryEnumerator
         return (function (): Generator {
             $fileManager = FileManager::default();
             $keys = $this->keys;
+            /** @var array{name: string, tmp_name: string} $file */
             foreach ($_FILES as $file) {
-                $url = $this->directoryURL->appendingPathComponent($file["name"]);
-                $path = $url->path;
-                if ($fileManager->fileExists($path)) {
+                $name = $file["name"];
+                $url = $this->directoryURL->appendingPathComponent($name);
+                $destination = $url->path;
+                if ($fileManager->fileExists($destination)) {
                     $fileManager->removeItem($url);
                 }
-                $fileManager->moveItem(URL::fileURL($file["tmp_name"]), $url) ?: throw new InternalServerErrorException();
-                $fileManager->setAttributes(new Dictionary([FileAttributeKey::posixPermissions => 0777]), $path);
+                $source = $file["tmp_name"] ?? throw new BadRequestException();
+                $fileManager->moveItem(URL::fileURL($source), $url) ?: throw new InternalServerErrorException();
+                $fileManager->setAttributes(new Dictionary([FileAttributeKey::posixPermissions => 0777]), $destination);
                 if ($keys !== null) {
                     $values = $url->resourceValues($keys);
                     foreach ($values->allValues as $key => $value) {

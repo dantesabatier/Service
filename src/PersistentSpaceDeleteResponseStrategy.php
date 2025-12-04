@@ -4,6 +4,7 @@
 
 namespace Sabatier\Service;
 
+use Exception;
 use Sabatier\CoreData\SQLEntity;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 
@@ -12,7 +13,7 @@ class PersistentSpaceDeleteResponseStrategy extends PersistentSpaceResponseStrat
 {
     public Response $response {
         /**
-         * @throws \Exception
+         * @throws Exception
          */
         get {
             $responder = $this->responder;

@@ -4,6 +4,7 @@
 
 namespace Sabatier\Service;
 
+use Exception;
 use Sabatier\CoreData\SQLEntity;
 
 /** @internal */
@@ -11,7 +12,7 @@ class PersistentSpacePatchResponseStrategy extends PersistentSpaceResponseStrate
 {
     public Response $response {
         /**
-         * @throws \Exception
+         * @throws Exception
          */
         get {
             $responder = $this->responder;

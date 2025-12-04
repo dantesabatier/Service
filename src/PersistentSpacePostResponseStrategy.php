@@ -4,6 +4,7 @@
 
 namespace Sabatier\Service;
 
+use Exception;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\FetchRequestResultType;
@@ -17,7 +18,7 @@ class PersistentSpacePostResponseStrategy extends PersistentSpaceResponseStrateg
 {
     public Response $response {
         /**
-         * @throws \Exception
+         * @throws Exception
          */
         get {
             /** @var PersistentSpace $responder */

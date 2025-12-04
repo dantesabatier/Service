@@ -1,7 +1,5 @@
 <?php
 
-/** @noinspection PhpInternalEntityUsedInspection */
-
 namespace Sabatier\Service;
 
 use Sabatier\CoreData\EntityDescription;

@@ -25,9 +25,7 @@ final class InterfaceImplementorResolver
                         continue;
                     }
                     foreach ($implements as $implement) {
-                        if (!isset($this->index[$implement])) {
-                            $this->index[$implement] = $class;
-                        }
+                        $this->index[$implement] ??= $class;
                     }
                 }
             }

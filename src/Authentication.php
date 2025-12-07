@@ -20,6 +20,10 @@ abstract class Authentication
     abstract public ?URLCredential $credential {
         get;
     }
+    /** @var bool Indicates whether the authentication is valid. */
+    abstract public bool $isValid {
+        get;
+    }
     /** @var Authorizable|null Represents the authenticated user. */
     public ?Authorizable $user {
         get {
@@ -28,10 +32,6 @@ abstract class Authentication
             }
             return $this->authenticationService->find($username, $this->serialization, $this->context);
         }
-    }
-    /** @var bool Indicates whether the authentication is valid. */
-    abstract public bool $isValid {
-        get;
     }
 
     public function __construct(public readonly Request $request, public readonly ManagedObjectContext $context, public readonly ?Dictionary $serialization, public readonly AuthenticationService $authenticationService)

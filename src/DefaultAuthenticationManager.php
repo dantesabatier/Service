@@ -19,14 +19,40 @@ final class DefaultAuthenticationManager extends AuthenticationManager
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
     }
-    private Authenticator $authenticator {
-        get => $this->authenticator ??= new Authenticator($this);
-    }
     public Authentication $authentication {
-        get => $this->authenticator->authentication;
+        get {
+            if (!isset($this->authentication)) {
+                $authenticationClass = AuthenticationFactory::getAuthenticationClass(AuthenticationFactory::getAuthentications() ?? new ArrayClass(), $this->request->authorizationHeader->scheme) ?? throw new UnimplementedException();
+                $this->authentication = new $authenticationClass($this->request, $this->managedObjectContext, $this->isFirstResponder ? $this->request->serialization : null, $this->authenticationService);
+            }
+            return $this->authentication;
+        }
     }
     public bool $isProtectedContentAvailable {
-        get => $this->authenticator->isProtectedContentAvailable;
+        /**
+         * @throws Exception
+         */
+        get {
+            if (!isset($this->isProtectedContentAvailable)) {
+                if ($this->request->isPreflight) {
+                    return $this->isProtectedContentAvailable = true;
+                }
+                if (!$this->authentication->isValid) {
+                    return $this->isProtectedContentAvailable = false;
+                }
+                if (!($user = $this->authentication->user)) {
+                    return $this->isProtectedContentAvailable = false;
+                }
+                $this->isProtectedContentAvailable = $this->authorizationService->isAuthorized($user, $this->request->url->lastPathComponent, match ($this->request->httpMethod) {
+                    HTTPRequestMethod::head, HTTPRequestMethod::get => AuthorizationType::read,
+                    HTTPRequestMethod::post => AuthorizationType::create,
+                    HTTPRequestMethod::put, HTTPRequestMethod::patch => AuthorizationType::update,
+                    HTTPRequestMethod::delete => AuthorizationType::delete,
+                    default => throw new MethodNotAllowedException()
+                }, $this->managedObjectContext);
+            }
+            return $this->isProtectedContentAvailable;
+        }
     }
 
     public function __construct()

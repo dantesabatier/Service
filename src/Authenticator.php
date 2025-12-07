@@ -2,7 +2,9 @@
 
 namespace Sabatier\Service;
 
+use Exception;
 use Sabatier\Foundation\ArrayClass;
+use Sabatier\Foundation\Networking\HTTPRequestMethod;
 
 /** @internal */
 class Authenticator
@@ -11,10 +13,13 @@ class Authenticator
         get => $this->authentication ??= $this->resolveAuthentication();
     }
     public bool $isProtectedContentAvailable {
+        /**
+         * @throws Exception
+         */
         get => $this->isProtectedContentAvailable ??= $this->isRequestAuthorized();
     }
 
-    public function __construct(public readonly AuthenticationManager $authenticationManager)
+    public function __construct(private readonly AuthenticationManager $authenticationManager)
     {
     }
 
@@ -24,14 +29,20 @@ class Authenticator
         return new $authenticationClass($this->authenticationManager->request, $this->authenticationManager->managedObjectContext, $this->authenticationManager->isFirstResponder ? $this->authenticationManager->request->serialization : null, $this->authenticationManager->authenticationService);
     }
 
+    /**
+     * @throws Exception
+     */
     private function isRequestAuthorized(): bool
     {
         if ($this->authenticationManager->request->isPreflight) {
             return true;
         }
-        if (!$this->authentication->isValid) {
-            return false;
-        }
-        return $this->authentication->user?->authorization instanceof Authorization;
+        return $this->authentication->isValid && $this->authenticationManager->authorizationService->isAuthorized($this->authentication->user, $this->authenticationManager->request->url->lastPathComponent, match ($this->authenticationManager->request->httpMethod) {
+                HTTPRequestMethod::head, HTTPRequestMethod::get => AuthorizationType::read,
+                HTTPRequestMethod::post => AuthorizationType::create,
+                HTTPRequestMethod::put, HTTPRequestMethod::patch => AuthorizationType::update,
+                HTTPRequestMethod::delete => AuthorizationType::delete,
+                default => throw new MethodNotAllowedException()
+            }, $this->authenticationManager->managedObjectContext);
     }
 }

@@ -64,6 +64,9 @@ abstract class Responder extends ObjectClass
     public AuthenticationService $authenticationService {
         get => Application::shared()->authenticationService;
     }
+    public AuthorizationService $authorizationService {
+        get => Application::shared()->authorizationService;
+    }
     /** @var bool Checks if the protected content is available by determining if the request is authorized. */
     public bool $isProtectedContentAvailable = false;
     /** @var Response The response associated with this responder. */

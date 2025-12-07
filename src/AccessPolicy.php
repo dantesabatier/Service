@@ -10,53 +10,12 @@ use Sabatier\Foundation\Networking\HTTPRequestMethod;
 abstract class AccessPolicy
 {
     /**
-     * Determines if authorization is required based on the responder's request.
+     * Enforces access control based on the provided responder and authentication manager.
      *
-     * @param Responder $responder The responder containing the request to be evaluated.
-     * @return bool Returns true if authorization is required, otherwise false.
+     * @param Responder $firstResponder The responder instance that handles the request.
+     * @param AuthenticationManager $authenticationManager The authentication manager responsible for user authentication.
      */
-    public function isAuthorizationRequired(Responder $responder): bool
-    {
-        return !$responder->request->isPreflight;
-    }
-
-    /**
-     * Determines and returns the appropriate authorization type based on the HTTP method of the request.
-     *
-     * @param Responder $responder The responder instance containing the HTTP request details.
-     * @return AuthorizationType The authorization type to be performed on the resource.
-     */
-    public function authorizationType(Responder $responder): AuthorizationType
-    {
-        return match ($responder->request->httpMethod) {
-            HTTPRequestMethod::head, HTTPRequestMethod::get => AuthorizationType::read,
-            HTTPRequestMethod::post => AuthorizationType::create,
-            HTTPRequestMethod::put, HTTPRequestMethod::patch => AuthorizationType::update,
-            HTTPRequestMethod::delete => AuthorizationType::delete,
-            default => throw new MethodNotAllowedException()
-        };
-    }
-
-    /**
-     * Retrieves the resource to be accessed or manipulated.
-     *
-     * @param Responder $responder An instance containing the request and URL information.
-     * @return string The resource to be accessed or manipulated by the request.
-     */
-    public function resource(Responder $responder): string
-    {
-        return $responder->request->url->lastPathComponent;
-    }
-
-    /**
-     * Enforces access control by using the provided responder and authentication manager.
-     *
-     * @param Responder $responder The responder responsible for handling responses.
-     * @param AuthenticationManager $authenticationManager The authentication manager used to verify access permissions.
-     */
-    public function enforceAccess(Responder $responder, AuthenticationManager $authenticationManager): void
-    {
-    }
+    abstract public function enforceAccess(Responder $firstResponder, AuthenticationManager $authenticationManager): void;
 
     /**
      * Sets the transaction author based on the HTTP method of the request and user authentication context.

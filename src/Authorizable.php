@@ -2,14 +2,18 @@
 
 namespace Sabatier\Service;
 
+use Sabatier\Foundation\Dictionary;
+use Sabatier\Foundation\Sequence;
+
 /**
  * Represents an entity that is both authenticatable and can have authorization capabilities.
  */
 interface Authorizable extends Authenticatable
 {
-    /** @var Authorization|null Provides access to an {@see Authorization} object, defining the authorization capabilities and access levels of the entity. */
-    public ?Authorization $authorization {
+    /** @var Sequence<AuthorizableRole> Provides access to a sequence of {@see AuthorizableRole} objects associated with the authorizable entity. */
+    public Sequence $roles {
         get;
-        set;
     }
+
+    public static function defaultSerialization(): Dictionary;
 }

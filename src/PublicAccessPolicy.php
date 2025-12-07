@@ -10,8 +10,8 @@ use Override;
 final class PublicAccessPolicy extends AccessPolicy
 {
     #[Override]
-    public function isAuthorizationRequired(Responder $responder): bool
+    public function enforceAccess(Responder $firstResponder, AuthenticationManager $authenticationManager): void
     {
-        return false;
+        // No access enforcement for public access policy
     }
 }

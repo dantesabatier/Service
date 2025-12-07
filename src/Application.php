@@ -38,20 +38,26 @@ class Application extends Responder
     private(set) Responder $firstResponder {
         get => $this->firstResponder ??= new FirstResponderResolver($this, $this->authenticationManager)->firstResponder;
     }
-    public AuthorizationService $authorizationService {
-        get => $this->authorizationService ??= new DefaultAuthorizationService();
+    private InterfaceImplementorResolver $implementorResolver {
+        get => $this->implementorResolver ??= new InterfaceImplementorResolver($this->persistentContainer->managedObjectModel);
+    }
+    public AuthorizationCache $authorizationCache {
+        get => $this->authorizationCache ??= new InMemoryAuthorizationCache();
+    }
+    public AuthorizationResolver $authorizationResolver {
+        get => $this->authorizationResolver ??= new AuthorizationResolver($this->implementorResolver->resolve(Authorization::class));
     }
     public AuthenticationService $authenticationService {
-        get => $this->authenticationService ??= new DefaultAuthenticationService();
+        get => $this->authenticationService ??= new AuthenticationService($this->implementorResolver->resolve(Authorizable::class));
+    }
+    public AuthorizationService $authorizationService {
+        get => $this->authorizationService ??= new AuthorizationService($this->authorizationResolver, $this->authorizationCache);
     }
     public AuthenticationManager $authenticationManager {
         get => $this->authenticationManager ??= new DefaultAuthenticationManager();
     }
     public AccessPolicy $accessPolicy {
         get => $this->accessPolicy ??= new DefaultAccessPolicy();
-    }
-    private AccessControl $accessControl {
-        get => $this->accessControl ??= new AccessControl($this->authorizationService, $this->authenticationManager, $this->accessPolicy);
     }
 
     private function initializeDelegate(): ?ApplicationDelegate
@@ -138,12 +144,12 @@ class Application extends Responder
 
     private function checkAccessPermissions(): void
     {
-        $this->accessControl->validateAccess($this->firstResponder);
+        $this->accessPolicy->enforceAccess($this->firstResponder, $this->authenticationManager);
     }
 
     private function setTransactionAuthor(): void
     {
-        $this->accessControl->setTransactionAuthor($this->firstResponder);
+        $this->accessPolicy->setTransactionAuthor($this->firstResponder, $this->authenticationManager);
     }
 
     private function processResponse(): never

@@ -2,20 +2,41 @@
 
 namespace Sabatier\Service;
 
+use Exception;
 use Sabatier\CoreData\ManagedObjectContext;
 
 /**
  * Service interface responsible for handling authorization logic.
  */
-interface AuthorizationService
+readonly class AuthorizationService
 {
+    public function __construct(private AuthorizationResolver $resolver, private AuthorizationCache $inRequestCache, private ?AuthorizationCache $persistentCache = null)
+    {
+    }
+
     /**
-     * Authorizes the given entity to perform the specified action on the specified resource.
+     * Determines if the given entity is authorized to perform a specific action on a resource within the provided context.
      *
-     * @param Authorizable $entity The entity being authorized.
-     * @param string $resource The resource to be accessed or manipulated.
-     * @param AuthorizationType $action The type of action to be performed on the resource.
-     * @param ManagedObjectContext $context The contextual information for managing the authorization process.
+     * @param Authorizable $entity The entity requesting authorization.
+     * @param string $resource The resource on which the action is to be performed.
+     * @param AuthorizationType $action The type of action being requested.
+     * @param ManagedObjectContext $context The context in which the authorization is being evaluated.
+     * @return bool Returns true if the entity is authorized, false otherwise.
+     * @throws Exception
      */
-    public function authorize(Authorizable $entity, string $resource, AuthorizationType $action, ManagedObjectContext $context): void;
+    public function isAuthorized(Authorizable $entity, string $resource, AuthorizationType $action, ManagedObjectContext $context): bool
+    {
+        if (!($authorizations = $this->inRequestCache->getAuthorizableAuthorizations($entity)) && $this->persistentCache) {
+            $authorizations = $this->persistentCache->getAuthorizableAuthorizations($entity);
+            if ($authorizations) {
+                $this->inRequestCache->setAuthorizableAuthorizations($entity, $authorizations);
+            }
+        }
+        if (!$authorizations) {
+            $authorizations = $this->resolver->resolve($entity, $resource, $action, $context);
+            $this->inRequestCache->setAuthorizableAuthorizations($entity, $authorizations);
+            $this->persistentCache?->setAuthorizableAuthorizations($entity, $authorizations);
+        }
+        return $authorizations->contains(fn(Authorization $authorization): bool => $authorization->name === $resource && $authorization->type === $action);
+    }
 }

@@ -33,7 +33,7 @@ class BasicAuthentication extends Authentication
             if (is_password($password)) {
                 return password_verify((string)$credential->password, $password);
             }
-            return $credential->password === $password;
+            return hash_equals($password, (string)$credential->password);
         }
     }
 

@@ -29,33 +29,42 @@ class Application extends Responder
     private(set) ?ApplicationDelegate $delegate {
         get => $this->delegate ??= $this->initializeDelegate();
     }
+    /** @var PersistentContainer The persistent container for Core Data operations. */
     private(set) PersistentContainer $persistentContainer {
         get => $this->persistentContainer ??= $this->createPersistentContainer();
     }
+    /** @var Session The session object for managing user sessions. */
     private(set) Session $session {
         get => $this->session ??= new Session();
     }
+    /** @var Responder The first responder in the responder chain. */
     private(set) Responder $firstResponder {
         get => $this->firstResponder ??= new FirstResponderResolver($this, $this->authenticationManager)->firstResponder;
     }
     private InterfaceImplementorResolver $implementorResolver {
         get => $this->implementorResolver ??= new InterfaceImplementorResolver($this->persistentContainer->managedObjectModel);
     }
+    /** @var AuthorizationCache The authorization cache for storing authorization data. */
     public AuthorizationCache $authorizationCache {
         get => $this->authorizationCache ??= new InMemoryAuthorizationCache();
     }
+    /** @var AuthorizationResolver The authorization resolver for resolving authorization rules. */
     public AuthorizationResolver $authorizationResolver {
         get => $this->authorizationResolver ??= new AuthorizationResolver($this->implementorResolver->resolve(Authorization::class));
     }
+    /** @var AuthenticationService The authentication service for managing user authentication. */
     public AuthenticationService $authenticationService {
         get => $this->authenticationService ??= new AuthenticationService($this->implementorResolver->resolve(Authorizable::class));
     }
+    /** @var AuthorizationService The authorization service for managing user authorization. */
     public AuthorizationService $authorizationService {
         get => $this->authorizationService ??= new AuthorizationService($this->authorizationResolver, $this->authorizationCache);
     }
+    /** @var AuthenticationManager The authentication manager for handling authentication processes. */
     public AuthenticationManager $authenticationManager {
         get => $this->authenticationManager ??= new DefaultAuthenticationManager();
     }
+    /** @var AccessPolicy The access policy for enforcing access control. */
     public AccessPolicy $accessPolicy {
         get => $this->accessPolicy ??= new DefaultAccessPolicy();
     }

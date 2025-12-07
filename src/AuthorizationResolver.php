@@ -4,6 +4,7 @@ namespace Sabatier\Service;
 
 use Exception;
 use NoDiscard;
+use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
@@ -33,6 +34,7 @@ readonly class AuthorizationResolver
     #[NoDiscard]
     public function resolve(Authorizable $authorizable, string $resource, AuthorizationType $action, ManagedObjectContext $context): ArrayClass
     {
+        /** @var FetchRequest<Authorization> $fetchRequest */
         $fetchRequest = $this->authorizationClass::fetchRequest();
         $fetchRequest->predicate = Predicate::format("%K = %@ AND %K = %@ AND ANY %K IN %@", new ArrayClass(["name", $resource, "type", $action, "roles.name", $authorizable->roles->map(fn(AuthorizableRole $role) => $role->name)]));
         return $context->fetch($fetchRequest);

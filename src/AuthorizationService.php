@@ -26,11 +26,8 @@ readonly class AuthorizationService
      */
     public function isAuthorized(Authorizable $entity, string $resource, AuthorizationType $action, ManagedObjectContext $context): bool
     {
-        if (!($authorizations = $this->inRequestCache->getAuthorizableAuthorizations($entity)) && $this->persistentCache) {
-            $authorizations = $this->persistentCache->getAuthorizableAuthorizations($entity);
-            if ($authorizations) {
-                $this->inRequestCache->setAuthorizableAuthorizations($entity, $authorizations);
-            }
+        if (!($authorizations = $this->inRequestCache->getAuthorizableAuthorizations($entity)) && ($authorizations = $this->persistentCache?->getAuthorizableAuthorizations($entity))) {
+            $this->inRequestCache->setAuthorizableAuthorizations($entity, $authorizations);
         }
         if (!$authorizations) {
             $authorizations = $this->resolver->resolve($entity, $resource, $action, $context);

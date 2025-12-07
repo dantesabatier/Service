@@ -40,7 +40,7 @@ final class DefaultAuthenticationManager extends AuthenticationManager
                 if (!$this->authentication->isValid) {
                     return $this->isProtectedContentAvailable = false;
                 }
-                if (!($user = $this->authentication->user)) {
+                if (!($user = $this->authentication->authenticatedUser)) {
                     return $this->isProtectedContentAvailable = false;
                 }
                 $this->isProtectedContentAvailable = $this->authorizationService->isAuthorized($user, $this->request->url->lastPathComponent, match ($this->request->httpMethod) {
@@ -65,7 +65,7 @@ final class DefaultAuthenticationManager extends AuthenticationManager
     #[Override]
     public function login(): void
     {
-        $user = $this->authentication->user ?? throw new UnauthorizedException();
+        $user = $this->authentication->authenticatedUser ?? throw new UnauthorizedException();
         /** @var Dictionary<mixed> $data */
         $data = new Dictionary();
         $data["user"] = $user;

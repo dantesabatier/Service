@@ -26,7 +26,7 @@ abstract class AccessPolicy
     public function setTransactionAuthor(Responder $responder, AuthenticationManager $authenticationManager): void
     {
         $responder->managedObjectContext->transactionAuthor = match ($responder->request->httpMethod) {
-            HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $authenticationManager->authentication->user?->username,
+            HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => $authenticationManager->authentication->authenticatedUser?->username,
             default => null
         };
     }

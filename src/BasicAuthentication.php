@@ -27,7 +27,7 @@ class BasicAuthentication extends Authentication
     }
     public bool $isValid {
         get {
-            if (!($credential = $this->credential) || !($password = $this->user?->password)) {
+            if (!($credential = $this->credential) || !($password = $this->authenticatedUser?->password)) {
                 return false;
             }
             if (is_password($password)) {

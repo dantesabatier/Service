@@ -26,18 +26,18 @@ abstract class Authentication
         get;
     }
     /** @var Authorizable|null Represents the authenticated user. */
-    private(set) ?Authorizable $user {
+    private(set) ?Authorizable $authenticatedUser {
         /**
          * @throws Exception
          */
         get {
-            if (!isset($this->user)) {
+            if (!isset($this->authenticatedUser)) {
                 if (!($username = $this->credential?->user)) {
-                    return $this->user = null;
+                    return $this->authenticatedUser = null;
                 }
-                $this->user = $this->authenticationService->find($username, $this->serialization, $this->context);
+                $this->authenticatedUser = $this->authenticationService->find($username, $this->serialization, $this->context);
             }
-            return $this->user;
+            return $this->authenticatedUser;
         }
     }
 

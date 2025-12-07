@@ -24,11 +24,11 @@ class DigestAuthentication extends Authentication
     }
     public bool $isValid {
         get {
-            if (!($password = $this->user?->password)) {
+            if (!($password = $this->authenticatedUser?->password)) {
                 return false;
             }
             $parameters = $this->request->authorizationHeader->parameters;
-            if (!($username = $parameters["username"]) || !($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"])) {
+            if (!($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"])) {
                 return false;
             }
             $algo = match ($parameters["algorithm"]) {
@@ -36,7 +36,7 @@ class DigestAuthentication extends Authentication
                 "SHA-256" => "sha256",
                 default => "md5"
             };
-            $HA1 = hash($algo, "$username:{$this->request->url->host}:$password");
+            $HA1 = $password;
             $HA2 = hash($algo, "{$this->request->httpMethod}:$uri");
             $response = hash($algo, "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
             return $parameters["response"] === $response;

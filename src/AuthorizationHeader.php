@@ -5,10 +5,10 @@ namespace Sabatier\Service;
 /**
  * Represents an HTTP Authorization header containing authentication parameters and scheme information.
  */
-readonly class AuthorizationHeader extends RequestHeader
+class AuthorizationHeader extends RequestHeader
 {
     /** @var AuthenticationScheme $scheme The associated authentication scheme */
-    public AuthenticationScheme $scheme;
+    public readonly AuthenticationScheme $scheme;
 
     /**
      * @param string $rawValue The raw value of the authentication parameter

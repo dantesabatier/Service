@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use Exception;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\URLCredential;
@@ -26,6 +27,9 @@ abstract class Authentication
     }
     /** @var Authorizable|null Represents the authenticated user. */
     public ?Authorizable $user {
+        /**
+         * @throws Exception
+         */
         get {
             if (!($username = $this->credential?->user)) {
                 return null;

@@ -12,7 +12,15 @@ class DigestAuthentication extends Authentication
         get => AuthenticationScheme::digest;
     }
     private(set) ?URLCredential $credential {
-        get => $this->credential ??= ($username = $this->request->authorizationHeader->parameters["username"]) ? new URLCredential($username) : null;
+        get {
+            if (!isset($this->credential)) {
+                if (!($username = $this->request->authorizationHeader->parameters["username"])) {
+                    return $this->credential = null;
+                }
+                $this->credential = new URLCredential($username);
+            }
+            return $this->credential;
+        }
     }
     public bool $isValid {
         get {

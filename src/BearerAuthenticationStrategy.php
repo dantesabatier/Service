@@ -7,7 +7,7 @@ use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\UserDefaults;
 
 /** @internal */
-class BearerAuthentication extends Authentication
+final class BearerAuthenticationStrategy extends AuthenticationStrategy
 {
     public AuthenticationScheme $scheme {
         get => AuthenticationScheme::bearer;
@@ -16,10 +16,8 @@ class BearerAuthentication extends Authentication
         get {
             if (!isset($this->credential)) {
                 if ($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) {
-                    $data = $this->request->authorizationHeader->value;
-                    $issuer = $this->request->url->host;
                     /** @noinspection PhpUnhandledExceptionInspection */
-                    $token = new JSONWebTokenService($key, $issuer)->decode($data);
+                    $token = new JSONWebTokenService($key, $this->context->tokenIssuer)->decode($this->context->authorizationHeader->value);
                     if ($username = $token->payload->username) {
                         $this->credential = new URLCredential($username);
                     }
@@ -30,7 +28,7 @@ class BearerAuthentication extends Authentication
         }
     }
     public bool $isValid {
-        get => $this->credential instanceof URLCredential;
+        get => $this->credential !== null;
     }
 
     #[Override]

@@ -62,7 +62,7 @@ class Application extends Responder
     }
     /** @var AuthenticationManager The authentication manager for handling authentication processes. */
     public AuthenticationManager $authenticationManager {
-        get => $this->authenticationManager ??= new DefaultAuthenticationManager();
+        get => $this->authenticationManager ??= new AuthenticationManager();
     }
     /** @var AccessPolicy The access policy for enforcing access control. */
     public AccessPolicy $accessPolicy {

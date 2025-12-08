@@ -3,53 +3,34 @@
 namespace Sabatier\Service;
 
 use Exception;
-use Sabatier\CoreData\ManagedObjectContext;
-use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\URLCredential;
 
 /**
  * Represents a class for managing authentication mechanisms.
- * @psalm-consistent-constructor
  */
-abstract class Authentication
+class Authentication
 {
     /** @var AuthenticationScheme The authentication scheme used for authentication. */
-    abstract public AuthenticationScheme $scheme {
-        get;
+    public AuthenticationScheme $scheme {
+        get => $this->strategy->scheme;
     }
     /** @var URLCredential|null The credential associated with the authentication process. */
-    abstract public ?URLCredential $credential {
-        get;
+    public ?URLCredential $credential {
+        get => $this->strategy->credential;
     }
     /** @var bool Indicates whether the authentication is valid. */
-    abstract public bool $isValid {
-        get;
+    public bool $isValid {
+        get => $this->strategy->isValid;
     }
     /** @var Authorizable|null Represents the authenticated user. */
-    private(set) ?Authorizable $authenticatedUser {
+    public ?Authorizable $authenticatedUser {
         /**
          * @throws Exception
          */
-        get {
-            if (!isset($this->authenticatedUser)) {
-                if (!($username = $this->credential?->user)) {
-                    return $this->authenticatedUser = null;
-                }
-                $this->authenticatedUser = $this->authenticationService->find($username, $this->serialization, $this->context);
-            }
-            return $this->authenticatedUser;
-        }
+        get => $this->strategy->authenticatedUser;
     }
 
-    public function __construct(public readonly Request $request, public readonly ManagedObjectContext $context, public readonly ?Dictionary $serialization, public readonly AuthenticationService $authenticationService)
+    public function __construct(public readonly AuthenticationStrategy $strategy)
     {
     }
-
-    /**
-     * Checks whether the given authentication scheme is supported.
-     *
-     * @param AuthenticationScheme $scheme The authentication scheme to check.
-     * @return bool True if the authentication scheme is supported, false otherwise.
-     */
-    abstract public static function isSupported(AuthenticationScheme $scheme): bool;
 }

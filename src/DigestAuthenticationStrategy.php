@@ -6,7 +6,7 @@ use Override;
 use Sabatier\Foundation\Networking\URLCredential;
 
 /** @internal */
-class DigestAuthentication extends Authentication
+final class DigestAuthenticationStrategy extends AuthenticationStrategy
 {
     public AuthenticationScheme $scheme {
         get => AuthenticationScheme::digest;
@@ -14,7 +14,7 @@ class DigestAuthentication extends Authentication
     private(set) ?URLCredential $credential {
         get {
             if (!isset($this->credential)) {
-                if (!($username = $this->request->authorizationHeader->parameters["username"])) {
+                if (!($username = $this->context->authorizationHeader->parameters["username"])) {
                     return $this->credential = null;
                 }
                 $this->credential = new URLCredential($username);
@@ -27,7 +27,7 @@ class DigestAuthentication extends Authentication
             if (!($password = $this->authenticatedUser?->password)) {
                 return false;
             }
-            $parameters = $this->request->authorizationHeader->parameters;
+            $parameters = $this->context->authorizationHeader->parameters;
             if (!($uri = $parameters["uri"]) || !($nonce = $parameters["nonce"]) || !($nc = $parameters["nc"]) || !($cnonce = $parameters["cnonce"]) || !($qop = $parameters["qop"])) {
                 return false;
             }
@@ -37,7 +37,7 @@ class DigestAuthentication extends Authentication
                 default => "md5"
             };
             $HA1 = $password;
-            $HA2 = hash($algo, "{$this->request->httpMethod}:$uri");
+            $HA2 = hash($algo, "{$this->context->httpMethod}:$uri");
             $response = hash($algo, "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
             return $parameters["response"] === $response;
         }

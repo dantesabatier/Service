@@ -12,10 +12,10 @@ abstract class AccessPolicy
     /**
      * Enforces access control based on the provided responder and authentication manager.
      *
-     * @param Responder $firstResponder The responder instance that handles the request.
+     * @param Responder $responder The responder instance that handles the request.
      * @param AuthenticationManager $authenticationManager The authentication manager responsible for user authentication.
      */
-    abstract public function enforceAccess(Responder $firstResponder, AuthenticationManager $authenticationManager): void;
+    abstract public function enforceAccess(Responder $responder, AuthenticationManager $authenticationManager): void;
 
     /**
      * Sets the transaction author based on the HTTP method of the request and user authentication context.

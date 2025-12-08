@@ -3,7 +3,7 @@
 namespace Sabatier\Service;
 
 /** @internal */
-final class AuthenticationRegistrar
+final class AuthenticationStrategyRegistrar
 {
     private static bool $registered = false;
 
@@ -12,9 +12,9 @@ final class AuthenticationRegistrar
         if (self::$registered) {
             return;
         }
-        $classes = [BasicAuthentication::class, BearerAuthentication::class, DigestAuthentication::class];
+        $classes = [BasicAuthenticationStrategy::class, BearerAuthenticationStrategy::class, DigestAuthenticationStrategy::class];
         foreach ($classes as $class) {
-            AuthenticationFactory::registerClass($class);
+            AuthenticationStrategyFactory::registerClass($class);
         }
         self::$registered = true;
     }

@@ -7,7 +7,7 @@ use Sabatier\Foundation\Networking\URLCredential;
 use function Sabatier\Foundation\is_password;
 
 /** @internal */
-class BasicAuthentication extends Authentication
+final class BasicAuthenticationStrategy extends AuthenticationStrategy
 {
     public AuthenticationScheme $scheme {
         get => AuthenticationScheme::basic;
@@ -15,7 +15,7 @@ class BasicAuthentication extends Authentication
     private(set) ?URLCredential $credential {
         get {
             if (!isset($this->credential)) {
-                $components = explode(BasicAuthenticationComponentDelimiter, base64_decode($this->request->authorizationHeader->value));
+                $components = explode(BasicAuthenticationComponentDelimiter, base64_decode($this->context->authorizationHeader->value));
                 if (count($components) === BasicAuthenticationComponentCount) {
                     [$username, $password] = $components;
                     $this->credential = new URLCredential($username, $password);

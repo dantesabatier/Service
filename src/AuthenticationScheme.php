@@ -10,5 +10,7 @@ enum AuthenticationScheme: string
     case basic = "Basic";
     case bearer = "Bearer";
     case digest = "Digest";
-    case apiKey = "ApiKey";
+    case negotiate = "Negotiate";
+    case aws = "AWS4-HMAC-SHA256";
+    case oauth = "OAuth";
 }

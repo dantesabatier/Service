@@ -2,7 +2,9 @@
 
 namespace Sabatier\Service;
 
+use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Dictionary;
+use function Sabatier\Foundation\string_is_equal;
 
 /**
  * Represents an HTTP request header with its name and value extracted from a raw input string.
@@ -34,7 +36,14 @@ class RequestHeader
             $components = [AuthenticationScheme::basic->value, ""];
         }
         [$name, $value] = $components;
-        $this->name = $name;
+        $name = $name |> trim(...);
+        $this->name = match (true) {
+            string_is_equal($name, AuthenticationScheme::aws->value, CompareOptions::caseInsensitive) => AuthenticationScheme::aws->value,
+            string_is_equal($name, AuthenticationScheme::oauth->value, CompareOptions::caseInsensitive) => AuthenticationScheme::oauth->value,
+            default => $name
+                    |> strtolower(...)
+                    |> ucfirst(...)
+        };
         $this->value = $value;
     }
 }

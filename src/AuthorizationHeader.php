@@ -16,6 +16,6 @@ class AuthorizationHeader extends RequestHeader
     public function __construct(string $rawValue)
     {
         parent::__construct($rawValue);
-        $this->scheme = AuthenticationScheme::tryFrom(ucfirst($this->name)) ?? AuthenticationScheme::basic;
+        $this->scheme = AuthenticationScheme::tryFrom($this->name) ?? AuthenticationScheme::basic;
     }
 }

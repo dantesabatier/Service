@@ -4,8 +4,8 @@ namespace Sabatier\Service;
 
 use Exception;
 use NoDiscard;
+use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
-use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
@@ -17,9 +17,9 @@ readonly class AuthenticationService
     /**
      * Initializes a new instance of the AuthenticationService class.
      *
-     * @param class-string<ManagedObject> $authorizableClass The class name of the managed object representing an Authorizable.
+     * @param EntityDescription $authorizableEntity The class name of the managed object representing an Authorizable.
      */
-    public function __construct(private string $authorizableClass)
+    public function __construct(private EntityDescription $authorizableEntity)
     {
     }
 
@@ -35,11 +35,13 @@ readonly class AuthenticationService
     #[NoDiscard]
     public function find(string $username, ?Dictionary $serialization, ManagedObjectContext $context): ?Authorizable
     {
-        $authorizableClass = $this->authorizableClass;
         /** @var FetchRequest<Authorizable> $fetchRequest */
-        $fetchRequest = $authorizableClass::fetchRequest();
+        $fetchRequest = new FetchRequest();
+        $fetchRequest->entity = $this->authorizableEntity;
         $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($username), PredicateOperatorType::like);
         $fetchRequest->includesPendingChanges = false;
+        /** @var class-string<Authorizable> $authorizableClass */
+        $authorizableClass = $this->authorizableEntity->managedObjectClassName;
         $serialization ??= $authorizableClass::defaultSerialization();
         $fetchRequest->serialization = $serialization;
         return $context->fetch($fetchRequest)->first;

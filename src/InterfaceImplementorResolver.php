@@ -2,7 +2,7 @@
 
 namespace Sabatier\Service;
 
-use Sabatier\CoreData\ManagedObject;
+use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\ManagedObjectModel;
 use Sabatier\Foundation\Dictionary;
 use function Sabatier\Foundation\fatal_error;
@@ -10,22 +10,30 @@ use function Sabatier\Foundation\fatal_error;
 /** @internal */
 final class InterfaceImplementorResolver
 {
-    /** @var Dictionary<class-string<ManagedObject>> */
+    /** @var Dictionary<EntityDescription> */
     private Dictionary $index {
         get {
             if (!isset($this->index)) {
+                static $targets = [
+                    Authorizable::class => true,
+                    Authorization::class => true,
+                ];
                 $this->index = new Dictionary();
                 foreach ($this->model as $entity) {
-                    $class = $entity->managedObjectClassName ?? null;
-                    if ($class === null) {
+                    if (!($class = $entity->managedObjectClassName)) {
                         continue;
                     }
-                    $implements = class_implements($class);
-                    if (!$implements) {
+                    if (!class_exists($class)) {
+                        continue;
+                    }
+                    if (!($implements = class_implements($class))) {
                         continue;
                     }
                     foreach ($implements as $implement) {
-                        $this->index[$implement] ??= $class;
+                        if (!isset($targets[$implement])) {
+                            continue;
+                        }
+                        $this->index[$implement] ??= $entity;
                     }
                 }
             }
@@ -38,10 +46,10 @@ final class InterfaceImplementorResolver
     }
 
     /**
-     * @param class-string $interface The name of the interface to resolve.
-     * @return class-string<ManagedObject> The class name of the implementor if found, or null otherwise.
+     * @param string $interface The interface name to resolve.
+     * @return EntityDescription The entity description of the implementor.
      */
-    public function resolve(string $interface): string
+    public function resolve(string $interface): EntityDescription
     {
         return $this->index[$interface] ?? fatal_error("No $interface implementor found.");
     }

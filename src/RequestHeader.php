@@ -25,7 +25,7 @@ class RequestHeader
         }
     }
     /** @var string $value The value of the authentication parameter */
-    public readonly string $value;
+    private(set) string $value;
     /** @var Dictionary<string> */
     private(set) Dictionary $parameters {
         get {
@@ -40,14 +40,18 @@ class RequestHeader
     /**
      * @param string $rawValue The raw value of the authentication parameter
      */
-    public function __construct(public string $rawValue)
-    {
-        $components = explode(" ", $this->rawValue, 2);
-        if (count($components) !== 2) {
-            $components = [AuthenticationScheme::basic->value, ""];
+    public function __construct(private(set) string $rawValue {
+        set {
+            $components = explode(" ", $value, 2);
+            if (count($components) !== 2) {
+                $components = [AuthenticationScheme::basic->value, ""];
+            }
+            [$k, $v] = $components;
+            $this->name = $k;
+            $this->value = $v;
+            $this->rawValue = $value;
         }
-        [$name, $value] = $components;
-        $this->name = $name;
-        $this->value = $value;
+    })
+    {
     }
 }

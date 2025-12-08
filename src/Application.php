@@ -44,10 +44,6 @@ class Application extends Responder
     private InterfaceImplementorResolver $implementorResolver {
         get => $this->implementorResolver ??= new InterfaceImplementorResolver($this->persistentContainer->managedObjectModel);
     }
-    /** @var AuthorizationCache The authorization cache for storing authorization data. */
-    public AuthorizationCache $authorizationCache {
-        get => $this->authorizationCache ??= new InMemoryAuthorizationCache();
-    }
     /** @var AuthenticationService The authentication service for managing user authentication. */
     public AuthenticationService $authenticationService {
         get => $this->authenticationService ??= new AuthenticationService($this->implementorResolver->resolve(Authorizable::class));
@@ -55,6 +51,10 @@ class Application extends Responder
     /** @var AuthorizationResolver The authorization resolver for resolving authorization rules. */
     public AuthorizationResolver $authorizationResolver {
         get => $this->authorizationResolver ??= new AuthorizationResolver($this->implementorResolver->resolve(Authorization::class));
+    }
+    /** @var AuthorizationCache The authorization cache for storing authorization data. */
+    public AuthorizationCache $authorizationCache {
+        get => $this->authorizationCache ??= new InMemoryAuthorizationCache();
     }
     /** @var AuthorizationService The authorization service for managing user authorization. */
     public AuthorizationService $authorizationService {

@@ -4,6 +4,8 @@ namespace Sabatier\Service;
 
 use Exception;
 use Sabatier\CoreData\ManagedObjectContext;
+use Sabatier\Foundation\CompareOptions;
+use function Sabatier\Foundation\string_is_equal;
 
 /**
  * Service interface responsible for handling authorization logic.
@@ -34,6 +36,6 @@ readonly class AuthorizationService
             $this->inRequestCache->setAuthorizableAuthorizations($entity, $authorizations);
             $this->persistentCache?->setAuthorizableAuthorizations($entity, $authorizations);
         }
-        return $authorizations->contains(fn(Authorization $authorization): bool => $authorization->name === $resource && $authorization->type === $action);
+        return $authorizations->contains(fn(Authorization $authorization): bool => string_is_equal($authorization->name, $resource, CompareOptions::caseInsensitive) && $authorization->type === $action);
     }
 }

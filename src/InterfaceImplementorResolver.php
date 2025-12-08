@@ -16,7 +16,6 @@ final class InterfaceImplementorResolver
             if (!isset($this->index)) {
                 static $targets = [
                     Authorizable::class => true,
-                    AuthorizableRole::class => true,
                     Authorization::class => true,
                 ];
                 $this->index = new Dictionary();
@@ -47,7 +46,7 @@ final class InterfaceImplementorResolver
     }
 
     /**
-     * @param class-string<Authorizable>|class-string<AuthorizableRole>|class-string<Authorization> $interface The interface name to resolve.
+     * @param class-string<Authorizable>|class-string<Authorization> $interface The interface name to resolve.
      * @return EntityDescription The entity description of the implementor.
      */
     public function resolve(string $interface): EntityDescription

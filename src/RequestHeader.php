@@ -12,7 +12,18 @@ use function Sabatier\Foundation\string_is_equal;
 class RequestHeader
 {
     /** @var string $name The name of the authentication parameter */
-    public readonly string $name;
+    private(set) string $name {
+        set {
+            $value = $value |> trim(...);
+            $this->name = match (true) {
+                string_is_equal($value, AuthenticationScheme::aws->value, CompareOptions::caseInsensitive) => AuthenticationScheme::aws->value,
+                string_is_equal($value, AuthenticationScheme::oauth->value, CompareOptions::caseInsensitive) => AuthenticationScheme::oauth->value,
+                default => $value
+                        |> strtolower(...)
+                        |> ucfirst(...)
+            };
+        }
+    }
     /** @var string $value The value of the authentication parameter */
     public readonly string $value;
     /** @var Dictionary<string> */
@@ -36,14 +47,7 @@ class RequestHeader
             $components = [AuthenticationScheme::basic->value, ""];
         }
         [$name, $value] = $components;
-        $name = $name |> trim(...);
-        $this->name = match (true) {
-            string_is_equal($name, AuthenticationScheme::aws->value, CompareOptions::caseInsensitive) => AuthenticationScheme::aws->value,
-            string_is_equal($name, AuthenticationScheme::oauth->value, CompareOptions::caseInsensitive) => AuthenticationScheme::oauth->value,
-            default => $name
-                    |> strtolower(...)
-                    |> ucfirst(...)
-        };
+        $this->name = $name;
         $this->value = $value;
     }
 }

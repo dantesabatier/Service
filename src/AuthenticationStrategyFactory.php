@@ -4,7 +4,9 @@ namespace Sabatier\Service;
 
 use Sabatier\Foundation\ArrayClass;
 
-/** @internal */
+/**
+ * A factory class for managing authentication strategy classes.
+ */
 class AuthenticationStrategyFactory
 {
     /** @var ArrayClass<class-string<AuthenticationStrategy>>|null */

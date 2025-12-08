@@ -15,9 +15,9 @@ use Sabatier\Foundation\Predicates\PredicateOperatorType;
 readonly class AuthenticationService
 {
     /**
-     * Initializes a new instance of the AuthenticationService class.
+     * Constructs an AuthenticationService with the specified authorizable entity description.
      *
-     * @param EntityDescription $authorizableEntity The class name of the managed object representing an Authorizable.
+     * @param EntityDescription $authorizableEntity The entity description representing the authorizable type.
      */
     public function __construct(private EntityDescription $authorizableEntity)
     {

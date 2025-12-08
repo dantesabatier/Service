@@ -16,9 +16,9 @@ use Sabatier\Foundation\Predicates\Predicate;
 readonly class AuthorizationResolver
 {
     /**
-     * Initializes a new instance of the AuthorizationResolver class.
+     * Constructs an AuthorizationResolver with the given authorization entity description.
      *
-     * @param EntityDescription $authorizationEntity The class name of the managed object representing authorizations.
+     * @param EntityDescription $authorizationEntity The entity description for authorizations.
      */
     public function __construct(private EntityDescription $authorizationEntity)
     {

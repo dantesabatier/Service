@@ -48,13 +48,13 @@ class Application extends Responder
     public AuthorizationCache $authorizationCache {
         get => $this->authorizationCache ??= new InMemoryAuthorizationCache();
     }
-    /** @var AuthorizationResolver The authorization resolver for resolving authorization rules. */
-    public AuthorizationResolver $authorizationResolver {
-        get => $this->authorizationResolver ??= new AuthorizationResolver($this->implementorResolver->resolve(Authorization::class));
-    }
     /** @var AuthenticationService The authentication service for managing user authentication. */
     public AuthenticationService $authenticationService {
         get => $this->authenticationService ??= new AuthenticationService($this->implementorResolver->resolve(Authorizable::class));
+    }
+    /** @var AuthorizationResolver The authorization resolver for resolving authorization rules. */
+    public AuthorizationResolver $authorizationResolver {
+        get => $this->authorizationResolver ??= new AuthorizationResolver($this->implementorResolver->resolve(Authorization::class));
     }
     /** @var AuthorizationService The authorization service for managing user authorization. */
     public AuthorizationService $authorizationService {

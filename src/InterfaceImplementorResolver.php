@@ -16,6 +16,7 @@ final class InterfaceImplementorResolver
             if (!isset($this->index)) {
                 static $targets = [
                     Authorizable::class => true,
+                    AuthorizableRole::class => true,
                     Authorization::class => true,
                 ];
                 $this->index = new Dictionary();

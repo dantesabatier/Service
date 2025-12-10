@@ -4,6 +4,7 @@ namespace Sabatier\Service;
 
 use Override;
 use function Sabatier\Foundation\base64_url_encode;
+use function Sabatier\Foundation\localized_string;
 
 /** @internal */
 class JSONWebTokenHS256DecoderStrategy extends JSONWebTokenDecoderStrategy
@@ -18,7 +19,7 @@ class JSONWebTokenHS256DecoderStrategy extends JSONWebTokenDecoderStrategy
         assert(is_string($this->key));
         $signed = base64_url_encode(hash_hmac("sha256", $unsigned, $this->key, true));
         if ($signature !== $signed) {
-            throw new JSONWebTokenException("Access token is not valid.");
+            throw new JSONWebTokenException(localized_string("Access token is not valid."));
         }
     }
 

@@ -3,6 +3,7 @@
 namespace Sabatier\Service;
 
 use Sabatier\Foundation\Date;
+use function Sabatier\Foundation\localized_string;
 
 /**
  * Validates the values of a JSON Web Token.
@@ -26,17 +27,17 @@ readonly class JSONWebTokenValidator
     {
         $header = $token->header;
         if ($header->alg !== $this->algorithm) {
-            throw new JSONWebTokenException("Access token algorithm is invalid.");
+            throw new JSONWebTokenException(localized_string("Access token algorithm is invalid."));
         }
         $payload = $token->payload;
         if ($payload->nbf && $payload->nbf > $this->now) {
-            throw new JSONWebTokenException("Access token is not yet valid.");
+            throw new JSONWebTokenException(localized_string("Access token is not yet valid."));
         }
         if ($payload->exp && $payload->exp < $this->now) {
-            throw new JSONWebTokenException("Access token has expired.");
+            throw new JSONWebTokenException(localized_string("Access token has expired."));
         }
         if ($payload->iss && $payload->iss !== $this->issuer) {
-            throw new JSONWebTokenException("Access token issuer is invalid.");
+            throw new JSONWebTokenException(localized_string("Access token issuer is invalid."));
         }
     }
 }

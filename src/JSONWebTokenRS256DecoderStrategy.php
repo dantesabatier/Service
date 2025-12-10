@@ -4,6 +4,7 @@ namespace Sabatier\Service;
 
 use OpenSSLAsymmetricKey;
 use Override;
+use function Sabatier\Foundation\localized_string;
 
 /** @internal */
 class JSONWebTokenRS256DecoderStrategy extends JSONWebTokenDecoderStrategy
@@ -19,7 +20,7 @@ class JSONWebTokenRS256DecoderStrategy extends JSONWebTokenDecoderStrategy
         $pkey = openssl_pkey_get_public($this->key);
         assert($pkey instanceof OpenSSLAsymmetricKey);
         if (!openssl_verify($unsigned, $signature, $pkey, OPENSSL_ALGO_SHA256)) {
-            throw new JSONWebTokenException(openssl_error_string() ?: "Access token is not valid.");
+            throw new JSONWebTokenException(openssl_error_string() ?: localized_string("Access token is not valid."));
         }
     }
 

@@ -16,11 +16,11 @@ use Sabatier\Foundation\Predicates\Predicate;
 readonly class AuthorizationResolver
 {
     /**
-     * Constructs an AuthorizationResolver with the given authorization entity description.
+     * Constructs an AuthorizationResolver with the specified authorization entity description.
      *
-     * @param EntityDescription $authorizationEntity The entity description for authorizations.
+     * @param EntityDescription|null $authorizationEntity The entity description for authorization objects.
      */
-    public function __construct(private EntityDescription $authorizationEntity)
+    public function __construct(private ?EntityDescription $authorizationEntity)
     {
     }
 
@@ -37,9 +37,12 @@ readonly class AuthorizationResolver
     #[NoDiscard]
     public function resolve(Authorizable $authorizable, string $resource, AuthorizationType $action, ManagedObjectContext $context): ArrayClass
     {
+        if (!($authorizationEntity = $this->authorizationEntity)) {
+            return new ArrayClass();
+        }
         /** @var FetchRequest<Authorization> $fetchRequest */
         $fetchRequest = new FetchRequest();
-        $fetchRequest->entity = $this->authorizationEntity;
+        $fetchRequest->entity = $authorizationEntity;
         $fetchRequest->predicate = Predicate::format("%K = %@ AND %K = %@ AND ANY %K IN %@", new ArrayClass(["name", $resource, "type", $action, "roles.name", $authorizable->roles->map(fn(AuthorizableRole $role) => $role->name)]));
         return $context->fetch($fetchRequest);
     }

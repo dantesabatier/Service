@@ -13,6 +13,9 @@ use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Foundation\Predicates\PredicateOperatorType;
 
+/**
+ * AuthenticationService resolves and fetches objects implementing Authorizable from a ManagedObjectModel. It lazily determines the Authorizable entity and provides a single lookup method based on username and optional serialization.
+ */
 class AuthenticationService
 {
     private InterfaceImplementorResolver $implementorResolver {

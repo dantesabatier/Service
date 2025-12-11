@@ -53,6 +53,6 @@ final class InterfaceImplementorResolver
      */
     public function resolve(string $interface): EntityDescription
     {
-        return $this->index[$interface] ?? fatal_error("No $interface implementor found.");
+        return $this->index[$interface] ?? fatal_error("No implementor found for interface '$interface'. You must define an entity whose managed object class implements this interface and register it in the ManagedObjectModel.");
     }
 }

@@ -2,7 +2,7 @@
 
 namespace Sabatier\Service;
 
-use Sabatier\CoreData\EntityDescription;
+use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectModel;
 use Sabatier\Foundation\Dictionary;
 use function Sabatier\Foundation\fatal_error;
@@ -10,7 +10,7 @@ use function Sabatier\Foundation\fatal_error;
 /** @internal */
 final class InterfaceImplementorResolver
 {
-    /** @var Dictionary<EntityDescription> */
+    /** @var Dictionary<class-string<ManagedObject>> */
     private Dictionary $index {
         get {
             if (!isset($this->index)) {
@@ -33,7 +33,7 @@ final class InterfaceImplementorResolver
                         if (!isset($targets[$implement])) {
                             continue;
                         }
-                        $this->index[$implement] ??= $entity;
+                        $this->index[$implement] ??= $class;
                     }
                 }
             }
@@ -49,10 +49,10 @@ final class InterfaceImplementorResolver
      * Resolves the entity description for the given interface.
      *
      * @param class-string<Authorizable>|class-string<Authorization> $interface The interface to resolve.
-     * @return EntityDescription The entity description if found, or null otherwise.
+     * @return class-string<ManagedObject> The entity description if found, or null otherwise.
      */
-    public function resolve(string $interface): EntityDescription
+    public function resolve(string $interface): string
     {
-        return $this->index[$interface] ?? fatal_error("No implementor found for interface '$interface'. You must define an entity whose managed object class implements this interface and register it in the ManagedObjectModel.");
+        return $this->index[$interface] ?? fatal_error("No implementor found for interface \"$interface\". You must define an entity whose managed object class implements this interface and register it in the ManagedObjectModel.");
     }
 }

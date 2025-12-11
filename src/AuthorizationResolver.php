@@ -4,8 +4,8 @@ namespace Sabatier\Service;
 
 use Exception;
 use NoDiscard;
-use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
+use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\CoreData\ManagedObjectModel;
 use Sabatier\Foundation\ArrayClass;
@@ -19,8 +19,9 @@ class AuthorizationResolver
     private InterfaceImplementorResolver $implementorResolver {
         get => $this->implementorResolver ??= new InterfaceImplementorResolver($this->managedObjectModel);
     }
-    private EntityDescription $authorizationEntity {
-        get => $this->authorizationEntity ??= $this->implementorResolver->resolve(Authorization::class);
+    /** @var class-string<ManagedObject> */
+    private string $authorizationClass {
+        get => $this->authorizationClass ??= $this->implementorResolver->resolve(Authorization::class);
     }
 
     public function __construct(private readonly ManagedObjectModel $managedObjectModel)
@@ -41,8 +42,7 @@ class AuthorizationResolver
     public function resolve(Authorizable $authorizable, string $resource, AuthorizationType $action, ManagedObjectContext $context): ArrayClass
     {
         /** @var FetchRequest<Authorization> $fetchRequest */
-        $fetchRequest = new FetchRequest();
-        $fetchRequest->entity = $this->authorizationEntity;
+        $fetchRequest = $this->authorizationClass::fetchRequest();
         $fetchRequest->predicate = Predicate::format("%K = %@ AND %K = %@ AND ANY %K IN %@", new ArrayClass(["name", $resource, "type", $action, "roles.name", $authorizable->roles->map(fn(AuthorizableRole $role) => $role->name)]));
         return $context->fetch($fetchRequest);
     }

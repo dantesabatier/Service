@@ -4,8 +4,8 @@ namespace Sabatier\Service;
 
 use Exception;
 use NoDiscard;
-use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
+use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\CoreData\ManagedObjectModel;
 use Sabatier\Foundation\Dictionary;
@@ -21,8 +21,9 @@ class AuthenticationService
     private InterfaceImplementorResolver $implementorResolver {
         get => $this->implementorResolver ??= new InterfaceImplementorResolver($this->managedObjectModel);
     }
-    private EntityDescription $authorizableEntity {
-        get => $this->authorizableEntity ??= $this->implementorResolver->resolve(Authorizable::class);
+    /** @var class-string<ManagedObject> */
+    private string $authorizableClass {
+        get => $this->authorizableClass ??= $this->implementorResolver->resolve(Authorizable::class);
     }
 
     public function __construct(private readonly ManagedObjectModel $managedObjectModel)
@@ -41,14 +42,11 @@ class AuthenticationService
     #[NoDiscard]
     public function find(string $username, ?Dictionary $serialization, ManagedObjectContext $context): ?Authorizable
     {
-        $authorizableEntity = $this->authorizableEntity;
+        $authorizableClass = $this->authorizableClass;
         /** @var FetchRequest<Authorizable> $fetchRequest */
-        $fetchRequest = new FetchRequest();
-        $fetchRequest->entity = $authorizableEntity;
+        $fetchRequest = $authorizableClass::fetchRequest();
         $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($username), PredicateOperatorType::like);
         $fetchRequest->includesPendingChanges = false;
-        /** @var class-string<Authorizable> $authorizableClass */
-        $authorizableClass = $authorizableEntity->managedObjectClassName;
         $serialization ??= $authorizableClass::defaultSerialization();
         $fetchRequest->serialization = $serialization;
         return $context->fetch($fetchRequest)->first;

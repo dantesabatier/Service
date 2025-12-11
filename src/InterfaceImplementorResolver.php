@@ -5,6 +5,7 @@ namespace Sabatier\Service;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\ManagedObjectModel;
 use Sabatier\Foundation\Dictionary;
+use function Sabatier\Foundation\fatal_error;
 
 /** @internal */
 final class InterfaceImplementorResolver
@@ -48,10 +49,10 @@ final class InterfaceImplementorResolver
      * Resolves the entity description for the given interface.
      *
      * @param class-string<Authorizable>|class-string<Authorization> $interface The interface to resolve.
-     * @return EntityDescription|null The entity description if found, or null otherwise.
+     * @return EntityDescription The entity description if found, or null otherwise.
      */
-    public function resolve(string $interface): ?EntityDescription
+    public function resolve(string $interface): EntityDescription
     {
-        return $this->index[$interface];
+        return $this->index[$interface] ?? fatal_error("No $interface implementor found.");
     }
 }

@@ -7,20 +7,23 @@ use NoDiscard;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObjectContext;
+use Sabatier\CoreData\ManagedObjectModel;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Predicates\Predicate;
 
 /**
  * Represents an authorizable entity, such as a user.
  */
-readonly class AuthorizationResolver
+class AuthorizationResolver
 {
-    /**
-     * Constructs an AuthorizationResolver with the specified authorization entity description.
-     *
-     * @param EntityDescription|null $authorizationEntity The entity description for authorization objects.
-     */
-    public function __construct(private ?EntityDescription $authorizationEntity)
+    private InterfaceImplementorResolver $implementorResolver {
+        get => $this->implementorResolver ??= new InterfaceImplementorResolver($this->managedObjectModel);
+    }
+    private EntityDescription $authorizationEntity {
+        get => $this->authorizationEntity ??= $this->implementorResolver->resolve(Authorization::class);
+    }
+
+    public function __construct(private readonly ManagedObjectModel $managedObjectModel)
     {
     }
 
@@ -37,12 +40,9 @@ readonly class AuthorizationResolver
     #[NoDiscard]
     public function resolve(Authorizable $authorizable, string $resource, AuthorizationType $action, ManagedObjectContext $context): ArrayClass
     {
-        if (!($authorizationEntity = $this->authorizationEntity)) {
-            return new ArrayClass();
-        }
         /** @var FetchRequest<Authorization> $fetchRequest */
         $fetchRequest = new FetchRequest();
-        $fetchRequest->entity = $authorizationEntity;
+        $fetchRequest->entity = $this->authorizationEntity;
         $fetchRequest->predicate = Predicate::format("%K = %@ AND %K = %@ AND ANY %K IN %@", new ArrayClass(["name", $resource, "type", $action, "roles.name", $authorizable->roles->map(fn(AuthorizableRole $role) => $role->name)]));
         return $context->fetch($fetchRequest);
     }

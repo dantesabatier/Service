@@ -7,19 +7,22 @@ use NoDiscard;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObjectContext;
+use Sabatier\CoreData\ManagedObjectModel;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Foundation\Predicates\PredicateOperatorType;
 
-readonly class AuthenticationService
+class AuthenticationService
 {
-    /**
-     * Constructs an AuthenticationService with the specified authorizable entity description.
-     *
-     * @param EntityDescription|null $authorizableEntity The entity description for authorizable objects.
-     */
-    public function __construct(private ?EntityDescription $authorizableEntity)
+    private InterfaceImplementorResolver $implementorResolver {
+        get => $this->implementorResolver ??= new InterfaceImplementorResolver($this->managedObjectModel);
+    }
+    private EntityDescription $authorizableEntity {
+        get => $this->authorizableEntity ??= $this->implementorResolver->resolve(Authorizable::class);
+    }
+
+    public function __construct(private readonly ManagedObjectModel $managedObjectModel)
     {
     }
 
@@ -35,9 +38,7 @@ readonly class AuthenticationService
     #[NoDiscard]
     public function find(string $username, ?Dictionary $serialization, ManagedObjectContext $context): ?Authorizable
     {
-        if (!($authorizableEntity = $this->authorizableEntity)) {
-            return null;
-        }
+        $authorizableEntity = $this->authorizableEntity;
         /** @var FetchRequest<Authorizable> $fetchRequest */
         $fetchRequest = new FetchRequest();
         $fetchRequest->entity = $authorizableEntity;

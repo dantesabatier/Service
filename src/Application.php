@@ -41,16 +41,13 @@ class Application extends Responder
     private(set) Responder $firstResponder {
         get => $this->firstResponder ??= new FirstResponderResolver($this, $this->authenticationManager)->firstResponder;
     }
-    private InterfaceImplementorResolver $implementorResolver {
-        get => $this->implementorResolver ??= new InterfaceImplementorResolver($this->persistentContainer->managedObjectModel);
-    }
     /** @var AuthenticationService The authentication service for managing user authentication. */
     public AuthenticationService $authenticationService {
-        get => $this->authenticationService ??= new AuthenticationService($this->implementorResolver->resolve(Authorizable::class));
+        get => $this->authenticationService ??= new AuthenticationService($this->persistentContainer->managedObjectModel);
     }
     /** @var AuthorizationResolver The authorization resolver for resolving authorization rules. */
     public AuthorizationResolver $authorizationResolver {
-        get => $this->authorizationResolver ??= new AuthorizationResolver($this->implementorResolver->resolve(Authorization::class));
+        get => $this->authorizationResolver ??= new AuthorizationResolver($this->persistentContainer->managedObjectModel);
     }
     /** @var AuthorizationCache The authorization cache for storing authorization data. */
     public AuthorizationCache $authorizationCache {

@@ -17,9 +17,9 @@ readonly class AuthenticationService
     /**
      * Constructs an AuthenticationService with the specified authorizable entity description.
      *
-     * @param EntityDescription $authorizableEntity The entity description representing the authorizable type.
+     * @param EntityDescription|null $authorizableEntity The entity description for authorizable objects.
      */
-    public function __construct(private EntityDescription $authorizableEntity)
+    public function __construct(private ?EntityDescription $authorizableEntity)
     {
     }
 
@@ -35,13 +35,16 @@ readonly class AuthenticationService
     #[NoDiscard]
     public function find(string $username, ?Dictionary $serialization, ManagedObjectContext $context): ?Authorizable
     {
+        if (!($authorizableEntity = $this->authorizableEntity)) {
+            return null;
+        }
         /** @var FetchRequest<Authorizable> $fetchRequest */
         $fetchRequest = new FetchRequest();
-        $fetchRequest->entity = $this->authorizableEntity;
+        $fetchRequest->entity = $authorizableEntity;
         $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($username), PredicateOperatorType::like);
         $fetchRequest->includesPendingChanges = false;
         /** @var class-string<Authorizable> $authorizableClass */
-        $authorizableClass = $this->authorizableEntity->managedObjectClassName;
+        $authorizableClass = $authorizableEntity->managedObjectClassName;
         $serialization ??= $authorizableClass::defaultSerialization();
         $fetchRequest->serialization = $serialization;
         return $context->fetch($fetchRequest)->first;

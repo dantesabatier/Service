@@ -20,7 +20,39 @@ use const Sabatier\CoreData\PersistentStoreRemoteChangeNotificationPostOptionKey
 use const Sabatier\Foundation\kCFBundleNameKey;
 
 /**
- * An object that manages an app's main url request and resources used by all of that app's objects.
+ * The central object that coordinates request handling, persistence,
+ * session management, authentication, authorization, and high-level
+ * application lifecycle events.
+ *
+ * The `Application` class acts as the root of the responder chain and
+ * provides access to shared services such as the persistent container,
+ * authentication and authorization managers, and the currently active
+ * session. It is designed as a singleton accessed through `Application::shared()`.
+ *
+ * ## Responsibilities
+ * - Initializes and configures the Core Data stack.
+ * - Manages the application delegate lifecycle events.
+ * - Sets up and maintains the user session.
+ * - Resolves the first responder for each request.
+ * - Applies access control policies and establishes the transaction author.
+ * - Executes the main application run loop and handles any exceptions.
+ *
+ * ## Customization
+ * Developers can customize:
+ * - `authorizationCache` to use custom cache backends.
+ * - `authorizationService` to override authorization logic.
+ * - `accessPolicy` to define custom access-control behavior.
+ *
+ * ## Lifecycle
+ * The `run()` method performs:
+ * - Application initialization,
+ * - Session initialization,
+ * - Access checking,
+ * - Transaction author assignment,
+ * - Response processing.
+ *
+ * Any thrown exception is captured and delegated to an internal responder
+ * that renders a safe, consistent error response.
  */
 class Application extends Responder
 {

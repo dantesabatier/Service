@@ -15,13 +15,17 @@ use const Sabatier\Foundation\URLErrorDomain;
 /** @internal */
 class Thrower extends Responder
 {
+    public bool $isDevelopmentMode {
+        get => ProcessInfo::processInfo()->environment["APP_ENV"] === "development";
+    }
     public Throwable $throwable;
     public Response $response {
         get {
             $request = $this->request;
             $throwable = $this->throwable;
+            $localizedFailureReason = $this->isDevelopmentMode ? $throwable->getMessage() : "An internal error occurred.";
             $statusCode = HTTPStatusCode::internalServerError;
-            $error = new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $throwable->getMessage()]));
+            $error = new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $localizedFailureReason]));
             if ($throwable instanceof InternalInconsistencyException) {
                 $error = $throwable->error;
                 if ($throwable instanceof InvalidRequestException) {
@@ -33,11 +37,13 @@ class Thrower extends Responder
             $this->headerFields["Content-Type"] = "application/json";
             if ($throwable instanceof UnauthorizedException) {
                 $scheme = AuthenticationScheme::tryFrom($request->authorizationHeader->name) ?? AuthenticationScheme::basic;
-                $this->headerFields["WWW-Authenticate"] = "$scheme->value realm=\"{$request->url->host}\"" . match ($scheme) {
-                        AuthenticationScheme::digest => sprintf(", uri=\"%s\", algorithm=\"%s\", nonce=\"%s\", qop=\"%s\", opaque=\"%s\"", $request->url->path, "SHA-256", ProcessInfo::processInfo()->globallyUniqueString, "auth", base64_encode((string)$request->url->host)),
-                        AuthenticationScheme::bearer => sprintf(", error=\"%s\", error_description=\"%s\"", $error->localizedDescription, $error->localizedFailureReason ?? ""),
-                        default => ""
-                    };
+                $realm = $request->url->host;
+                $schemeHeader = match ($scheme) {
+                    AuthenticationScheme::digest => sprintf("Digest realm=\"%s\", uri=\"%s\", algorithm=\"SHA-256\", nonce=\"%s\", qop=\"auth\", opaque=\"%s\"", $realm, $request->url->path, ProcessInfo::processInfo()->globallyUniqueString, base64_encode($realm)),
+                    AuthenticationScheme::bearer => sprintf("Bearer realm=\"%s\", error=\"%s\", error_description=\"%s\"", $realm, $error->localizedDescription, $error->localizedFailureReason ?? ""),
+                    default => sprintf("%s realm=\"%s\"", $scheme->value, $realm),
+                };
+                $this->headerFields["WWW-Authenticate"] = $schemeHeader;
             }
             return new Response($this);
         }
@@ -45,6 +51,7 @@ class Thrower extends Responder
 
     public function throw(Throwable $throwable): never
     {
+        error_log("[Thrower] " . $throwable);
         $this->throwable = $throwable;
         $this->response->send();
     }

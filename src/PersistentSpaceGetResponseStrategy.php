@@ -11,7 +11,7 @@ use Sabatier\CoreData\FetchRequestResultType;
 use Sabatier\Foundation\Dictionary;
 
 /** @internal */
-class PersistentSpaceGetResponseStrategy extends PersistentSpaceResponseStrategy
+final class PersistentSpaceGetResponseStrategy extends PersistentSpaceResponseStrategy
 {
     public FetchRequest $fetchRequest {
         get {

@@ -5,7 +5,7 @@ namespace Sabatier\Service;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 
 /** @internal */
-class PersistentSpaceResponseStrategyResolver extends ResponseStrategyResolver
+final class PersistentSpaceResponseStrategyResolver extends ResponseStrategyResolver
 {
     public function __construct(Responder $responder)
     {

@@ -9,7 +9,7 @@ use Sabatier\CoreData\SQLEntity;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 
 /** @internal */
-class PersistentSpaceDeleteResponseStrategy extends PersistentSpaceResponseStrategy
+final class PersistentSpaceDeleteResponseStrategy extends PersistentSpaceResponseStrategy
 {
     public Response $response {
         /**

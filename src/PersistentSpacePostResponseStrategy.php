@@ -14,7 +14,7 @@ use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
 
 /** @internal */
-class PersistentSpacePostResponseStrategy extends PersistentSpaceResponseStrategy
+final class PersistentSpacePostResponseStrategy extends PersistentSpaceResponseStrategy
 {
     public Response $response {
         /**

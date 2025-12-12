@@ -8,7 +8,7 @@ use Exception;
 use Sabatier\CoreData\SQLEntity;
 
 /** @internal */
-class PersistentSpacePatchResponseStrategy extends PersistentSpaceResponseStrategy
+final class PersistentSpacePatchResponseStrategy extends PersistentSpaceResponseStrategy
 {
     public Response $response {
         /**

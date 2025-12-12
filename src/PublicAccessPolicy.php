@@ -5,7 +5,9 @@ namespace Sabatier\Service;
 use Override;
 
 /**
- * A policy that defines public access to resources bypassing checks and enforcement of protected content.
+ * PublicAccessPolicy allows unconditional access to a resource.
+ *
+ * This policy intentionally bypasses both authentication and authorization checks. It is typically used for endpoints that must remain publicly accessible, such as login routes, health checks, documentation endpoints, or other non-restricted resources.
  */
 final class PublicAccessPolicy extends AccessPolicy
 {

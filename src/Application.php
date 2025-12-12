@@ -42,11 +42,10 @@ class Application extends Responder
         get => $this->firstResponder ??= new FirstResponderResolver($this, $this->authenticationManager)->firstResponder;
     }
     /** @var AuthenticationService The authentication service for managing user authentication. */
-    public AuthenticationService $authenticationService {
+    private(set) AuthenticationService $authenticationService {
         get => $this->authenticationService ??= new AuthenticationService($this->persistentContainer->managedObjectModel);
     }
-    /** @var AuthorizationResolver The authorization resolver for resolving authorization rules. */
-    public AuthorizationResolver $authorizationResolver {
+    private AuthorizationResolver $authorizationResolver {
         get => $this->authorizationResolver ??= new AuthorizationResolver($this->persistentContainer->managedObjectModel);
     }
     /** @var AuthorizationCache The authorization cache for storing authorization data. */
@@ -58,7 +57,7 @@ class Application extends Responder
         get => $this->authorizationService ??= new AuthorizationService($this->authorizationResolver, $this->authorizationCache);
     }
     /** @var AuthenticationManager The authentication manager for handling authentication processes. */
-    public AuthenticationManager $authenticationManager {
+    private(set) AuthenticationManager $authenticationManager {
         get => $this->authenticationManager ??= new AuthenticationManager();
     }
     /** @var AccessPolicy The access policy for enforcing access control. */

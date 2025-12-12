@@ -9,7 +9,11 @@ use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\CoreData\ManagedObjectModel;
 use Sabatier\Foundation\ArrayClass;
-use Sabatier\Foundation\Predicates\Predicate;
+use Sabatier\Foundation\Predicates\ComparisonPredicate;
+use Sabatier\Foundation\Predicates\ComparisonPredicateModifier;
+use Sabatier\Foundation\Predicates\CompoundPredicate;
+use Sabatier\Foundation\Predicates\Expression;
+use Sabatier\Foundation\Predicates\PredicateOperatorType;
 
 /**
  * AuthorizationResolver resolves Authorization objects by lazily determining the Authorization entity and querying permissions for a given authorizable, resource, and action.
@@ -43,7 +47,7 @@ class AuthorizationResolver
     {
         /** @var FetchRequest<Authorization> $fetchRequest */
         $fetchRequest = $this->authorizationClass::fetchRequest();
-        $fetchRequest->predicate = Predicate::format("%K = %@ AND %K = %@ AND ANY %K IN %@", new ArrayClass(["name", $resource, "type", $action, "roles.name", $authorizable->roles->map(fn(AuthorizableRole $role) => $role->name)]));
+        $fetchRequest->predicate = CompoundPredicate::andPredicateWithSubpredicates(new ArrayClass([new ComparisonPredicate(Expression::expressionForKeyPath("name"), Expression::expressionForConstantValue($resource)), new ComparisonPredicate(Expression::expressionForKeyPath("type"), Expression::expressionForConstantValue($action)), new ComparisonPredicate(Expression::expressionForKeyPath("roles.name"), Expression::expressionForConstantValue($authorizable->roles->map(fn(AuthorizableRole $role) => $role->name)), PredicateOperatorType::in, ComparisonPredicateModifier::any)]));
         return $context->fetch($fetchRequest);
     }
 }

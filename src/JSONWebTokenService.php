@@ -8,8 +8,8 @@ use Sabatier\Foundation\UserDefaults;
 
 /**
  * Service for encoding JSON Web Tokens (JWTs).
- * @phpstan-import-type JSONWebTokenHeaderRawValue from JSONWebTokenHeader
- * @phpstan-import-type JSONWebTokenPayloadRawValue from JSONWebTokenPayload
+ * @psalm-import-type JSONWebTokenHeaderRawValue from JSONWebTokenHeader
+ * @psalm-import-type JSONWebTokenPayloadRawValue from JSONWebTokenPayload
  */
 class JSONWebTokenService
 {

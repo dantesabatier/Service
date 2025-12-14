@@ -29,12 +29,14 @@ class Renderer
      */
     public function render(string $name, object|array $context): string
     {
-        $path = $this->bundle->url($name, "php")?->path ?? throw new NotFoundException("The view named \"$name\" does not exists");
+        $path = $this->bundle->url($name, "php")?->path ?? throw new NotFoundException("The view named \"$name\" does not exist");
         $context = (array)$context;
-        extract($context);
+        $context["include_view"] = fn(string $viewName, array|object $subContext = []) => $this->render($viewName, $subContext);
         ob_start();
-        /** @psalm-suppress UnresolvableInclude */
-        require_once $path;
+        (function (array $vars) use ($path) {
+            extract($vars, EXTR_SKIP);
+            require $path;
+        })($context);
         return (string)ob_get_clean();
     }
 }

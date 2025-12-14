@@ -42,7 +42,8 @@
     "files": [
       "src/Constants.php",
       "src/ConstantsInternal.php",
-      "src/JSONWebTokenConstants.php"
+      "src/JSONWebTokenConstants.php",
+      "src/SessionAdditions.php"
     ]
   },
   "extra": {

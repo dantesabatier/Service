@@ -11,11 +11,10 @@ use Attribute;
 final readonly class Endpoint
 {
     /**
-     * Constructor method for initializing the class with an optional path.
-     *
-     * @param string|null $path The file path or null if no path is provided. If not provided, the class name will be used as the path.
+     * @param string|null $path Opcional, path del endpoint. Por omisión, se usa el nombre de la clase.
+     * @param array<class-string<ResponseDecorator>> $decorators Decorators aplicados a todas las acciones de este endpoint.
      */
-    public function __construct(public ?string $path = null)
+    public function __construct(public ?string $path = null, public array $decorators = [])
     {
     }
 }

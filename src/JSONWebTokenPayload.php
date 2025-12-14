@@ -7,7 +7,7 @@ use Sabatier\Foundation\Date;
 
 /**
  * Represents the payload of a JSON Web Token (JWT).
- * @phpstan-type JSONWebTokenPayloadRawValue array{iss: string|null, sub: string|null, aud: string|null, exp: float|null, nbf: float|null, iat: float|null, jti: string|null, username: string|null}
+ * @psalm-type JSONWebTokenPayloadRawValue array{iss: string|null, sub: string|null, aud: string|null, exp: float|null, nbf: float|null, iat: float|null, jti: string|null, username: string|null}
  */
 class JSONWebTokenPayload implements JsonSerializable
 {

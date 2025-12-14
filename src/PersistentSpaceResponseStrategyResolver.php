@@ -2,21 +2,40 @@
 
 namespace Sabatier\Service;
 
+use Sabatier\CoreData\EntityDescription;
+use Sabatier\CoreData\ManagedObjectContext;
+use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 
 /** @internal */
-final class PersistentSpaceResponseStrategyResolver extends ResponseStrategyResolver
+final class PersistentSpaceResponseStrategyResolver
 {
-    public function __construct(Responder $responder)
+    /** @var Dictionary<class-string<PersistentSpaceResponseStrategy>> */
+    private Dictionary $byHTTPMethodResponseStrategyClassesTable {
+        get {
+            if (!isset($this->byHTTPMethodResponseStrategyClassesTable)) {
+                $this->byHTTPMethodResponseStrategyClassesTable = new Dictionary();
+                $this->byHTTPMethodResponseStrategyClassesTable[$this->request->httpMethod] = match ($this->request->httpMethod) {
+                    HTTPRequestMethod::get => ReadPersistentSpaceResponseStrategy::class,
+                    HTTPRequestMethod::post => CreatePersistentSpaceResponseStrategy::class,
+                    HTTPRequestMethod::patch => UpdatePersistentSpaceResponseStrategy::class,
+                    HTTPRequestMethod::delete => DeletePersistentSpaceResponseStrategy::class,
+                    HTTPRequestMethod::options => OptionsPersistentSpaceResponseStrategy::class,
+                    default => throw new MethodNotAllowedException(),
+                };
+            }
+            return $this->byHTTPMethodResponseStrategyClassesTable;
+        }
+    }
+    public ResponseStrategy $strategy {
+        get {
+            /** @var class-string<PersistentSpaceResponseStrategy> $responseStrategyClass */
+            $responseStrategyClass = $this->byHTTPMethodResponseStrategyClassesTable[$this->request->httpMethod];
+            return new $responseStrategyClass($this->request, $this->entity, $this->managedObjectContext);
+        }
+    }
+
+    public function __construct(public readonly Request $request, public readonly EntityDescription $entity, public readonly ManagedObjectContext $managedObjectContext)
     {
-        parent::__construct($responder);
-        $this->byHTTPMethodResponseStrategyClassesTable[$responder->request->httpMethod] = match ($responder->request->httpMethod) {
-            HTTPRequestMethod::get => PersistentSpaceGetResponseStrategy::class,
-            HTTPRequestMethod::post => PersistentSpacePostResponseStrategy::class,
-            HTTPRequestMethod::patch => PersistentSpacePatchResponseStrategy::class,
-            HTTPRequestMethod::delete => PersistentSpaceDeleteResponseStrategy::class,
-            HTTPRequestMethod::options => DefaultResponseStrategy::class,
-            default => throw new MethodNotAllowedException(),
-        };
     }
 }

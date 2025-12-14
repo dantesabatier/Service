@@ -12,11 +12,12 @@ use const Sabatier\Foundation\kCFBundleVersionKey;
 
 /** @internal */
 #[Endpoint("/")]
-class Home extends ViewController
+class HomeController extends ViewController
 {
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::head, HTTPRequestMethod::options]);
     }
+    public string $name = "Home";
     public bool $isProtectedContentAvailable = true;
     public Bundle $bundle {
         get => $this->bundle ??= Bundle::bundleForClass(self::class);

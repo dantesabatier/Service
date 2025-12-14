@@ -65,10 +65,6 @@ class Application extends Responder
     private(set) PersistentContainer $persistentContainer {
         get => $this->persistentContainer ??= $this->createPersistentContainer();
     }
-    /** @var Session The session object for managing user sessions. */
-    private(set) Session $session {
-        get => $this->session ??= new Session();
-    }
     /** @var Responder The first responder in the responder chain. */
     private(set) Responder $firstResponder {
         get => $this->firstResponder ??= new FirstResponderResolver($this, $this->authenticationManager)->firstResponder;
@@ -174,11 +170,6 @@ class Application extends Responder
         });
     }
 
-    private function initializeSession(): void
-    {
-        $this->session->start();
-    }
-
     private function checkAccessPermissions(): void
     {
         $this->accessPolicy->enforceAccess($this->firstResponder, $this->authenticationManager);
@@ -192,15 +183,14 @@ class Application extends Responder
     private function processResponse(): never
     {
         $response = $this->firstResponder->response;
-        $this->session->commit();
         $this->delegate?->applicationDidFinishLaunching($this);
         $response->send();
     }
 
-    private function handleException(Throwable $throwable): never
+    private function handle(Throwable $throwable): never
     {
-        $responder = new Thrower();
-        $responder->throw($throwable);
+        $responder = new ErrorResponder();
+        $responder->handle($throwable);
     }
 
     /**
@@ -222,12 +212,11 @@ class Application extends Responder
     {
         try {
             $this->initializeApplication();
-            $this->initializeSession();
             $this->checkAccessPermissions();
             $this->setTransactionAuthor();
             $this->processResponse();
         } catch (Throwable $throwable) {
-            $this->handleException($throwable);
+            $this->handle($throwable);
         }
     }
 

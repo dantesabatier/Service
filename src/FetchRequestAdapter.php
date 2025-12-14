@@ -12,7 +12,7 @@ use Sabatier\Foundation\Predicates\Predicate;
 use Sabatier\Foundation\SortDescriptor;
 
 /**
- * @phpstan-type FetchRequestRepresentation object{predicate: object{format: string, arguments?: array}, includesSubentities?: bool, fetchLimit?: int, fetchOffset?: int, fetchBatchSize?: int, sortDescriptors?: object{key: string, ascending: bool}[], resultType: int, propertiesToFetch?: array, returnsDistinctResults?: bool, propertiesToGroupBy?: array, havingPredicate: object{format: string, arguments?: array}}
+ * @psalm-type FetchRequestRepresentation object{predicate: object{format: string, arguments?: array}, includesSubentities?: bool, fetchLimit?: int, fetchOffset?: int, fetchBatchSize?: int, sortDescriptors?: object{key: string, ascending: bool}[], resultType: int, propertiesToFetch?: array, returnsDistinctResults?: bool, propertiesToGroupBy?: array, havingPredicate: object{format: string, arguments?: array}}
  * @internal
  */
 final class FetchRequestAdapter

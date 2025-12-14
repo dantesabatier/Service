@@ -29,7 +29,7 @@ class Uploader extends Responder
     /**
      * @throws Exception
      */
-    #[Action]
+    #[Action(decorators: [JSONDecorator::class])]
     public function upload(): void
     {
         $keys = new Set([URLResourceKey::nameKey, URLResourceKey::pathKey]);
@@ -45,7 +45,6 @@ class Uploader extends Responder
             $path = $values->path;
             $files[] = new Dictionary([URLResourceKey::nameKey => $name, URLResourceKey::pathKey => $path]);
         }
-        $this->content = json_encode($files, JSON_THROW_ON_ERROR);
-        $this->headerFields["Content-Type"] = "application/json";
+        $this->data = $files;
     }
 }

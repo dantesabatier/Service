@@ -2,8 +2,11 @@
 
 namespace Sabatier\Service;
 
+use JetBrains\PhpStorm\ExpectedValues;
+use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
+use Sabatier\Foundation\URL;
 
 /**
  * A service response.
@@ -13,37 +16,12 @@ class Response extends HTTPURLResponse
     public Emitter $emitter {
         get => $this->emitter ??= new Emitter();
     }
-    /** @var string|null The response body. */
-    public ?string $body {
-        get => $this->responder->content;
-    }
+    public mixed $body;
 
-    public function __construct(private readonly Responder $responder)
+    public function __construct(URL $url, #[ExpectedValues(valuesFromClass: HTTPStatusCode::class)] int $statusCode = HTTPStatusCode::ok, Dictionary $headerFields = new Dictionary(), mixed $body = null)
     {
-        $responder = $this->responder;
-        $request = $responder->request;
-        $headerFields = $responder->headerFields;
-        if ($origin = $request->valueForHttpHeaderField("Origin")) {
-            $headerFields["Access-Control-Allow-Origin"] = $origin;
-            $headerFields["Access-Control-Allow-Credentials"] = "true";
-            $headerFields["Vary"] = "Origin";
-        }
-        if ($value = $request->valueForHttpHeaderField("Access-Control-Request-Method")) {
-            $headerFields["Access-Control-Allow-Methods"] = $value;
-        }
-        if ($value = $request->valueForHttpHeaderField("Access-Control-Request-Headers")) {
-            $headerFields["Access-Control-Allow-Headers"] = $value;
-        }
-        if (match ($responder->statusCode) {
-            HTTPStatusCode::created, HTTPStatusCode::noContent, HTTPStatusCode::resetContent, HTTPStatusCode::notModified => true,
-            default => false
-        }) {
-            $headerFields->removeAll(fn(mixed $e, string $k): bool => match ($k) {
-                "Content-Type", "Content-Length", "Content-Disposition" => true,
-                default => false
-            });
-        }
-        parent::__construct($request->url, $responder->statusCode, headerFields: $headerFields);
+        parent::__construct($url, $statusCode, headerFields: $headerFields);
+        $this->body = $body;
     }
 
     /**

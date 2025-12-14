@@ -9,24 +9,23 @@ use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\FetchRequestResultType;
 use Sabatier\CoreData\SQLEntity;
+use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Number;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
 
 /** @internal */
-final class PersistentSpacePostResponseStrategy extends PersistentSpaceResponseStrategy
+final class CreatePersistentSpaceResponseStrategy extends PersistentSpaceResponseStrategy
 {
     public Response $response {
         /**
          * @throws Exception
          */
         get {
-            /** @var PersistentSpace $responder */
-            $responder = $this->responder;
-            $request = $responder->request;
+            $request = $this->request;
             $body = $request->parsedBody;
-            $context = $responder->managedObjectContext;
-            $entity = $responder->entity;
+            $context = $this->managedObjectContext;
+            $entity = $this->entity;
             if ($objectID = $body[SQLEntity::primaryKeyName]) {
                 /** @var FetchRequest<Number> $fetchRequest */
                 $fetchRequest = new FetchRequest();
@@ -41,9 +40,7 @@ final class PersistentSpacePostResponseStrategy extends PersistentSpaceResponseS
             $object->setValuesForKeys($body);
             $context->save();
             $object = $this->managedObject($object->objectID);
-            $responder->content = json_encode($object?->serialized($responder->request->serialization), JSON_PRESERVE_ZERO_FRACTION);
-            $responder->headerFields["Content-Type"] = "application/json";
-            return new Response($responder);
+            return new Response($request->url, HTTPStatusCode::created, body: $object?->serialized($this->request->serialization));
         }
     }
 }

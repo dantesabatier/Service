@@ -8,15 +8,14 @@ use Exception;
 use Sabatier\CoreData\SQLEntity;
 
 /** @internal */
-final class PersistentSpacePatchResponseStrategy extends PersistentSpaceResponseStrategy
+final class UpdatePersistentSpaceResponseStrategy extends PersistentSpaceResponseStrategy
 {
     public Response $response {
         /**
          * @throws Exception
          */
         get {
-            $responder = $this->responder;
-            $request = $responder->request;
+            $request = $this->request;
             $body = $request->parsedBody;
             if (!($objectID = $body[SQLEntity::primaryKeyName])) {
                 throw new BadRequestException(sprintf("\"%s\" can not be null", SQLEntity::primaryKeyName));
@@ -24,13 +23,11 @@ final class PersistentSpacePatchResponseStrategy extends PersistentSpaceResponse
             if (!($object = $this->managedObject($objectID))) {
                 throw new NotFoundException();
             }
-            $context = $responder->managedObjectContext;
+            $context = $this->managedObjectContext;
             $object->setValuesForKeys($body);
             $context->save();
             $object = $this->managedObject($object->objectID);
-            $responder->content = json_encode($object?->serialized($request->serialization), JSON_PRESERVE_ZERO_FRACTION);
-            $responder->headerFields["Content-Type"] = "application/json";
-            return new Response($responder);
+            return new Response($request->url, body: $object?->serialized($request->serialization));
         }
     }
 }

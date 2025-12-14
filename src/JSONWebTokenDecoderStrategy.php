@@ -6,8 +6,8 @@ use OpenSSLAsymmetricKey;
 
 /**
  * Class responsible for defining the strategy to decode and validate JSON Web Tokens (JWT).
- * @phpstan-import-type JSONWebTokenHeaderRawValue from JSONWebTokenHeader
- * @phpstan-import-type JSONWebTokenPayloadRawValue from JSONWebTokenPayload
+ * @psalm-import-type JSONWebTokenHeaderRawValue from JSONWebTokenHeader
+ * @psalm-import-type JSONWebTokenPayloadRawValue from JSONWebTokenPayload
  */
 abstract class JSONWebTokenDecoderStrategy extends JSONWebTokenCoderStrategy
 {

@@ -13,7 +13,7 @@ use Sabatier\Foundation\URLQueryItem;
 use function Sabatier\Foundation\string_is_equal;
 
 /**
- * @phpstan-import-type FetchRequestRepresentation from FetchRequestAdapter
+ * @psalm-import-type FetchRequestRepresentation from FetchRequestAdapter
  * @internal
  */
 final class RequestToFetchRequestAdapter

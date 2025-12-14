@@ -64,7 +64,7 @@ class AuthenticationManager extends Responder
     /**
      * @throws Exception
      */
-    #[Action]
+    #[Action(decorators: [JSONDecorator::class])]
     public function login(): void
     {
         $user = $this->authentication->authenticatedUser ?? throw new UnauthorizedException();
@@ -72,23 +72,24 @@ class AuthenticationManager extends Responder
         $data = new Dictionary();
         $data["user"] = $user;
         $username = $user->username;
-        if ($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) {
+        if ($jwtKey = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) {
             $date = new Date();
             $payloadRawValue = [JWTIssuerKey => $this->request->url->host, JWTExpirationTimeKey => $date->addingTimeInterval(UserDefaults::standard()->float(JWTValidityTimeIntervalPreferenceKey))->timeIntervalSinceReferenceDate, JWTNotBeforeTimeKey => $date->timeIntervalSinceReferenceDate, JWTIssuedAtTimeKey => $date->timeIntervalSinceReferenceDate, JWTIdKey => base64_encode(read_random(16)), JWTUsernameKey => $username];
-            $data["token"] = new JSONWebTokenService($key)->encode($payloadRawValue);
+            $data["token"] = new JSONWebTokenService($jwtKey)->encode($payloadRawValue);
+        } else {
+            $session = $this->session;
+            $session->setValueForKey($user, "authenticatedUser");
+            $data["session"] = $session->id;
         }
-        $session = Application::shared()->session;
-        $session->regenerateID();
-        $session->setValueForKey($username, "username");
-        $this->content = json_encode($data, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
-        $this->headerFields["Content-Type"] = "application/json";
+        $this->data = $data;
     }
 
     #[Action]
     public function logout(): void
     {
-        $session = Application::shared()->session;
-        $session->setValueForKey(null, "username");
+        if (!UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) {
+            $this->session->invalidate();
+        }
         $this->statusCode = HTTPStatusCode::noContent;
     }
 }

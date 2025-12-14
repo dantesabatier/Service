@@ -5,7 +5,9 @@ namespace Sabatier\Service;
 use ReflectionClass;
 use ReflectionProperty;
 use Sabatier\Foundation\Bundle;
+use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
+use Sabatier\Foundation\Networking\HTTPStatusCode;
 use function Sabatier\Foundation\class_name;
 use const Sabatier\Foundation\kCFBundleNameKey;
 
@@ -22,7 +24,16 @@ abstract class ViewController extends Responder
         get => $this->name ??= class_name($this->class);
     }
     /** @var View The view that the controller manages. */
-    private(set) View $view;
+    private(set) View $view {
+        get {
+            if (!isset($this->view)) {
+                $this->viewWillLoad();
+                $this->view = new View($this->name, $this->context, new self::$rendererClass($this->bundle));
+                $this->viewDidLoad();
+            }
+            return $this->view;
+        }
+    }
     /** @var array<string, mixed> An associative array consisting of the property names and the properties marked as {@see Outlet} passed to the view's rendering system. */
     public array $context {
         get => $this->context ??= array_reduce(new ReflectionClass($this)->getProperties(ReflectionProperty::IS_PUBLIC), function (array $context, ReflectionProperty $property): array {
@@ -39,30 +50,18 @@ abstract class ViewController extends Responder
     /** @var string|null A localized string that represents the view this controller manages. */
     #[Outlet]
     public ?string $title {
-        get => $this->bundle->object(kCFBundleNameKey);
+        get => $this->title ??= $this->bundle->object(kCFBundleNameKey);
     }
     public Response $response {
         get {
-            if ($this->request->httpMethod === HTTPRequestMethod::get) {
-                $this->loadView();
+            $body = null;
+            $request = $this->request;
+            $headerFields = new Dictionary();
+            if ($request->httpMethod === HTTPRequestMethod::get) {
+                $body = $this->view->render();
             }
-            return parent::$response::get();
+            return new CORSResponseDecorator(new HTMLDecorator(new Response($request->url, HTTPStatusCode::ok, $headerFields, $body))->response, $request)->response;
         }
-    }
-
-    /**
-     * Creates the view that the controller manages.
-     *
-     * You should never call this method directly.
-     */
-    final public function loadView(): void
-    {
-        $this->viewWillLoad();
-        $this->view = new View($this->name, $this->context, new self::$rendererClass($this->bundle));
-        $this->content = $this->view->render();
-        $this->headerFields["Content-Type"] = "text/html; charset=utf-8";
-        $this->headerFields["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0";
-        $this->viewDidLoad();
     }
 
     public function viewWillLoad(): void

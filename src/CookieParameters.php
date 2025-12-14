@@ -7,7 +7,7 @@ use Sabatier\Foundation\Networking\HTTPCookieStringPolicy;
 
 /**
  * Parameters for setting HTTP cookies.
- * @phpstan-type CookieParametersValues array{lifetime: int, path: string, domain: string, secure: bool, httponly: bool, samesite: string}
+ * @psalm-type CookieParametersValues array{lifetime: int, path: string, domain: string, secure: bool, httponly: bool, samesite: string}
  */
 readonly class CookieParameters
 {

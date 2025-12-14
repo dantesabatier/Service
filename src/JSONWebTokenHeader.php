@@ -6,7 +6,7 @@ use JsonSerializable;
 
 /**
  * Represents the header section of a JSON Web Token (JWT).
- * @phpstan-type JSONWebTokenHeaderRawValue array{alg: string, typ: string}
+ * @psalm-type JSONWebTokenHeaderRawValue array{alg: string, typ: string}
  */
 class JSONWebTokenHeader implements JsonSerializable
 {

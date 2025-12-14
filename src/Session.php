@@ -25,8 +25,24 @@ use function Sabatier\Foundation\unsafe_value;
  */
 class Session extends ObjectClass
 {
+    /** @var bool Indicates whether the session has been started by this Session instance. Read-only outside the class. */
+    private(set) bool $isStarted = false;
     /** @var URL The location where session data is stored. */
-    public readonly URL $storageURL;
+    private(set) URL $storageURL {
+        /**
+         * @throws Exception
+         */
+        get {
+            if (!isset($this->storageURL)) {
+                $this->storageURL = FileManager::default()->url(SearchPathDirectory::cachesDirectory)->appendingPathComponent(Bundle::main()->bundleIdentifier ?? ProcessInfo::processInfo()->processName)->appendingPathComponent("Session");
+                if (!FileManager::default()->fileExists($this->storageURL->path)) {
+                    FileManager::default()->createDirectory($this->storageURL, true, new Dictionary([FileAttributeKey::posixPermissions => 0777]));
+                }
+            }
+            return $this->storageURL;
+        }
+    }
+    /** @var CookieParameters The configuration used to initialize and manage the session's cookies, including domain, path, lifetime, secure, HTTP-only, and SameSite policy. */
     public CookieParameters $cookieParameters {
         get => $this->cookieParameters ??= new CookieParameters(parse_url(request_url(), PHP_URL_HOST) ?? "");
     }
@@ -42,17 +58,6 @@ class Session extends ObjectClass
     /** @var SessionStatus The session status. */
     public SessionStatus $status {
         get => SessionStatus::from(unsafe_value(fn(): int => session_status()));
-    }
-
-    /**
-     * @throws Exception
-     */
-    public function __construct()
-    {
-        $this->storageURL = FileManager::default()->url(SearchPathDirectory::cachesDirectory)->appendingPathComponent(Bundle::main()->bundleIdentifier ?? ProcessInfo::processInfo()->processName)->appendingPathComponent("Session");
-        if (!FileManager::default()->fileExists($this->storageURL->path)) {
-            FileManager::default()->createDirectory($this->storageURL, true, new Dictionary([FileAttributeKey::posixPermissions => 0777]));
-        }
     }
 
     public function __destruct()
@@ -91,16 +96,16 @@ class Session extends ObjectClass
     #[Override]
     public function valueForKey(string $key): mixed
     {
-        return $_SESSION[$key] ?? null;
+        return session_get($key);
     }
 
     #[Override]
     public function setValueForKey(mixed $value, string $key): void
     {
         if ($value === null) {
-            unset($_SESSION[$key]);
+            session_unset_key($key);
         } else {
-            $_SESSION[$key] = $value;
+            session_set($key, $value);
         }
     }
 
@@ -109,11 +114,9 @@ class Session extends ObjectClass
      */
     public function start(): void
     {
-        unsafe_value(function (): bool {
-            session_set_cookie_params($this->cookieParameters->allValues);
-            session_save_path($this->storageURL->path);
-            return session_start();
-        });
+        if (!$this->isStarted) {
+            $this->isStarted = session_start_with_params($this->cookieParameters);
+        }
     }
 
     /**
@@ -121,7 +124,9 @@ class Session extends ObjectClass
      */
     public function commit(): void
     {
-        unsafe_value(fn(): bool => session_commit());
+        if ($this->isStarted) {
+            session_commit();
+        }
     }
 
     /**
@@ -129,7 +134,9 @@ class Session extends ObjectClass
      */
     public function reset(): void
     {
-        unsafe_value(fn(): bool => session_reset());
+        if ($this->isStarted) {
+            unsafe_value(fn(): bool => session_reset());
+        }
     }
 
     /**
@@ -137,7 +144,10 @@ class Session extends ObjectClass
      */
     public function invalidate(): void
     {
-        unsafe_value(fn(): bool => session_abort());
+        if ($this->isStarted) {
+            session_destroy_safe();
+            $this->isStarted = false;
+        }
     }
 
     /**
@@ -145,6 +155,8 @@ class Session extends ObjectClass
      */
     public function regenerateID(): void
     {
-        unsafe_value(fn(): bool => session_regenerate_id());
+        if ($this->isStarted) {
+            session_regenerate_id_safe();
+        }
     }
 }

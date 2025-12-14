@@ -21,23 +21,22 @@ class Downloader extends Responder
     /**
      * @throws Exception
      */
-    #[Action]
+    #[Action(decorators: [DownloadResponseDecorator::class])]
     public function download(): void
     {
-        $body = $this->request->parsedBody;
-        $urlString = $body["url"] ?? throw new BadRequestException();
+        $request = $this->request;
+        $parsedBody = $request->parsedBody;
+        $urlString = $parsedBody["url"] ?? throw new BadRequestException();
         $attachmentURL = new URL($urlString);
         $fileManager = FileManager::default();
         $resourceURL = new URL($attachmentURL->path, $fileManager->documentRootDirectory)->absoluteURL;
         $path = $resourceURL->path;
         $fileManager->fileExists($path) ?: throw new NotFoundException();
         $fileManager->isReadableFile($path) ?: throw new MethodNotAllowedException();
-        $content = $fileManager->contents($path) ?? throw new InternalServerErrorException();
-        if (($contentType = URLFileTypeMappings::shared()->mimeType($resourceURL->pathExtension)) && ($encoding = mb_detect_encoding($content))) {
+        $body = $fileManager->contents($path) ?? throw new InternalServerErrorException();
+        if (($contentType = URLFileTypeMappings::shared()->mimeType($resourceURL->pathExtension)) && ($encoding = mb_detect_encoding($body))) {
             $contentType .= "; charset=$encoding";
         }
-        $this->headerFields["Content-Type"] = $contentType;
-        $this->headerFields["Content-Disposition"] = "attachment; filename=\"$resourceURL->lastPathComponent\"";
-        $this->content = $content;
+        $this->data = ["body" => $body, "filename" => $resourceURL->lastPathComponent, "contentType" => $contentType];
     }
 }

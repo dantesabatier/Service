@@ -4,6 +4,15 @@ namespace Sabatier\Service;
 
 use JsonException;
 
+/**
+ * Decorates a Response object by encoding its body to a JSON format
+ * and setting the appropriate Content-Type header.
+ *
+ * This class ensures the response body is properly converted to JSON
+ * and any encoding issues are handled by throwing an exception.
+ *
+ * @throws JsonException If the JSON encoding fails.
+ */
 final class JSONDecorator extends ResponseDecorator
 {
     /**

@@ -51,7 +51,7 @@ abstract class Responder extends ObjectClass
     }
     /** @var string|null The selector associated with this responder. */
     public ?string $selector = null;
-    /** @var Set<ResponseDecorator> The set of response decorators applied to this responder. Each decorator is applied to the response returned by the action method. */
+    /** @var Set<class-string<ResponseDecorator>> The set of response decorators applied to this responder. Each decorator is applied to the response returned by the action method. */
     public Set $decorators {
         get => $this->decorators ??= new Set();
     }
@@ -98,6 +98,7 @@ abstract class Responder extends ObjectClass
     {
         $isFirstResponder = false;
         $selector = null;
+        /** @var Set<class-string<ResponseDecorator>> $decorators */
         $decorators = new Set();
         $path = $this->request->url->path;
         $reflectionClass = new ReflectionClass($this);

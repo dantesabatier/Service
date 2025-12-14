@@ -7,8 +7,8 @@ namespace Sabatier\Service;
  */
 interface Authorization
 {
-    /** @var string|null The name of the authorization */
-    public ?string $name {
+    /** @var string The name of the authorization */
+    public string $name {
         get;
     }
     /** @var AuthorizationType The type of the authorization */

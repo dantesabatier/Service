@@ -12,12 +12,31 @@
         <MissingConstructor errorLevel="suppress"/>
         <MissingOverrideAttribute>
             <errorLevel type="suppress">
-                <file name="src/DefaultAuthorizationService.php"/>
                 <file name="src/JSONWebTokenHeader.php"/>
                 <file name="src/JSONWebTokenPayload.php"/>
                 <file name="src/JSONWebTokenSignature.php"/>
             </errorLevel>
         </MissingOverrideAttribute>
+        <UnresolvableInclude>
+            <errorLevel type="suppress">
+                <file name="src/Renderer.php"/>
+            </errorLevel>
+        </UnresolvableInclude>
+        <InvalidArgument>
+            <errorLevel type="suppress">
+                <file name="src/AuthorizationResolver.php"/>
+            </errorLevel>
+        </InvalidArgument>
+        <TypeDoesNotContainNull>
+            <errorLevel type="suppress">
+                <file name="src/AuthorizationService.php"/>
+            </errorLevel>
+        </TypeDoesNotContainNull>
+        <RedundantCondition>
+            <errorLevel type="suppress">
+                <file name="src/AuthorizationService.php"/>
+            </errorLevel>
+        </RedundantCondition>
         <RedundantPropertyInitializationCheck errorLevel="suppress"/>
         <InaccessibleProperty errorLevel="suppress"/>
         <InternalClass errorLevel="suppress"/>

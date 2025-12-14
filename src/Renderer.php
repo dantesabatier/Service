@@ -31,9 +31,9 @@ class Renderer
     {
         $path = $this->bundle->url($name, "php")?->path ?? throw new NotFoundException("The view named \"$name\" does not exist");
         $context = (array)$context;
-        $context["include_view"] = fn(string $viewName, array|object $subContext = []) => $this->render($viewName, $subContext);
+        $context["include_view"] = fn(string $viewName, array|object $subContext = []): string => $this->render($viewName, $subContext);
         ob_start();
-        (function (array $vars) use ($path) {
+        (function (array $vars) use ($path): void {
             extract($vars, EXTR_SKIP);
             require $path;
         })($context);

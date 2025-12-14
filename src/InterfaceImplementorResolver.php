@@ -49,10 +49,11 @@ final class InterfaceImplementorResolver
      * Resolves the entity description for the given interface.
      *
      * @param class-string<Authorizable>|class-string<Authorization> $interface The interface to resolve.
-     * @return class-string<ManagedObject> The entity description if found, or null otherwise.
+     * @return class-string<ManagedObject> The managed object class implementing the interface.
      */
     public function resolve(string $interface): string
     {
+        /** @var class-string<ManagedObject> */
         return $this->index[$interface] ?? fatal_error("No implementor found for interface \"$interface\". You must define an entity whose managed object class implements this interface and register it in the ManagedObjectModel.");
     }
 }

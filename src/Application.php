@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use ErrorException;
 use Exception;
 use Sabatier\CoreData\PersistentContainer;
 use Sabatier\CoreData\PersistentStoreDescription;
@@ -92,6 +93,7 @@ class Application extends Responder
     public AccessPolicy $accessPolicy {
         get => $this->accessPolicy ??= new DefaultAccessPolicy();
     }
+    private bool $isTerminated = false;
 
     private function initializeDelegate(): ?ApplicationDelegate
     {
@@ -164,9 +166,23 @@ class Application extends Responder
         $viewContext = $persistentContainer->viewContext;
         $viewContext->name = $persistentContainer->name;
         ProcessInfo::processInfo()->processName = $persistentContainer->name;
-        register_shutdown_function(function () use ($delegate): bool {
+        register_shutdown_function(function () use ($delegate): void {
+            $error = error_get_last();
+            if ($error) {
+                [$message, $type, $file, $line] = $error;
+                if (match ($type) {
+                        E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR, E_RECOVERABLE_ERROR => true,
+                        default => false
+                    } && !$this->isTerminated) {
+                    $exception = new ErrorException(message: $message, code: $type, filename: $file, line: $line);
+                    $delegate?->applicationDidCrash($this, $exception);
+                    if (!headers_sent()) {
+                        $this->handle($exception);
+                    }
+                }
+                return;
+            }
             $delegate?->applicationWillTerminate($this);
-            return true;
         });
     }
 
@@ -189,6 +205,10 @@ class Application extends Responder
 
     private function handle(Throwable $throwable): never
     {
+        if ($this->isTerminated) {
+            exit;
+        }
+        $this->isTerminated = true;
         $responder = new ErrorResponder();
         $responder->handle($throwable);
     }

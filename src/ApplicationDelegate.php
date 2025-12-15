@@ -2,6 +2,8 @@
 
 namespace Sabatier\Service;
 
+use ErrorException;
+
 /**
  * A set of methods to manage shared behaviors for your app.
  */
@@ -26,4 +28,5 @@ interface ApplicationDelegate
      * @param Application $application The singleton app object.
      */
     public function applicationWillTerminate(Application $application): void;
+    public function applicationDidCrash(Application $app, ErrorException $error): void;
 }

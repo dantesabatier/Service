@@ -2,7 +2,6 @@
 
 namespace Sabatier\Service;
 
-use RuntimeException;
 use Sabatier\Foundation\Dictionary;
 use function Sabatier\Foundation\human_readable_value;
 
@@ -16,8 +15,8 @@ class Emitter
      */
     private function emitHeaders(Response $response, Dictionary $headers, int $contentLength = 0): void
     {
-        if (headers_sent($file, $line)) {
-            throw new RuntimeException("Headers already sent in $file on line $line");
+        if (headers_sent()) {
+            die();
         }
         foreach (["Expires", "Cache-Control", "Pragma"] as $header) {
             header_remove($header);

@@ -2,13 +2,13 @@
 
 namespace Sabatier\Service;
 
+use JsonException;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Error;
 use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\ProcessInfo;
 use Throwable;
-use function Sabatier\Foundation\class_name;
 use function Sabatier\Foundation\localized_string;
 use const Sabatier\Foundation\LocalizedFailureReasonErrorKey;
 use const Sabatier\Foundation\URLErrorBadServerResponse;
@@ -21,6 +21,9 @@ class ErrorResponder extends Responder
         get => ProcessInfo::processInfo()->environment["APP_ENV"] === "development";
     }
     public Response $response {
+        /**
+         * @throws JsonException
+         */
         get {
             $request = $this->request;
             $throwable = $this->throwable;
@@ -35,7 +38,6 @@ class ErrorResponder extends Responder
             }
             $body = new Dictionary(["error" => $error]);
             $headerFields = new Dictionary();
-            $headerFields["Content-Type"] = "application/json";
             if ($throwable instanceof UnauthorizedException) {
                 $scheme = AuthenticationScheme::tryFrom($request->authorizationHeader->name) ?? AuthenticationScheme::basic;
                 $realm = $request->url->host ?? "";
@@ -46,14 +48,14 @@ class ErrorResponder extends Responder
                 };
                 $headerFields["WWW-Authenticate"] = $schemeHeader;
             }
-            return new CORSResponseDecorator(new Response($request->url, $statusCode, $headerFields, $body), $request)->response;
+            return new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new JSONDecorator(new Response($request->url, $statusCode, $headerFields, $body))->response)->response, $request)->response;
         }
     }
     private Throwable $throwable;
 
     public function handle(Throwable $throwable): never
     {
-        error_log(sprintf("[%s] %s", class_name(self::class), $throwable));
+        //error_log("$this->debugDescription $throwable");
         $this->throwable = $throwable;
         $this->response->send();
     }

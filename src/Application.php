@@ -9,6 +9,8 @@ use Sabatier\CoreData\PersistentStoreDescription;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Error;
 use Sabatier\Foundation\InternalInconsistencyException;
+use Sabatier\Foundation\Networking\HTTPRequestMethod;
+use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Notification;
 use Sabatier\Foundation\NotificationCenter;
 use Sabatier\Foundation\ObjectClass;
@@ -158,6 +160,15 @@ class Application extends Responder
     {
     }
 
+    private function handlePreflight(): void
+    {
+        if ($this->request->httpMethod !== HTTPRequestMethod::options) {
+            return;
+        }
+        $response = new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new Response($this->request->url, HTTPStatusCode::noContent))->response, $this->request)->response;
+        $response->send();
+    }
+
     private function initializeApplication(): void
     {
         $delegate = $this->delegate;
@@ -235,6 +246,7 @@ class Application extends Responder
     public function run(): never
     {
         try {
+            $this->handlePreflight();
             $this->initializeApplication();
             $this->checkAccessPermissions();
             $this->setTransactionAuthor();

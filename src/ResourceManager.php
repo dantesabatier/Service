@@ -44,7 +44,7 @@ class ResourceManager extends Responder
             } elseif ($request->httpMethod !== HTTPRequestMethod::options) {
                 throw new MethodNotAllowedException();
             }
-            return new CORSResponseDecorator(new Response($request->url, HTTPStatusCode::ok, $headerFields, $body), $request)->response;
+            return new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new Response($request->url, HTTPStatusCode::ok, $headerFields, $body))->response, $request)->response;
         }
     }
 }

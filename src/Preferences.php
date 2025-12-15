@@ -22,7 +22,7 @@ class Preferences extends Responder
          */
         get {
             $this->allowedMethods->containsElement($this->request->httpMethod) ?: throw new MethodNotAllowedException();
-            return new CORSResponseDecorator(new JSONDecorator(new Response($this->request->url, HTTPStatusCode::ok, body: UserDefaults::standard()->dictionaryRepresentation()))->response, $this->request)->response;
+            return new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new JSONDecorator(new Response($this->request->url, HTTPStatusCode::ok, body: UserDefaults::standard()->dictionaryRepresentation()))->response)->response, $this->request)->response;
         }
     }
 }

@@ -60,7 +60,7 @@ abstract class ViewController extends Responder
             if ($request->httpMethod === HTTPRequestMethod::get) {
                 $body = $this->view->render();
             }
-            return new CORSResponseDecorator(new HTMLDecorator(new Response($request->url, HTTPStatusCode::ok, $headerFields, $body))->response, $request)->response;
+            return new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new HTMLDecorator(new Response($request->url, HTTPStatusCode::ok, $headerFields, $body))->response)->response, $request)->response;
         }
     }
 

@@ -130,6 +130,7 @@ abstract class Responder extends ObjectClass
                 }
             }
         }
+        $decorators->append(ResponseHeaderSanitizerDecorator::class);
         return [$isFirstResponder, $selector, $decorators];
     }
 }

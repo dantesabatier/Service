@@ -9,7 +9,6 @@ use Sabatier\CoreData\PersistentStoreDescription;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Error;
 use Sabatier\Foundation\InternalInconsistencyException;
-use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Notification;
 use Sabatier\Foundation\NotificationCenter;
 use Sabatier\Foundation\ObjectClass;

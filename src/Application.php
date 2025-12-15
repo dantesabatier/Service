@@ -10,7 +10,6 @@ use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Error;
 use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
-use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Notification;
 use Sabatier\Foundation\NotificationCenter;
 use Sabatier\Foundation\ObjectClass;
@@ -162,11 +161,8 @@ class Application extends Responder
 
     private function handlePreflight(): void
     {
-        if ($this->request->httpMethod !== HTTPRequestMethod::options) {
-            return;
-        }
-        $response = new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new Response($this->request->url, HTTPStatusCode::noContent))->response, $this->request)->response;
-        $response->send();
+        $responder = new PreflightResponder();
+        $responder->handle();
     }
 
     private function initializeApplication(): void

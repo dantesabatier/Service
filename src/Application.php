@@ -175,7 +175,11 @@ class Application extends Responder
                         default => false
                     } && !$this->isTerminated) {
                     $exception = new ErrorException(message: $message, code: $type, filename: $file, line: $line);
-                    $delegate?->applicationDidCrash($this, $exception);
+                    try {
+                        $delegate?->applicationDidCrash($this, $exception);
+                    } catch (Throwable $throwable) {
+                        error_log("$this->debugDescription applicationDidCrash threw: $throwable");
+                    }
                     if (!headers_sent()) {
                         $this->handle($exception);
                     }

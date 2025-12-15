@@ -2,7 +2,7 @@
 
 namespace Sabatier\Service;
 
-use ErrorException;
+use Throwable;
 
 /**
  * A set of methods to manage shared behaviors for your app.
@@ -28,5 +28,38 @@ interface ApplicationDelegate
      * @param Application $application The singleton app object.
      */
     public function applicationWillTerminate(Application $application): void;
-    public function applicationDidCrash(Application $app, ErrorException $error): void;
+
+    /**
+     * Called when the application terminates due to a fatal error or
+     * an unrecoverable exception.
+     *
+     * This method is invoked exactly once, during the shutdown phase,
+     * before any error response is emitted and before the process
+     * terminates.
+     *
+     * The provided Throwable represents the primary cause of the crash.
+     * It is not wrapped, transformed, or normalized in any way. The full
+     * stack trace and original context are preserved.
+     *
+     * This method is observational only.
+     *
+     * Implementations MUST NOT:
+     * - Throw exceptions
+     * - Attempt to recover from the error
+     * - Emit HTTP responses or write output
+     * - Modify application state or control flow
+     *
+     * Implementations MAY:
+     * - Log the error
+     * - Send alerts or notifications
+     * - Collect metrics or diagnostics
+     *
+     * The application will terminate immediately after this method
+     * completes. Termination is guaranteed regardless of any actions
+     * taken inside this hook.
+     *
+     * @param Application $application The running application instance.
+     * @param Throwable $throwable The primary cause of the crash.
+     */
+    public function applicationDidCrash(Application $application, Throwable $throwable): void;
 }

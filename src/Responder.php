@@ -8,11 +8,13 @@ use ReflectionMethod;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\CompareOptions;
+use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\Set;
 use Sabatier\Foundation\URLComponents;
+use Sabatier\Foundation\UserDefaults;
 use function Sabatier\Foundation\string_is_equal;
 use function Sabatier\Foundation\url_validate;
 
@@ -29,6 +31,22 @@ abstract class Responder extends ObjectClass
     }
     public Session $session {
         get => self::$staticAssociatedValues[self::class][__PROPERTY__] ??= new Session();
+    }
+    /**
+     * @var CORSPolicy The CORS policy applied to the response produced by this responder.
+     *
+     * The policy defines which origins, HTTP methods, and request headers are
+     * permitted to access the response. It is evaluated by internal response
+     * decorators during response construction and emission.
+     *
+     * If no policy is provided or the policy does not allow the request origin,
+     * no CORS headers are added to the response.
+     *
+     * The default policy is resolved from the application configuration and may
+     * be overridden by subclasses to provide responder-specific behavior.
+     * */
+    public CORSPolicy $corsPolicy {
+        get => self::$staticAssociatedValues[self::class][__PROPERTY__] ??= new CORSPolicy(UserDefaults::standard()->dictionary(CORSAllowedOriginsPreferenceKey) ?? new Dictionary(), new Set(UserDefaults::standard()->array(CORSAllowedMethodsPreferenceKey) ?? [HTTPRequestMethod::head, HTTPRequestMethod::options, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::put, HTTPRequestMethod::delete]), new Set(UserDefaults::standard()->array(CORSAllowedHeadersPreferenceKey) ?? ["Content-Type", "Authorization", "Serialization"]), UserDefaults::standard()->bool(CORSAllowCredentialsPreferenceKey));
     }
     /** @var ManagedObjectContext The managed object context associated with this responder. */
     public ManagedObjectContext $managedObjectContext {
@@ -90,7 +108,7 @@ abstract class Responder extends ObjectClass
             foreach ($this->decorators as $decorator) {
                 $response = new $decorator($response)->response;
             }
-            return new CORSResponseDecorator($response, $request)->response;
+            return new CORSResponseDecorator($response, $request, $this->corsPolicy)->response;
         }
     }
 

@@ -48,7 +48,7 @@ class ErrorResponder extends Responder
                 };
                 $headerFields["WWW-Authenticate"] = $schemeHeader;
             }
-            return new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new JSONDecorator(new Response($request->url, $statusCode, $headerFields, $body))->response)->response, $request)->response;
+            return new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new JSONDecorator(new Response($request->url, $statusCode, $headerFields, $body))->response)->response, $request, $this->corsPolicy)->response;
         }
     }
     private Throwable $throwable;

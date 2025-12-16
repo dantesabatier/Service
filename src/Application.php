@@ -94,6 +94,19 @@ class Application extends Responder
         get => $this->accessPolicy ??= new DefaultAccessPolicy();
     }
     private bool $isTerminated = false;
+    private bool $isBootstrapped = false;
+
+    private function bootstrapIfNeeded(): void
+    {
+        if ($this->isBootstrapped) {
+            return;
+        }
+        $delegate = $this->delegate;
+        if ($delegate) {
+            $this->initializeDelegateClass($delegate::class);
+        }
+        $this->isBootstrapped = true;
+    }
 
     private function initializeDelegate(): ?ApplicationDelegate
     {
@@ -103,10 +116,8 @@ class Application extends Responder
         if (!isset($implementations[ApplicationDelegate::class])) {
             return null;
         }
-        /** @var class-string<ApplicationDelegate> $delegateClass */
-        $delegateClass = $principalClass;
-        $this->initializeDelegateClass($delegateClass);
-        return new $delegateClass();
+        /** @var ApplicationDelegate */
+        return new $principalClass();
     }
 
     /**
@@ -158,10 +169,10 @@ class Application extends Responder
     {
     }
 
-    private function handlePreflight(): void
+    private function handlePreflightIfNeeded(): void
     {
         $responder = new PreflightResponder();
-        $responder->handle();
+        $responder->handleResponseIfNeeded();
     }
 
     private function initializeApplication(): void
@@ -241,7 +252,8 @@ class Application extends Responder
     public function run(): never
     {
         try {
-            $this->handlePreflight();
+            $this->bootstrapIfNeeded();
+            $this->handlePreflightIfNeeded();
             $this->initializeApplication();
             $this->checkAccessPermissions();
             $this->setTransactionAuthor();

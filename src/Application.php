@@ -110,6 +110,7 @@ class Application extends Responder
 
     private function initializeDelegate(): ?ApplicationDelegate
     {
+        /** @var class-string $principalClass */
         $principalClass = (string)Bundle::main()->principalClass;
         /** @var array<string, class-string> $implementations */
         $implementations = class_implements($principalClass);
@@ -177,8 +178,10 @@ class Application extends Responder
 
     private function handleShutdown(): void
     {
-        if ($error = error_get_last()) {
-            [$message, $type, $file, $line] = $error;
+        /** @var array{type: int, message: string, file: string, line: int}|null $error */
+        $error = error_get_last();
+        if ($error) {
+            ["message" => $message, "type" => $type, "file" => $file, "line" => $line] = $error;
             if (match ($type) {
                     E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR,
                     E_USER_ERROR, E_RECOVERABLE_ERROR => true,

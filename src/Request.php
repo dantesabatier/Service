@@ -12,10 +12,22 @@ use function Sabatier\Foundation\getallheaders;
 use function Sabatier\Foundation\request_url;
 
 /**
- * A service request
+ * Represents an HTTP service request.
+ *
+ * Extends URLRequest to provide additional functionality
+ * specific to the Service layer, including:
+ * - Parsed request body from URL query or HTTP body
+ * - JSON serialization directives from the `Serialization` header
+ * - Authorization header parsing
+ * - Detection of CORS preflight requests
+ *
+ * This class centralizes request-related data and
+ * provides a convenient API for responders and services
+ * to access request content and metadata.
  */
 class Request extends URLRequest
 {
+    /** @var Dictionary Parsed body of the request. */
     private(set) Dictionary $parsedBody {
         get {
             if (!isset($this->parsedBody)) {
@@ -33,7 +45,7 @@ class Request extends URLRequest
             return $this->parsedBody;
         }
     }
-    /** @var Dictionary<mixed>|null */
+    /** @var Dictionary|null Describes which attributes/relationships to include when serializing objects for this request. */
     private(set) ?Dictionary $serialization {
         get {
             if (!isset($this->serialization)) {
@@ -45,10 +57,11 @@ class Request extends URLRequest
             return $this->serialization;
         }
     }
+    /** @var AuthorizationHeader Parsed `Authorization` header. */
     private(set) AuthorizationHeader $authorizationHeader {
         get => $this->authorizationHeader ??= new AuthorizationHeader($this->valueForHttpHeaderField("Authorization") ?? "");
     }
-    /** @internal */
+    /** @var bool Returns true if this is a CORS preflight request. */
     public bool $isPreflight {
         get => $this->httpMethod === HTTPRequestMethod::options;
     }

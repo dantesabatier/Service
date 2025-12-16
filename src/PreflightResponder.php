@@ -11,7 +11,7 @@ class PreflightResponder extends Responder
         get => new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new Response($this->request->url, HTTPStatusCode::noContent))->response, $this->request, $this->corsPolicy)->response;
     }
 
-    public function handleResponseIfNeeded(): void
+    public function respondToPreflightIfNeeded(): void
     {
         if (!$this->request->isPreflight) {
             return;

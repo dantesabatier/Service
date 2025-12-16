@@ -172,7 +172,7 @@ class Application extends Responder
     private function handlePreflightIfNeeded(): void
     {
         $responder = new PreflightResponder();
-        $responder->handleResponseIfNeeded();
+        $responder->respondToPreflightIfNeeded();
     }
 
     private function handleShutdown(): void

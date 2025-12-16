@@ -50,7 +50,7 @@ class Emitter
      */
     public function emit(Response $response, Dictionary $headers, ?string $content = null, bool $useCompression = true): never
     {
-        $content = $content ?? "";
+        $content ??= "";
         $contentLength = strlen($content);
         $this->emitHeaders($response, $headers, $contentLength);
         $this->emitContent($content, $useCompression);

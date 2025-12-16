@@ -19,7 +19,7 @@ final class HTMLDecorator extends ResponseDecorator
     {
         $headers = $response->allHeaderFields;
         $headers["Content-Type"] = "text/html; charset=utf-8";
-        $headers["Cache-Control"] = $headers["Cache-Control"] ?? "no-cache, no-store, must-revalidate, max-age=0";
+        $headers["Cache-Control"] ??= "no-cache, no-store, must-revalidate, max-age=0";
         parent::__construct($response);
     }
 }

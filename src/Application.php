@@ -175,6 +175,31 @@ class Application extends Responder
         $responder->handleResponseIfNeeded();
     }
 
+    private function handleShutdown(): void
+    {
+        if ($error = error_get_last()) {
+            [$message, $type, $file, $line] = $error;
+            if (match ($type) {
+                    E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR,
+                    E_USER_ERROR, E_RECOVERABLE_ERROR => true,
+                    default => false
+                } && !$this->isTerminated) {
+                $exception = new ErrorException(message: $message, code: $type, filename: $file, line: $line);
+                try {
+                    $this->delegate?->applicationDidCrash($this, $exception);
+                } catch (Throwable $throwable) {
+                    error_log("$this->debugDescription applicationDidCrash threw: $throwable");
+                }
+                if (!headers_sent()) {
+                    $this->handle($exception);
+                }
+            }
+            return;
+        }
+        $this->delegate?->applicationWillTerminate($this);
+    }
+
+
     private function initializeApplication(): void
     {
         $delegate = $this->delegate;
@@ -183,28 +208,7 @@ class Application extends Responder
         $viewContext = $persistentContainer->viewContext;
         $viewContext->name = $persistentContainer->name;
         ProcessInfo::processInfo()->processName = $persistentContainer->name;
-        register_shutdown_function(function () use ($delegate): void {
-            $error = error_get_last();
-            if ($error) {
-                [$message, $type, $file, $line] = $error;
-                if (match ($type) {
-                        E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR, E_RECOVERABLE_ERROR => true,
-                        default => false
-                    } && !$this->isTerminated) {
-                    $exception = new ErrorException(message: $message, code: $type, filename: $file, line: $line);
-                    try {
-                        $delegate?->applicationDidCrash($this, $exception);
-                    } catch (Throwable $throwable) {
-                        error_log("$this->debugDescription applicationDidCrash threw: $throwable");
-                    }
-                    if (!headers_sent()) {
-                        $this->handle($exception);
-                    }
-                }
-                return;
-            }
-            $delegate?->applicationWillTerminate($this);
-        });
+        register_shutdown_function($this->handleShutdown(...));
     }
 
     private function checkAccessPermissions(): void

@@ -10,7 +10,6 @@ final class ResponseHeaderSanitizerDecorator extends ResponseDecorator
     {
         $headers = $response->allHeaderFields;
         if (match ($response->statusCode) {
-            HTTPStatusCode::created,
             HTTPStatusCode::noContent,
             HTTPStatusCode::resetContent,
             HTTPStatusCode::notModified => true,

@@ -46,7 +46,7 @@ abstract class Responder extends ObjectClass
      * be overridden by subclasses to provide responder-specific behavior.
      * */
     public CORSPolicy $corsPolicy {
-        get => self::$staticAssociatedValues[self::class][__PROPERTY__] ??= new CORSPolicy(UserDefaults::standard()->dictionary(CORSAllowedOriginsPreferenceKey) ?? new Dictionary(), new Set(UserDefaults::standard()->array(CORSAllowedMethodsPreferenceKey) ?? [HTTPRequestMethod::head, HTTPRequestMethod::options, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::put, HTTPRequestMethod::delete]), new Set(UserDefaults::standard()->array(CORSAllowedHeadersPreferenceKey) ?? ["Content-Type", "Authorization", "Serialization"]), UserDefaults::standard()->bool(CORSAllowCredentialsPreferenceKey));
+        get => self::$staticAssociatedValues[self::class][__PROPERTY__] ??= new CORSPolicy(UserDefaults::standard()->dictionary(CORSAllowedOriginsPreferenceKey) ?? new Dictionary(), new Set(UserDefaults::standard()->array(CORSAllowedMethodsPreferenceKey) ?? $this->allowedMethods), new Set(UserDefaults::standard()->array(CORSAllowedHeadersPreferenceKey) ?? ["Content-Type", "Authorization", "Serialization"]), UserDefaults::standard()->bool(CORSAllowCredentialsPreferenceKey));
     }
     /** @var ManagedObjectContext The managed object context associated with this responder. */
     public ManagedObjectContext $managedObjectContext {

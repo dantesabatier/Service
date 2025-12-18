@@ -13,8 +13,10 @@ use Sabatier\Foundation\Notification;
 use Sabatier\Foundation\NotificationCenter;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\ProcessInfo;
+use Sabatier\Foundation\Set;
 use Sabatier\Foundation\UserDefaults;
 use Throwable;
+use function Sabatier\Foundation\string_split_trimmed;
 use const Sabatier\CoreData\PersistentHistoryTrackingKey;
 use const Sabatier\CoreData\PersistentStoreRemoteChange;
 use const Sabatier\CoreData\PersistentStoreRemoteChangeNotificationPostOptionKey;
@@ -92,6 +94,16 @@ class Application extends Responder
     /** @var AccessPolicy The access policy for enforcing access control. */
     public AccessPolicy $accessPolicy {
         get => $this->accessPolicy ??= new DefaultAccessPolicy();
+    }
+    public CORSPolicy $corsPolicy {
+        get {
+            if (!isset($this->corsPolicy)) {
+                $processInfo = ProcessInfo::processInfo();
+                $environment = $processInfo->environment;
+                $this->corsPolicy = new CORSPolicy(new Set(string_split_trimmed($environment[CORSAllowedOriginsKey])), new Set($environment[CORSAllowedMethodsKey]), new Set($environment[CORSAllowedHeadersKey]), filter_var($environment[CORSAllowCredentialsKey], FILTER_VALIDATE_BOOL));
+            }
+            return $this->corsPolicy;
+        }
     }
     private bool $isTerminated = false;
     private bool $isBootstrapped = false;

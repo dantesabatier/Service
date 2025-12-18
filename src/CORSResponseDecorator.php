@@ -9,9 +9,7 @@ final class CORSResponseDecorator extends ResponseDecorator
 {
     public function __construct(Response $response, Request $request, CORSPolicy $policy)
     {
-        $headers = $response->allHeaderFields;
-        $origin = $request->valueForHttpHeaderField("Origin");
-        if (!$origin) {
+        if (!($origin = $request->valueForHttpHeaderField("Origin"))) {
             parent::__construct($response);
             return;
         }
@@ -19,6 +17,7 @@ final class CORSResponseDecorator extends ResponseDecorator
             parent::__construct($response);
             return;
         }
+        $headers = $response->allHeaderFields;
         if ($policy->allowsOrigin("*") && !$policy->allowCredentials) {
             $headers["Access-Control-Allow-Origin"] = "*";
         } else {

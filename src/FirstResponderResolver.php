@@ -13,7 +13,7 @@ use Sabatier\Foundation\URL;
 use function Sabatier\Foundation\string_is_equal;
 
 /** @internal */
-class FirstResponderResolver
+final class FirstResponderResolver
 {
     public Responder $firstResponder {
         get => $this->resolveFirstResponder();

@@ -3,20 +3,12 @@
 namespace Sabatier\Service;
 
 use JetBrains\PhpStorm\ExpectedValues;
-use ReflectionClass;
-use ReflectionMethod;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
-use Sabatier\Foundation\CompareOptions;
-use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\Set;
-use Sabatier\Foundation\URLComponents;
-use Sabatier\Foundation\UserDefaults;
-use function Sabatier\Foundation\string_is_equal;
-use function Sabatier\Foundation\url_validate;
 
 /**
  * An abstract class for responding to and handling url requests.
@@ -46,7 +38,7 @@ abstract class Responder extends ObjectClass
      * be overridden by subclasses to provide responder-specific behavior.
      * */
     public CORSPolicy $corsPolicy {
-        get => self::$staticAssociatedValues[self::class][__PROPERTY__] ??= new CORSPolicy(UserDefaults::standard()->dictionary(CORSAllowedOriginsPreferenceKey) ?? new Dictionary(), new Set(UserDefaults::standard()->array(CORSAllowedMethodsPreferenceKey) ?? $this->allowedMethods), new Set(UserDefaults::standard()->array(CORSAllowedHeadersPreferenceKey) ?? ["Content-Type", "Authorization", "Serialization"]), UserDefaults::standard()->bool(CORSAllowCredentialsPreferenceKey));
+        get => $this->corsPolicy ??= Application::shared()->corsPolicy->intersect(new Set($this->allowedMethods), new Set($this->allowedHeaders));
     }
     /** @var ManagedObjectContext The managed object context associated with this responder. */
     public ManagedObjectContext $managedObjectContext {
@@ -56,22 +48,26 @@ abstract class Responder extends ObjectClass
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::head, HTTPRequestMethod::options, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::put, HTTPRequestMethod::delete]);
     }
+    /** @var ArrayClass<string> Defines the HTTP headers this responder is capable of understanding. It does not grant permission by itself; the effective allowed headers are the intersection between the responder’s declared headers and the application’s global CORS policy. */
+    public ArrayClass $allowedHeaders {
+        get => new ArrayClass(["Content-Type", "Authorization", "Serialization"]);
+    }
     /** @var Responder|null The next responder. */
     public ?Responder $nextResponder = null;
+    private ?ResponderResolution $resolution {
+        get => $this->resolution ??= new ResponderResolution($this, $this->request);
+    }
     /** @var bool Returns a Boolean value indicating whether this object is the first responder. */
     public bool $isFirstResponder {
-        get {
-            if (!isset($this->isFirstResponder)) {
-                [$this->isFirstResponder, $this->selector, $this->decorators] = $this->initializeResponder();
-            }
-            return $this->isFirstResponder;
-        }
+        get => $this->resolution->matches;
     }
     /** @var string|null The selector associated with this responder. */
-    public ?string $selector = null;
+    public ?string $selector {
+        get => $this->resolution->selector;
+    }
     /** @var Set<class-string<ResponseDecorator>> The set of response decorators applied to this responder. Each decorator is applied to the response returned by the action method. */
     public Set $decorators {
-        get => $this->decorators ??= new Set();
+        get => $this->resolution->decorators;
     }
     /** @var mixed The data produced or returned by the responder's action method. This value is used as the body of the response or as input to response decorators. */
     public mixed $data = null;
@@ -110,45 +106,5 @@ abstract class Responder extends ObjectClass
             }
             return new CORSResponseDecorator($response, $request, $this->corsPolicy)->response;
         }
-    }
-
-    private function initializeResponder(): array
-    {
-        $isFirstResponder = false;
-        $selector = null;
-        /** @var Set<class-string<ResponseDecorator>> $decorators */
-        $decorators = new Set();
-        $path = $this->request->url->path;
-        $reflectionClass = new ReflectionClass($this);
-        foreach ($reflectionClass->getAttributes(Endpoint::class) as $attribute) {
-            $endpoint = $attribute->newInstance();
-            $other = $endpoint->path ?? "/{$reflectionClass->getShortName()}";
-            if (!str_starts_with($other, "/")) {
-                $other = "/$other";
-            }
-            if (string_is_equal($path, $other, CompareOptions::caseInsensitive)) {
-                $isFirstResponder = true;
-                $decorators->appendContentsOf($endpoint->decorators);
-            }
-        }
-        foreach ($reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
-            $methodName = $method->name;
-            foreach ($method->getAttributes(Action::class) as $attribute) {
-                $action = $attribute->newInstance();
-                $other = $action->path ?? "/$methodName";
-                if (url_validate($other)) {
-                    $components = new URLComponents($other);
-                    $other = "$components->path$components->query";
-                }
-                if (string_is_equal($path, $other, CompareOptions::caseInsensitive)) {
-                    $isFirstResponder = true;
-                    $selector = $methodName;
-                    $decorators->appendContentsOf($action->decorators);
-                    break 2;
-                }
-            }
-        }
-        $decorators->append(ResponseHeaderSanitizerDecorator::class);
-        return [$isFirstResponder, $selector, $decorators];
     }
 }

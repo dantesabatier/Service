@@ -3,6 +3,7 @@
 namespace Sabatier\Service;
 
 use Sabatier\Foundation\Set;
+use function Sabatier\Foundation\string_split_trimmed;
 
 /** @internal */
 final class CORSResponseDecorator extends ResponseDecorator
@@ -31,10 +32,11 @@ final class CORSResponseDecorator extends ResponseDecorator
             $headers["Access-Control-Allow-Methods"] = $policy->allowedMethods->map(fn(string $e): string => strtoupper($e))->join(", ");
         }
         $requestedHeaders = $request->valueForHttpHeaderField("Access-Control-Request-Headers");
-        if ($requestedHeaders && !$policy->allowedHeaders->isEmpty) {
-            $allowedHeaders = clone $policy->allowedHeaders->map(fn(string $e): string => strtolower($e));
-            $allowedHeaders->formIntersection(new Set(explode(",", $requestedHeaders))->map(fn(string $e): string => strtolower($e)));
-            $headers["Access-Control-Allow-Headers"] = $allowedHeaders->join(", ");
+        if ($requestedHeaders) {
+            $allowedHeaders = $policy->allowedHeaders->intersection(new Set(string_split_trimmed($requestedHeaders)));
+            if (!$allowedHeaders->isEmpty) {
+                $headers["Access-Control-Allow-Headers"] = $allowedHeaders->join(", ");
+            }
         }
         parent::__construct($response);
     }

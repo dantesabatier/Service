@@ -4,7 +4,7 @@ namespace Sabatier\Service;
 
 use Override;
 use Sabatier\Foundation\Networking\URLCredential;
-use Sabatier\Foundation\UserDefaults;
+use Sabatier\Foundation\ProcessInfo;
 
 /** @internal */
 final class BearerAuthenticationStrategy extends AuthenticationStrategy
@@ -15,7 +15,7 @@ final class BearerAuthenticationStrategy extends AuthenticationStrategy
     private(set) ?URLCredential $credential {
         get {
             if (!isset($this->credential)) {
-                if ($key = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) {
+                if ($key = ProcessInfo::processInfo()->environment[JWTPrivateKey]) {
                     /** @noinspection PhpUnhandledExceptionInspection */
                     $token = new JSONWebTokenService($key, $this->context->tokenIssuer)->decode($this->context->authorizationHeader->value);
                     if ($username = $token->payload->username) {

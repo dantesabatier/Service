@@ -4,7 +4,7 @@ namespace Sabatier\Service;
 
 use Exception;
 use OpenSSLAsymmetricKey;
-use Sabatier\Foundation\UserDefaults;
+use Sabatier\Foundation\ProcessInfo;
 
 /**
  * Service for encoding JSON Web Tokens (JWTs).
@@ -15,7 +15,7 @@ class JSONWebTokenService
 {
     /** @var JSONWebTokenSigningAlgorithm The signing algorithm for JSON Web Tokens (JWT), defaults to the HS256 algorithm. */
     private JSONWebTokenSigningAlgorithm $algorithm {
-        get => $this->algorithm ??= JSONWebTokenSigningAlgorithm::tryFrom((string)UserDefaults::standard()->string(JWTSignatureAlgorithmPreferenceKey)) ?? JSONWebTokenSigningAlgorithm::hs256;
+        get => $this->algorithm ??= JSONWebTokenSigningAlgorithm::tryFrom(ProcessInfo::processInfo()->environment[JWTSignatureAlgorithmKey] ?? "") ?? JSONWebTokenSigningAlgorithm::hs256;
     }
     /** @var JSONWebTokenEncoderStrategy The encoder strategy instance based on the algorithm and key. */
     private JSONWebTokenEncoderStrategy $encoderStrategy {

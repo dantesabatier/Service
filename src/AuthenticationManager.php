@@ -8,7 +8,7 @@ use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
-use Sabatier\Foundation\UserDefaults;
+use Sabatier\Foundation\ProcessInfo;
 use function Sabatier\Foundation\read_random;
 
 /**
@@ -72,13 +72,15 @@ class AuthenticationManager extends Responder
         $data = new Dictionary();
         $data["user"] = $user;
         $username = $user->username;
-        if ($jwtKey = UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) {
+        $processInfo = ProcessInfo::processInfo();
+        $environment = $processInfo->environment;
+        if ($jwtKey = $environment[JWTPrivateKey]) {
             $date = new Date();
-            $payloadRawValue = [JWTIssuerKey => $this->request->url->host, JWTExpirationTimeKey => $date->addingTimeInterval(UserDefaults::standard()->float(JWTValidityTimeIntervalPreferenceKey))->timeIntervalSinceReferenceDate, JWTNotBeforeTimeKey => $date->timeIntervalSinceReferenceDate, JWTIssuedAtTimeKey => $date->timeIntervalSinceReferenceDate, JWTIdKey => base64_encode(read_random(16)), JWTUsernameKey => $username];
+            $payloadRawValue = [JWTIssuerKey => $this->request->url->host, JWTExpirationTimeKey => $date->addingTimeInterval($environment[JWTValidityTimeIntervalKey] ?? 0)->timeIntervalSinceReferenceDate, JWTNotBeforeTimeKey => $date->timeIntervalSinceReferenceDate, JWTIssuedAtTimeKey => $date->timeIntervalSinceReferenceDate, JWTIdKey => base64_encode(read_random(16)), JWTUsernameKey => $username];
             $data["token"] = new JSONWebTokenService($jwtKey)->encode($payloadRawValue);
         } else {
             $session = $this->session;
-            $session->setValueForKey($user, "authenticatedUser");
+            $session->setValueForKey($username, "authenticatedUser");
             $data["session"] = $session->id;
         }
         $this->data = $data;
@@ -87,7 +89,7 @@ class AuthenticationManager extends Responder
     #[Action]
     public function logout(): void
     {
-        if (!UserDefaults::standard()->string(JWTPrivateKeyPreferenceKey)) {
+        if (!ProcessInfo::processInfo()->environment[JWTPrivateKey]) {
             $this->session->invalidate();
         }
         $this->statusCode = HTTPStatusCode::noContent;

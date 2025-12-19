@@ -100,7 +100,7 @@ class Application extends Responder
             if (!isset($this->corsPolicy)) {
                 $processInfo = ProcessInfo::processInfo();
                 $environment = $processInfo->environment;
-                $this->corsPolicy = new CORSPolicy(new Set(string_split_trimmed($environment[CORSAllowedOriginsKey])), new Set($environment[CORSAllowedMethodsKey]), new Set($environment[CORSAllowedHeadersKey]), filter_var($environment[CORSAllowCredentialsKey], FILTER_VALIDATE_BOOL));
+                $this->corsPolicy = new CORSPolicy(new Set(string_split_trimmed($environment[CORSAllowedOriginsKey] ?? "")), new Set(string_split_trimmed($environment[CORSAllowedMethodsKey] ?? "")), new Set(string_split_trimmed($environment[CORSAllowedHeadersKey] ?? "")), filter_var($environment[CORSAllowCredentialsKey], FILTER_VALIDATE_BOOL));
             }
             return $this->corsPolicy;
         }

@@ -2,9 +2,9 @@
 
 namespace Sabatier\Service;
 
-const JWTPrivateKeyPreferenceKey = "JWTPrivateKeyPreferenceKey";
-const JWTValidityTimeIntervalPreferenceKey = "JWTValidityTimeIntervalPreferenceKey";
-const JWTSignatureAlgorithmPreferenceKey = "JWTSignatureAlgorithmPreferenceKey";
+const JWTPrivateKey = "JWT_PRIVATE_KEY";
+const JWTValidityTimeIntervalKey = "JWT_VALIDITY_TIME_INTERVAL";
+const JWTSignatureAlgorithmKey = "JWT_SIGNATURE_ALGORITHM";
 const JWTAlgorithmKey = "alg";
 const JWTTypeKey = "typ";
 const JWTIssuerKey = "iss";

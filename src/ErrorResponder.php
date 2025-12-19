@@ -9,8 +9,6 @@ use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\ProcessInfo;
 use Throwable;
-use function Sabatier\Foundation\localized_string;
-use const Sabatier\Foundation\LocalizedDescriptionKey;
 use const Sabatier\Foundation\LocalizedFailureReasonErrorKey;
 use const Sabatier\Foundation\URLErrorBadServerResponse;
 use const Sabatier\Foundation\URLErrorDomain;
@@ -29,15 +27,12 @@ class ErrorResponder extends Responder
             $request = $this->request;
             $throwable = $this->throwable;
             $statusCode = HTTPStatusCode::internalServerError;
-            $error = new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $throwable->getMessage()]));
+            $error = new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $this->isDevelopmentMode ? sprintf("<%s %s>", get_class($throwable), spl_object_id($throwable)) : $throwable->getMessage()]));
             if ($throwable instanceof InternalInconsistencyException) {
                 $error = $throwable->error;
                 if ($throwable instanceof InvalidRequestException) {
                     $statusCode = $throwable->getCode();
                 }
-            }
-            if (!$this->isDevelopmentMode) {
-                $error = new Error($error->domain, $error->code, new Dictionary([LocalizedDescriptionKey => localized_string("An internal error occurred")]));
             }
             $body = new Dictionary(["error" => $error]);
             $headerFields = new Dictionary();

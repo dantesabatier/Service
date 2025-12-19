@@ -18,7 +18,7 @@ final class BearerAuthenticationStrategy extends AuthenticationStrategy
                 if ($key = ProcessInfo::processInfo()->environment[JWTPrivateKey]) {
                     /** @noinspection PhpUnhandledExceptionInspection */
                     $token = new JSONWebTokenService($key, $this->context->tokenIssuer)->decode($this->context->authorizationHeader->value);
-                    if ($username = $token->payload->username) {
+                    if ($username = $token->payload->sub) {
                         $this->credential = new URLCredential($username);
                     }
                 }

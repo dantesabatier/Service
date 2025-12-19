@@ -2,7 +2,7 @@
 
 namespace Sabatier\Service;
 
-use Sabatier\Foundation\Sequence;
+use Sabatier\Foundation\Set;
 
 /**
  * Represents a role that can be authorized within the system.
@@ -13,8 +13,8 @@ interface AuthorizableRole
     public string $name {
         get;
     }
-    /** @var Sequence<Authorization> Provides access to a sequence of {@see Authorization} objects associated with the role. */
-    public Sequence $authorizations {
+    /** @var Set<Authorization> Provides access to a sequence of {@see Authorization} objects associated with the role. */
+    public Set $authorizations {
         get;
     }
 }

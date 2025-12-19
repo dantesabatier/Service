@@ -4,12 +4,10 @@ namespace Sabatier\Service;
 
 use Exception;
 use Sabatier\Foundation\ArrayClass;
-use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\ProcessInfo;
-use function Sabatier\Foundation\read_random;
 
 /**
  * An object that manages authentication processes.
@@ -19,15 +17,18 @@ class AuthenticationManager extends Responder
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
     }
+    private AuthenticationStrategy $authenticationStrategy {
+        get {
+            if (!isset($this->authenticationStrategy)) {
+                $authenticationStrategyClass = AuthenticationStrategyFactory::getAuthenticationStrategyClass(AuthenticationStrategyFactory::getAuthenticationStrategies() ?? new ArrayClass(), $this->request->authorizationHeader->scheme) ?? throw new UnimplementedException();
+                $this->authenticationStrategy = new $authenticationStrategyClass(new AuthenticationContext($this->request->authorizationHeader, $this->request->url->host, $this->request->httpMethod, $this->managedObjectContext, $this->isFirstResponder ? $this->request->serialization : null, $this->authenticationService));
+            }
+            return $this->authenticationStrategy;
+        }
+    }
     /** @var Authentication The authentication object managing the authentication process. */
     public Authentication $authentication {
-        get {
-            if (!isset($this->authentication)) {
-                $authenticationStrategyClass = AuthenticationStrategyFactory::getAuthenticationStrategyClass(AuthenticationStrategyFactory::getAuthenticationStrategies() ?? new ArrayClass(), $this->request->authorizationHeader->scheme) ?? throw new UnimplementedException();
-                $this->authentication = new Authentication(new $authenticationStrategyClass(new AuthenticationContext($this->request->authorizationHeader, $this->request->url->host, $this->request->httpMethod, $this->managedObjectContext, $this->isFirstResponder ? $this->request->serialization : null, $this->authenticationService)));
-            }
-            return $this->authentication;
-        }
+        get => $this->authentication ??= new Authentication($this->authenticationStrategy);
     }
     public bool $isProtectedContentAvailable {
         /**
@@ -75,9 +76,7 @@ class AuthenticationManager extends Responder
         $processInfo = ProcessInfo::processInfo();
         $environment = $processInfo->environment;
         if ($jwtKey = $environment[JWTPrivateKey]) {
-            $date = new Date();
-            $payloadRawValue = [JWTIssuerKey => $this->request->url->host, JWTExpirationTimeKey => $date->addingTimeInterval($environment[JWTValidityTimeIntervalKey] ?? 0)->timeIntervalSinceReferenceDate, JWTNotBeforeTimeKey => $date->timeIntervalSinceReferenceDate, JWTIssuedAtTimeKey => $date->timeIntervalSinceReferenceDate, JWTIdKey => base64_encode(read_random(16)), JWTUsernameKey => $username];
-            $data["token"] = new JSONWebTokenService($jwtKey)->encode($payloadRawValue);
+            $data["token"] = new JWTTokenIssuer(new JSONWebTokenService($jwtKey), $environment)->issue($user, $this->authenticationStrategy->context);
         } else {
             $session = $this->session;
             $session->regenerateID();

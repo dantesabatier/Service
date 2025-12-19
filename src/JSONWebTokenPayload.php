@@ -7,7 +7,7 @@ use Sabatier\Foundation\Date;
 
 /**
  * Represents the payload of a JSON Web Token (JWT).
- * @psalm-type JSONWebTokenPayloadRawValue array{iss: string|null, sub: string|null, aud: string|null, exp: float|null, nbf: float|null, iat: float|null, jti: string|null, username: string|null}
+ * @psalm-type JSONWebTokenPayloadRawValue array{iss: string|null, sub: string|null, aud: string|null, exp: float|null, nbf: float|null, iat: float|null, jti: string|null, scp: array|null}
  */
 class JSONWebTokenPayload implements JsonSerializable
 {
@@ -55,11 +55,11 @@ class JSONWebTokenPayload implements JsonSerializable
      * @param Date|null $nbf Not before time (the token is valid on or after this time).
      * @param Date|null $iat Issued at time (the time at which the token was issued).
      * @param string|null $jti Unique identifier for the token.
-     * @param string|null $username Username associated with the token.
+     * @param array|null $scopes scope associated with the token.
      */
-    public function __construct(?string $iss = null, ?string $sub = null, ?string $aud = null, ?Date $exp = null, ?Date $nbf = null, ?Date $iat = null, ?string $jti = null, ?string $username = null)
+    public function __construct(?string $iss = null, ?string $sub = null, ?string $aud = null, ?Date $exp = null, ?Date $nbf = null, ?Date $iat = null, ?string $jti = null, ?array $scopes = null)
     {
-        $this->rawValue = [JWTIssuerKey => $iss, JWTSubjectKey => $sub, JWTAudienceKey => $aud, JWTExpirationTimeKey => $exp?->timeIntervalSinceReferenceDate, JWTNotBeforeTimeKey => $nbf?->timeIntervalSinceReferenceDate, JWTIssuedAtTimeKey => $iat?->timeIntervalSinceReferenceDate, JWTIdKey => $jti, JWTUsernameKey => $username];
+        $this->rawValue = [JWTIssuerKey => $iss, JWTSubjectKey => $sub, JWTAudienceKey => $aud, JWTExpirationTimeKey => $exp?->timeIntervalSinceReferenceDate, JWTNotBeforeTimeKey => $nbf?->timeIntervalSinceReferenceDate, JWTIssuedAtTimeKey => $iat?->timeIntervalSinceReferenceDate, JWTIdKey => $jti, JWTScopesKey => $scopes];
     }
 
     /**

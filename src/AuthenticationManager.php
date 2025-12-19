@@ -80,7 +80,8 @@ class AuthenticationManager extends Responder
             $data["token"] = new JSONWebTokenService($jwtKey)->encode($payloadRawValue);
         } else {
             $session = $this->session;
-            $session->setValueForKey($username, "authenticatedUser");
+            $session->regenerateID();
+            $session->setValueForKey($username, "user");
             $data["session"] = $session->id;
         }
         $this->data = $data;

@@ -31,11 +31,11 @@ final class CORSResponseDecorator extends ResponseDecorator
             $headers["Access-Control-Allow-Credentials"] = "true";
         }
         if (!$policy->allowedMethods->isEmpty) {
-            $headers["Access-Control-Allow-Methods"] = $policy->allowedMethods->map(fn(string $e): string => strtoupper($e))->join(", ");
+            $headers["Access-Control-Allow-Methods"] = $policy->allowedMethods->map(fn(string $allowedMethod): string => strtoupper($allowedMethod))->join(", ");
         }
         $requestedHeaders = $request->valueForHttpHeaderField("Access-Control-Request-Headers");
         if ($requestedHeaders) {
-            $allowedHeaders = $policy->allowedHeaders->union(new Set(string_split_trimmed($requestedHeaders))->filter(fn(string $e): bool => $policy->allowedHeaders->contains(fn(string $allowedHeader): bool => string_is_equal($allowedHeader, $e, CompareOptions::caseInsensitive))));
+            $allowedHeaders = $policy->allowedHeaders->union(new Set(string_split_trimmed($requestedHeaders))->filter(fn(string $requestedHeader): bool => $policy->allowedHeaders->contains(fn(string $allowedHeader): bool => string_is_equal($allowedHeader, $requestedHeader, CompareOptions::caseInsensitive))));
             if (!$allowedHeaders->isEmpty) {
                 $headers["Access-Control-Allow-Headers"] = $allowedHeaders->join(", ");
             }

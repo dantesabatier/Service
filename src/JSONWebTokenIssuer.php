@@ -8,7 +8,7 @@ use Sabatier\Foundation\Dictionary;
 use function Sabatier\Foundation\read_random;
 
 /** @internal */
-final readonly class JWTTokenIssuer implements TokenIssuer
+final readonly class JSONWebTokenIssuer implements TokenIssuer
 {
     public function __construct(private JSONWebTokenService $service, private Dictionary $environment)
     {

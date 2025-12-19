@@ -76,7 +76,7 @@ class AuthenticationManager extends Responder
         $processInfo = ProcessInfo::processInfo();
         $environment = $processInfo->environment;
         if ($jwtKey = $environment[JWTPrivateKey]) {
-            $data["token"] = new JWTTokenIssuer(new JSONWebTokenService($jwtKey), $environment)->issue($user, $this->authenticationStrategy->context);
+            $data["token"] = new JSONWebTokenIssuer(new JSONWebTokenService($jwtKey), $environment)->issue($user, $this->authenticationStrategy->context);
         } else {
             $session = $this->session;
             $session->regenerateID();

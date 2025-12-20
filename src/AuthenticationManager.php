@@ -7,6 +7,7 @@ use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
+use Sabatier\Foundation\Number;
 use Sabatier\Foundation\ProcessInfo;
 use function Sabatier\Foundation\fatal_error;
 
@@ -77,7 +78,7 @@ class AuthenticationManager extends Responder
         $processInfo = ProcessInfo::processInfo();
         $environment = $processInfo->environment;
         if ($jwtKey = $environment[JWTPrivateKey]) {
-            $data["token"] = new JSONWebTokenIssuer(new JSONWebTokenService($jwtKey), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, $environment[JWTValidityTimeIntervalKey] ?? 1800)->issue($user, $this->authenticationStrategy->context);
+            $data["token"] = new JSONWebTokenIssuer(new JSONWebTokenService($jwtKey), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? 1800)->intValue)->issue($user, $this->authenticationStrategy->context);
         } else {
             $session = $this->session;
             $session->regenerateID();

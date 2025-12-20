@@ -29,8 +29,23 @@ class AuthenticationManager extends Responder
         }
     }
     /** @var Authentication The authentication object managing the authentication process. */
-    public Authentication $authentication {
+    private(set) Authentication $authentication {
         get => $this->authentication ??= new Authentication($this->authenticationStrategy);
+    }
+    /** @var IdentitySource|null The resolved identity associated with the current request, if any */
+    private(set) ?IdentitySource $identitySource {
+        get {
+            if (isset($this->identitySource)) {
+                return $this->identitySource;
+            }
+            if ($this->authenticationStrategy instanceof BearerAuthenticationStrategy && $this->authenticationStrategy->isValid) {
+                return $this->identitySource = new JWTIdentitySource($this->authentication->authenticatedUser, $this->authenticationStrategy->token);
+            }
+            if ($this->session->isStarted) {
+                return $this->identitySource = new SessionIdentitySource($this->authentication->authenticatedUser, $this->session);
+            }
+            return null;
+        }
     }
     public bool $isProtectedContentAvailable {
         /**
@@ -46,7 +61,7 @@ class AuthenticationManager extends Responder
             if (!$this->authentication->isValid) {
                 return $this->isProtectedContentAvailable = false;
             }
-            if (!($authenticatedUser = $this->authentication->authenticatedUser)) {
+            if (!($authenticatedUser = $this->identitySource?->subject)) {
                 return $this->isProtectedContentAvailable = false;
             }
             return $this->isProtectedContentAvailable = $this->authorizationService->isAuthorized($authenticatedUser, $this->request->url->lastPathComponent, match ($this->request->httpMethod) {
@@ -55,7 +70,7 @@ class AuthenticationManager extends Responder
                 HTTPRequestMethod::put, HTTPRequestMethod::patch => AuthorizationType::update,
                 HTTPRequestMethod::delete => AuthorizationType::delete,
                 default => throw new MethodNotAllowedException()
-            }, $this->authenticationStrategy instanceof BearerAuthenticationStrategy ? $this->authenticationStrategy->scopes : new ArrayClass(), $this->managedObjectContext);
+            }, $this->identitySource->scopes, $this->managedObjectContext);
         }
     }
 
@@ -74,15 +89,19 @@ class AuthenticationManager extends Responder
         /** @var Dictionary<mixed> $data */
         $data = new Dictionary();
         $data["user"] = $user;
-        $username = $user->username;
-        $processInfo = ProcessInfo::processInfo();
-        $environment = $processInfo->environment;
+        $environment = ProcessInfo::processInfo()->environment;
         if ($jwtKey = $environment[JWTPrivateKey]) {
-            $data["token"] = new JSONWebTokenIssuer(new JSONWebTokenService($jwtKey), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? 1800)->intValue)->issue($user, $this->authenticationStrategy->context);
+            $service = new JSONWebTokenService($jwtKey);
+            $issuer = new JSONWebTokenIssuer($service, new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? 1800)->intValue);
+            $tokenString = $issuer->issue($user, $this->authenticationStrategy->context);
+            $token = $service->decode($tokenString);
+            $this->identitySource = new JWTIdentitySource($user, $token);
+            $data["token"] = $tokenString;
         } else {
             $session = $this->session;
             $session->regenerateID();
-            $session->setValueForKey($username, "user");
+            $session->setValueForKey($user, "user");
+            $this->identitySource = new SessionIdentitySource($user, $session);
             $data["session"] = $session->id;
         }
         $this->data = $data;
@@ -91,9 +110,13 @@ class AuthenticationManager extends Responder
     #[Action]
     public function logout(): void
     {
-        if (!ProcessInfo::processInfo()->environment[JWTPrivateKey]) {
-            $this->session->invalidate();
-        }
+        $this->identitySource?->invalidate();
+        $this->identitySource = null;
         $this->statusCode = HTTPStatusCode::noContent;
+    }
+
+    #[Action(decorators: [JSONDecorator::class])]
+    public function refresh(): void
+    {
     }
 }

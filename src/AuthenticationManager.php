@@ -88,7 +88,9 @@ class AuthenticationManager extends Responder
     #[Action]
     public function logout(): void
     {
-        $this->session->invalidate();
+        if (!ProcessInfo::processInfo()->environment[JWTPrivateKey]) {
+            $this->session->invalidate();
+        }
         $this->statusCode = HTTPStatusCode::noContent;
     }
 }

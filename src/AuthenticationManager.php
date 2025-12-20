@@ -54,7 +54,7 @@ class AuthenticationManager extends Responder
                 HTTPRequestMethod::put, HTTPRequestMethod::patch => AuthorizationType::update,
                 HTTPRequestMethod::delete => AuthorizationType::delete,
                 default => throw new MethodNotAllowedException()
-            }, $this->managedObjectContext, $this->authenticationStrategy instanceof BearerAuthenticationStrategy ? $this->authenticationStrategy->scopes : new ArrayClass());
+            }, $this->authenticationStrategy instanceof BearerAuthenticationStrategy ? $this->authenticationStrategy->scopes : new ArrayClass(), $this->managedObjectContext);
         }
     }
 

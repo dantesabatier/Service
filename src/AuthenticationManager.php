@@ -114,9 +114,4 @@ class AuthenticationManager extends Responder
         $this->identitySource = null;
         $this->statusCode = HTTPStatusCode::noContent;
     }
-
-    #[Action(decorators: [JSONDecorator::class])]
-    public function refresh(): void
-    {
-    }
 }

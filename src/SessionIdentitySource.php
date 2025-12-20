@@ -5,6 +5,7 @@ namespace Sabatier\Service;
 use Override;
 use Sabatier\Foundation\ArrayClass;
 
+/** @internal */
 class SessionIdentitySource extends IdentitySource
 {
     private(set) ArrayClass $scopes {

@@ -4,6 +4,7 @@ namespace Sabatier\Service;
 
 use Sabatier\Foundation\ArrayClass;
 
+/** @internal */
 class JWTIdentitySource extends IdentitySource
 {
     /** @var ArrayClass<string> */

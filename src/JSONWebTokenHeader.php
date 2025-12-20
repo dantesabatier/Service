@@ -25,9 +25,9 @@ class JSONWebTokenHeader implements JsonSerializable
      * @param string $alg The algorithm used for the token.
      * @param string $typ The type of token.
      */
-    public function __construct(string $alg = "HS256", string $typ = "JWT")
+    public function __construct(string $alg = JSONWebTokenSigningAlgorithm::hs256->value, string $typ = JWTTypeValue)
     {
-        $this->rawValue = ["alg" => $alg, "typ" => $typ];
+        $this->rawValue = [JWTAlgorithmKey => $alg, JWTTypeKey => $typ];
     }
 
     /**
@@ -36,7 +36,7 @@ class JSONWebTokenHeader implements JsonSerializable
      * @param JSONWebTokenHeaderRawValue $rawValue The raw header value.
      * @return JSONWebTokenHeader
      */
-    public static function header(array $rawValue = ["alg" => "HS256", "typ" => "JWT"]): JSONWebTokenHeader
+    public static function header(array $rawValue = [JWTAlgorithmKey => JSONWebTokenSigningAlgorithm::hs256->value, JWTTypeKey => JWTTypeValue]): JSONWebTokenHeader
     {
         $header = new JSONWebTokenHeader();
         $header->rawValue = $rawValue;

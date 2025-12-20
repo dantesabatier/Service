@@ -37,6 +37,16 @@
                 <file name="src/AuthorizationService.php"/>
             </errorLevel>
         </RedundantCondition>
+        <InvalidNullableReturnType>
+            <errorLevel type="suppress">
+                <file name="src/InterfaceImplementorResolver.php"/>
+            </errorLevel>
+        </InvalidNullableReturnType>
+        <NullableReturnStatement>
+            <errorLevel type="suppress">
+                <file name="src/InterfaceImplementorResolver.php"/>
+            </errorLevel>
+        </NullableReturnStatement>
         <RedundantPropertyInitializationCheck errorLevel="suppress"/>
         <InaccessibleProperty errorLevel="suppress"/>
         <InternalClass errorLevel="suppress"/>

@@ -3,6 +3,7 @@
 namespace Sabatier\Service;
 
 use Exception;
+use Override;
 use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
 use function Sabatier\Foundation\read_random;
@@ -17,6 +18,7 @@ final readonly class JSONWebTokenIssuer implements TokenIssuer
     /**
      * @throws Exception
      */
+    #[Override]
     public function issue(Authorizable $subject, AuthenticationContext $context): string
     {
         $date = new Date();

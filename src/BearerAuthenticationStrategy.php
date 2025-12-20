@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use Exception;
 use Override;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\ProcessInfo;
@@ -13,18 +14,17 @@ final class BearerAuthenticationStrategy extends AuthenticationStrategy
         get => AuthenticationScheme::bearer;
     }
     private(set) ?URLCredential $credential {
+        /**
+         * @throws Exception
+         */
         get {
-            if (!isset($this->credential)) {
-                if ($key = ProcessInfo::processInfo()->environment[JWTPrivateKey]) {
-                    /** @noinspection PhpUnhandledExceptionInspection */
-                    $token = new JSONWebTokenService($key, $this->context->tokenIssuer)->decode($this->context->authorizationHeader->value);
-                    if ($username = $token->payload->sub) {
-                        $this->credential = new URLCredential($username);
-                    }
-                }
-                $this->credential ??= null;
+            if (isset($this->credential)) {
+                return $this->credential;
             }
-            return $this->credential;
+            if (!($jwtKey = ProcessInfo::processInfo()->environment[JWTPrivateKey])) {
+                return $this->credential = null;
+            }
+            return $this->credential = new BearerCredentialProvider(new JSONWebTokenService($jwtKey, $this->context->tokenIssuer))->decode($this->context);
         }
     }
     public bool $isValid {

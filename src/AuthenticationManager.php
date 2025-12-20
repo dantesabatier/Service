@@ -91,17 +91,11 @@ class AuthenticationManager extends Responder
         $data["user"] = $user;
         $environment = ProcessInfo::processInfo()->environment;
         if ($jwtKey = $environment[JWTPrivateKey]) {
-            $service = new JSONWebTokenService($jwtKey, $this->request->url->host);
-            $issuer = new JSONWebTokenIssuer($service, new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? 1800)->intValue);
-            $tokenString = $issuer->issue($user, $this->authenticationStrategy->context);
-            $token = $service->decode($tokenString);
-            $this->identitySource = new JWTIdentitySource($user, $token);
-            $data["token"] = $tokenString;
+            $data["token"] = new JSONWebTokenIssuer(new JSONWebTokenService($jwtKey, $this->request->url->host), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? 1800)->intValue)->issue($user, $this->authenticationStrategy->context);
         } else {
             $session = $this->session;
             $session->regenerateID();
             $session->setValueForKey($user, "user");
-            $this->identitySource = new SessionIdentitySource($user, $session);
             $data["session"] = $session->id;
         }
         $this->data = $data;

@@ -48,6 +48,11 @@
                 <file name="src/InterfaceImplementorResolver.php"/>
             </errorLevel>
         </NullableReturnStatement>
+        <PossiblyNullArgument>
+            <errorLevel type="suppress">
+                <file name="src/AuthenticationManager.php"/>
+            </errorLevel>
+        </PossiblyNullArgument>
         <RedundantPropertyInitializationCheck errorLevel="suppress"/>
         <InaccessibleProperty errorLevel="suppress"/>
         <InternalClass errorLevel="suppress"/>

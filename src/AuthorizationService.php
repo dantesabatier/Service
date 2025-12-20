@@ -23,16 +23,16 @@ readonly class AuthorizationService
      * @param Authorizable $entity The entity requesting authorization.
      * @param string $resource The resource on which the action is to be performed.
      * @param AuthorizationType $action The type of action being requested.
-     * @param ManagedObjectContext $context The context in which the authorization is being evaluated.
      * @param ArrayClass<string> $tokenScopes The scopes associated with the token used to authorize the request.
+     * @param ManagedObjectContext $context The context in which the authorization is being evaluated.
      * @return bool Returns true if the entity is authorized, false otherwise.
      * @throws Exception
      */
-    public function isAuthorized(Authorizable $entity, string $resource, AuthorizationType $action, ManagedObjectContext $context, ArrayClass $tokenScopes): bool
+    public function isAuthorized(Authorizable $entity, string $resource, AuthorizationType $action, ArrayClass $tokenScopes, ManagedObjectContext $context): bool
     {
         $scopeToCheck = "$resource:$action->name";
         $anyScope = "$resource:any";
-        if ($tokenScopes->contains(fn(string $tokenScope) => $tokenScope === $scopeToCheck || $tokenScope === $anyScope)) {
+        if ($tokenScopes->contains(fn(string $tokenScope): bool => $tokenScope === $scopeToCheck || $tokenScope === $anyScope)) {
             return true;
         }
         if (!($authorizations = $this->inRequestCache->getAuthorizableAuthorizations($entity)) && ($authorizations = $this->persistentCache?->getAuthorizableAuthorizations($entity))) {

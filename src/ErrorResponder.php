@@ -27,7 +27,7 @@ class ErrorResponder extends Responder
             $request = $this->request;
             $throwable = $this->throwable;
             $statusCode = HTTPStatusCode::internalServerError;
-            $error = new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $this->isDevelopmentMode ? sprintf("<%s %s>", get_class($throwable), spl_object_id($throwable)) : $throwable->getMessage()]));
+            $error = new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedFailureReasonErrorKey => $this->isDevelopmentMode ? sprintf("<%s %s>", $throwable::class, spl_object_id($throwable)) : $throwable->getMessage()]));
             if ($throwable instanceof InternalInconsistencyException) {
                 $error = $throwable->error;
                 if ($throwable instanceof InvalidRequestException) {

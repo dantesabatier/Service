@@ -51,7 +51,7 @@ class AuthenticationManager extends Responder
                     HTTPRequestMethod::put, HTTPRequestMethod::patch => AuthorizationType::update,
                     HTTPRequestMethod::delete => AuthorizationType::delete,
                     default => throw new MethodNotAllowedException()
-                }, $this->managedObjectContext);
+                }, $this->managedObjectContext, new ArrayClass($this->authenticationStrategy instanceof BearerAuthenticationStrategy ? $this->authenticationStrategy->token?->payload?->scp ?? [] : []));
             }
             return $this->isProtectedContentAvailable;
         }
@@ -76,7 +76,7 @@ class AuthenticationManager extends Responder
         $processInfo = ProcessInfo::processInfo();
         $environment = $processInfo->environment;
         if ($jwtKey = $environment[JWTPrivateKey]) {
-            $data["token"] = new JSONWebTokenIssuer(new JSONWebTokenService($jwtKey), $environment)->issue($user, $this->authenticationStrategy->context);
+            $data["token"] = new JSONWebTokenIssuer(new JSONWebTokenService($jwtKey), new AuthorizationScopeBuilder(Application::shared()->persistentContainer->managedObjectModel), $this->managedObjectContext, $environment[JWTValidityTimeIntervalKey] ?? 1800)->issue($user, $this->authenticationStrategy->context);
         } else {
             $session = $this->session;
             $session->regenerateID();

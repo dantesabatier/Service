@@ -4,6 +4,7 @@ namespace Sabatier\Service;
 
 use Exception;
 use Sabatier\CoreData\ManagedObjectContext;
+use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\CompareOptions;
 use function Sabatier\Foundation\string_is_equal;
 
@@ -23,11 +24,17 @@ readonly class AuthorizationService
      * @param string $resource The resource on which the action is to be performed.
      * @param AuthorizationType $action The type of action being requested.
      * @param ManagedObjectContext $context The context in which the authorization is being evaluated.
+     * @param ArrayClass<string> $tokenScopes The scopes associated with the token used to authorize the request.
      * @return bool Returns true if the entity is authorized, false otherwise.
      * @throws Exception
      */
-    public function isAuthorized(Authorizable $entity, string $resource, AuthorizationType $action, ManagedObjectContext $context): bool
+    public function isAuthorized(Authorizable $entity, string $resource, AuthorizationType $action, ManagedObjectContext $context, ArrayClass $tokenScopes): bool
     {
+        $scopeToCheck = "$resource:$action->name";
+        $anyScope = "$resource:any";
+        if ($tokenScopes->contains(fn(string $tokenScope) => $tokenScope === $scopeToCheck || $tokenScope === $anyScope)) {
+            return true;
+        }
         if (!($authorizations = $this->inRequestCache->getAuthorizableAuthorizations($entity)) && ($authorizations = $this->persistentCache?->getAuthorizableAuthorizations($entity))) {
             $this->inRequestCache->setAuthorizableAuthorizations($entity, $authorizations);
         }

@@ -11,4 +11,5 @@ enum AuthorizationType: int
     case create = 1;
     case update = 2;
     case delete = 3;
+    case any = 99;
 }

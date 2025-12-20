@@ -25,8 +25,14 @@
         <InvalidArgument>
             <errorLevel type="suppress">
                 <file name="src/AuthorizationResolver.php"/>
+                <file name="src/AuthorizationScopeBuilder.php"/>
             </errorLevel>
         </InvalidArgument>
+        <InvalidScalarArgument>
+            <errorLevel type="suppress">
+                <file name="src/AuthenticationManager.php"/>
+            </errorLevel>
+        </InvalidScalarArgument>
         <TypeDoesNotContainNull>
             <errorLevel type="suppress">
                 <file name="src/AuthorizationService.php"/>

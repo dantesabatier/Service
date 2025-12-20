@@ -3,6 +3,7 @@
 namespace Sabatier\Service;
 
 use Exception;
+use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Networking\URLCredential;
 
 /**
@@ -24,19 +25,23 @@ abstract class AuthenticationStrategy
     abstract public bool $isValid {
         get;
     }
+    /** @var ArrayClass<string> */
+    protected(set) ArrayClass $scopes {
+        get => $this->scopes ??= new ArrayClass();
+    }
     /** @var Authorizable|null Represents the authenticated user. */
     final public ?Authorizable $authenticatedUser {
         /**
          * @throws Exception
          */
         get {
-            if (!isset($this->authenticatedUser)) {
-                if (!($username = $this->credential?->user)) {
-                    return $this->authenticatedUser = null;
-                }
-                $this->authenticatedUser = $this->context->authenticationService->find($username, $this->context->serialization, $this->context->managedObjectContext);
+            if (isset($this->authenticatedUser)) {
+                return $this->authenticatedUser;
             }
-            return $this->authenticatedUser;
+            if (!($username = $this->credential?->user)) {
+                return $this->authenticatedUser = null;
+            }
+            return $this->authenticatedUser = $this->context->authenticationService->find($username, $this->context->serialization, $this->context->managedObjectContext);
         }
     }
 

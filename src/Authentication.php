@@ -3,6 +3,7 @@
 namespace Sabatier\Service;
 
 use Exception;
+use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Networking\URLCredential;
 
 /**
@@ -21,6 +22,10 @@ class Authentication
     /** @var bool Indicates whether the authentication is valid. */
     public bool $isValid {
         get => $this->strategy->isValid;
+    }
+    /** @var ArrayClass<string> The scopes associated with the authentication process. */
+    public ArrayClass $scopes {
+        get => $this->strategy->scopes;
     }
     /** @var Authorizable|null Represents the authenticated user. */
     public ?Authorizable $authenticatedUser {

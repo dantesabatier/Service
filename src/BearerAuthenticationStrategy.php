@@ -11,24 +11,6 @@ use Sabatier\Foundation\ProcessInfo;
 /** @internal */
 final class BearerAuthenticationStrategy extends AuthenticationStrategy
 {
-    public ?JSONWebToken $token {
-        /**
-         * @throws Exception
-         */
-        get {
-            if (isset($this->token)) {
-                return $this->token;
-            }
-            if (!($jwtKey = ProcessInfo::processInfo()->environment[JWTPrivateKey])) {
-                return $this->token = null;
-            }
-            return $this->token = new JSONWebTokenService($jwtKey, $this->context->tokenIssuer)->decode($this->context->authorizationHeader->value);
-        }
-    }
-    /** @var ArrayClass<string> */
-    public ArrayClass $scopes {
-        get => new ArrayClass($this->token?->payload?->scp ?? []);
-    }
     public AuthenticationScheme $scheme {
         get => AuthenticationScheme::bearer;
     }
@@ -51,6 +33,24 @@ final class BearerAuthenticationStrategy extends AuthenticationStrategy
     }
     public bool $isValid {
         get => $this->credential !== null;
+    }
+    public ?JSONWebToken $token {
+        /**
+         * @throws Exception
+         */
+        get {
+            if (isset($this->token)) {
+                return $this->token;
+            }
+            if (!($jwtKey = ProcessInfo::processInfo()->environment[JWTPrivateKey])) {
+                return $this->token = null;
+            }
+            return $this->token = new JSONWebTokenService($jwtKey, $this->context->tokenIssuer)->decode($this->context->authorizationHeader->value);
+        }
+    }
+    /** @var ArrayClass<string> */
+    protected(set) ArrayClass $scopes {
+        get => $this->scopes ??= new ArrayClass($this->token?->payload?->scp ?? []);
     }
 
     #[Override]

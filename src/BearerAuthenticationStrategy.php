@@ -4,6 +4,7 @@ namespace Sabatier\Service;
 
 use Exception;
 use Override;
+use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\ProcessInfo;
 
@@ -23,6 +24,10 @@ final class BearerAuthenticationStrategy extends AuthenticationStrategy
             }
             return $this->token = new JSONWebTokenService($jwtKey, $this->context->tokenIssuer)->decode($this->context->authorizationHeader->value);
         }
+    }
+    /** @var ArrayClass<string> */
+    public ArrayClass $scopes {
+        get => new ArrayClass($this->token?->payload?->scp ?? []);
     }
     public AuthenticationScheme $scheme {
         get => AuthenticationScheme::bearer;

@@ -35,25 +35,25 @@ class AuthenticationManager extends Responder
          * @throws Exception
          */
         get {
-            if (!isset($this->isProtectedContentAvailable)) {
-                if ($this->request->isPreflight) {
-                    return $this->isProtectedContentAvailable = true;
-                }
-                if (!$this->authentication->isValid) {
-                    return $this->isProtectedContentAvailable = false;
-                }
-                if (!($authenticatedUser = $this->authentication->authenticatedUser)) {
-                    return $this->isProtectedContentAvailable = false;
-                }
-                $this->isProtectedContentAvailable = $this->authorizationService->isAuthorized($authenticatedUser, $this->request->url->lastPathComponent, match ($this->request->httpMethod) {
-                    HTTPRequestMethod::head, HTTPRequestMethod::get => AuthorizationType::read,
-                    HTTPRequestMethod::post => AuthorizationType::create,
-                    HTTPRequestMethod::put, HTTPRequestMethod::patch => AuthorizationType::update,
-                    HTTPRequestMethod::delete => AuthorizationType::delete,
-                    default => throw new MethodNotAllowedException()
-                }, $this->managedObjectContext, new ArrayClass($this->authenticationStrategy instanceof BearerAuthenticationStrategy ? $this->authenticationStrategy->token?->payload?->scp ?? [] : []));
+            if (isset($this->isProtectedContentAvailable)) {
+                return $this->isProtectedContentAvailable;
             }
-            return $this->isProtectedContentAvailable;
+            if ($this->request->isPreflight) {
+                return $this->isProtectedContentAvailable = true;
+            }
+            if (!$this->authentication->isValid) {
+                return $this->isProtectedContentAvailable = false;
+            }
+            if (!($authenticatedUser = $this->authentication->authenticatedUser)) {
+                return $this->isProtectedContentAvailable = false;
+            }
+            return $this->isProtectedContentAvailable = $this->authorizationService->isAuthorized($authenticatedUser, $this->request->url->lastPathComponent, match ($this->request->httpMethod) {
+                HTTPRequestMethod::head, HTTPRequestMethod::get => AuthorizationType::read,
+                HTTPRequestMethod::post => AuthorizationType::create,
+                HTTPRequestMethod::put, HTTPRequestMethod::patch => AuthorizationType::update,
+                HTTPRequestMethod::delete => AuthorizationType::delete,
+                default => throw new MethodNotAllowedException()
+            }, $this->managedObjectContext, $this->authenticationStrategy instanceof BearerAuthenticationStrategy ? $this->authenticationStrategy->scopes : new ArrayClass());
         }
     }
 

@@ -32,8 +32,8 @@ class AuthenticationManager extends Responder
     private(set) Authentication $authentication {
         get => $this->authentication ??= new Authentication($this->authenticationStrategy);
     }
-    /** @var IdentitySource|null The resolved identity associated with the current request, if any */
-    private(set) ?IdentitySource $identitySource {
+    /** @var IdentitySource The resolved identity associated with the current request, if any */
+    private(set) IdentitySource $identitySource {
         get {
             if (isset($this->identitySource)) {
                 return $this->identitySource;
@@ -44,7 +44,7 @@ class AuthenticationManager extends Responder
             if ($this->session->isStarted) {
                 return $this->identitySource = new SessionIdentitySource($this->authentication->authenticatedUser, $this->session);
             }
-            return null;
+            return $this->identitySource = new EphemeralIdentitySource($this->authentication->authenticatedUser);
         }
     }
     public bool $isProtectedContentAvailable {
@@ -61,10 +61,10 @@ class AuthenticationManager extends Responder
             if (!$this->authentication->isValid) {
                 return $this->isProtectedContentAvailable = false;
             }
-            if (!($authenticatedUser = $this->identitySource?->subject)) {
+            if (!($subject = $this->identitySource->subject)) {
                 return $this->isProtectedContentAvailable = false;
             }
-            return $this->isProtectedContentAvailable = $this->authorizationService->isAuthorized($authenticatedUser, $this->request->url->lastPathComponent, match ($this->request->httpMethod) {
+            return $this->isProtectedContentAvailable = $this->authorizationService->isAuthorized($subject, $this->request->url->lastPathComponent, match ($this->request->httpMethod) {
                 HTTPRequestMethod::head, HTTPRequestMethod::get => AuthorizationType::read,
                 HTTPRequestMethod::post => AuthorizationType::create,
                 HTTPRequestMethod::put, HTTPRequestMethod::patch => AuthorizationType::update,
@@ -85,13 +85,13 @@ class AuthenticationManager extends Responder
     #[Action(decorators: [JSONDecorator::class])]
     public function login(): void
     {
-        $user = $this->authentication->authenticatedUser ?? throw new UnauthorizedException();
+        $user = $this->identitySource->subject ?? throw new UnauthorizedException();
         /** @var Dictionary<mixed> $data */
         $data = new Dictionary();
         $data["user"] = $user;
         $environment = ProcessInfo::processInfo()->environment;
         if ($jwtKey = $environment[JWTPrivateKey]) {
-            $service = new JSONWebTokenService($jwtKey);
+            $service = new JSONWebTokenService($jwtKey, $this->request->url->host);
             $issuer = new JSONWebTokenIssuer($service, new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? 1800)->intValue);
             $tokenString = $issuer->issue($user, $this->authenticationStrategy->context);
             $token = $service->decode($tokenString);
@@ -110,8 +110,7 @@ class AuthenticationManager extends Responder
     #[Action]
     public function logout(): void
     {
-        $this->identitySource?->invalidate();
-        $this->identitySource = null;
+        $this->identitySource->invalidate();
         $this->statusCode = HTTPStatusCode::noContent;
     }
 }

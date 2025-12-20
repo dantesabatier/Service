@@ -8,7 +8,7 @@ use Sabatier\Foundation\ArrayClass;
 class JWTIdentitySource extends IdentitySource
 {
     /** @var ArrayClass<string> */
-    private(set) ArrayClass $scopes {
+    protected(set) ArrayClass $scopes {
         get => $this->scopes ??= new ArrayClass($this->token->payload->scopes ?? []);
     }
     private readonly JSONWebToken $token;

@@ -26,8 +26,8 @@ use Sabatier\Foundation\ArrayClass;
 abstract class IdentitySource
 {
     /** @var ArrayClass<string> Authorization scopes associated with the identity */
-    abstract public ArrayClass $scopes {
-        get;
+    protected(set) ArrayClass $scopes {
+        get => $this->scopes ??= new ArrayClass();
     }
 
     /**
@@ -35,7 +35,7 @@ abstract class IdentitySource
      *
      * @param Authorizable|null $subject The authenticated subject associated with the identity or null when the request is unauthenticated.
      */
-    public function __construct(public ?Authorizable $subject)
+    public function __construct(public readonly ?Authorizable $subject)
     {
     }
 

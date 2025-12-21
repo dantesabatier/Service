@@ -16,6 +16,7 @@ use function Sabatier\Foundation\fatal_error;
  */
 class AuthenticationManager extends Responder
 {
+    /** @var ArrayClass<string> */
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
     }
@@ -78,6 +79,8 @@ class AuthenticationManager extends Responder
     }
 
     /**
+     * Authenticates the current request and establishes an authenticated identity.
+     *
      * @throws Exception
      */
     #[Action(decorators: [JSONDecorator::class])]
@@ -99,10 +102,31 @@ class AuthenticationManager extends Responder
         $this->data = $data;
     }
 
+    /**
+     * Invalidates the current authenticated identity.
+     */
     #[Action]
     public function logout(): void
     {
         $this->session->invalidate();
         $this->statusCode = HTTPStatusCode::noContent;
+    }
+
+    /**
+     * Issues a new JSON Web Token for an already authenticated JWT identity.
+     *
+     * @throws Exception
+     */
+    #[Action(decorators: [JSONDecorator::class])]
+    public function refresh(): void
+    {
+        $user = $this->authentication->authenticatedUser ?? throw new UnauthorizedException();
+        $environment = ProcessInfo::processInfo()->environment;
+        $jwtKey = $environment[JWTPrivateKey] ?? throw new UnauthorizedException();
+        /** @var Dictionary<mixed> $data */
+        $data = new Dictionary();
+        $data[AuthenticationUserKey] = $user;
+        $data[AuthenticationTokenKey] = new JSONWebTokenIssuer(new JSONWebTokenService($jwtKey, $this->request->url->host), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? 1800)->intValue)->issue($user, $this->authenticationStrategy->context);
+        $this->data = $data;
     }
 }

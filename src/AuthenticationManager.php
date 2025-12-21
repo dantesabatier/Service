@@ -46,6 +46,9 @@ class AuthenticationManager extends Responder
             if (!$this->authentication->isValid) {
                 return $this->isProtectedContentAvailable = false;
             }
+            if (!$this->isJWTEnabled()) {
+                return $this->isProtectedContentAvailable = $this->isSessionAuthenticated();
+            }
             if (!($user = $this->authentication->authenticatedUser)) {
                 return $this->isProtectedContentAvailable = false;
             }
@@ -62,6 +65,16 @@ class AuthenticationManager extends Responder
     public function __construct()
     {
         ApplicationSecurityBootstrap::boot();
+    }
+
+    private function isJWTEnabled(): bool
+    {
+        return ProcessInfo::processInfo()->environment->offsetExists(JWTPrivateKey);
+    }
+
+    private function isSessionAuthenticated(): bool
+    {
+        return $this->session->isActive && $this->session->valueForKey("authenticated") === true && $this->session->valueForKey("user_id") !== null;
     }
 
     /**
@@ -81,6 +94,7 @@ class AuthenticationManager extends Responder
             $session = $this->session;
             $session->regenerateID();
             $session->setValueForKey($user, "user");
+            $session->setValueForKey(true, "authenticated");
         }
         $this->data = $data;
     }

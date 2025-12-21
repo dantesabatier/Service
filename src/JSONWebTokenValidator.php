@@ -27,17 +27,17 @@ readonly class JSONWebTokenValidator
     {
         $header = $token->header;
         if ($header->alg !== $this->algorithm) {
-            throw new JSONWebTokenException(localized_string("Access token algorithm is invalid."));
+            throw new JSONWebTokenException(localized_string("Access token algorithm is invalid."), JWTTokenInvalidErrorCode);
         }
         $payload = $token->payload;
         if ($payload->nbf && $payload->nbf > $this->now) {
-            throw new JSONWebTokenException(localized_string("Access token is not yet valid."));
+            throw new JSONWebTokenException(localized_string("Access token is not yet valid."), JWTTokenNotYetValidErrorCode);
         }
         if ($payload->exp && $payload->exp < $this->now) {
-            throw new JSONWebTokenException(localized_string("Access token has expired."));
+            throw new JSONWebTokenException(localized_string("Access token has expired."), JWTTokenExpiredErrorCode);
         }
         if ($payload->iss && $payload->iss !== $this->issuer) {
-            throw new JSONWebTokenException(localized_string("Access token issuer is invalid."));
+            throw new JSONWebTokenException(localized_string("Access token issuer is invalid."), JWTTokenInvalidErrorCode);
         }
     }
 }

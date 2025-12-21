@@ -45,6 +45,7 @@
       "src/ConstantsInternal.php",
       "src/CORSConstants.php",
       "src/JSONWebTokenConstants.php",
+      "src/JSONWebTokenErrorCodes.php",
       "src/SessionAdditions.php"
     ]
   },

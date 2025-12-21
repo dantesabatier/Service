@@ -2,6 +2,12 @@
 
 namespace Sabatier\Service;
 
+use Sabatier\Foundation\Dictionary;
+use Sabatier\Foundation\Error;
+use Sabatier\Foundation\Networking\HTTPURLResponse;
+use const Sabatier\Foundation\LocalizedDescriptionKey;
+use const Sabatier\Foundation\LocalizedFailureReasonErrorKey;
+
 /**
  * Represents an exception specific to JSON Web Token (JWT) handling.
  *
@@ -9,4 +15,14 @@ namespace Sabatier\Service;
  */
 class JSONWebTokenException extends UnauthorizedException
 {
+    private ?int $errorCode;
+    public Error $error {
+        get => $this->error ??= new Error(ServiceErrorDomain, $this->errorCode ?? $this->code, new Dictionary([LocalizedDescriptionKey => HTTPURLResponse::localizedString($this->code), LocalizedFailureReasonErrorKey => $this->message ?: null]));
+    }
+
+    public function __construct(string $message = "", ?int $code = null)
+    {
+        parent::__construct($message);
+        $this->errorCode = $code;
+    }
 }

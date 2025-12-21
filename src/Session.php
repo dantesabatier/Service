@@ -25,8 +25,10 @@ use function Sabatier\Foundation\unsafe_value;
  */
 class Session extends ObjectClass
 {
-    /** @var bool Indicates whether the session has been started by this Session instance. Read-only outside the class. */
-    private(set) bool $isStarted = false;
+    /** @var bool */
+    public bool $isActive {
+        get => $this->status === SessionStatus::active;
+    }
     /** @var URL The location where session data is stored. */
     private(set) URL $storageURL {
         /**
@@ -114,9 +116,7 @@ class Session extends ObjectClass
      */
     public function start(): void
     {
-        if (!$this->isStarted) {
-            $this->isStarted = session_start_with_params($this->cookieParameters);
-        }
+        session_start_with_params($this->cookieParameters);
     }
 
     /**
@@ -124,9 +124,7 @@ class Session extends ObjectClass
      */
     public function commit(): void
     {
-        if ($this->isStarted) {
-            session_commit();
-        }
+        session_commit();
     }
 
     /**
@@ -134,9 +132,7 @@ class Session extends ObjectClass
      */
     public function reset(): void
     {
-        if ($this->isStarted) {
-            unsafe_value(fn(): bool => session_reset());
-        }
+        unsafe_value(fn(): bool => session_reset());
     }
 
     /**
@@ -144,10 +140,7 @@ class Session extends ObjectClass
      */
     public function invalidate(): void
     {
-        if ($this->isStarted) {
-            session_destroy_safe();
-            $this->isStarted = false;
-        }
+        session_destroy_safe();
     }
 
     /**
@@ -155,8 +148,6 @@ class Session extends ObjectClass
      */
     public function regenerateID(): void
     {
-        if ($this->isStarted) {
-            session_regenerate_id_safe();
-        }
+        session_regenerate_id_safe();
     }
 }

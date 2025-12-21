@@ -74,7 +74,7 @@ class AuthenticationManager extends Responder
 
     private function isSessionAuthenticated(): bool
     {
-        return $this->session->isActive && $this->session->valueForKey("authenticated") === true && $this->session->valueForKey("user_id") !== null;
+        return $this->session->isActive && $this->session->valueForKey(SessionAuthenticatedKey) === true && $this->session->valueForKey(SessionUserKey) !== null;
     }
 
     /**
@@ -86,15 +86,15 @@ class AuthenticationManager extends Responder
         $user = $this->authentication->authenticatedUser ?? throw new UnauthorizedException();
         /** @var Dictionary<mixed> $data */
         $data = new Dictionary();
-        $data["user"] = $user;
+        $data[AuthenticationUserKey] = $user;
         $environment = ProcessInfo::processInfo()->environment;
         if ($jwtKey = $environment[JWTPrivateKey]) {
-            $data["token"] = new JSONWebTokenIssuer(new JSONWebTokenService($jwtKey, $this->request->url->host), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? 1800)->intValue)->issue($user, $this->authenticationStrategy->context);
+            $data[AuthenticationTokenKey] = new JSONWebTokenIssuer(new JSONWebTokenService($jwtKey, $this->request->url->host), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? 1800)->intValue)->issue($user, $this->authenticationStrategy->context);
         } else {
             $session = $this->session;
             $session->regenerateID();
-            $session->setValueForKey($user, "user");
-            $session->setValueForKey(true, "authenticated");
+            $session->setValueForKey($user, SessionUserKey);
+            $session->setValueForKey(true, SessionAuthenticatedKey);
         }
         $this->data = $data;
     }

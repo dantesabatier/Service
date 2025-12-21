@@ -40,6 +40,7 @@
       "Sabatier\\Service\\": "src"
     },
     "files": [
+      "src/AuthenticationConstants.php",
       "src/Constants.php",
       "src/ConstantsInternal.php",
       "src/CORSConstants.php",

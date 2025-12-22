@@ -5,6 +5,7 @@ namespace Sabatier\Service;
 use Exception;
 use Override;
 use Sabatier\CoreData\ManagedObjectContext;
+use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Date;
 use function Sabatier\Foundation\read_random;
 
@@ -19,9 +20,9 @@ final readonly class JSONWebTokenIssuer implements TokenIssuer
      * @throws Exception
      */
     #[Override]
-    public function issue(Authorizable $subject, AuthenticationContext $context): string
+    public function issue(Authorizable $subject, AuthenticationContext $context, ArrayClass $technicalScopes): string
     {
         $date = new Date();
-        return $this->service->encode([JWTIssuerKey => $context->tokenIssuer, JWTSubjectKey => $subject->username, JWTExpirationTimeKey => $date->addingTimeInterval($this->validityTimeInterval)->timeIntervalSinceReferenceDate, JWTNotBeforeTimeKey => $date->timeIntervalSinceReferenceDate, JWTIssuedAtTimeKey => $date->timeIntervalSinceReferenceDate, JWTIdKey => base64_encode(read_random(16)), JWTScopesKey => $this->scopeBuilder->build($subject, $this->managedObjectContext)->array]);
+        return $this->service->encode([JWTIssuerKey => $context->tokenIssuer, JWTSubjectKey => $subject->username, JWTExpirationTimeKey => $date->addingTimeInterval($this->validityTimeInterval)->timeIntervalSinceReferenceDate, JWTNotBeforeTimeKey => $date->timeIntervalSinceReferenceDate, JWTIssuedAtTimeKey => $date->timeIntervalSinceReferenceDate, JWTIdKey => base64_encode(read_random(16)), JWTScopesKey => $technicalScopes->array, JWTAuthorizationScopesKey => $this->scopeBuilder->build($subject, $this->managedObjectContext)->array]);
     }
 }

@@ -50,6 +50,9 @@ class AuthenticationManager extends Responder
             if (!$this->isJWTEnabled()) {
                 return $this->isProtectedContentAvailable = $this->isSessionAuthenticated();
             }
+            if (!$this->authentication->scopes->isEmpty && !$this->authentication->scopes->containsElement(AuthenticationScopeAccess)) {
+                return $this->isProtectedContentAvailable = false;
+            }
             if (!($user = $this->authentication->authenticatedUser)) {
                 return $this->isProtectedContentAvailable = false;
             }
@@ -92,7 +95,7 @@ class AuthenticationManager extends Responder
         $data[AuthenticationUserKey] = $user;
         $environment = ProcessInfo::processInfo()->environment;
         if ($jwtKey = $environment[JWTPrivateKey]) {
-            $data[AuthenticationTokenKey] = new JSONWebTokenIssuer(new JSONWebTokenService($jwtKey, $this->request->url->host), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? 1800)->intValue)->issue($user, $this->authenticationStrategy->context);
+            $data[AuthenticationTokenKey] = new JSONWebTokenIssuer(new JSONWebTokenService($jwtKey, $this->request->url->host), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? 1800)->intValue)->issue($user, $this->authenticationStrategy->context, new ArrayClass([AuthenticationScopeAccess, AuthenticationScopeRefresh]));
         } else {
             $session = $this->session;
             $session->regenerateID();
@@ -125,7 +128,7 @@ class AuthenticationManager extends Responder
         $jwtKey = $environment[JWTPrivateKey] ?? throw new UnauthorizedException();
         $data = new Dictionary();
         $data[AuthenticationUserKey] = $user;
-        $data[AuthenticationTokenKey] = new JSONWebTokenIssuer(new JSONWebTokenService($jwtKey, $this->request->url->host), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? 1800)->intValue)->issue($user, $strategy->context);
+        $data[AuthenticationTokenKey] = new JSONWebTokenIssuer(new JSONWebTokenService($jwtKey, $this->request->url->host), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? 1800)->intValue)->issue($user, $strategy->context, new ArrayClass([AuthenticationScopeAccess]));
         return $data;
     }
 }

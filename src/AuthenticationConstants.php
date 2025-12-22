@@ -7,6 +7,8 @@ const AuthenticationUserKey = "user";
 
 /** @var string Key used to expose the issued token in authentication responses */
 const AuthenticationTokenKey = "token";
+const AuthenticationScopeAccess = "access";
+const AuthenticationScopeRefresh = "refresh";
 
 /** @var string Indicates whether the current session is authenticated */
 const SessionAuthenticatedKey = "authenticated";

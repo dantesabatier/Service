@@ -15,6 +15,7 @@ const JWTNotBeforeTimeKey = "nbf";
 const JWTIssuedAtTimeKey = "iat";
 const JWTIdKey = "jti";
 const JWTScopesKey = "scp";
+const JWTAuthorizationScopesKey = "authz";
 const JWTTypeValue = "JWT";
 const JWTComponentDelimiter = ".";
 const JWTComponentCount = 3;

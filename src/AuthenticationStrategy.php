@@ -4,6 +4,7 @@ namespace Sabatier\Service;
 
 use Exception;
 use Sabatier\Foundation\ArrayClass;
+use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\URLCredential;
 
 /**
@@ -45,7 +46,13 @@ abstract class AuthenticationStrategy
         }
     }
 
-    public function __construct(public readonly AuthenticationContext $context)
+    /**
+     * Initializes a new instance of the AuthenticationStrategy class.
+     *
+     * @param AuthenticationContext $context The authentication context.
+     * @param Dictionary<string> $environment The environment variables.
+     */
+    public function __construct(public readonly AuthenticationContext $context, public readonly Dictionary $environment)
     {
     }
 

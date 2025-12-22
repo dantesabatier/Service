@@ -5,9 +5,11 @@ namespace Sabatier\Service;
 use JetBrains\PhpStorm\ExpectedValues;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
+use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\ObjectClass;
+use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Foundation\Set;
 
 /**
@@ -23,6 +25,10 @@ abstract class Responder extends ObjectClass
     }
     public Session $session {
         get => self::$staticAssociatedValues[self::class][__PROPERTY__] ??= new Session();
+    }
+    /** @var Dictionary<string> The environment variables associated with this responder. */
+    public Dictionary $environment {
+        get => ProcessInfo::processInfo()->environment;
     }
     /**
      * @var CORSPolicy The CORS policy applied to the response produced by this responder.

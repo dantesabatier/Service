@@ -8,7 +8,6 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Number;
-use Sabatier\Foundation\ProcessInfo;
 use function Sabatier\Foundation\fatal_error;
 
 /**
@@ -24,7 +23,7 @@ class AuthenticationManager extends Responder
         get {
             if (!isset($this->authenticationStrategy)) {
                 $authenticationStrategyClass = AuthenticationStrategyFactory::getAuthenticationStrategyClass(AuthenticationStrategyFactory::getAuthenticationStrategies() ?? new ArrayClass(), $this->request->authorizationHeader->scheme) ?? throw new UnimplementedException();
-                $this->authenticationStrategy = new $authenticationStrategyClass(new AuthenticationContext($this->request->authorizationHeader, $this->request->url->host, $this->request->httpMethod, $this->managedObjectContext, $this->isFirstResponder ? $this->request->serialization : null, $this->authenticationService));
+                $this->authenticationStrategy = new $authenticationStrategyClass(new AuthenticationContext($this->request->authorizationHeader, $this->request->url->host, $this->request->httpMethod, $this->managedObjectContext, $this->isFirstResponder ? $this->request->serialization : null, $this->authenticationService), $this->environment);
             }
             return $this->authenticationStrategy;
         }
@@ -33,43 +32,14 @@ class AuthenticationManager extends Responder
     private(set) Authentication $authentication {
         get => $this->authentication ??= new Authentication($this->authenticationStrategy);
     }
-    private bool $isJWTEnabled {
-        get => $this->isJWTEnabled ??= ProcessInfo::processInfo()->environment->offsetExists(JWTPrivateKey);
-    }
-    private bool $isSessionAuthenticated {
-        get => $this->isSessionAuthenticated ??= $this->session->isActive && $this->session->valueForKey(SessionAuthenticatedKey) === true && $this->session->valueForKey(SessionUserKey) !== null;
+    public AccessEvaluatorChain $accessEvaluatorChain {
+        get => $this->accessEvaluatorChain ??= new AccessEvaluatorChain(new ArrayClass([new SessionAuthenticationEvaluator(), new AuthenticationEvaluator(), new JWTScopeEvaluator(), new AuthorizationEvaluator()]));
     }
     public bool $isProtectedContentAvailable {
         /**
          * @throws Exception
          */
-        get {
-            if (isset($this->isProtectedContentAvailable)) {
-                return $this->isProtectedContentAvailable;
-            }
-            if ($this->request->isPreflight) {
-                return $this->isProtectedContentAvailable = true;
-            }
-            if (!$this->isJWTEnabled) {
-                return $this->isProtectedContentAvailable = $this->isSessionAuthenticated;
-            }
-            if (!$this->authentication->isValid) {
-                return $this->isProtectedContentAvailable = false;
-            }
-            if (!$this->authentication->scopes->isEmpty && !$this->authentication->scopes->containsElement(AuthenticationScopeAccess)) {
-                return $this->isProtectedContentAvailable = false;
-            }
-            if (!($user = $this->authentication->authenticatedUser)) {
-                return $this->isProtectedContentAvailable = false;
-            }
-            return $this->isProtectedContentAvailable = $this->authorizationService->isAuthorized($user, $this->request->url->lastPathComponent, match ($this->request->httpMethod) {
-                HTTPRequestMethod::head, HTTPRequestMethod::get => AuthorizationType::read,
-                HTTPRequestMethod::post => AuthorizationType::create,
-                HTTPRequestMethod::put, HTTPRequestMethod::patch => AuthorizationType::update,
-                HTTPRequestMethod::delete => AuthorizationType::delete,
-                default => throw new MethodNotAllowedException()
-            }, $this->authentication->scopes, $this->managedObjectContext);
-        }
+        get => $this->isProtectedContentAvailable ??= $this->accessEvaluatorChain->evaluate($this->request, $this->authentication, $this->session, $this->environment, $this->authorizationService, $this->managedObjectContext);
     }
 
     public function __construct()
@@ -89,7 +59,7 @@ class AuthenticationManager extends Responder
         /** @var Dictionary<mixed> $data */
         $data = new Dictionary();
         $data[AuthenticationUserKey] = $user;
-        $environment = ProcessInfo::processInfo()->environment;
+        $environment = $this->environment;
         if ($jwtKey = $environment[JWTPrivateKey]) {
             $data[AuthenticationTokenKey] = new JSONWebTokenIssuer(new JSONWebTokenService($jwtKey, $this->request->url->host), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? 1800)->intValue)->issue($user, $this->authenticationStrategy->context, new ArrayClass([AuthenticationScopeAccess, AuthenticationScopeRefresh]));
         } else {
@@ -120,7 +90,7 @@ class AuthenticationManager extends Responder
         $strategy = $this->authenticationStrategy;
         $strategy->isValid ?: throw new UnauthorizedException();
         $user = $strategy->authenticatedUser ?? throw new UnauthorizedException();
-        $environment = ProcessInfo::processInfo()->environment;
+        $environment = $this->environment;
         $jwtKey = $environment[JWTPrivateKey] ?? throw new UnauthorizedException();
         $data = new Dictionary();
         $data[AuthenticationUserKey] = $user;

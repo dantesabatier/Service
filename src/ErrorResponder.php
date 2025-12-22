@@ -17,7 +17,7 @@ use const Sabatier\Foundation\URLErrorDomain;
 class ErrorResponder extends Responder
 {
     public bool $isDevelopmentMode {
-        get => ProcessInfo::processInfo()->environment["APP_ENV"] === "development";
+        get => $this->environment["APP_ENV"] === "development";
     }
     public Response $response {
         /**

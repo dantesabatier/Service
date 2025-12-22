@@ -6,7 +6,6 @@ use Exception;
 use Override;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Networking\URLCredential;
-use Sabatier\Foundation\ProcessInfo;
 
 /** @internal */
 final class BearerAuthenticationStrategy extends AuthenticationStrategy
@@ -42,7 +41,7 @@ final class BearerAuthenticationStrategy extends AuthenticationStrategy
             if (isset($this->token)) {
                 return $this->token;
             }
-            if (!($jwtKey = ProcessInfo::processInfo()->environment[JWTPrivateKey])) {
+            if (!($jwtKey = $this->environment[JWTPrivateKey])) {
                 return $this->token = null;
             }
             return $this->token = new JSONWebTokenService($jwtKey, $this->context->tokenIssuer)->decode($this->context->authorizationHeader->value);

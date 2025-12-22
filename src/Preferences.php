@@ -14,15 +14,22 @@ class Preferences extends Responder
 {
     /** @var ArrayClass<string> */
     public ArrayClass $allowedMethods {
-        get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::get]);
+        get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::get, HTTPRequestMethod::patch]);
     }
     public Response $response {
         /**
          * @throws JsonException
          */
         get {
-            $this->allowedMethods->containsElement($this->request->httpMethod) ?: throw new MethodNotAllowedException();
-            return new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new JSONDecorator(new Response($this->request->url, HTTPStatusCode::ok, body: UserDefaults::standard()->dictionaryRepresentation()))->response)->response, $this->request, $this->corsPolicy)->response;
+            $defaults = UserDefaults::standard();
+            $request = $this->request;
+            $this->allowedMethods->containsElement($request->httpMethod) ?: throw new MethodNotAllowedException();
+            if ($request->httpMethod === HTTPRequestMethod::patch) {
+                foreach ($request->parsedBody as $key => $value) {
+                    $defaults->setObject($value, $key);
+                }
+            }
+            return new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new JSONDecorator(new Response($request->url, HTTPStatusCode::ok, body: $defaults->dictionaryRepresentation()))->response)->response, $request, $this->corsPolicy)->response;
         }
     }
 }

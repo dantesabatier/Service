@@ -92,8 +92,8 @@ abstract class Responder extends ObjectClass
     public Response $response {
         get {
             $request = $this->request;
-            $response = new Response($request->url);
             $this->allowedMethods->containsElement($request->httpMethod) ?: throw new MethodNotAllowedException();
+            $response = new Response($request->url);
             if (match ($request->httpMethod) {
                     HTTPRequestMethod::post,
                     HTTPRequestMethod::put,

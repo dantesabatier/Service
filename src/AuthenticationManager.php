@@ -33,6 +33,12 @@ class AuthenticationManager extends Responder
     private(set) Authentication $authentication {
         get => $this->authentication ??= new Authentication($this->authenticationStrategy);
     }
+    private bool $isJWTEnabled {
+        get => $this->isJWTEnabled ??= ProcessInfo::processInfo()->environment->offsetExists(JWTPrivateKey);
+    }
+    private bool $isSessionAuthenticated {
+        get => $this->isSessionAuthenticated ??= $this->session->isActive && $this->session->valueForKey(SessionAuthenticatedKey) === true && $this->session->valueForKey(SessionUserKey) !== null;
+    }
     public bool $isProtectedContentAvailable {
         /**
          * @throws Exception
@@ -47,8 +53,8 @@ class AuthenticationManager extends Responder
             if (!$this->authentication->isValid) {
                 return $this->isProtectedContentAvailable = false;
             }
-            if (!$this->isJWTEnabled()) {
-                return $this->isProtectedContentAvailable = $this->isSessionAuthenticated();
+            if (!$this->isJWTEnabled) {
+                return $this->isProtectedContentAvailable = $this->isSessionAuthenticated;
             }
             if (!$this->authentication->scopes->isEmpty && !$this->authentication->scopes->containsElement(AuthenticationScopeAccess)) {
                 return $this->isProtectedContentAvailable = false;
@@ -69,16 +75,6 @@ class AuthenticationManager extends Responder
     public function __construct()
     {
         ApplicationSecurityBootstrap::boot();
-    }
-
-    private function isJWTEnabled(): bool
-    {
-        return ProcessInfo::processInfo()->environment->offsetExists(JWTPrivateKey);
-    }
-
-    private function isSessionAuthenticated(): bool
-    {
-        return $this->session->isActive && $this->session->valueForKey(SessionAuthenticatedKey) === true && $this->session->valueForKey(SessionUserKey) !== null;
     }
 
     /**

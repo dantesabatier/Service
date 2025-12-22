@@ -34,6 +34,8 @@ class AuthenticationManager extends Responder
     }
     /** @var AccessEvaluatorChain The chain of access evaluators responsible for determining if a request has permission to access a protected resource. Evaluators are processed in order, and access is denied if any evaluator fails. */
     public AccessEvaluatorChain $accessEvaluatorChain {
+        // TODO: Allow each AuthenticationStrategy to optionally provide its own AccessEvaluatorChain.
+        //       The current chain acts as a fallback for strategies that don't specify their evaluators.
         get => $this->accessEvaluatorChain ??= new AccessEvaluatorChain(new ArrayClass([new SessionAuthenticationEvaluator(), new AuthenticationEvaluator(), new JWTScopeEvaluator(), new AuthorizationEvaluator()]));
     }
     /** @var bool Indicates whether the current request can access protected content. Determined by evaluating the configured access evaluator chain. */

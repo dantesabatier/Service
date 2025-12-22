@@ -50,11 +50,11 @@ class AuthenticationManager extends Responder
             if ($this->request->isPreflight) {
                 return $this->isProtectedContentAvailable = true;
             }
-            if (!$this->authentication->isValid) {
-                return $this->isProtectedContentAvailable = false;
-            }
             if (!$this->isJWTEnabled) {
                 return $this->isProtectedContentAvailable = $this->isSessionAuthenticated;
+            }
+            if (!$this->authentication->isValid) {
+                return $this->isProtectedContentAvailable = false;
             }
             if (!$this->authentication->scopes->isEmpty && !$this->authentication->scopes->containsElement(AuthenticationScopeAccess)) {
                 return $this->isProtectedContentAvailable = false;

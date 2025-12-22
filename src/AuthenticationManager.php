@@ -32,16 +32,16 @@ class AuthenticationManager extends Responder
     private(set) Authentication $authentication {
         get => $this->authentication ??= new Authentication($this->authenticationStrategy);
     }
-    /** @var AccessEvaluatorChain The chain of access evaluators responsible for determining if a request has permission to access a protected resource. Evaluators are processed in order, and access is denied if any evaluator fails. */
-    public AccessEvaluatorChain $accessEvaluatorChain {
-        get => $this->accessEvaluatorChain ??= new AccessEvaluatorChain(new ArrayClass([new SessionAuthenticationEvaluator(), new AuthenticationEvaluator(), new JWTScopeEvaluator(), new AuthorizationEvaluator()]));
+    /** @var AccessEvaluator The access evaluator responsible for determining if a request has permission to access a protected resource. */
+    public AccessEvaluator $accessEvaluator {
+        get => $this->accessEvaluator ??= new AccessEvaluatorChain(new ArrayClass([new SessionAuthenticationEvaluator(), new AuthenticationEvaluator(), new JWTScopeEvaluator(), new AuthorizationEvaluator()]));
     }
     /** @var bool Indicates whether the current request can access protected content. Determined by evaluating the configured access evaluator chain. */
     public bool $isProtectedContentAvailable {
         /**
          * @throws Exception
          */
-        get => $this->isProtectedContentAvailable ??= $this->accessEvaluatorChain->evaluate($this->request, $this->authentication, $this->session, $this->environment, $this->authorizationService, $this->managedObjectContext);
+        get => $this->isProtectedContentAvailable ??= $this->accessEvaluator->evaluate($this->request, $this->authentication, $this->session, $this->environment, $this->authorizationService, $this->managedObjectContext);
     }
 
     public function __construct()

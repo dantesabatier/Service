@@ -16,26 +16,22 @@ use Sabatier\Foundation\URLFileTypeMappings;
 /** @internal */
 class ResourceManager extends Responder
 {
-    public ArrayClass $optionalResourceNames {
-        get => $this->optionalResourceNames ??= new ArrayClass(["favicon.ico"]);
+    public StaticResourcePolicy $staticResourcePolicy {
+        get => $this->staticResourcePolicy ??= new DefaultStaticResourcePolicy();
+    }
+    private StaticResourceDisposition $staticResourceDisposition {
+        get => $this->staticResourceDisposition ??= $this->staticResourcePolicy->evaluate($this->resourceURL);
     }
     /** @var ArrayClass<string> */
     public ArrayClass $allowedMethods {
-        get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::head, HTTPRequestMethod::get]);
+        get => new ArrayClass([HTTPRequestMethod::head, HTTPRequestMethod::get]);
     }
     public bool $isProtectedContentAvailable = true;
     public URL $resourceURL {
         get => $this->resourceURL ??= new URL($this->request->url->path, FileManager::default()->documentRootDirectory)->absoluteURL;
     }
     public bool $isFirstResponder {
-        get {
-            $resourceURL = $this->resourceURL;
-            $path = $resourceURL->path;
-            if (FileManager::default()->fileExists($path, $isDirectory) && !$isDirectory) {
-                return true;
-            }
-            return $this->optionalResourceNames->containsElement($resourceURL->lastPathComponent);
-        }
+        get => $this->staticResourceDisposition->shouldHandle;
     }
     public Response $response {
         /**
@@ -60,10 +56,14 @@ class ResourceManager extends Responder
                     if ($request->httpMethod === HTTPRequestMethod::get) {
                         $body = $content;
                     }
+                } elseif (!$this->staticResourceDisposition->allowEmptyResponse) {
+                    throw new NotFoundException();
                 } else {
                     $headers["Content-Type"] = $contentType;
                 }
-                $headers["Cache-Control"] = "public, max-age=31536000, s-maxage=31536000, immutable";
+                if ($this->staticResourceDisposition->cacheable) {
+                    $headers["Cache-Control"] = "public, max-age=31536000, s-maxage=31536000, immutable";
+                }
             }
             return new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new Response($request->url, HTTPStatusCode::ok, $headers, $body))->response, $request, $this->corsPolicy)->response;
         }

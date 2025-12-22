@@ -16,6 +16,9 @@ use Sabatier\Foundation\URLFileTypeMappings;
 /** @internal */
 class ResourceManager extends Responder
 {
+    public ArrayClass $optionalResourceNames {
+        get => $this->optionalResourceNames ??= new ArrayClass(["favicon.ico"]);
+    }
     /** @var ArrayClass<string> */
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::head, HTTPRequestMethod::get]);
@@ -25,29 +28,44 @@ class ResourceManager extends Responder
         get => $this->resourceURL ??= new URL($this->request->url->path, FileManager::default()->documentRootDirectory)->absoluteURL;
     }
     public bool $isFirstResponder {
-        get => FileManager::default()->fileExists($this->resourceURL->path, $isDirectory) && !$isDirectory;
+        get {
+            $resourceURL = $this->resourceURL;
+            $path = $resourceURL->path;
+            if (FileManager::default()->fileExists($path, $isDirectory) && !$isDirectory) {
+                return true;
+            }
+            return $this->optionalResourceNames->containsElement($resourceURL->lastPathComponent);
+        }
     }
     public Response $response {
         /**
          * @throws Exception
          */
         get {
-            FileManager::default()->isReadableFile($this->resourceURL->path) ?: throw new MethodNotAllowedException();
             $body = null;
-            $headerFields = new Dictionary();
             $request = $this->request;
+            $this->allowedMethods->containsElement($request->httpMethod) ?: throw new MethodNotAllowedException();
+            $headers = new Dictionary();
             if ($request->httpMethod === HTTPRequestMethod::get || $request->httpMethod === HTTPRequestMethod::head) {
-                $content = FileManager::default()->contents($this->resourceURL->path) ?? throw new InternalServerErrorException();
-                if (($contentType = URLFileTypeMappings::shared()->mimeType($this->resourceURL->pathExtension)) && ($encoding = mb_detect_encoding($content))) {
-                    $contentType .= "; charset=$encoding";
+                $resourceURL = $this->resourceURL;
+                $path = $resourceURL->path;
+                $pathExtension = $resourceURL->pathExtension;
+                $contentType = URLFileTypeMappings::shared()->mimeType($pathExtension);
+                if (FileManager::default()->isReadableFile($path)) {
+                    $content = FileManager::default()->contents($path) ?? throw new InternalServerErrorException();
+                    if ($contentType && ($encoding = mb_detect_encoding($content))) {
+                        $contentType .= "; charset=$encoding";
+                    }
+                    $headers["Content-Type"] = $contentType;
+                    if ($request->httpMethod === HTTPRequestMethod::get) {
+                        $body = $content;
+                    }
+                } else {
+                    $headers["Content-Type"] = $contentType;
                 }
-                $headerFields["Content-Type"] = $contentType;
-                if ($request->httpMethod === HTTPRequestMethod::get) {
-                    $body = $content;
-                }
-                $headerFields["Cache-Control"] = "public, max-age=31536000, s-maxage=31536000, immutable";
+                $headers["Cache-Control"] = "public, max-age=31536000, s-maxage=31536000, immutable";
             }
-            return new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new Response($request->url, HTTPStatusCode::ok, $headerFields, $body))->response, $request, $this->corsPolicy)->response;
+            return new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new Response($request->url, HTTPStatusCode::ok, $headers, $body))->response, $request, $this->corsPolicy)->response;
         }
     }
 }

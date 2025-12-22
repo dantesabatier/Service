@@ -5,6 +5,7 @@
 namespace Sabatier\Service;
 
 use Exception;
+use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
@@ -15,6 +16,10 @@ use Sabatier\Foundation\URLFileTypeMappings;
 /** @internal */
 class ResourceManager extends Responder
 {
+    /** @var ArrayClass<string> */
+    public ArrayClass $allowedMethods {
+        get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::head, HTTPRequestMethod::get]);
+    }
     public bool $isProtectedContentAvailable = true;
     public URL $resourceURL {
         get => $this->resourceURL ??= new URL($this->request->url->path, FileManager::default()->documentRootDirectory)->absoluteURL;
@@ -41,8 +46,6 @@ class ResourceManager extends Responder
                     $body = $content;
                 }
                 $headerFields["Cache-Control"] = "public, max-age=31536000, s-maxage=31536000, immutable";
-            } elseif ($request->httpMethod !== HTTPRequestMethod::options) {
-                throw new MethodNotAllowedException();
             }
             return new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new Response($request->url, HTTPStatusCode::ok, $headerFields, $body))->response, $request, $this->corsPolicy)->response;
         }

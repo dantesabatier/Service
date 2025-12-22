@@ -113,20 +113,19 @@ class AuthenticationManager extends Responder
     }
 
     /**
-     * Issues a new JSON Web Token for an already authenticated JWT identity.
-     *
      * @throws Exception
+     * @internal
      */
-    #[Action(decorators: [JSONDecorator::class])]
-    public function refresh(): void
+    public function refresh(): Dictionary
     {
-        $user = $this->authentication->authenticatedUser ?? throw new UnauthorizedException();
+        $strategy = $this->authenticationStrategy;
+        $strategy->isValid ?: throw new UnauthorizedException();
+        $user = $strategy->authenticatedUser ?? throw new UnauthorizedException();
         $environment = ProcessInfo::processInfo()->environment;
         $jwtKey = $environment[JWTPrivateKey] ?? throw new UnauthorizedException();
-        /** @var Dictionary<mixed> $data */
         $data = new Dictionary();
         $data[AuthenticationUserKey] = $user;
-        $data[AuthenticationTokenKey] = new JSONWebTokenIssuer(new JSONWebTokenService($jwtKey, $this->request->url->host), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? 1800)->intValue)->issue($user, $this->authenticationStrategy->context);
-        $this->data = $data;
+        $data[AuthenticationTokenKey] = new JSONWebTokenIssuer(new JSONWebTokenService($jwtKey, $this->request->url->host), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? 1800)->intValue)->issue($user, $strategy->context);
+        return $data;
     }
 }

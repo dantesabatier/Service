@@ -25,7 +25,7 @@ use function Sabatier\Foundation\unsafe_value;
  */
 class Session extends ObjectClass
 {
-    /** @var bool */
+    /** @var bool Indicates whether the session is currently active and ready for data operations. */
     public bool $isActive {
         get => $this->status === SessionStatus::active;
     }

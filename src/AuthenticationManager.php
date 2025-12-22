@@ -94,6 +94,7 @@ class AuthenticationManager extends Responder
         $user = $strategy->authenticatedUser ?? throw new UnauthorizedException();
         $environment = $this->environment;
         $jwtKey = $environment[JWTPrivateKey] ?? throw new UnauthorizedException();
+        /** @var Dictionary<mixed> $data */
         $data = new Dictionary();
         $data[AuthenticationUserKey] = $user;
         $data[AuthenticationTokenKey] = new JSONWebTokenIssuer(new JSONWebTokenService($jwtKey, $this->request->url->host), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? 1800)->intValue)->issue($user, $strategy->context, new ArrayClass([AuthenticationScopeAccess]));

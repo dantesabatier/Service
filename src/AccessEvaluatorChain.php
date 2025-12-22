@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use Override;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
@@ -30,6 +31,7 @@ final class AccessEvaluatorChain implements AccessEvaluator
      *
      * @return bool True if all evaluators pass, false if any evaluator fails.
      */
+    #[Override]
     public function evaluate(Request $request, Authentication $authentication, Session $session, Dictionary $environment, AuthorizationService $authorizationService, ManagedObjectContext $managedObjectContext): bool
     {
         return $this->evaluators->allSatisfy(fn(AccessEvaluator $evaluator) => $evaluator->evaluate($request, $authentication, $session, $environment, $authorizationService, $managedObjectContext));

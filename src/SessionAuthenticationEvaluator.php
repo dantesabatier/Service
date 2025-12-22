@@ -2,12 +2,14 @@
 
 namespace Sabatier\Service;
 
+use Override;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\Dictionary;
 
 /** @internal */
 final class SessionAuthenticationEvaluator implements AccessEvaluator
 {
+    #[Override]
     public function evaluate(Request $request, Authentication $authentication, Session $session, Dictionary $environment, AuthorizationService $authorizationService, ManagedObjectContext $managedObjectContext): bool
     {
         if ($environment->offsetExists(JWTPrivateKey)) {

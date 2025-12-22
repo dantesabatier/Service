@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use Override;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\URL;
@@ -14,6 +15,7 @@ class DefaultStaticResourcePolicy implements StaticResourcePolicy
         get => $this->optionalResourceNames ??= new ArrayClass(["favicon.ico"]);
     }
 
+    #[Override]
     public function evaluate(URL $resourceURL): StaticResourceDisposition
     {
         $path = $resourceURL->path;

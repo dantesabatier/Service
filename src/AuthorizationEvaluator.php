@@ -3,6 +3,7 @@
 namespace Sabatier\Service;
 
 use Exception;
+use Override;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
@@ -10,9 +11,7 @@ use Sabatier\Foundation\Networking\HTTPRequestMethod;
 /** @internal */
 final class AuthorizationEvaluator implements AccessEvaluator
 {
-    /**
-     * @throws Exception
-     */
+    #[Override]
     public function evaluate(Request $request, Authentication $authentication, Session $session, Dictionary $environment, AuthorizationService $authorizationService, ManagedObjectContext $managedObjectContext): bool
     {
         if (!($user = $authentication->authenticatedUser)) {

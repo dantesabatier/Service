@@ -7,7 +7,7 @@ use Sabatier\Foundation\Networking\URLCredential;
 use function Sabatier\Foundation\is_password;
 
 /** @internal */
-final class BasicAuthenticationStrategy extends AuthenticationStrategy
+final class BasicAuthentication extends Authentication
 {
     public AuthenticationScheme $scheme {
         get => AuthenticationScheme::basic;

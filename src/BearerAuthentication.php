@@ -8,7 +8,7 @@ use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Networking\URLCredential;
 
 /** @internal */
-final class BearerAuthenticationStrategy extends AuthenticationStrategy
+final class BearerAuthentication extends Authentication
 {
     public AuthenticationScheme $scheme {
         get => AuthenticationScheme::bearer;

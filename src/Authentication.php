@@ -4,42 +4,67 @@ namespace Sabatier\Service;
 
 use Exception;
 use Sabatier\Foundation\ArrayClass;
+use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\URLCredential;
 
 /**
- * Represents a class for managing authentication mechanisms.
+ * Represents an authentication strategy for handling different authentication schemes.
+ *
+ * @psalm-consistent-constructor
  */
-class Authentication
+abstract class Authentication
 {
     /** @var AuthenticationScheme The authentication scheme used for authentication. */
-    public AuthenticationScheme $scheme {
-        get => $this->strategy->scheme;
+    abstract public AuthenticationScheme $scheme {
+        get;
     }
     /** @var URLCredential|null The credential associated with the authentication process. */
-    public ?URLCredential $credential {
-        get => $this->strategy->credential;
+    abstract public ?URLCredential $credential {
+        get;
     }
     /** @var bool Indicates whether the authentication is valid. */
-    public bool $isValid {
-        get => $this->strategy->isValid;
+    abstract public bool $isValid {
+        get;
     }
     /** @var ArrayClass<string> */
-    public ArrayClass $technicalScopes {
-        get => $this->strategy->technicalScopes;
+    protected(set) ArrayClass $technicalScopes {
+        get => $this->technicalScopes ??= new ArrayClass();
     }
     /** @var ArrayClass<string> */
-    public ArrayClass $authorizationScopes {
-        get => $this->strategy->authorizationScopes;
+    protected(set) ArrayClass $authorizationScopes {
+        get => $this->authorizationScopes ??= new ArrayClass();
     }
     /** @var Authorizable|null Represents the authenticated user. */
-    public ?Authorizable $authenticatedUser {
+    final public ?Authorizable $authenticatedUser {
         /**
          * @throws Exception
          */
-        get => $this->strategy->authenticatedUser;
+        get {
+            if (isset($this->authenticatedUser)) {
+                return $this->authenticatedUser;
+            }
+            if (!($username = $this->credential?->user)) {
+                return $this->authenticatedUser = null;
+            }
+            return $this->authenticatedUser = $this->context->authenticationService->find($username, $this->context->serialization, $this->context->managedObjectContext);
+        }
     }
 
-    public function __construct(public readonly AuthenticationStrategy $strategy)
+    /**
+     * Initializes a new instance of the AuthenticationStrategy class.
+     *
+     * @param AuthenticationContext $context The authentication context.
+     * @param Dictionary<string> $environment The environment variables.
+     */
+    public function __construct(public readonly AuthenticationContext $context, public readonly Dictionary $environment)
     {
     }
+
+    /**
+     * Checks whether the given authentication scheme is supported.
+     *
+     * @param AuthenticationScheme $scheme The authentication scheme to check.
+     * @return bool True if the authentication scheme is supported, false otherwise.
+     */
+    abstract public static function isSupported(AuthenticationScheme $scheme): bool;
 }

@@ -7,7 +7,7 @@ final class ApplicationSecurityBootstrap
 {
     public static function boot(): void
     {
-        AuthenticationStrategyRegistrar::register();
+        AuthenticationRegistrar::register();
         JSONWebTokenCoderStrategyRegistrar::register();
     }
 }

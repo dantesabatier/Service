@@ -6,7 +6,7 @@ use Override;
 use Sabatier\Foundation\Networking\URLCredential;
 
 /** @internal */
-final class DigestAuthenticationStrategy extends AuthenticationStrategy
+final class DigestAuthentication extends Authentication
 {
     public AuthenticationScheme $scheme {
         get => AuthenticationScheme::digest;

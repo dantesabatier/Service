@@ -19,18 +19,15 @@ class AuthenticationManager extends Responder
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::post]);
     }
-    private AuthenticationStrategy $authenticationStrategy {
-        get {
-            if (!isset($this->authenticationStrategy)) {
-                $authenticationStrategyClass = AuthenticationStrategyFactory::getAuthenticationStrategyClass(AuthenticationStrategyFactory::getAuthenticationStrategies() ?? new ArrayClass(), $this->request->authorizationHeader->scheme) ?? throw new UnimplementedException();
-                $this->authenticationStrategy = new $authenticationStrategyClass(new AuthenticationContext($this->request->authorizationHeader, $this->request->url->host, $this->request->httpMethod, $this->managedObjectContext, $this->isFirstResponder ? $this->request->serialization : null, $this->authenticationService), $this->environment);
-            }
-            return $this->authenticationStrategy;
-        }
-    }
     /** @var Authentication The authentication object managing the authentication process. */
     private(set) Authentication $authentication {
-        get => $this->authentication ??= new Authentication($this->authenticationStrategy);
+        get {
+            if (!isset($this->authentication)) {
+                $authenticationClass = AuthenticationFactory::getAuthenticationClass(AuthenticationFactory::getAuthentications() ?? new ArrayClass(), $this->request->authorizationHeader->scheme) ?? throw new UnimplementedException();
+                $this->authentication = new $authenticationClass(new AuthenticationContext($this->request->authorizationHeader, $this->request->url->host, $this->request->httpMethod, $this->managedObjectContext, $this->isFirstResponder ? $this->request->serialization : null, $this->authenticationService), $this->environment);
+            }
+            return $this->authentication;
+        }
     }
     /** @var AccessEvaluator The access evaluator responsible for determining if a request has permission to access a protected resource. */
     public AccessEvaluator $accessEvaluator {
@@ -63,7 +60,7 @@ class AuthenticationManager extends Responder
         $data[AuthenticationUserKey] = $user;
         $environment = $this->environment;
         if ($jwtKey = $environment[JWTPrivateKey]) {
-            $data[AuthenticationTokenKey] = new JSONWebTokenIssuer(new JSONWebTokenService($jwtKey, $this->request->url->host), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? 1800)->intValue)->issue($user, $this->authenticationStrategy->context, new ArrayClass([AuthenticationScopeAccess, AuthenticationScopeRefresh]));
+            $data[AuthenticationTokenKey] = new JSONWebTokenIssuer(new JSONWebTokenService($jwtKey, $this->request->url->host), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? 1800)->intValue)->issue($user, $this->authentication->context, new ArrayClass([AuthenticationScopeAccess, AuthenticationScopeRefresh]));
         } else {
             $session = $this->session;
             $session->regenerateID();
@@ -89,15 +86,15 @@ class AuthenticationManager extends Responder
      */
     public function refresh(): Dictionary
     {
-        $strategy = $this->authenticationStrategy;
-        $strategy->isValid ?: throw new UnauthorizedException();
-        $user = $strategy->authenticatedUser ?? throw new UnauthorizedException();
+        $authentication = $this->authentication;
+        $authentication->isValid ?: throw new UnauthorizedException();
+        $user = $authentication->authenticatedUser ?? throw new UnauthorizedException();
         $environment = $this->environment;
         $jwtKey = $environment[JWTPrivateKey] ?? throw new UnauthorizedException();
         /** @var Dictionary<mixed> $data */
         $data = new Dictionary();
         $data[AuthenticationUserKey] = $user;
-        $data[AuthenticationTokenKey] = new JSONWebTokenIssuer(new JSONWebTokenService($jwtKey, $this->request->url->host), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? 1800)->intValue)->issue($user, $strategy->context, new ArrayClass([AuthenticationScopeAccess]));
+        $data[AuthenticationTokenKey] = new JSONWebTokenIssuer(new JSONWebTokenService($jwtKey, $this->request->url->host), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? 1800)->intValue)->issue($user, $authentication->context, new ArrayClass([AuthenticationScopeAccess]));
         return $data;
     }
 }

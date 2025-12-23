@@ -24,9 +24,6 @@ class PersistentSpace extends Responder
         /**
          * @throws JsonException
          */
-        get {
-            error_log("*{$this->request->httpMethod}*{$this->corsPolicy->allowedMethods}*");
-            return new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new JSONDecorator(new PersistentSpaceResponseStrategyResolver($this->request, $this->entity, $this->managedObjectContext)->strategy->response)->response)->response, $this->request, $this->corsPolicy)->response;
-        }
+        get => new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new JSONDecorator(new PersistentSpaceResponseStrategyResolver($this->request, $this->entity, $this->managedObjectContext)->strategy->response)->response)->response, $this->request, $this->corsPolicy)->response;
     }
 }

@@ -48,8 +48,11 @@ final class BearerAuthenticationStrategy extends AuthenticationStrategy
         }
     }
     /** @var ArrayClass<string> */
-    protected(set) ArrayClass $scopes {
-        get => $this->scopes ??= new ArrayClass($this->token?->payload?->scp ?? []);
+    protected(set) ArrayClass $technicalScopes {
+        get => $this->technicalScopes ??= new ArrayClass($this->token?->payload?->scp ?? []);
+    }
+    protected(set) ArrayClass $authorizationScopes {
+        get => $this->authorizationScopes ??= new ArrayClass($this->token?->payload?->authz ?? []);
     }
 
     #[Override]

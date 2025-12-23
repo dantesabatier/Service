@@ -11,7 +11,7 @@ use Sabatier\Foundation\URL;
 class DefaultStaticResourcePolicy implements StaticResourcePolicy
 {
     /** @var ArrayClass<string> */
-    public ArrayClass $optionalResourceNames {
+    private ArrayClass $optionalResourceNames {
         get => $this->optionalResourceNames ??= new ArrayClass(["favicon.ico"]);
     }
 

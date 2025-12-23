@@ -17,7 +17,7 @@ class AuthenticationManager extends Responder
 {
     /** @var ArrayClass<string> */
     public ArrayClass $allowedMethods {
-        get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::post]);
+        get => new ArrayClass([HTTPRequestMethod::post]);
     }
     private AuthenticationStrategy $authenticationStrategy {
         get {

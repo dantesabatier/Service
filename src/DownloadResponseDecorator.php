@@ -3,6 +3,7 @@
 namespace Sabatier\Service;
 /**
  * @psalm-type DownloadResponseDecoratorData array{body: string, filename: string, contentType: string}
+ * @internal
  */
 final class DownloadResponseDecorator extends ResponseDecorator
 {

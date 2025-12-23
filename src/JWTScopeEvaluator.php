@@ -12,6 +12,6 @@ final class JWTScopeEvaluator implements AccessEvaluator
     #[Override]
     public function evaluate(Request $request, Authentication $authentication, Session $session, Dictionary $environment, AuthorizationService $authorizationService, ManagedObjectContext $managedObjectContext): bool
     {
-        return $authentication->scopes->isEmpty || $authentication->scopes->containsElement(AuthenticationScopeAccess);
+        return $authentication->technicalScopes->isEmpty || $authentication->technicalScopes->containsElement(AuthenticationScopeAccess);
     }
 }

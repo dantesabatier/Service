@@ -14,7 +14,7 @@ class Preferences extends Responder
 {
     /** @var ArrayClass<string> */
     public ArrayClass $allowedMethods {
-        get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::get, HTTPRequestMethod::patch]);
+        get => new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::patch]);
     }
     public Response $response {
         /**

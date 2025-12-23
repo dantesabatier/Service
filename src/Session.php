@@ -116,7 +116,7 @@ class Session extends ObjectClass
      */
     public function start(): void
     {
-        session_start_with_params($this->cookieParameters);
+        session_start_with_params($this->cookieParameters, $this->storageURL->path);
     }
 
     /**

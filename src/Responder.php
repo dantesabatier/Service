@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use Exception;
 use JetBrains\PhpStorm\ExpectedValues;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
@@ -30,21 +31,15 @@ abstract class Responder extends ObjectClass
     public Dictionary $environment {
         get => ProcessInfo::processInfo()->environment;
     }
-    /**
-     * @var CORSPolicy The CORS policy applied to the response produced by this responder.
-     *
-     * The policy defines which origins, HTTP methods, and request headers are
-     * permitted to access the response. It is evaluated by internal response
-     * decorators during response construction and emission.
-     *
-     * If no policy is provided or the policy does not allow the request origin,
-     * no CORS headers are added to the response.
-     *
-     * The default policy is resolved from the application configuration and may
-     * be overridden by subclasses to provide responder-specific behavior.
-     * */
+    /** @var CORSPolicy The CORS policy applied to the response produced by this responder. */
     public CORSPolicy $corsPolicy {
-        get => $this->corsPolicy ??= Application::shared()->corsPolicy->intersect(new Set($this->allowedMethods), new Set($this->allowedHeaders));
+        get {
+            if (!isset($this->corsPolicy)) {
+                $policy = Application::shared()->corsPolicy;
+                $this->corsPolicy = new CORSPolicy($policy->allowedOrigins, $policy->allowedMethods->intersection(new Set($this->allowedMethods)), $policy->allowedHeaders->intersection(new Set($this->allowedHeaders)), $policy->allowCredentials);
+            }
+            return $this->corsPolicy;
+        }
     }
     /** @var ManagedObjectContext The managed object context associated with this responder. */
     public ManagedObjectContext $managedObjectContext {
@@ -52,7 +47,7 @@ abstract class Responder extends ObjectClass
     }
     /** @var ArrayClass<string> The allowed methods associated with this responder. */
     public ArrayClass $allowedMethods {
-        get => new ArrayClass([HTTPRequestMethod::head, HTTPRequestMethod::options, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::delete]);
+        get => new ArrayClass([HTTPRequestMethod::head, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::delete]);
     }
     /** @var ArrayClass<string> Defines the HTTP headers this responder is capable of understanding. It does not grant permission by itself; the effective allowed headers are the intersection between the responder’s declared headers and the application’s global CORS policy. */
     public ArrayClass $allowedHeaders {
@@ -61,7 +56,10 @@ abstract class Responder extends ObjectClass
     /** @var Responder|null The next responder. */
     public ?Responder $nextResponder = null;
     private ?ResponderResolution $resolution {
-        get => $this->resolution ??= new ResponderResolution($this, $this->request);
+        /**
+         * @throws Exception
+         */
+        get => $this->resolution ??= new ResponderResolution(static::class, $this->request->url->path);
     }
     /** @var bool Returns a Boolean value indicating whether this object is the first responder. */
     public bool $isFirstResponder {
@@ -96,7 +94,6 @@ abstract class Responder extends ObjectClass
             $response = new Response($request->url);
             if (match ($request->httpMethod) {
                     HTTPRequestMethod::post,
-                    HTTPRequestMethod::put,
                     HTTPRequestMethod::patch,
                     HTTPRequestMethod::delete => true,
                     default => false,

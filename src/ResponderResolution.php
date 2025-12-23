@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use Exception;
 use ReflectionClass;
 use ReflectionMethod;
 use Sabatier\Foundation\CompareOptions;
@@ -18,11 +19,15 @@ final class ResponderResolution
     /** @var Set<class-string<ResponseDecorator>> */
     private(set) Set $decorators;
 
-    public function __construct(Responder $responder, Request $request)
+    /**
+     * @param class-string<Responder> $responderClass
+     * @param string $path
+     * @throws Exception
+     */
+    public function __construct(string $responderClass, string $path)
     {
         $this->decorators = new Set();
-        $path = $request->url->path;
-        $reflectionClass = new ReflectionClass($responder);
+        $reflectionClass = new ReflectionClass($responderClass);
         foreach ($reflectionClass->getAttributes(Endpoint::class) as $attribute) {
             $endpoint = $attribute->newInstance();
             $other = $endpoint->path ?? "/{$reflectionClass->getShortName()}";

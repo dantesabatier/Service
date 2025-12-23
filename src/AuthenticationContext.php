@@ -19,7 +19,7 @@ readonly class AuthenticationContext
      * @param string|null $tokenIssuer The token issuer, if applicable.
      * @param string $httpMethod The HTTP request method.
      * @param ManagedObjectContext $managedObjectContext The managed object context.
-     * @param Dictionary|null $serialization The serialization dictionary, if applicable.
+     * @param Dictionary<mixed>|null $serialization The serialization dictionary, if applicable.
      * @param AuthenticationService $authenticationService The authentication service.
      */
     public function __construct(public AuthorizationHeader $authorizationHeader, public ?string $tokenIssuer, #[ExpectedValues(valuesFromClass: HTTPRequestMethod::class)] public string $httpMethod, public ManagedObjectContext $managedObjectContext, public ?Dictionary $serialization, public AuthenticationService $authenticationService

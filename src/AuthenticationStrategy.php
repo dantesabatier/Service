@@ -27,8 +27,12 @@ abstract class AuthenticationStrategy
         get;
     }
     /** @var ArrayClass<string> */
-    protected(set) ArrayClass $scopes {
-        get => $this->scopes ??= new ArrayClass();
+    protected(set) ArrayClass $technicalScopes {
+        get => $this->technicalScopes ??= new ArrayClass();
+    }
+    /** @var ArrayClass<string> */
+    protected(set) ArrayClass $authorizationScopes {
+        get => $this->authorizationScopes ??= new ArrayClass();
     }
     /** @var Authorizable|null Represents the authenticated user. */
     final public ?Authorizable $authenticatedUser {

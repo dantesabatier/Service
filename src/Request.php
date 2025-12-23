@@ -27,7 +27,7 @@ use function Sabatier\Foundation\request_url;
  */
 class Request extends URLRequest
 {
-    /** @var Dictionary Parsed body of the request. */
+    /** @var Dictionary<mixed> Parsed body of the request. */
     private(set) Dictionary $parsedBody {
         get {
             if (!isset($this->parsedBody)) {
@@ -45,7 +45,7 @@ class Request extends URLRequest
             return $this->parsedBody;
         }
     }
-    /** @var Dictionary|null Describes which attributes/relationships to include when serializing objects for this request. */
+    /** @var Dictionary<mixed>|null Describes which attributes/relationships to include when serializing objects for this request. */
     private(set) ?Dictionary $serialization {
         get {
             if (!isset($this->serialization)) {

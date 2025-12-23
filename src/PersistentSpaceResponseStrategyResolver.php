@@ -20,7 +20,6 @@ final class PersistentSpaceResponseStrategyResolver
                     HTTPRequestMethod::post => CreatePersistentSpaceResponseStrategy::class,
                     HTTPRequestMethod::patch => UpdatePersistentSpaceResponseStrategy::class,
                     HTTPRequestMethod::delete => DeletePersistentSpaceResponseStrategy::class,
-                    HTTPRequestMethod::options => OptionsPersistentSpaceResponseStrategy::class,
                     default => throw new MethodNotAllowedException(),
                 };
             }

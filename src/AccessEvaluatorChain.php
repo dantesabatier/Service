@@ -25,7 +25,7 @@ final class AccessEvaluatorChain implements AccessEvaluator
      * @param Request $request The request being evaluated.
      * @param Authentication $authentication The authentication object for the current request.
      * @param Session $session The session object associated with the request.
-     * @param Dictionary $environment Environment variables relevant to the evaluation.
+     * @param Dictionary<mixed> $environment Environment variables relevant to the evaluation.
      * @param AuthorizationService $authorizationService The service responsible for authorization checks.
      * @param ManagedObjectContext $managedObjectContext The CoreData context used for persistent lookups.
      *

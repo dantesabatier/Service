@@ -13,10 +13,8 @@ use Sabatier\Foundation\Notification;
 use Sabatier\Foundation\NotificationCenter;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\ProcessInfo;
-use Sabatier\Foundation\Set;
 use Sabatier\Foundation\UserDefaults;
 use Throwable;
-use function Sabatier\Foundation\string_split_trimmed;
 use const Sabatier\CoreData\PersistentHistoryTrackingKey;
 use const Sabatier\CoreData\PersistentStoreRemoteChange;
 use const Sabatier\CoreData\PersistentStoreRemoteChangeNotificationPostOptionKey;
@@ -91,19 +89,17 @@ class Application extends Responder
     private(set) AuthenticationManager $authenticationManager {
         get => $this->authenticationManager ??= new AuthenticationManager();
     }
+    /** @var CORSPolicy The CORS policy applied to all incoming requests. This policy defines which origins, HTTP methods, and headers are permitted for cross-origin requests and whether credentials are allowed. */
+    public CORSPolicy $corsPolicy {
+        get => $this->corsPolicy ??= CORSPolicy::policy();
+    }
     /** @var AccessPolicy The access policy for enforcing access control. */
     public AccessPolicy $accessPolicy {
         get => $this->accessPolicy ??= new DefaultAccessPolicy();
     }
-    public CORSPolicy $corsPolicy {
-        get {
-            if (!isset($this->corsPolicy)) {
-                $processInfo = ProcessInfo::processInfo();
-                $environment = $processInfo->environment;
-                $this->corsPolicy = new CORSPolicy(new Set(string_split_trimmed($environment[CORSAllowedOriginsKey] ?? "")), new Set(string_split_trimmed($environment[CORSAllowedMethodsKey] ?? "")), new Set(string_split_trimmed($environment[CORSAllowedHeadersKey] ?? "")), filter_var($environment[CORSAllowCredentialsKey], FILTER_VALIDATE_BOOL));
-            }
-            return $this->corsPolicy;
-        }
+    /** @var StaticResourcePolicy Policy used to determine how the application handles static resources. */
+    public StaticResourcePolicy $staticResourcePolicy {
+        get => $this->staticResourcePolicy ??= new DefaultStaticResourcePolicy();
     }
     private bool $isTerminated = false;
     private bool $isBootstrapped = false;

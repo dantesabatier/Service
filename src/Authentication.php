@@ -23,9 +23,13 @@ class Authentication
     public bool $isValid {
         get => $this->strategy->isValid;
     }
-    /** @var ArrayClass<string> The scopes associated with the authentication process. */
-    public ArrayClass $scopes {
-        get => $this->strategy->scopes;
+    /** @var ArrayClass<string> */
+    public ArrayClass $technicalScopes {
+        get => $this->strategy->technicalScopes;
+    }
+    /** @var ArrayClass<string> */
+    public ArrayClass $authorizationScopes {
+        get => $this->strategy->authorizationScopes;
     }
     /** @var Authorizable|null Represents the authenticated user. */
     public ?Authorizable $authenticatedUser {

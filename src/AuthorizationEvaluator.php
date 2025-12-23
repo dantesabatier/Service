@@ -2,7 +2,6 @@
 
 namespace Sabatier\Service;
 
-use Exception;
 use Override;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\Dictionary;
@@ -23,6 +22,6 @@ final class AuthorizationEvaluator implements AccessEvaluator
             HTTPRequestMethod::put, HTTPRequestMethod::patch => AuthorizationType::update,
             HTTPRequestMethod::delete => AuthorizationType::delete,
             default => throw new MethodNotAllowedException()
-        }, $authentication->scopes, $managedObjectContext);
+        }, $authentication->authorizationScopes, $managedObjectContext);
     }
 }

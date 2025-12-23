@@ -14,8 +14,9 @@ use const Sabatier\Foundation\kCFBundleVersionKey;
 #[Endpoint("/")]
 class HomeController extends ViewController
 {
+    /** @var ArrayClass<string> */
     public ArrayClass $allowedMethods {
-        get => new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::head, HTTPRequestMethod::options]);
+        get => new ArrayClass([HTTPRequestMethod::get]);
     }
     public string $name = "Home";
     public bool $isProtectedContentAvailable = true;

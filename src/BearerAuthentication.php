@@ -33,7 +33,7 @@ final class BearerAuthentication extends Authentication
     public bool $isValid {
         get => $this->credential !== null;
     }
-    public ?JSONWebToken $token {
+    private(set) ?JSONWebToken $token {
         /**
          * @throws Exception
          */

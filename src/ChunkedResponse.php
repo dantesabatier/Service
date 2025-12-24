@@ -2,15 +2,18 @@
 
 namespace Sabatier\Service;
 
+use Generator;
 use IteratorAggregate;
 use JsonSerializable;
 use Override;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\URL;
-use Traversable;
 
-/** @internal */
+/**
+ * @implements IteratorAggregate<int, non-empty-string>
+ * @internal
+ */
 class ChunkedResponse extends Response implements IteratorAggregate
 {
     private int $chunkSize;
@@ -23,19 +26,22 @@ class ChunkedResponse extends Response implements IteratorAggregate
     }
 
     /**
-     * @return Traversable<string>
+     * @return Generator<int, non-empty-string, mixed, void>
      */
     #[Override]
-    public function getIterator(): Traversable
+    public function getIterator(): Generator
     {
         return (function () {
+            /** @var ArrayClass<JsonSerializable> $chunk */
             $chunk = new ArrayClass();
             /** @var ArrayClass<JsonSerializable> $body */
             $body = $this->body;
             foreach ($body as $index => $item) {
                 $chunk[] = $item;
                 if ($chunk->count >= $this->chunkSize || $index + 1 === $body->count) {
-                    yield json_encode($chunk, JSON_PRESERVE_ZERO_FRACTION);
+                    /** @var non-empty-string $json */
+                    $json = json_encode($chunk, JSON_PRESERVE_ZERO_FRACTION);
+                    yield $json;
                     $chunk = new ArrayClass();
                 }
             }

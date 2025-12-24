@@ -16,17 +16,13 @@ class JWTAccessTimeEvaluator implements AccessEvaluator
         if (!$authentication instanceof BearerAuthentication) {
             return true;
         }
-        if (!($token = $authentication->token)) {
+        if (!($payload = $authentication->token?->payload)) {
             return false;
         }
-        $payload = $token->payload;
         $now = new Date()->timeIntervalSinceReferenceDate;
         if ($payload->nbf && $payload->nbf > $now) {
             return false;
         }
-        if ($payload->exp && $payload->exp < $now) {
-            return false;
-        }
-        return true;
+        return !($payload->exp && $payload->exp < $now);
     }
 }

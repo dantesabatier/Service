@@ -39,7 +39,7 @@ final readonly class CORSPolicy
     public static function policy(): CORSPolicy
     {
         $environment = ProcessInfo::processInfo()->environment;
-        return new CORSPolicy(new Set(string_split_trimmed($environment[CORSAllowedOriginsKey] ?? "")), new Set(string_split_trimmed($environment[CORSAllowedMethodsKey] ?? "")), new Set(string_split_trimmed($environment[CORSAllowedHeadersKey] ?? "")), filter_var($environment[CORSAllowCredentialsKey], FILTER_VALIDATE_BOOL));
+        return new CORSPolicy(new Set(string_split_trimmed((string)$environment[CORSAllowedOriginsKey])), new Set(string_split_trimmed((string)$environment[CORSAllowedMethodsKey])), new Set(string_split_trimmed((string)$environment[CORSAllowedHeadersKey])), filter_var($environment[CORSAllowCredentialsKey], FILTER_VALIDATE_BOOL));
     }
 
     /**

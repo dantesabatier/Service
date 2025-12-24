@@ -13,12 +13,6 @@ use Traversable;
 /** @internal */
 class ChunkedResponse extends Response implements IteratorAggregate
 {
-    public int $count {
-        get => $this->body->count;
-    }
-    public bool $isEmpty {
-        get => $this->count === 0;
-    }
     private int $chunkSize;
 
     public function __construct(URL $url, mixed $body, int $chunkSize)

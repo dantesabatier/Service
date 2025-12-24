@@ -2,7 +2,6 @@
 
 namespace Sabatier\Service;
 
-use Sabatier\Foundation\Date;
 use function Sabatier\Foundation\localized_string;
 
 /**
@@ -10,11 +9,8 @@ use function Sabatier\Foundation\localized_string;
  */
 readonly class JSONWebTokenValidator
 {
-    private float $now;
-
     public function __construct(private string $issuer, private string $algorithm)
     {
-        $this->now = new Date()->timeIntervalSinceReferenceDate;
     }
 
     /**
@@ -30,12 +26,6 @@ readonly class JSONWebTokenValidator
             throw new JSONWebTokenException(localized_string("Access token algorithm is invalid."), JWTTokenInvalidErrorCode);
         }
         $payload = $token->payload;
-        if ($payload->nbf && $payload->nbf > $this->now) {
-            throw new JSONWebTokenException(localized_string("Access token is not yet valid."), JWTTokenNotYetValidErrorCode);
-        }
-        if ($payload->exp && $payload->exp < $this->now) {
-            throw new JSONWebTokenException(localized_string("Access token has expired."), JWTTokenExpiredErrorCode);
-        }
         if ($payload->iss && $payload->iss !== $this->issuer) {
             throw new JSONWebTokenException(localized_string("Access token issuer is invalid."), JWTTokenInvalidErrorCode);
         }

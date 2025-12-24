@@ -31,7 +31,7 @@ abstract class JSONWebTokenDecoderStrategy extends JSONWebTokenCoderStrategy
     {
         $components = explode(JWTComponentDelimiter, $data);
         if (count($components) !== JWTComponentCount) {
-            throw new JSONWebTokenException("Access token is missing.");
+            throw new JSONWebTokenException();
         }
         [$header, $payload, $signature] = $components;
         $unsigned = "$header.$payload";

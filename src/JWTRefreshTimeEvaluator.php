@@ -13,7 +13,9 @@ class JWTRefreshTimeEvaluator implements AccessEvaluator
     #[Override]
     public function evaluate(Request $request, Authentication $authentication, Session $session, Dictionary $environment, AuthorizationService $authorizationService, ManagedObjectContext $managedObjectContext): bool
     {
-        assert($authentication instanceof BearerAuthentication);
+        if (!$authentication instanceof BearerAuthentication) {
+            return true;
+        }
         if (!($token = $authentication->token)) {
             return false;
         }

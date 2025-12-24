@@ -31,7 +31,7 @@ class AuthenticationManager extends Responder
     }
     /** @var AccessEvaluator The access evaluator responsible for determining if a request has permission to access a protected resource. */
     public AccessEvaluator $accessEvaluator {
-        get => $this->accessEvaluator ??= $this->authentication->technicalScopes->containsElement(AuthenticationScopeRefresh) ? new AccessEvaluatorChain(new ArrayClass([new AuthenticationEvaluator(), new JWTScopeEvaluator(AuthenticationScopeRefresh), new JWTRefreshTimeEvaluator()])) : new AccessEvaluatorChain(new ArrayClass([new SessionAuthenticationEvaluator(), new AuthenticationEvaluator(), new JWTScopeEvaluator(AuthenticationScopeAccess), new JWTAccessTimeEvaluator(), new AuthorizationEvaluator()]));
+        get => $this->accessEvaluator ??= $this->authentication->technicalScopes->containsElement(AuthenticationScopeAccess) ? new AccessEvaluatorChain(new ArrayClass([new SessionAuthenticationEvaluator(), new AuthenticationEvaluator(), new JWTScopeEvaluator(AuthenticationScopeAccess), new JWTAccessTimeEvaluator(), new AuthorizationEvaluator()])) : new AccessEvaluatorChain(new ArrayClass([new AuthenticationEvaluator(), new JWTScopeEvaluator(AuthenticationScopeRefresh), new JWTRefreshTimeEvaluator()]));
     }
     /** @var bool Indicates whether the current request can access protected content. Determined by evaluating the configured access evaluator chain. */
     public bool $isProtectedContentAvailable {

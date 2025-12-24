@@ -16,11 +16,14 @@ class ChunkedResponse extends Response implements IteratorAggregate
     public int $count {
         get => $this->body->count;
     }
+    public bool $isEmpty {
+        get => $this->count === 0;
+    }
     private int $chunkSize;
 
     public function __construct(URL $url, mixed $body, int $chunkSize)
     {
-        parent::__construct($url, headerFields: new Dictionary(["Content-Type" => "application/x-ndjson; charset=utf-8", "Transfer-Encoding" => "chunked"]), body: $body);
+        parent::__construct($url, headerFields: new Dictionary(["Content-Type" => "application/x-ndjson; charset=utf-8", "Transfer-Encoding" => "chunked", "Cache-Control" => "no-cache"]), body: $body);
         $this->chunkSize = $chunkSize;
         $this->emitter = new ChunkedEmitter();
     }

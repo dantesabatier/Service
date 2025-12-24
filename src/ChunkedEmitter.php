@@ -14,21 +14,21 @@ class ChunkedEmitter extends Emitter
     {
         assert($response instanceof ChunkedResponse);
         if (headers_sent()) {
-            die();
+            die("Headers already sent");
         }
         header(sprintf("%s %s %s", $response->httpVersion, $response->statusCode, Response::localizedString($response->statusCode)));
         header_register_callback(function () use ($headers): void {
             foreach ($headers as $key => $value) {
                 header(sprintf("%s: %s", $key, human_readable_value($value)));
+                flush();
             }
         });
-        if (function_exists("ob_implicit_flush")) {
-            ob_implicit_flush();
-        }
         foreach ($response as $chunk) {
-            echo $chunk, "\n";
+            echo "$chunk\n";
             flush();
         }
+        echo "\n";
+        flush();
         die();
     }
 }

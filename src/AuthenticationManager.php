@@ -38,7 +38,7 @@ class AuthenticationManager extends Responder
         /**
          * @throws Exception
          */
-        get => $this->isProtectedContentAvailable ??= $this->accessEvaluator->evaluate($this->request, $this->authentication, $this->session, $this->environment, $this->authorizationService, $this->managedObjectContext);
+        get => $this->isProtectedContentAvailable ??= $this->accessEvaluator->evaluate(new AccessEvaluationContext($this->request, $this->authentication, $this->session, $this->environment, $this->authorizationService, $this->managedObjectContext));
     }
 
     public function __construct()

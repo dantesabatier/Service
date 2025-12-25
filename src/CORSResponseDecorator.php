@@ -2,9 +2,7 @@
 
 namespace Sabatier\Service;
 
-use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Set;
-use function Sabatier\Foundation\string_is_equal;
 use function Sabatier\Foundation\string_split_trimmed;
 
 /** @internal */
@@ -35,7 +33,7 @@ final class CORSResponseDecorator extends ResponseDecorator
         }
         $requestedHeaders = $request->valueForHttpHeaderField("Access-Control-Request-Headers");
         if ($requestedHeaders) {
-            $allowedHeaders = $policy->allowedHeaders->union(new Set(string_split_trimmed($requestedHeaders))->filter(fn(string $requestedHeader): bool => !$policy->allowedHeaders->contains(fn(string $allowedHeader): bool => string_is_equal($allowedHeader, $requestedHeader, CompareOptions::caseInsensitive))));
+            $allowedHeaders = $policy->allowedHeaders->map(fn(string $allowedHeader): string => strtolower($allowedHeader))->intersection(new Set(string_split_trimmed(strtolower($requestedHeaders))));
             if (!$allowedHeaders->isEmpty) {
                 $headers["Access-Control-Allow-Headers"] = $allowedHeaders->join(", ");
             }

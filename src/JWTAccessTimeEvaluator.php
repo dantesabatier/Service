@@ -3,20 +3,18 @@
 namespace Sabatier\Service;
 
 use Override;
-use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\Date;
-use Sabatier\Foundation\Dictionary;
 
 /** @internal */
 class JWTAccessTimeEvaluator implements AccessEvaluator
 {
     #[Override]
-    public function evaluate(Request $request, Authentication $authentication, Session $session, Dictionary $environment, AuthorizationService $authorizationService, ManagedObjectContext $managedObjectContext): bool
+    public function evaluate(AccessEvaluationContext $context): bool
     {
-        if (!$authentication instanceof BearerAuthentication) {
+        if (!$context->authentication instanceof BearerAuthentication) {
             return true;
         }
-        if (!($payload = $authentication->token?->payload)) {
+        if (!($payload = $context->authentication->token?->payload)) {
             return false;
         }
         $now = new Date()->timeIntervalSinceReferenceDate;

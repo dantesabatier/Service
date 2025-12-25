@@ -3,18 +3,16 @@
 namespace Sabatier\Service;
 
 use Override;
-use Sabatier\CoreData\ManagedObjectContext;
-use Sabatier\Foundation\Dictionary;
 
 /** @internal */
 final class SessionAuthenticationEvaluator implements AccessEvaluator
 {
     #[Override]
-    public function evaluate(Request $request, Authentication $authentication, Session $session, Dictionary $environment, AuthorizationService $authorizationService, ManagedObjectContext $managedObjectContext): bool
+    public function evaluate(AccessEvaluationContext $context): bool
     {
-        if ($environment->offsetExists(JWTPrivateKey)) {
+        if ($context->environment->offsetExists(JWTPrivateKey)) {
             return true;
         }
-        return $session->isActive && $session->valueForKey(SessionAuthenticatedKey) === true && $session->valueForKey(SessionUserKey) !== null;
+        return $context->session->isActive && $context->session->valueForKey(SessionAuthenticatedKey) === true && $context->session->valueForKey(SessionUserKey) !== null;
     }
 }

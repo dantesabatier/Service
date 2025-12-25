@@ -3,37 +3,28 @@
 namespace Sabatier\Service;
 
 use Override;
-use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
-use Sabatier\Foundation\Dictionary;
 
 /**
- * A chain of access evaluators that determines if a request is allowed to access protected content.
+ * Evaluates access by delegating the decision to a sequence of access evaluators.
+ *
+ * This evaluator implements a short-circuit AND semantic: all evaluators in the chain must independently allow access for the final result to be granted.
+ * Evaluation stops as soon as an evaluator denies access, preventing unnecessary work and avoiding side effects in later evaluators.
  */
 final class AccessEvaluatorChain implements AccessEvaluator
 {
     /**
-     * @param ArrayClass<AccessEvaluator> $evaluators The ordered list of access evaluators.
+     * Creates a new evaluator chain that evaluates access in the order provided.
+     *
+     * @param ArrayClass<AccessEvaluator> $evaluators The ordered sequence of evaluators to execute. The chain grants access only if every evaluator in this list returns `true` when evaluating the given context. Evaluators should be pure in the sense that they must not alter the shared state in a way that compromises later evaluations.
      */
     public function __construct(public ArrayClass $evaluators)
     {
     }
 
-    /**
-     * Evaluates the chain of access rules for the given request.
-     *
-     * @param Request $request The request being evaluated.
-     * @param Authentication $authentication The authentication object for the current request.
-     * @param Session $session The session object associated with the request.
-     * @param Dictionary<mixed> $environment Environment variables relevant to the evaluation.
-     * @param AuthorizationService $authorizationService The service responsible for authorization checks.
-     * @param ManagedObjectContext $managedObjectContext The CoreData context used for persistent lookups.
-     *
-     * @return bool True if all evaluators pass, false if any evaluator fails.
-     */
     #[Override]
-    public function evaluate(Request $request, Authentication $authentication, Session $session, Dictionary $environment, AuthorizationService $authorizationService, ManagedObjectContext $managedObjectContext): bool
+    public function evaluate(AccessEvaluationContext $context): bool
     {
-        return $this->evaluators->allSatisfy(fn(AccessEvaluator $evaluator) => $evaluator->evaluate($request, $authentication, $session, $environment, $authorizationService, $managedObjectContext));
+        return $this->evaluators->allSatisfy(fn(AccessEvaluator $evaluator) => $evaluator->evaluate($context));
     }
 }

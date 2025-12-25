@@ -3,8 +3,6 @@
 namespace Sabatier\Service;
 
 use Override;
-use Sabatier\CoreData\ManagedObjectContext;
-use Sabatier\Foundation\Dictionary;
 
 /** @internal */
 final readonly class JWTScopeEvaluator implements AccessEvaluator
@@ -14,8 +12,8 @@ final readonly class JWTScopeEvaluator implements AccessEvaluator
     }
 
     #[Override]
-    public function evaluate(Request $request, Authentication $authentication, Session $session, Dictionary $environment, AuthorizationService $authorizationService, ManagedObjectContext $managedObjectContext): bool
+    public function evaluate(AccessEvaluationContext $context): bool
     {
-        return $authentication->technicalScopes->isEmpty || $authentication->technicalScopes->containsElement($this->requiredScope);
+        return $context->authentication->technicalScopes->isEmpty || $context->authentication->technicalScopes->containsElement($this->requiredScope);
     }
 }

@@ -33,7 +33,7 @@ final class CORSResponseDecorator extends ResponseDecorator
         }
         $requestedHeaders = $request->valueForHttpHeaderField("Access-Control-Request-Headers");
         if ($requestedHeaders) {
-            $allowedHeaders = $policy->allowedHeaders->map(fn(string $allowedHeader): string => strtolower($allowedHeader))->intersection(new Set(string_split_trimmed(strtolower($requestedHeaders))));
+            $allowedHeaders = $policy->allowedHeaders->map(fn(string $allowedHeader): string => strtolower($allowedHeader))->intersection(new Set(string_split_trimmed($requestedHeaders))->map(fn(string $requestedHeader): string => strtolower($requestedHeader)));
             if (!$allowedHeaders->isEmpty) {
                 $headers["Access-Control-Allow-Headers"] = $allowedHeaders->join(", ");
             }

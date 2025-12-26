@@ -55,7 +55,7 @@ abstract class Responder extends ObjectClass
     }
     /** @var Responder|null The next responder. */
     public ?Responder $nextResponder = null;
-    private ?ResponderResolution $resolution {
+    private ResponderResolution $resolution {
         /**
          * @throws Exception
          */

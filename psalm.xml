@@ -1,69 +1,31 @@
 <?xml version="1.0"?>
-<!--suppress XmlDefaultAttributeValue -->
-<psalm errorLevel="4" findUnusedCode="false" findUnusedBaselineEntry="true" xmlns="https://getpsalm.org/schema/config">
+<psalm
+    errorLevel="3"
+    resolveFromConfigFile="true"
+    findUnusedBaselineEntry="true"
+    findUnusedCode="false"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="https://getpsalm.org/schema/config"
+    xsi:schemaLocation="https://getpsalm.org/schema/config vendor/vimeo/psalm/config.xsd"
+>
     <projectFiles>
-        <directory name="src"/>
+        <directory name="src" />
         <ignoreFiles>
-            <directory name="vendor"/>
+            <directory name="vendor" />
         </ignoreFiles>
     </projectFiles>
     <issueHandlers>
         <PropertyNotSetInConstructor errorLevel="suppress"/>
         <MissingConstructor errorLevel="suppress"/>
-        <MissingOverrideAttribute>
-            <errorLevel type="suppress">
-                <file name="src/JSONWebTokenHeader.php"/>
-                <file name="src/JSONWebTokenPayload.php"/>
-                <file name="src/JSONWebTokenSignature.php"/>
-            </errorLevel>
-        </MissingOverrideAttribute>
-        <UnresolvableInclude>
-            <errorLevel type="suppress">
-                <file name="src/Renderer.php"/>
-            </errorLevel>
-        </UnresolvableInclude>
-        <InvalidArgument>
-            <errorLevel type="suppress">
-                <file name="src/AuthorizationResolver.php"/>
-                <file name="src/AuthorizationScopeBuilder.php"/>
-                <file name="src/ChunkedResponse.php"/>
-            </errorLevel>
-        </InvalidArgument>
-        <TypeDoesNotContainNull>
-            <errorLevel type="suppress">
-                <file name="src/AuthorizationService.php"/>
-            </errorLevel>
-        </TypeDoesNotContainNull>
-        <RedundantCondition>
-            <errorLevel type="suppress">
-                <file name="src/AuthorizationService.php"/>
-            </errorLevel>
-        </RedundantCondition>
-        <InvalidNullableReturnType>
-            <errorLevel type="suppress">
-                <file name="src/InterfaceImplementorResolver.php"/>
-            </errorLevel>
-        </InvalidNullableReturnType>
-        <NullableReturnStatement>
-            <errorLevel type="suppress">
-                <file name="src/InterfaceImplementorResolver.php"/>
-            </errorLevel>
-        </NullableReturnStatement>
-        <PossiblyNullArgument>
-            <errorLevel type="suppress">
-                <file name="src/AuthenticationManager.php"/>
-            </errorLevel>
-        </PossiblyNullArgument>
         <RedundantPropertyInitializationCheck errorLevel="suppress"/>
         <InaccessibleProperty errorLevel="suppress"/>
+        <PropertyTypeCoercion>
+            <errorLevel type="suppress">
+                <referencedProperty name="Sabatier\Service\Authentication::$userClass"/>
+            </errorLevel>
+        </PropertyTypeCoercion>
         <InternalClass errorLevel="suppress"/>
         <InternalProperty errorLevel="suppress"/>
         <RiskyTruthyFalsyComparison errorLevel="suppress"/>
-        <DuplicateClass errorLevel="suppress"/>
-        <NoInterfaceProperties errorLevel="suppress"/>
-        <UndefinedDocblockClass errorLevel="suppress"/>
-        <NonInvariantDocblockPropertyType errorLevel="suppress"/>
-        <ClassMustBeFinal errorLevel="suppress"/>
-        <TypeDoesNotContainType errorLevel="suppress"/>
     </issueHandlers>
 </psalm>

@@ -91,7 +91,6 @@ abstract class Responder extends ObjectClass
         get {
             $request = $this->request;
             $this->allowedMethods->containsElement($request->httpMethod) ?: throw new MethodNotAllowedException();
-            $response = new Response($request->url);
             if (match ($request->httpMethod) {
                     HTTPRequestMethod::post,
                     HTTPRequestMethod::patch,
@@ -102,8 +101,8 @@ abstract class Responder extends ObjectClass
                 $session->start();
                 $this->perform($selector);
                 $session->commit();
-                $response = new Response($request->url, $this->statusCode, body: $this->data);
             }
+            $response = new Response($request->url, $this->statusCode, body: $this->data);
             foreach ($this->decorators as $decorator) {
                 $response = new $decorator($response)->response;
             }

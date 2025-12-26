@@ -5,9 +5,7 @@ namespace Sabatier\Service;
 use ReflectionClass;
 use ReflectionProperty;
 use Sabatier\Foundation\Bundle;
-use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
-use Sabatier\Foundation\Networking\HTTPStatusCode;
 use function Sabatier\Foundation\class_name;
 use const Sabatier\Foundation\kCFBundleNameKey;
 
@@ -54,13 +52,13 @@ abstract class ViewController extends Responder
     }
     public Response $response {
         get {
-            $body = null;
             $request = $this->request;
-            $headerFields = new Dictionary();
             if ($request->httpMethod === HTTPRequestMethod::get) {
-                $body = $this->view->render();
+                $decorators = $this->decorators;
+                $decorators[] = HTMLDecorator::class;
+                $this->data = $this->view->render();
             }
-            return new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new HTMLDecorator(new Response($request->url, HTTPStatusCode::ok, $headerFields, $body))->response)->response, $request, $this->corsPolicy)->response;
+            return parent::$response::get();
         }
     }
 

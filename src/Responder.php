@@ -89,24 +89,26 @@ abstract class Responder extends ObjectClass
     /** @var Response The response associated with this responder. */
     public Response $response {
         get {
-            $request = $this->request;
-            $this->allowedMethods->containsElement($request->httpMethod) ?: throw new MethodNotAllowedException();
-            if (match ($request->httpMethod) {
-                    HTTPRequestMethod::post,
-                    HTTPRequestMethod::patch,
-                    HTTPRequestMethod::delete => true,
-                    default => false,
-                } && ($selector = $this->selector)) {
-                $session = $this->session;
-                $session->start();
-                $this->perform($selector);
-                $session->commit();
+            try {
+                $request = $this->request;
+                $this->allowedMethods->containsElement($request->httpMethod) ?: throw new MethodNotAllowedException();
+                $this->session->start();
+                if (match ($request->httpMethod) {
+                        HTTPRequestMethod::post,
+                        HTTPRequestMethod::patch,
+                        HTTPRequestMethod::delete => true,
+                        default => false,
+                    } && ($selector = $this->selector)) {
+                    $this->perform($selector);
+                }
+                $response = new Response($request->url, $this->statusCode, body: $this->data);
+                foreach ($this->decorators as $decorator) {
+                    $response = new $decorator($response)->response;
+                }
+                return new CORSResponseDecorator($response, $request, $this->corsPolicy)->response;
+            } finally {
+                $this->session->commit();
             }
-            $response = new Response($request->url, $this->statusCode, body: $this->data);
-            foreach ($this->decorators as $decorator) {
-                $response = new $decorator($response)->response;
-            }
-            return new CORSResponseDecorator($response, $request, $this->corsPolicy)->response;
         }
     }
 }

@@ -2,7 +2,6 @@
 
 namespace Sabatier\Service;
 
-use JsonException;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
@@ -21,9 +20,13 @@ class PersistentSpace extends Responder
         get => (bool)$this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel?->entitiesByName?->offsetExists($this->request->url->lastPathComponent);
     }
     public Response $response {
-        /**
-         * @throws JsonException
-         */
-        get => new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new JSONDecorator(new PersistentSpaceResponseStrategyResolver($this->request, $this->entity, $this->managedObjectContext)->strategy->response)->response)->response, $this->request, $this->corsPolicy)->response;
+        get {
+            try {
+                $this->session->start();
+                return new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new JSONDecorator(new PersistentSpaceResponseStrategyResolver($this->request, $this->entity, $this->managedObjectContext)->strategy->response)->response)->response, $this->request, $this->corsPolicy)->response;
+            } finally {
+                $this->session->commit();
+            }
+        }
     }
 }

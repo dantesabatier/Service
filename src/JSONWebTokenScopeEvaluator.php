@@ -5,7 +5,7 @@ namespace Sabatier\Service;
 use Override;
 
 /** @internal */
-final readonly class JWTScopeEvaluator implements AccessEvaluator
+final readonly class JSONWebTokenScopeEvaluator implements AccessEvaluator
 {
     public function __construct(private string $requiredScope)
     {

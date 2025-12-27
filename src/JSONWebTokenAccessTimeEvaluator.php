@@ -6,7 +6,7 @@ use Override;
 use Sabatier\Foundation\Date;
 
 /** @internal */
-final class JWTAccessTimeEvaluator implements AccessEvaluator
+final class JSONWebTokenAccessTimeEvaluator implements AccessEvaluator
 {
     #[Override]
     public function evaluate(AccessEvaluationContext $context): bool

@@ -25,7 +25,8 @@ It is the core engine behind **Singularity**, an ambitious IDE running on Electr
 
 ## Quick Start
 
-### Defining an Endpoint
+### Defining Endpoints and Actions
+The framework uses a declarative approach to map requests to logic. While an `#[Endpoint]` defines the base route of a class, an `#[Action]` maps specific HTTP methods to internal methods, allowing for complex behaviors with built-in response decoration.
 ```php
 #[Endpoint("/")]
 final class HomeController extends ViewController {
@@ -35,5 +36,29 @@ final class HomeController extends ViewController {
     public ?string $title {
         get => Bundle::main()->object(kCFBundleNameKey);
     }
+    
+    #[Action(method: HTTPRequestMethod::post, decorators: [JSONDecorator::class])]
+    public function login(): void {
+        $user = $this->authentication->authenticatedUser ?? throw new UnauthorizedException();
+        
+        // Logical processing...
+        $this->data = new Dictionary(["user" => $user]);
+    }
 }
 ```
+## Infrastructure Configuration
+
+The framework automatically adjusts its behavior based on your environment, ensuring the best balance between security and performance:
+
+- **JWT Mode**: Activated when `JWTPrivateKey` is present in your environment. The system operates in a stateless manner, ignoring session infrastructure to maximize scalability for PWAs and mobile clients.
+- **Session Fallback**: Automatically engaged for stateful interactions or when JWT is not configured. This ensures a "secure by default" experience for traditional web applications and browsers.
+
+## Requirements
+
+- **PHP 8.4+** (leveraging Property Hooks).
+- **Sabatier Foundation & CoreData** libraries.
+- **OpenSSL** (for JWT operations).
+
+## License
+
+This project is licensed under the MIT License. See the `LICENSE.md` file for details.

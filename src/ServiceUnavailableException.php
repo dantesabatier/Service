@@ -9,7 +9,7 @@ use Sabatier\Foundation\Networking\HTTPStatusCode;
  *
  * This exception should be used to signal that the requested service is temporarily unavailable and cannot process the request.
  */
-class ServiceUnavailableException extends InvalidRequestException
+final class ServiceUnavailableException extends InvalidRequestException
 {
     public function __construct(string $message = "")
     {

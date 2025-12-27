@@ -14,7 +14,7 @@ use Sabatier\Foundation\URL;
 use Sabatier\Foundation\URLFileTypeMappings;
 
 /** @internal */
-class ResourceManager extends Responder
+final class ResourceManager extends Responder
 {
     /** @var ArrayClass<string> */
     public ArrayClass $allowedMethods {

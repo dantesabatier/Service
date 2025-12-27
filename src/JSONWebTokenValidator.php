@@ -7,7 +7,7 @@ use function Sabatier\Foundation\localized_string;
 /**
  * Validates the values of a JSON Web Token.
  */
-readonly class JSONWebTokenValidator
+final readonly class JSONWebTokenValidator
 {
     public function __construct(private string $issuer, private string $algorithm)
     {

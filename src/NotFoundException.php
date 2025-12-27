@@ -9,7 +9,7 @@ use Sabatier\Foundation\Networking\HTTPStatusCode;
  *
  * Use this exception to signal when a resource, such as a file, database entry, or API endpoint, is missing or unavailable.
  */
-class NotFoundException extends InvalidRequestException
+final class NotFoundException extends InvalidRequestException
 {
     public function __construct(string $message = "")
     {

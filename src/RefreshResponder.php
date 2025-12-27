@@ -18,7 +18,7 @@ use Sabatier\Foundation\Networking\HTTPRequestMethod;
  *
  * @throws UnauthorizedException if the authentication is invalid or lacks refresh capability
  */
-class RefreshResponder extends Responder
+final class RefreshResponder extends Responder
 {
     /** @var ArrayClass<string> */
     public ArrayClass $allowedMethods {

@@ -18,7 +18,7 @@ use Sabatier\Foundation\Predicates\PredicateOperatorType;
 /**
  * AuthorizationResolver resolves Authorization objects by lazily determining the Authorization entity and querying permissions for a given authorizable, resource, and action.
  */
-class AuthorizationResolver
+final class AuthorizationResolver
 {
     private InterfaceImplementorResolver $implementorResolver {
         get => $this->implementorResolver ??= new InterfaceImplementorResolver($this->managedObjectModel);

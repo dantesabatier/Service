@@ -13,7 +13,7 @@ use const Sabatier\Foundation\LocalizedFailureReasonErrorKey;
  *
  * Typically, thrown when an error related to JWT creation, decoding, or validation occurs.
  */
-class JSONWebTokenException extends UnauthorizedException
+final class JSONWebTokenException extends UnauthorizedException
 {
     private ?int $errorCode;
     public Error $error {

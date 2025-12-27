@@ -11,7 +11,7 @@ use Sabatier\Foundation\ProcessInfo;
  * @psalm-import-type JSONWebTokenHeaderRawValue from JSONWebTokenHeader
  * @psalm-import-type JSONWebTokenPayloadRawValue from JSONWebTokenPayload
  */
-class JSONWebTokenService
+final class JSONWebTokenService
 {
     /** @var JSONWebTokenSigningAlgorithm The signing algorithm for JSON Web Tokens (JWT), defaults to the HS256 algorithm. */
     private JSONWebTokenSigningAlgorithm $algorithm {

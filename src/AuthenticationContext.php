@@ -10,7 +10,7 @@ use Sabatier\Foundation\Networking\HTTPRequestMethod;
 /**
  * Represents the context for authentication processes.
  */
-readonly class AuthenticationContext
+final readonly class AuthenticationContext
 {
     /**
      * Initializes a new instance of the AuthenticationContext class.

@@ -7,7 +7,7 @@ use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 
 /** @internal */
-class PersistentSpace extends Responder
+final class PersistentSpace extends Responder
 {
     /** @var ArrayClass<string> */
     public ArrayClass $allowedMethods {

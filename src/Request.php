@@ -25,7 +25,7 @@ use function Sabatier\Foundation\request_url;
  * provides a convenient API for responders and services
  * to access request content and metadata.
  */
-class Request extends URLRequest
+final class Request extends URLRequest
 {
     /** @var Dictionary<mixed> Parsed body of the request. */
     private(set) Dictionary $parsedBody {

@@ -9,7 +9,7 @@ use Sabatier\Foundation\Networking\HTTPStatusCode;
  * This exception is typically used to indicate a server-side issue
  * that prevents the completion of the request.
  */
-class InternalServerErrorException extends InvalidRequestException
+final class InternalServerErrorException extends InvalidRequestException
 {
     public function __construct(string $message = "")
     {

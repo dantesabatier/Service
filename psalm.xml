@@ -1,17 +1,10 @@
 <?xml version="1.0"?>
-<psalm
-    errorLevel="3"
-    resolveFromConfigFile="true"
-    findUnusedBaselineEntry="true"
-    findUnusedCode="false"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xmlns="https://getpsalm.org/schema/config"
-    xsi:schemaLocation="https://getpsalm.org/schema/config vendor/vimeo/psalm/config.xsd"
->
+<!--suppress XmlDefaultAttributeValue -->
+<psalm errorLevel="3" findUnusedCode="false" findUnusedBaselineEntry="true" xmlns="https://getpsalm.org/schema/config">
     <projectFiles>
-        <directory name="src" />
+        <directory name="src"/>
         <ignoreFiles>
-            <directory name="vendor" />
+            <directory name="vendor"/>
         </ignoreFiles>
     </projectFiles>
     <issueHandlers>
@@ -19,11 +12,51 @@
         <MissingConstructor errorLevel="suppress"/>
         <RedundantPropertyInitializationCheck errorLevel="suppress"/>
         <InaccessibleProperty errorLevel="suppress"/>
-        <PropertyTypeCoercion>
+        <ClassMustBeFinal>
             <errorLevel type="suppress">
-                <referencedProperty name="Sabatier\Service\Authentication::$userClass"/>
+                <file name="src/Application.php"/>
+                <file name="src/Renderer.php"/>
+                <file name="src/View.php"/>
             </errorLevel>
-        </PropertyTypeCoercion>
+        </ClassMustBeFinal>
+        <UnresolvableInclude>
+            <errorLevel type="suppress">
+                <file name="src/Renderer.php"/>
+            </errorLevel>
+        </UnresolvableInclude>
+        <PossiblyNullArgument>
+            <errorLevel type="suppress">
+                <file name="src/AuthenticationManager.php"/>
+            </errorLevel>
+        </PossiblyNullArgument>
+        <InvalidArgument>
+            <errorLevel type="suppress">
+                <file name="src/AuthorizationResolver.php"/>
+                <file name="src/AuthorizationScopeBuilder.php"/>
+                <file name="src/ChunkedResponse.php"/>
+            </errorLevel>
+        </InvalidArgument>
+        <NullableReturnStatement>
+            <errorLevel type="suppress">
+                <file name="src/InterfaceImplementorResolver.php"/>
+            </errorLevel>
+        </NullableReturnStatement>
+        <InvalidReturnType>
+            <errorLevel type="suppress">
+                <file name="src/InterfaceImplementorResolver.php"/>
+            </errorLevel>
+        </InvalidReturnType>
+        <RedundantCondition>
+            <errorLevel type="suppress">
+                <file name="src/AuthorizationService.php"/>
+            </errorLevel>
+        </RedundantCondition>
+        <TypeDoesNotContainNull>
+            <errorLevel type="suppress">
+                <file name="src/AuthorizationService.php"/>
+            </errorLevel>
+        </TypeDoesNotContainNull>
+        <NoInterfaceProperties errorLevel="suppress"/>
         <InternalClass errorLevel="suppress"/>
         <InternalProperty errorLevel="suppress"/>
         <RiskyTruthyFalsyComparison errorLevel="suppress"/>

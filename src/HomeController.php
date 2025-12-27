@@ -12,7 +12,7 @@ use const Sabatier\Foundation\kCFBundleVersionKey;
 
 /** @internal */
 #[Endpoint("/")]
-class HomeController extends ViewController
+final class HomeController extends ViewController
 {
     /** @var ArrayClass<string> */
     public ArrayClass $allowedMethods {

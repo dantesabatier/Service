@@ -8,7 +8,7 @@ use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\URL;
 
 /** @internal */
-class DefaultStaticResourcePolicy implements StaticResourcePolicy
+final class DefaultStaticResourcePolicy implements StaticResourcePolicy
 {
     /** @var ArrayClass<string> */
     private ArrayClass $optionalResourceNames {

@@ -7,7 +7,7 @@ use Sabatier\Foundation\Dictionary;
 use function Sabatier\Foundation\human_readable_value;
 
 /** @internal */
-class ChunkedEmitter extends Emitter
+final class ChunkedEmitter extends Emitter
 {
     #[Override]
     public function emit(Response $response, Dictionary $headers, ?string $content = null, bool $useCompression = true): never

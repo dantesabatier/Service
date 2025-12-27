@@ -9,7 +9,7 @@ use Sabatier\Foundation\Networking\HTTPCookieStringPolicy;
  * Parameters for setting HTTP cookies.
  * @psalm-type CookieParametersValues array{lifetime: int, path: string, domain: string, secure: bool, httponly: bool, samesite: string}
  */
-readonly class CookieParameters
+final readonly class CookieParameters
 {
     /** @var CookieParametersValues $allValues */
     public array $allValues;

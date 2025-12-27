@@ -11,7 +11,7 @@ use function Sabatier\Foundation\string_is_equal;
 /**
  * Service interface responsible for handling authorization logic.
  */
-readonly class AuthorizationService
+final readonly class AuthorizationService
 {
     public function __construct(private AuthorizationResolver $resolver, private AuthorizationCache $inRequestCache, private ?AuthorizationCache $persistentCache = null)
     {

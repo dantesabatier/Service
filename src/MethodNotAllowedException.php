@@ -11,7 +11,7 @@ use Sabatier\Foundation\Networking\HTTPStatusCode;
  *
  * The exception can include an optional message to provide additional context or details about the error.
  */
-class MethodNotAllowedException extends InvalidRequestException
+final class MethodNotAllowedException extends InvalidRequestException
 {
     public function __construct(string $message = "")
     {

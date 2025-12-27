@@ -7,7 +7,7 @@ use function Sabatier\Foundation\base64_url_encode;
 use function Sabatier\Foundation\localized_string;
 
 /** @internal */
-class JSONWebTokenHS256DecoderStrategy extends JSONWebTokenDecoderStrategy
+final class JSONWebTokenHS256DecoderStrategy extends JSONWebTokenDecoderStrategy
 {
     protected JSONWebTokenSigningAlgorithm $algorithm {
         get => JSONWebTokenSigningAlgorithm::hs256;

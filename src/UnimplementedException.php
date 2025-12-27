@@ -9,7 +9,7 @@ use Sabatier\Foundation\Networking\HTTPStatusCode;
  *
  * This exception is used to indicate that the server or application has recognized the request but lacks the ability to fulfill it due to unimplemented functionality.
  */
-class UnimplementedException extends InvalidRequestException
+final class UnimplementedException extends InvalidRequestException
 {
     public function __construct(string $message = "")
     {

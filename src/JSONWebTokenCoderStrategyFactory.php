@@ -5,7 +5,7 @@ namespace Sabatier\Service;
 use Sabatier\Foundation\Set;
 
 /** @internal */
-class JSONWebTokenCoderStrategyFactory
+final class JSONWebTokenCoderStrategyFactory
 {
     private static ?JSONWebTokenCoderStrategyFactory $shared = null;
     /** @var Set<class-string<JSONWebTokenEncoderStrategy>> $encoderStrategies */

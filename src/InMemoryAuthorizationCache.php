@@ -6,7 +6,7 @@ use Override;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\ObjectClass;
 
-class InMemoryAuthorizationCache extends ObjectClass implements AuthorizationCache
+final class InMemoryAuthorizationCache extends ObjectClass implements AuthorizationCache
 {
     #[Override]
     public function getAuthorizableAuthorizations(Authorizable $authorizable): ?ArrayClass

@@ -9,7 +9,7 @@ use Sabatier\Foundation\UserDefaults;
 
 /** @internal */
 #[Endpoint]
-class Preferences extends Responder
+final class Preferences extends Responder
 {
     /** @var ArrayClass<string> */
     public ArrayClass $allowedMethods {

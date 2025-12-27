@@ -23,7 +23,7 @@ use function Sabatier\Foundation\unsafe_value;
 /**
  * An object-oriented wrapper for a session.
  */
-class Session extends ObjectClass
+final class Session extends ObjectClass
 {
     /** @var bool Indicates whether the session is currently active and ready for data operations. */
     public bool $isActive {

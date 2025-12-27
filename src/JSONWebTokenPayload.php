@@ -3,12 +3,13 @@
 namespace Sabatier\Service;
 
 use JsonSerializable;
+use Override;
 use Sabatier\Foundation\Date;
 
 /**
  * @psalm-type JSONWebTokenPayloadRawValue array{iss: string|null, sub: string|null, aud: string|null, exp: float|null, nbf: float|null, iat: float|null, jti: string|null, scp: string[]|null, authz: string[]|null}
  */
-class JSONWebTokenPayload implements JsonSerializable
+final class JSONWebTokenPayload implements JsonSerializable
 {
     /** @var JSONWebTokenPayloadRawValue */
     private(set) array $rawValue;
@@ -84,6 +85,7 @@ class JSONWebTokenPayload implements JsonSerializable
     /**
      * @return JSONWebTokenPayloadRawValue
      */
+    #[Override]
     public function jsonSerialize(): array
     {
         return $this->rawValue;

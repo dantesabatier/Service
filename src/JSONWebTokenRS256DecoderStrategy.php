@@ -7,7 +7,7 @@ use Override;
 use function Sabatier\Foundation\localized_string;
 
 /** @internal */
-class JSONWebTokenRS256DecoderStrategy extends JSONWebTokenDecoderStrategy
+final class JSONWebTokenRS256DecoderStrategy extends JSONWebTokenDecoderStrategy
 {
     protected JSONWebTokenSigningAlgorithm $algorithm {
         get => JSONWebTokenSigningAlgorithm::rs256;

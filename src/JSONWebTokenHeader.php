@@ -3,12 +3,13 @@
 namespace Sabatier\Service;
 
 use JsonSerializable;
+use Override;
 
 /**
  * Represents the header section of a JSON Web Token (JWT).
  * @psalm-type JSONWebTokenHeaderRawValue array{alg: string, typ: string}
  */
-class JSONWebTokenHeader implements JsonSerializable
+final class JSONWebTokenHeader implements JsonSerializable
 {
     /** @var JSONWebTokenHeaderRawValue $rawValue */
     private(set) array $rawValue;
@@ -46,6 +47,7 @@ class JSONWebTokenHeader implements JsonSerializable
     /**
      * @return JSONWebTokenHeaderRawValue
      */
+    #[Override]
     public function jsonSerialize(): array
     {
         return $this->rawValue;

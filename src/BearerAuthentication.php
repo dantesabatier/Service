@@ -51,6 +51,7 @@ final class BearerAuthentication extends Authentication
     protected(set) ArrayClass $technicalScopes {
         get => $this->technicalScopes ??= new ArrayClass($this->token?->payload?->scp ?? []);
     }
+    /** @var ArrayClass<string> */
     protected(set) ArrayClass $authorizationScopes {
         get => $this->authorizationScopes ??= new ArrayClass($this->token?->payload?->authz ?? []);
     }

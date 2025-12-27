@@ -6,7 +6,7 @@ use Override;
 use function Sabatier\Foundation\base64_url_encode;
 
 /** @internal */
-class JSONWebTokenHS256EncoderStrategy extends JSONWebTokenEncoderStrategy
+final class JSONWebTokenHS256EncoderStrategy extends JSONWebTokenEncoderStrategy
 {
     #[Override]
     protected function sign(string $unsigned): string

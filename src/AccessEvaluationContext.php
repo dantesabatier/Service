@@ -21,7 +21,7 @@ use Sabatier\Foundation\Dictionary;
  * - retrieving persisted user and permission data
  * - reading environment-driven settings
  */
-readonly class AccessEvaluationContext
+final readonly class AccessEvaluationContext
 {
     /**
      * Creates a new context that aggregates all relevant access-evaluation inputs.

@@ -17,7 +17,7 @@ use Traversable;
  * @extends DirectoryEnumerator<URL>
  * @internal
  */
-class UploadsEnumerator extends DirectoryEnumerator
+final class UploadsEnumerator extends DirectoryEnumerator
 {
     public int $count {
         get => count($_FILES);

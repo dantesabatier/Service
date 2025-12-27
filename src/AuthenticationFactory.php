@@ -7,7 +7,7 @@ use Sabatier\Foundation\ArrayClass;
 /**
  * A factory class for managing authentication strategy classes.
  */
-class AuthenticationFactory
+final class AuthenticationFactory
 {
     /** @var ArrayClass<class-string<Authentication>>|null */
     private static ?ArrayClass $registeredAuthenticationClasses = null;

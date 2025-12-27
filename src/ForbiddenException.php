@@ -10,7 +10,7 @@ use Sabatier\Foundation\Networking\HTTPStatusCode;
  * This exception typically represents an HTTP 403 Forbidden error,
  * indicating that the server understands the request but refuses to authorize it.
  */
-class ForbiddenException extends InvalidRequestException
+final class ForbiddenException extends InvalidRequestException
 {
     public function __construct(string $message = "")
     {

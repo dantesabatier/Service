@@ -14,7 +14,7 @@ use Sabatier\Foundation\URL;
  * @implements IteratorAggregate<int, non-empty-string>
  * @internal
  */
-class ChunkedResponse extends Response implements IteratorAggregate
+final class ChunkedResponse extends Response implements IteratorAggregate
 {
     private int $chunkSize;
 

@@ -13,7 +13,7 @@ use function Sabatier\Foundation\fatal_error;
 /**
  * An object that manages authentication processes.
  */
-class AuthenticationManager extends Responder
+final class AuthenticationManager extends Responder
 {
     /** @var ArrayClass<string> */
     public ArrayClass $allowedMethods {

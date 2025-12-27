@@ -12,8 +12,9 @@ use Sabatier\Foundation\URL;
 use Sabatier\Foundation\URLFileTypeMappings;
 
 /** @internal */
-class Downloader extends Responder
+final class Downloader extends Responder
 {
+    /** @var ArrayClass<string> */
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::post]);
     }

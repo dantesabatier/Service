@@ -16,7 +16,7 @@ use Sabatier\Foundation\Predicates\PredicateOperatorType;
 /**
  * AuthenticationService resolves and fetches objects implementing Authorizable from a ManagedObjectModel. It lazily determines the Authorizable entity and provides a single lookup method based on username and optional serialization.
  */
-class AuthenticationService
+final class AuthenticationService
 {
     private InterfaceImplementorResolver $implementorResolver {
         get => $this->implementorResolver ??= new InterfaceImplementorResolver($this->managedObjectModel);

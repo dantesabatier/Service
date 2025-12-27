@@ -14,7 +14,7 @@ use const Sabatier\Foundation\URLErrorBadServerResponse;
 use const Sabatier\Foundation\URLErrorDomain;
 
 /** @internal */
-class ErrorResponder extends Responder
+final class ErrorResponder extends Responder
 {
     public bool $isDevelopmentMode {
         get => $this->environment["APP_ENV"] === "development";

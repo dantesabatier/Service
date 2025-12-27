@@ -22,7 +22,7 @@ final class ResourceManager extends Responder
     }
     /** @var ArrayClass<string> */
     public ArrayClass $allowedHeaders {
-        get => new ArrayClass(["Content-Type"]);
+        get => new ArrayClass(["Content-Type", "Authorization"]);
     }
     public URL $resourceURL {
         get => $this->resourceURL ??= new URL($this->request->url->path, FileManager::default()->documentRootDirectory)->absoluteURL;

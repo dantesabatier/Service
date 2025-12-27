@@ -1,6 +1,6 @@
 # Sabatier Service Framework
 
-**Service** is a multi-purpose application framework for the Singularity ecosystem. Inspired by the architectural elegance of Apple's **AppKit** and **Core Data**, it provides the infrastructure to build both high-performance headless services and sophisticated, stateful web applications with rich user interfaces.
+**Service** is a multipurpose application framework for the Singularity ecosystem. Inspired by the architectural elegance of Apple's **AppKit** and **Core Data**, it provides the infrastructure to build both high-performance headless services and sophisticated, stateful web applications with rich user interfaces.
 
 It is the core engine behind **Singularity**, an ambitious IDE running on Electron, demonstrating its capability to power complex, desktop-grade software within the web stack.
 

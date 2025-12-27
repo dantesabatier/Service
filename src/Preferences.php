@@ -21,7 +21,9 @@ final class Preferences extends Responder
                 $defaults = UserDefaults::standard();
                 $request = $this->request;
                 $this->allowedMethods->containsElement($request->httpMethod) ?: throw new MethodNotAllowedException();
-                $this->session->start();
+                if ($this->isSessionEnabled) {
+                    $this->session->start();
+                }
                 if ($request->httpMethod === HTTPRequestMethod::patch) {
                     foreach ($request->parsedBody as $key => $value) {
                         $defaults->setObject($value, $key);
@@ -29,7 +31,9 @@ final class Preferences extends Responder
                 }
                 return new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new JSONDecorator(new Response($request->url, HTTPStatusCode::ok, body: $defaults->dictionaryRepresentation()))->response)->response, $request, $this->corsPolicy)->response;
             } finally {
-                $this->session->commit();
+                if ($this->isSessionEnabled) {
+                    $this->session->commit();
+                }
             }
         }
     }

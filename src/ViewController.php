@@ -56,10 +56,13 @@ abstract class ViewController extends Responder
             if ($request->httpMethod === HTTPRequestMethod::get) {
                 $decorators = $this->decorators;
                 $decorators[] = HTMLDecorator::class;
-                $session = $this->session;
-                $session->start();
+                if ($this->isSessionEnabled) {
+                    $this->session->start();
+                }
                 $this->data = $this->view->render();
-                $session->commit();
+                if ($this->isSessionEnabled) {
+                    $this->session->commit();
+                }
             }
             return parent::$response::get();
         }

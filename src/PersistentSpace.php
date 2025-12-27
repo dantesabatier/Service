@@ -22,10 +22,14 @@ final class PersistentSpace extends Responder
     public Response $response {
         get {
             try {
-                $this->session->start();
+                if ($this->isSessionEnabled) {
+                    $this->session->start();
+                }
                 return new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new JSONDecorator(new PersistentSpaceResponseStrategyResolver($this->request, $this->entity, $this->managedObjectContext)->strategy->response)->response)->response, $this->request, $this->corsPolicy)->response;
             } finally {
-                $this->session->commit();
+                if ($this->isSessionEnabled) {
+                    $this->session->commit();
+                }
             }
         }
     }

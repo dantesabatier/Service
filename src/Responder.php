@@ -86,13 +86,19 @@ abstract class Responder extends ObjectClass
     }
     /** @var bool Checks if the protected content is available by determining if the request is authorized. */
     public bool $isProtectedContentAvailable = false;
+    /** @var bool Determines if the infrastructure should use session-based persistence as a fallback mechanism when high-security authentication providers are not configured. */
+    public bool $isSessionEnabled {
+        get => !$this->environment->offsetExists(JWTPrivateKey);
+    }
     /** @var Response The response associated with this responder. */
     public Response $response {
         get {
             try {
                 $request = $this->request;
                 $this->allowedMethods->containsElement($request->httpMethod) ?: throw new MethodNotAllowedException();
-                $this->session->start();
+                if ($this->isSessionEnabled) {
+                    $this->session->start();
+                }
                 if (match ($request->httpMethod) {
                         HTTPRequestMethod::post,
                         HTTPRequestMethod::patch,
@@ -107,7 +113,9 @@ abstract class Responder extends ObjectClass
                 }
                 return new CORSResponseDecorator($response, $request, $this->corsPolicy)->response;
             } finally {
-                $this->session->commit();
+                if ($this->isSessionEnabled) {
+                    $this->session->commit();
+                }
             }
         }
     }

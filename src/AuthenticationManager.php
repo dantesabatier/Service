@@ -76,7 +76,9 @@ final class AuthenticationManager extends Responder
     #[Action]
     public function logout(): void
     {
-        $this->session->invalidate();
+        if ($this->isSessionEnabled) {
+            $this->session->invalidate();
+        }
         $this->statusCode = HTTPStatusCode::noContent;
     }
 

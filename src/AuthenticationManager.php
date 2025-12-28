@@ -31,7 +31,7 @@ final class AuthenticationManager extends Responder
     }
     /** @var AccessEvaluator The access evaluator responsible for determining if a request has permission to access a protected resource. */
     public AccessEvaluator $accessEvaluator {
-        get => $this->accessEvaluator ??= $this->selector === AuthenticationScopeRefresh ? new AccessEvaluatorChain(new ArrayClass([new AuthenticationEvaluator(), new JSONWebTokenScopeEvaluator(AuthenticationScopeRefresh), new JSONWebTokenRefreshTimeEvaluator()])) : new AccessEvaluatorChain(new ArrayClass([new SessionAuthenticationEvaluator(), new AuthenticationEvaluator(), new JSONWebTokenScopeEvaluator(AuthenticationScopeAccess), new JSONWebTokenAccessTimeEvaluator(), new AuthorizationEvaluator()]));
+        get => $this->accessEvaluator ??= $this->selector === AuthenticationRefreshSelector ? new AccessEvaluatorChain(new ArrayClass([new AuthenticationEvaluator(), new JSONWebTokenScopeEvaluator(AuthenticationScopeRefresh), new JSONWebTokenRefreshTimeEvaluator()])) : new AccessEvaluatorChain(new ArrayClass([new SessionAuthenticationEvaluator(), new AuthenticationEvaluator(), new JSONWebTokenScopeEvaluator(AuthenticationScopeAccess), new JSONWebTokenAccessTimeEvaluator(), new AuthorizationEvaluator()]));
     }
     /** @var bool Indicates whether the current request can access protected content. Determined by evaluating the configured access evaluator chain. */
     public bool $isProtectedContentAvailable {
@@ -59,8 +59,8 @@ final class AuthenticationManager extends Responder
         $data = new Dictionary();
         $data[AuthenticationUserKey] = $user;
         $environment = $this->environment;
-        if ($jwtKey = $environment[JWTPrivateKey]) {
-            $data[AuthenticationTokenKey] = new JSONWebTokenIssuer(new JSONWebTokenService($jwtKey, $this->request->url->host), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? 1800)->floatValue)->issue($user, $this->authentication->context, new ArrayClass([AuthenticationScopeAccess, AuthenticationScopeRefresh]));
+        if ($privateKey = $environment[JWTPrivateKey]) {
+            $data[AuthenticationTokenKey] = new JSONWebTokenIssuer(new JSONWebTokenService($privateKey, $this->request->url->host), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? JWTValidityDefaultTimeInterval)->floatValue)->issue($user, $this->authentication->context, new ArrayClass([AuthenticationScopeAccess, AuthenticationScopeRefresh]));
         } else {
             $session = $this->session;
             $session->regenerateID();
@@ -94,11 +94,11 @@ final class AuthenticationManager extends Responder
         $authentication->isValid ?: throw new UnauthorizedException();
         $user = $authentication->authenticatedUser ?? throw new UnauthorizedException();
         $environment = $this->environment;
-        $jwtKey = $environment[JWTPrivateKey] ?? throw new UnauthorizedException();
+        $privateKey = $environment[JWTPrivateKey] ?? throw new UnauthorizedException();
         /** @var Dictionary<mixed> $data */
         $data = new Dictionary();
         $data[AuthenticationUserKey] = $user;
-        $data[AuthenticationTokenKey] = new JSONWebTokenIssuer(new JSONWebTokenService($jwtKey, $this->request->url->host), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? 1800)->floatValue)->issue($user, $authentication->context, new ArrayClass([AuthenticationScopeAccess]));
+        $data[AuthenticationTokenKey] = new JSONWebTokenIssuer(new JSONWebTokenService($privateKey, $this->request->url->host), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? JWTValidityDefaultTimeInterval)->floatValue)->issue($user, $authentication->context, new ArrayClass([AuthenticationScopeAccess]));
         $this->data = $data;
     }
 }

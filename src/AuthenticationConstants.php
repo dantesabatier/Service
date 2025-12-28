@@ -9,6 +9,7 @@ const AuthenticationUserKey = "user";
 const AuthenticationTokenKey = "token";
 const AuthenticationScopeAccess = "access";
 const AuthenticationScopeRefresh = "refresh";
+const AuthenticationRefreshSelector = "refresh";
 
 /** @var string Indicates whether the current session is authenticated */
 const SessionAuthenticatedKey = "authenticated";

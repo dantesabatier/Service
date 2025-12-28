@@ -62,16 +62,16 @@ abstract class Responder extends ObjectClass
         get => $this->resolution ??= new ResponderResolution(static::class, $this->request->url->path);
     }
     /** @var bool Returns a Boolean value indicating whether this object is the first responder. */
-    public bool $isFirstResponder {
-        get => $this->resolution->matches;
+    protected(set) bool $isFirstResponder {
+        get => $this->isFirstResponder ??= $this->resolution->matches;
     }
     /** @var string|null The selector associated with this responder. */
-    public ?string $selector {
-        get => $this->resolution->selector;
+    protected(set) ?string $selector {
+        get => $this->selector ??= $this->resolution->selector;
     }
     /** @var Set<class-string<ResponseDecorator>> The set of response decorators applied to this responder. Each decorator is applied to the response returned by the action method. */
-    public Set $decorators {
-        get => $this->resolution->decorators;
+    protected(set) Set $decorators {
+        get => $this->decorators ??= $this->resolution->decorators;
     }
     /** @var mixed The data produced or returned by the responder's action method. This value is used as the body of the response or as input to response decorators. */
     public mixed $data = null;

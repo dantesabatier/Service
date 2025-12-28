@@ -11,18 +11,18 @@ final class InMemoryAuthorizationCache extends ObjectClass implements Authorizat
     #[Override]
     public function getAuthorizableAuthorizations(Authorizable $authorizable): ?ArrayClass
     {
-        return static::staticAssociatedValueForKey("u:$authorizable->username") ?? null;
+        return InMemoryAuthorizationCache::staticAssociatedValueForKey("u:$authorizable->username") ?? null;
     }
 
     #[Override]
     public function setAuthorizableAuthorizations(Authorizable $authorizable, ArrayClass $authorizations): void
     {
-        static::setStaticAssociatedValueForKey($authorizations, "u:$authorizable->username");
+        InMemoryAuthorizationCache::setStaticAssociatedValueForKey($authorizations, "u:$authorizable->username");
     }
 
     #[Override]
     public function invalidateAuthorizable(Authorizable $authorizable): void
     {
-        static::setStaticAssociatedValueForKey(null, "u:$authorizable->username");
+        InMemoryAuthorizationCache::setStaticAssociatedValueForKey(null, "u:$authorizable->username");
     }
 }

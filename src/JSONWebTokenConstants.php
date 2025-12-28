@@ -19,3 +19,4 @@ const JWTAuthorizationScopesKey = "authz";
 const JWTTypeValue = "JWT";
 const JWTComponentDelimiter = ".";
 const JWTComponentCount = 3;
+const JWTValidityDefaultTimeInterval = 1800;

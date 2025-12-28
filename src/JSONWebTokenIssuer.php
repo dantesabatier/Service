@@ -12,7 +12,7 @@ use function Sabatier\Foundation\read_random;
 /** @internal */
 final readonly class JSONWebTokenIssuer implements TokenIssuer
 {
-    public function __construct(private JSONWebTokenService $service, private AuthorizationScopeBuilder $scopeBuilder, private ManagedObjectContext $managedObjectContext, private float $validityTimeInterval = 1800.0)
+    public function __construct(private JSONWebTokenService $service, private AuthorizationScopeBuilder $scopeBuilder, private ManagedObjectContext $managedObjectContext, private float $validityTimeInterval = JWTValidityDefaultTimeInterval)
     {
     }
 

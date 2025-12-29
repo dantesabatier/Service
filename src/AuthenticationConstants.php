@@ -2,17 +2,17 @@
 
 namespace Sabatier\Service;
 
-/** @var string Key used to expose the authenticated user in authentication responses */
+/** @var string Key used to expose the authenticated user object in authentication responses */
 const AuthenticationUserKey = "user";
-
-/** @var string Key used to expose the issued token in authentication responses */
+/** @var string Key used to expose the issued authentication token in authentication responses */
 const AuthenticationTokenKey = "token";
+/** @var string Token scope value representing an access token */
 const AuthenticationScopeAccess = "access";
+/** @var string Token scope value representing a refresh token */
 const AuthenticationScopeRefresh = "refresh";
+/** @var string Key used to identify the refresh-token selector for rotation or lookup */
 const AuthenticationRefreshSelector = "refresh";
-
-/** @var string Indicates whether the current session is authenticated */
+/** @var string Session key that indicates whether the current session is authenticated */
 const SessionAuthenticatedKey = "authenticated";
-
-/** @var string Stores the authenticated user identifier in the session */
+/** @var string Session key storing the authenticated user's identifier */
 const SessionUserKey = "user";

@@ -79,7 +79,6 @@ final class AuthenticationManager extends Responder
         if ($this->isSessionEnabled) {
             $this->session->invalidate();
         }
-        $this->statusCode = HTTPStatusCode::noContent;
     }
 
     /**

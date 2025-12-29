@@ -15,7 +15,7 @@ use function Sabatier\Foundation\request_url;
  * Represents an HTTP service request.
  *
  * Extends URLRequest to provide additional functionality
- * specific to the Service layer, including:
+ * specific to the Service layer, including
  * - Parsed request body from URL query or HTTP body
  * - JSON serialization directives from the `Serialization` header
  * - Authorization header parsing

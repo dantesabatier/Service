@@ -11,6 +11,6 @@ enum AuthenticationScheme: string
     case bearer = "Bearer";
     case digest = "Digest";
     case negotiate = "Negotiate";
-    case aws = "AWS4-HMAC-SHA256";
     case oauth = "OAuth";
+    case aws = "AWS4-HMAC-SHA256";
 }

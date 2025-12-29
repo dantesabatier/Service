@@ -13,7 +13,7 @@ final class DigestAuthentication extends Authentication
         get => AuthenticationScheme::digest;
     }
     /** @var Dictionary<string> */
-    private Dictionary $parameters {
+    private(set) Dictionary $parameters {
         get {
             if (!isset($this->parameters)) {
                 preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->context->authorizationHeader->value, $matches);

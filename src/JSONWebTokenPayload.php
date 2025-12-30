@@ -42,6 +42,7 @@ final class JSONWebTokenPayload implements JsonSerializable
     public ?string $jti {
         get => $this->rawValue[JWTIdKey] ?? null;
     }
+    /** @var int|null version */
     public ?int $ver {
         get => $this->rawValue[JWTVersionKey] ?? null;
     }
@@ -64,7 +65,7 @@ final class JSONWebTokenPayload implements JsonSerializable
      * @param Date|null $nbf Not before
      * @param Date|null $iat Issued at
      * @param string|null $jti JWT ID
-     * @param int|null $ver Epoch
+     * @param int|null $ver Version
      * @param string[]|null $scp Technical scopes
      * @param string[]|null $authz Authorization scopes
      */

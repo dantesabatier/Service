@@ -11,10 +11,11 @@ final class JSONWebTokenRefreshTimeEvaluator implements AccessEvaluator
     #[Override]
     public function evaluate(AccessEvaluationContext $context): bool
     {
-        if (!$context->authentication instanceof BearerAuthentication) {
-            return true;
+        $authentication = $context->authentication;
+        if (!($authentication instanceof BearerAuthentication)) {
+            return false;
         }
-        if (!($payload = $context->authentication->token?->payload)) {
+        if (!($payload = $authentication->token?->payload)) {
             return false;
         }
         $now = new Date()->timeIntervalSinceReferenceDate;

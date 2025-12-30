@@ -2,26 +2,21 @@
 
 namespace Sabatier\Service;
 
-use Override;
-use Sabatier\Foundation\Date;
-
 /** @internal */
-final class JSONWebTokenAccessTimeEvaluator implements AccessEvaluator
+class JSONWebTokenVersionEvaluator implements AccessEvaluator
 {
-    #[Override]
     public function evaluate(AccessEvaluationContext $context): bool
     {
         $authentication = $context->authentication;
         if (!($authentication instanceof BearerAuthentication)) {
             return false;
         }
+        if (!($user = $authentication->authenticatedUser)) {
+            return false;
+        }
         if (!($payload = $authentication->token?->payload)) {
             return false;
         }
-        $now = new Date()->timeIntervalSinceReferenceDate;
-        if ($payload->nbf && $payload->nbf > $now) {
-            return false;
-        }
-        return !($payload->exp && $payload->exp < $now);
+        return $user->version === $payload->ver;
     }
 }

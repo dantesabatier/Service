@@ -30,6 +30,8 @@ const JWTIdKey = "jti";
 const JWTScopesKey = "scp";
 /** @var string Payload claim key listing the authorization scopes for server-side permission checks */
 const JWTAuthorizationScopesKey = "authz";
+/** @var string Payload claim key providing the token version for the JWT */
+const JWTVersionKey = "ver";
 /** @var string Header value defining the canonical type of the JSON Web Token */
 const JWTTypeValue = "JWT";
 /** @var string Delimiter used to separate the JWT components (header, payload, signature) */

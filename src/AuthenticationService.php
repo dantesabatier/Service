@@ -48,7 +48,7 @@ final class AuthenticationService
         $fetchRequest->includesPendingChanges = false;
         /** @var class-string<Authorizable> $authorizableClass */
         $authorizableClass = $this->authorizableClass;
-        $serialization ??= $authorizableClass::defaultSerialization();
+        $serialization ??= $authorizableClass::defaultRepresentation();
         $fetchRequest->serialization = $serialization;
         return $context->fetch($fetchRequest)->first;
     }

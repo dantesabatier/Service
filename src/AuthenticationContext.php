@@ -22,8 +22,7 @@ final readonly class AuthenticationContext
      * @param Dictionary<mixed>|null $serialization The serialization dictionary, if applicable.
      * @param AuthenticationService $authenticationService The authentication service.
      */
-    public function __construct(public AuthorizationHeader $authorizationHeader, public ?string $tokenIssuer, #[ExpectedValues(valuesFromClass: HTTPRequestMethod::class)] public string $httpMethod, public ManagedObjectContext $managedObjectContext, public ?Dictionary $serialization, public AuthenticationService $authenticationService
-    )
+    public function __construct(public AuthorizationHeader $authorizationHeader, public ?string $tokenIssuer, #[ExpectedValues(valuesFromClass: HTTPRequestMethod::class)] public string $httpMethod, public ManagedObjectContext $managedObjectContext, public ?Dictionary $serialization, public AuthenticationService $authenticationService)
     {
     }
 }

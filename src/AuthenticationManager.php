@@ -6,6 +6,7 @@ use Exception;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
+use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Number;
 use function Sabatier\Foundation\fatal_error;
 
@@ -83,6 +84,7 @@ final class AuthenticationManager extends Responder
         $user = $this->authentication->authenticatedUser ?? throw new UnauthorizedException();
         $user->version += 1;
         $this->managedObjectContext->save();
+        $this->statusCode = HTTPStatusCode::noContent;
     }
 
     /**

@@ -80,9 +80,7 @@ final class AuthenticationManager extends Responder
             $this->session->invalidate();
             return;
         }
-        if (!($user = $this->authentication->authenticatedUser)) {
-            return;
-        }
+        $user = $this->authentication->authenticatedUser ?? throw new UnauthorizedException();
         $user->version += 1;
         $this->managedObjectContext->save();
     }

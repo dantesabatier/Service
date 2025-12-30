@@ -13,7 +13,7 @@ final class JSONWebTokenAccessTimeEvaluator implements AccessEvaluator
     {
         $authentication = $context->authentication;
         if (!($authentication instanceof BearerAuthentication)) {
-            return false;
+            return true;
         }
         if (!($payload = $authentication->token?->payload)) {
             return false;

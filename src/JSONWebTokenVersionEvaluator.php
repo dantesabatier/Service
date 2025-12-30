@@ -9,7 +9,7 @@ class JSONWebTokenVersionEvaluator implements AccessEvaluator
     {
         $authentication = $context->authentication;
         if (!($authentication instanceof BearerAuthentication)) {
-            return false;
+            return true;
         }
         if (!($user = $authentication->authenticatedUser)) {
             return false;

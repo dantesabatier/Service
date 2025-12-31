@@ -47,7 +47,7 @@ final class AuthorizationResolver
     {
         /** @var FetchRequest<Authorization> $fetchRequest */
         $fetchRequest = $this->authorizationClass::fetchRequest();
-        $fetchRequest->predicate = CompoundPredicate::andPredicateWithSubpredicates(new ArrayClass([new ComparisonPredicate(Expression::expressionForKeyPath("name"), Expression::expressionForConstantValue($resource)), new ComparisonPredicate(Expression::expressionForKeyPath("type"), Expression::expressionForConstantValue($action)), new ComparisonPredicate(Expression::expressionForKeyPath("roles.name"), Expression::expressionForConstantValue($authorizable->roles->map(fn(AuthorizableRole $role): string => $role->name)), PredicateOperatorType::in, ComparisonPredicateModifier::any)]));
+        $fetchRequest->predicate = CompoundPredicate::andPredicateWithSubpredicates(new ArrayClass([new ComparisonPredicate(Expression::expressionForKeyPath("name"), Expression::expressionForConstantValue($resource)), CompoundPredicate::orPredicateWithSubpredicates(new ArrayClass([new ComparisonPredicate(Expression::expressionForKeyPath("type"), Expression::expressionForConstantValue($action)), new ComparisonPredicate(Expression::expressionForKeyPath("type"), Expression::expressionForConstantValue(AuthorizationType::any))])), new ComparisonPredicate(Expression::expressionForKeyPath("roles.name"), Expression::expressionForConstantValue($authorizable->roles->map(fn(AuthorizableRole $role): string => $role->name)), PredicateOperatorType::in, ComparisonPredicateModifier::any)]));
         return $context->fetch($fetchRequest);
     }
 }

@@ -30,8 +30,9 @@ final readonly class AuthorizationService
      */
     public function isAuthorized(Authorizable $entity, string $resource, AuthorizationType $action, ArrayClass $authorizationScopes, ManagedObjectContext $context): bool
     {
+        $anyAction = AuthorizationType::any;
         $scopeToCheck = "$resource:$action->name";
-        $anyScope = "$resource:any";
+        $anyScope = "$resource:$anyAction->name";
         if ($authorizationScopes->contains(fn(string $authorizationScope): bool => $authorizationScope === $scopeToCheck || $authorizationScope === $anyScope)) {
             return true;
         }
@@ -43,6 +44,6 @@ final readonly class AuthorizationService
             $this->inRequestCache->setAuthorizableAuthorizations($entity, $authorizations);
             $this->persistentCache?->setAuthorizableAuthorizations($entity, $authorizations);
         }
-        return $authorizations->contains(fn(Authorization $authorization): bool => string_is_equal($authorization->name, $resource, CompareOptions::caseInsensitive) && $authorization->type === $action);
+        return $authorizations->contains(fn(Authorization $authorization): bool => string_is_equal($authorization->name, $resource, CompareOptions::caseInsensitive) && (($authorization->type === $action) || ($authorization->type === $anyAction)));
     }
 }

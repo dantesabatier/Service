@@ -19,13 +19,13 @@ final class UpdatePersistentSpaceResponseStrategy extends PersistentSpaceRespons
             if (!($objectID = $body[ServiceIdentity::identityKey])) {
                 throw new BadRequestException(sprintf("\"%s\" can not be null", ServiceIdentity::identityKey));
             }
-            if (!($object = $this->managedObject($objectID))) {
+            if (!($object = $this->fetchBy($objectID))) {
                 throw new NotFoundException();
             }
             $this->enforceOwnership($object);
             $object->setValuesForKeys(new FieldSecurityFilter($object, $this->authorizationContext->user)->filterWrite($body));
             $this->managedObjectContext->save();
-            $object = $this->managedObject($object->objectID);
+            $object = $this->fetchBy($object->objectID);
             return new Response($request->url, body: $object?->serialized($request->serialization));
         }
     }

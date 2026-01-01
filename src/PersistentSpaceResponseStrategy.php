@@ -25,15 +25,7 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
         $this->authorizationContext = $authorizationContext;
     }
 
-    protected function enforceOwnership(ManagedObject $object): void
-    {
-        if ($this->authorizationContext->scopes->contains(fn(string $scope): bool => str_ends_with($scope, AuthorizationScope::own->name))) {
-            $service = new OwnershipService(new OwnerResolver($object), $this->authorizationContext->user);
-            $service->isOwner ?: throw new ForbiddenException();
-        }
-    }
-
-    protected function managedObject(ManagedObjectID|int $objectID): ?ManagedObject
+    protected function fetchBy(ManagedObjectID|int $objectID): ?ManagedObject
     {
         /** @var FetchRequest<ManagedObject> $fetchRequest */
         $fetchRequest = new FetchRequest();
@@ -44,5 +36,13 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
         }
         /** @noinspection PhpUnhandledExceptionInspection */
         return $this->managedObjectContext->fetch($fetchRequest)->first;
+    }
+
+    protected function enforceOwnership(ManagedObject $object): void
+    {
+        if ($this->authorizationContext->scopes->contains(fn(string $scope): bool => str_ends_with($scope, AuthorizationScope::own->name))) {
+            $service = new OwnershipService(new OwnerResolver($object), $this->authorizationContext->user);
+            $service->isOwner ?: throw new ForbiddenException();
+        }
     }
 }

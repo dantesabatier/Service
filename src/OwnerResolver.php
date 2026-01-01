@@ -9,21 +9,22 @@ use Sabatier\CoreData\ManagedObject;
 /** @internal */
 final class OwnerResolver
 {
-    public OwnerInfo $info {
+    private bool $isOwnerResolved = false;
+    public ?Authorizable $owner {
         get {
-            if (isset($this->info)) {
-                return $this->info;
+            if (isset($this->isOwnerResolved)) {
+                return $this->owner;
             }
+            $this->isOwnerResolved = true;
             $reflection = new ReflectionClass($this->resource);
             foreach ($reflection->getProperties(ReflectionProperty::IS_PUBLIC) as $property) {
                 if ($property->getAttributes(Owner::class) !== []) {
-                    /** @noinspection PhpExpressionResultUnusedInspection */
-                    $property->setAccessible(true);
-                    $value = $property->getValue($this->resource);
-                    return $this->info = new OwnerInfo($property->getName(), $value instanceof Authorizable ? $value : null);
+                    $key = $property->getName();
+                    $value = $this->resource->$key;
+                    return $this->owner = $value instanceof Authorizable ? $value : null;
                 }
             }
-            return $this->info = new OwnerInfo("", null);
+            return $this->owner = null;
         }
     }
 

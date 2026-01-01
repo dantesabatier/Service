@@ -2,7 +2,6 @@
 
 namespace Sabatier\Service;
 
-use Exception;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\FetchRequestResultType;
@@ -72,20 +71,18 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
         return new FieldSecurityFilter($object, $this->authorizationContext->user)->filterRead($data);
     }
 
-    /**
-     * @throws Exception
-     */
     protected function executeSecureFetch(FetchRequest $fetchRequest): ArrayClass|Dictionary
     {
         $context = $this->managedObjectContext;
+        /** @noinspection PhpUnhandledExceptionInspection */
         $fetchRequestResult = match ($fetchRequest->resultType) {
             FetchRequestResultType::managedObjectResultType,
             FetchRequestResultType::managedObjectIDResultType,
             FetchRequestResultType::dictionaryResultType => $context->fetch($fetchRequest),
-            FetchRequestResultType::countResultType => new Dictionary(["count" => $context->count($fetchRequest)])
+            FetchRequestResultType::countResultType => new Dictionary([ServiceResponseCountKey => $context->count($fetchRequest)])
         };
         if ($fetchRequest->resultType === FetchRequestResultType::managedObjectResultType) {
-            $fetchRequestResult = $fetchRequestResult->map(fn(ManagedObject $object): Dictionary => new FieldSecurityFilter($object, $this->authorizationContext->user)->filterRead($object->jsonSerialize()));
+            return $fetchRequestResult->map(fn(ManagedObject $object): Dictionary => new FieldSecurityFilter($object, $this->authorizationContext->user)->filterRead($object->jsonSerialize()));
         }
         return $fetchRequestResult;
     }

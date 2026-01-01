@@ -12,3 +12,5 @@ const ApplicationEnvironmentDevelopment = "development";
 const ApplicationEnvironmentProduction = "production";
 /** @var string The value representing a testing environment. */
 const ApplicationEnvironmentTesting = "testing";
+/** @var string The dictionary key used to return the total number of objects in a count request. */
+const ServiceResponseCountKey = "count";

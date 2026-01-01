@@ -4,7 +4,6 @@
 
 namespace Sabatier\Service;
 
-use Exception;
 use Sabatier\CoreData\FetchRequest;
 
 /** @internal */
@@ -16,9 +15,6 @@ final class ReadPersistentSpaceResponseStrategy extends PersistentSpaceResponseS
         }
     }
     public Response $response {
-        /**
-         * @throws Exception
-         */
         get => new Response($this->request->url, body: $this->executeSecureFetch($this->fetchRequest));
     }
 }

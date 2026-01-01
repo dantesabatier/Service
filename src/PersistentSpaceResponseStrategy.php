@@ -58,4 +58,14 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
     {
         $object->setValuesForKeys(new FieldSecurityFilter($object, $this->authorizationContext->user)->filterWrite($body));
     }
+
+    /**
+     * @param ManagedObject $object
+     * @param Dictionary<mixed> $data
+     * @return Dictionary<mixed>
+     */
+    protected function applySecureRead(ManagedObject $object, Dictionary $data): Dictionary
+    {
+        return new FieldSecurityFilter($object, $this->authorizationContext->user)->filterRead($data);
+    }
 }

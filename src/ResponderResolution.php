@@ -56,5 +56,8 @@ final class ResponderResolution
             }
         }
         $this->decorators->append(ResponseHeaderSanitizerDecorator::class);
+        if ($reflectionClass->isSubclassOf(ViewController::class)) {
+            $this->decorators->append(HTMLDecorator::class);
+        }
     }
 }

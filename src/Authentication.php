@@ -34,15 +34,17 @@ abstract class Authentication
     protected(set) ArrayClass $authorizationScopes {
         get => $this->authorizationScopes ??= new ArrayClass();
     }
+    private bool $isAuthenticatedUserResolved = false;
     /** @var Authorizable|null Represents the authenticated user. */
     final public ?Authorizable $authenticatedUser {
         /**
          * @throws Exception
          */
         get {
-            if (isset($this->authenticatedUser)) {
+            if ($this->isAuthenticatedUserResolved) {
                 return $this->authenticatedUser;
             }
+            $this->isAuthenticatedUserResolved = true;
             if (!($username = $this->credential?->user)) {
                 return $this->authenticatedUser = null;
             }

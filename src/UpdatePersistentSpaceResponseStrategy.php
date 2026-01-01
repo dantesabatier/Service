@@ -5,7 +5,6 @@
 namespace Sabatier\Service;
 
 use Exception;
-use Sabatier\CoreData\SQLEntity;
 
 /** @internal */
 final class UpdatePersistentSpaceResponseStrategy extends PersistentSpaceResponseStrategy
@@ -17,8 +16,8 @@ final class UpdatePersistentSpaceResponseStrategy extends PersistentSpaceRespons
         get {
             $request = $this->request;
             $body = $request->parsedBody;
-            if (!($objectID = $body[SQLEntity::primaryKeyName])) {
-                throw new BadRequestException(sprintf("\"%s\" can not be null", SQLEntity::primaryKeyName));
+            if (!($objectID = $body[ServiceIdentity::identityKey])) {
+                throw new BadRequestException(sprintf("\"%s\" can not be null", ServiceIdentity::identityKey));
             }
             if (!($object = $this->managedObject($objectID))) {
                 throw new NotFoundException();

@@ -1,14 +1,11 @@
 <?php
 
-/** @noinspection PhpInternalEntityUsedInspection */
-
 namespace Sabatier\Service;
 
 use Exception;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\FetchRequestResultType;
-use Sabatier\CoreData\SQLEntity;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Number;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
@@ -26,11 +23,11 @@ final class CreatePersistentSpaceResponseStrategy extends PersistentSpaceRespons
             $body = $request->parsedBody;
             $context = $this->managedObjectContext;
             $entity = $this->entity;
-            if ($objectID = $body[SQLEntity::primaryKeyName]) {
+            if ($objectID = $body[ServiceIdentity::identityKey]) {
                 /** @var FetchRequest<Number> $fetchRequest */
                 $fetchRequest = new FetchRequest();
                 $fetchRequest->entity = $entity;
-                $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath(SQLEntity::primaryKeyName), Expression::expressionForConstantValue($objectID));
+                $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath(ServiceIdentity::identityKey), Expression::expressionForConstantValue($objectID));
                 $fetchRequest->resultType = FetchRequestResultType::countResultType;
                 if ($context->count($fetchRequest)) {
                     throw new ConflictException();

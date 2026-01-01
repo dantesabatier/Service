@@ -1,11 +1,8 @@
 <?php
 
-/** @noinspection PhpInternalEntityUsedInspection */
-
 namespace Sabatier\Service;
 
 use Exception;
-use Sabatier\CoreData\SQLEntity;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 
 /** @internal */
@@ -16,8 +13,8 @@ final class DeletePersistentSpaceResponseStrategy extends PersistentSpaceRespons
          * @throws Exception
          */
         get {
-            if (!($objectID = $this->request->parsedBody[SQLEntity::primaryKeyName])) {
-                throw new BadRequestException(sprintf("\"%s\" can not be null", SQLEntity::primaryKeyName));
+            if (!($objectID = $this->request->parsedBody[ServiceIdentity::identityKey])) {
+                throw new BadRequestException(sprintf("\"%s\" can not be null", ServiceIdentity::identityKey));
             }
             if (!($object = $this->managedObject($objectID))) {
                 throw new NotFoundException();

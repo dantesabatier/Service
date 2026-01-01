@@ -4,13 +4,6 @@ namespace Sabatier\Service;
 
 /**
  * Defines a strategy for generating a `Response` for a specific `Responder`.
- *
- * Subclasses must implement the `response` getter to provide the concrete
- * `Response` object. This allows different response formats or behaviors
- * to be applied without modifying the `Responder` itself.
- *
- * Example subclasses could generate JSON responses, HTML responses, or
- * handle error responses in a standardized way.
  */
 abstract class ResponseStrategy
 {

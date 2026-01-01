@@ -24,14 +24,24 @@ abstract class ViewController extends Responder
     /** @var View The view that the controller manages. */
     private(set) View $view {
         get {
-            if (!isset($this->view)) {
-                $this->viewWillLoad();
-                $this->view = new View($this->name, $this->context, new self::$rendererClass($this->bundle));
-                $this->viewDidLoad();
+            if ($this->isViewLoaded) {
+                return $this->view;
+            }
+            $this->isViewLoaded = true;
+            if ($this->isSessionEnabled) {
+                $this->session->start();
+            }
+            $this->viewWillLoad();
+            $this->view = new View($this->name, $this->context, new self::$rendererClass($this->bundle));
+            $this->viewDidLoad();
+            if ($this->isSessionEnabled) {
+                $this->session->commit();
             }
             return $this->view;
         }
     }
+    /** @var bool A Boolean value indicating whether the view is currently loaded into memory. */
+    private(set) bool $isViewLoaded = false;
     /** @var array<string, mixed> An associative array consisting of the property names and the properties marked as {@see Outlet} passed to the view's rendering system. */
     public array $context {
         get => $this->context ??= array_reduce(new ReflectionClass($this)->getProperties(ReflectionProperty::IS_PUBLIC), function (array $context, ReflectionProperty $property): array {
@@ -52,22 +62,26 @@ abstract class ViewController extends Responder
     }
     public Response $response {
         get {
-            $request = $this->request;
-            if ($request->httpMethod === HTTPRequestMethod::get) {
-                $decorators = $this->decorators;
-                $decorators[] = HTMLDecorator::class;
-                if ($this->isSessionEnabled) {
-                    $this->session->start();
-                }
-                $this->data = $this->view->render();
-                if ($this->isSessionEnabled) {
-                    $this->session->commit();
-                }
+            if ($this->request->httpMethod === HTTPRequestMethod::get) {
+                $this->loadView();
             }
             return parent::$response::get();
         }
     }
 
+    /**
+     * Creates the view that the controller manages.
+     *
+     * You should never call this method directly. This method loads or creates a view and assigns it to the view property.
+     */
+    public function loadView(): void
+    {
+        $this->data = $this->view->render();
+    }
+
+    /**
+     * Called before the controller's view is loaded into memory.
+     */
     public function viewWillLoad(): void
     {
     }

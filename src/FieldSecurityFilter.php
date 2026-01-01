@@ -10,16 +10,18 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Set;
 
 /** @internal */
-final readonly class FieldSecurityFilter
+final class FieldSecurityFilter
 {
-    private OwnershipService $ownership;
+    private readonly OwnershipService $ownership;
     /** @var ArrayClass<string> */
-    private ArrayClass $userRoles;
+    private readonly ArrayClass $userRoles;
+    private array $cache = [];
 
-    public function __construct(private ManagedObject $resource, private Authenticatable $user)
+    public function __construct(private readonly ManagedObject $resource, private readonly Authenticatable $user)
     {
         $this->ownership = new OwnershipService(new OwnerResolver($this->resource), $this->user);
         $this->userRoles = $this->user->roles->map(fn(AuthorizableRole $r) => $r->name);
+
     }
 
     /**
@@ -27,9 +29,8 @@ final readonly class FieldSecurityFilter
      */
     private function getRestrictedFields(string $attributeClass): ArrayClass
     {
-        static $cache = [];
-        if (isset($cache[$attributeClass])) {
-            return $cache[$attributeClass];
+        if (isset($this->cache[$attributeClass])) {
+            return $this->cache[$attributeClass];
         }
         $fields = new ArrayClass();
         $reflection = new ReflectionClass($this->resource);
@@ -45,7 +46,7 @@ final readonly class FieldSecurityFilter
                 $fields[] = $property->getName();
             }
         }
-        return $cache[$attributeClass] = $fields;
+        return $this->cache[$attributeClass] = $fields;
     }
 
     private function apply(Dictionary $data, ArrayClass $restricted): Dictionary

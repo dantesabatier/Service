@@ -2,9 +2,7 @@
 
 namespace Sabatier\Service;
 
-/**
- * Holds information about the owner property of a managed object.
- */
+/** @internal */
 final readonly class OwnerInfo
 {
     public function __construct(public string $propertyName, public ?Authorizable $owner)

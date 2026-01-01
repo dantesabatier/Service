@@ -19,19 +19,18 @@ final class FieldPermissionFilter
                 return $this->unwritableFields;
             }
             $fields = new ArrayClass();
+            $ownership = new OwnershipService(new OwnerResolver($this->resource), $this->user);
+            $userRoles = $this->user->roles->map(fn(AuthorizableRole $role): string => $role->name);
             $reflection = new ReflectionClass($this->resource);
             foreach ($reflection->getProperties(ReflectionProperty::IS_PUBLIC) as $property) {
                 foreach ($property->getAttributes(Writable::class) as $attribute) {
                     /** @var Writable $writable */
                     $writable = $attribute->newInstance();
-                    if (!new Set($writable->by)->isDisjoint($this->user->roles->map(fn(AuthorizableRole $role): string => $role->name))) {
+                    if (!new Set($writable->by)->isDisjoint($userRoles)) {
                         continue;
                     }
-                    if ($writable->scope === AuthorizationScope::own) {
-                        $ownerResolver = new OwnerResolver($this->resource);
-                        if ($ownerResolver->info->owner?->username !== $this->user->username) {
-                            continue;
-                        }
+                    if ($writable->scope === AuthorizationScope::own && $ownership->isOwner) {
+                        continue;
                     }
                     $fields[] = $property->getName();
                 }

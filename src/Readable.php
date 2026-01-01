@@ -3,6 +3,7 @@
 namespace Sabatier\Service;
 
 use Attribute;
+use Sabatier\Foundation\Set;
 
 /**
  * Marks a property as readable by specific roles under a defined scope.
@@ -10,10 +11,10 @@ use Attribute;
  * Usage example:
  *
  * <code>
- *  #[Readable(["Admin", "Manager"], AuthorizationScope::all)]
+ *  #[Readable(new Set(["Admin", "Manager"]), AuthorizationScope::all)]
  *  public float $discount;
  *
- *  #[Readable(["Admin"], AuthorizationScope::own)]
+ *  #[Readable(new Set(["Admin"]), AuthorizationScope::own)]
  *  public ?string $note;
  * </code>
  */
@@ -21,10 +22,10 @@ use Attribute;
 final readonly class Readable
 {
     /**
-     * @param string[] $by List of role names allowed to read this property.
+     * @param Set<string> $by List of role names allowed to read this property.
      * @param AuthorizationScope $scope Scope of the permission.
      */
-    public function __construct(public array $by, public AuthorizationScope $scope)
+    public function __construct(public Set $by, public AuthorizationScope $scope)
     {
     }
 }

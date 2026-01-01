@@ -18,7 +18,7 @@ final class FieldSecurityFilter
     /** @var array<class-string<Readable|Writable>, ArrayClass<string>> */
     private array $cache = [];
 
-    public function __construct(private readonly ManagedObject $resource, private readonly Authenticatable $user)
+    public function __construct(private readonly ManagedObject $resource, private readonly Authorizable $user)
     {
         $this->service = new OwnershipService(new OwnerResolver($this->resource), $this->user);
         $this->userRoles = $this->user->roles->map(fn(AuthorizableRole $role): string => $role->name);
@@ -38,8 +38,9 @@ final class FieldSecurityFilter
         $reflection = new ReflectionClass($this->resource);
         foreach ($reflection->getProperties(ReflectionProperty::IS_PUBLIC) as $property) {
             foreach ($property->getAttributes($attributeClass) as $attribute) {
+                /** @var Writable|Readable $meta */
                 $meta = $attribute->newInstance();
-                if (!new Set($meta->by)->isDisjoint($this->userRoles)) {
+                if (!$meta->by->isDisjoint($this->userRoles)) {
                     continue;
                 }
                 if ($meta->scope === AuthorizationScope::own && $this->service->isOwner) {

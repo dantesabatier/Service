@@ -7,6 +7,7 @@ use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\CoreData\ManagedObjectID;
+use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
 
@@ -44,5 +45,14 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
             $service = new OwnershipService(new OwnerResolver($object), $this->authorizationContext->user);
             $service->isOwner ?: throw new ForbiddenException();
         }
+    }
+
+    /**
+     * @param ManagedObject $object
+     * @param Dictionary<mixed> $body
+     */
+    protected function applySecureUpdate(ManagedObject $object, Dictionary $body): void
+    {
+        $object->setValuesForKeys(new FieldSecurityFilter($object, $this->authorizationContext->user)->filterWrite($body));
     }
 }

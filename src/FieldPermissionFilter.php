@@ -13,10 +13,10 @@ use Sabatier\Foundation\Set;
 final class FieldPermissionFilter
 {
     /** @var ArrayClass<string> */
-    private ArrayClass $readOnlyFields {
+    private ArrayClass $unwritableFields {
         get {
-            if (isset($this->readOnlyFields)) {
-                return $this->readOnlyFields;
+            if (isset($this->unwritableFields)) {
+                return $this->unwritableFields;
             }
             $fields = new ArrayClass();
             $reflection = new ReflectionClass($this->resource);
@@ -36,7 +36,7 @@ final class FieldPermissionFilter
                     $fields[] = $property->getName();
                 }
             }
-            return $this->readOnlyFields = $fields;
+            return $this->unwritableFields = $fields;
         }
     }
 
@@ -50,6 +50,6 @@ final class FieldPermissionFilter
      */
     public function filter(Dictionary $data): Dictionary
     {
-        return $this->readOnlyFields->isEmpty ? $data : $data->filter(fn(mixed $value, string $key): bool => !$this->readOnlyFields->containsElement($key));
+        return $this->unwritableFields->isEmpty ? $data : $data->filter(fn(mixed $value, string $key): bool => !$this->unwritableFields->containsElement($key));
     }
 }

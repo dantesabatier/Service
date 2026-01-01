@@ -6,6 +6,7 @@ use Exception;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\FetchRequestResultType;
+use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Number;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
@@ -20,10 +21,10 @@ final class CreatePersistentSpaceResponseStrategy extends PersistentSpaceRespons
          */
         get {
             $request = $this->request;
-            $body = $request->parsedBody;
+            $parsedBody = $request->parsedBody;
             $context = $this->managedObjectContext;
             $entity = $this->entity;
-            if ($objectID = $body[ServiceIdentity::identityKey]) {
+            if ($objectID = $parsedBody[ServiceIdentity::identityKey]) {
                 /** @var FetchRequest<Number> $fetchRequest */
                 $fetchRequest = new FetchRequest();
                 $fetchRequest->entity = $entity;
@@ -34,10 +35,13 @@ final class CreatePersistentSpaceResponseStrategy extends PersistentSpaceRespons
                 }
             }
             $object = EntityDescription::insertNewObject($entity->name, $context);
-            $this->applySecureUpdate($object, $body);
+            $this->applySecureUpdate($object, $parsedBody);
             $context->save();
+            /** @var ManagedObject $object */
             $object = $this->fetchBy($object->objectID);
-            return new Response($request->url, HTTPStatusCode::created, body: $object?->serialized($this->request->serialization));
+            $serialized = $object->serialized($request->serialization);
+            $body = $this->applySecureRead($serialized, $object->dictionaryWithValues($object->serializationKeys));
+            return new Response($request->url, HTTPStatusCode::created, body: $body);
         }
     }
 }

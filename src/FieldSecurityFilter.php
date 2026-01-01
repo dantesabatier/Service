@@ -25,7 +25,7 @@ final class FieldSecurityFilter
     }
 
     /**
-     * @param class-string<FieldAttribute> $attributeClass
+     * @param class-string<Writable|Readable> $attributeClass
      * @return ArrayClass<string>
      */
     private function getRestrictedFields(string $attributeClass): ArrayClass
@@ -40,7 +40,7 @@ final class FieldSecurityFilter
             foreach ($property->getAttributes($attributeClass) as $attribute) {
                 /** @var Writable|Readable $meta */
                 $meta = $attribute->newInstance();
-                if (!$meta->by->isDisjoint($this->userRoles)) {
+                if (!new Set($meta->by)->isDisjoint($this->userRoles)) {
                     continue;
                 }
                 if ($meta->scope === AuthorizationScope::own && $this->service->isOwner) {

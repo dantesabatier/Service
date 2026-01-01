@@ -10,10 +10,10 @@ use Attribute;
  * Usage example:
  *
  * <code>
- *  #[Writable(new Set(["Admin", "Manager"]), AuthorizationScope::all)]
+ *  #[Writable(["Admin", "Manager"], AuthorizationScope::all)]
  *  public float $discount;
  *
- *  #[Writable(new Set(["Admin"]), AuthorizationScope::own)]
+ *  #[Writable(["Admin"], AuthorizationScope::own)]
  *  public ?string $note;
  * </code>
  */

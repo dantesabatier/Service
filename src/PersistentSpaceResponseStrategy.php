@@ -17,6 +17,9 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
     protected readonly EntityDescription $entity;
     protected readonly ManagedObjectContext $managedObjectContext;
     protected readonly AuthorizationContext $authorizationContext;
+    private bool $hasOwnScope {
+        get => $this->hasOwnScope ??= $this->authorizationContext->scopes->contains(fn(string $scope): bool => str_ends_with($scope, AuthorizationScope::own->name));
+    }
 
     public function __construct(Request $request, EntityDescription $entity, ManagedObjectContext $managedObjectContext, AuthorizationContext $authorizationContext)
     {
@@ -41,7 +44,7 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
 
     protected function enforceOwnership(ManagedObject $object): void
     {
-        if ($this->authorizationContext->scopes->contains(fn(string $scope): bool => str_ends_with($scope, AuthorizationScope::own->name))) {
+        if ($this->hasOwnScope) {
             $service = new OwnershipService(new OwnerResolver($object), $this->authorizationContext->user);
             $service->isOwner ?: throw new ForbiddenException();
         }

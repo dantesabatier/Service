@@ -25,7 +25,7 @@ final class FieldSecurityFilter
     }
 
     /**
-     * @param class-string<Readable|Writable> $attributeClass
+     * @param class-string<FieldAttribute> $attributeClass
      * @return ArrayClass<string>
      */
     private function getRestrictedFields(string $attributeClass): ArrayClass

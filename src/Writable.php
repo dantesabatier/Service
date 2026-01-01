@@ -3,7 +3,6 @@
 namespace Sabatier\Service;
 
 use Attribute;
-use Sabatier\Foundation\Set;
 
 /**
  * Marks a property as writable by specific roles under a defined scope.
@@ -19,13 +18,6 @@ use Sabatier\Foundation\Set;
  * </code>
  */
 #[Attribute(Attribute::TARGET_PROPERTY)]
-final readonly class Writable
+final readonly class Writable extends FieldAttribute
 {
-    /**
-     * @param Set<string> $by List of role names allowed to write this property.
-     * @param AuthorizationScope $scope Scope of the permission.
-     */
-    public function __construct(public Set $by, public AuthorizationScope $scope)
-    {
-    }
 }

@@ -16,7 +16,7 @@ final class FieldSecurityFilter
     /** @var Set<string> */
     private readonly Set $userRoles;
     /** @var array<class-string<Readable|Writable>, ArrayClass<string>> */
-    private array $cache = [];
+    private static array $reflectionCache = [];
 
     public function __construct(private readonly ManagedObject $resource, private readonly Authorizable $user)
     {
@@ -30,8 +30,9 @@ final class FieldSecurityFilter
      */
     private function getRestrictedFields(string $attributeClass): ArrayClass
     {
-        if (isset($this->cache[$attributeClass])) {
-            return $this->cache[$attributeClass];
+        $cacheKey = $this->resource::class . ':' . $attributeClass;
+        if (isset(self::$reflectionCache[$cacheKey])) {
+            return self::$reflectionCache[$cacheKey];
         }
         /** @var ArrayClass<string> $fields */
         $fields = new ArrayClass();
@@ -49,7 +50,7 @@ final class FieldSecurityFilter
                 $fields[] = $property->getName();
             }
         }
-        return $this->cache[$attributeClass] = $fields;
+        return self::$reflectionCache[$cacheKey] = $fields;
     }
 
     /**

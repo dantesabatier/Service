@@ -15,6 +15,7 @@ final class FieldSecurityFilter
     private readonly OwnershipService $ownership;
     /** @var Set<string> */
     private readonly Set $userRoles;
+    /** @var array<class-string<Readable|Writable>, ArrayClass<string>> */
     private array $cache = [];
 
     public function __construct(private readonly ManagedObject $resource, private readonly Authenticatable $user)
@@ -32,6 +33,7 @@ final class FieldSecurityFilter
         if (isset($this->cache[$attributeClass])) {
             return $this->cache[$attributeClass];
         }
+        /** @var ArrayClass<string> $fields */
         $fields = new ArrayClass();
         $reflection = new ReflectionClass($this->resource);
         foreach ($reflection->getProperties(ReflectionProperty::IS_PUBLIC) as $property) {

@@ -13,14 +13,25 @@ use Sabatier\Foundation\Predicates\Expression;
 /** @internal */
 abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
 {
-    public readonly ManagedObjectContext $managedObjectContext;
-    public readonly EntityDescription $entity;
+    protected readonly EntityDescription $entity;
+    protected readonly ManagedObjectContext $managedObjectContext;
+    protected readonly AuthorizationContext $authorizationContext;
 
-    public function __construct(Request $request, EntityDescription $entity, ManagedObjectContext $managedObjectContext)
+    public function __construct(Request $request, EntityDescription $entity, ManagedObjectContext $managedObjectContext, AuthorizationContext $authorizationContext)
     {
         parent::__construct($request);
         $this->entity = $entity;
         $this->managedObjectContext = $managedObjectContext;
+        $this->authorizationContext = $authorizationContext;
+    }
+
+    protected function verify(ManagedObject $object): void
+    {
+        if ($this->authorizationContext->scopes->contains(fn(string $scope): bool => str_ends_with($scope, AuthorizationScope::own->name))) {
+            $resolver = new OwnerResolver($object);
+            $ownershipService = new OwnershipService($resolver, $this->authorizationContext->user);
+            $ownershipService->isOwner ?: throw new ForbiddenException();
+        }
     }
 
     protected function managedObject(ManagedObjectID|int $objectID): ?ManagedObject

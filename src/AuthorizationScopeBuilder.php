@@ -15,7 +15,7 @@ use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Foundation\Predicates\PredicateOperatorType;
 use Sabatier\Foundation\Set;
 
-final  class AuthorizationScopeBuilder
+final class AuthorizationScopeBuilder
 {
     private InterfaceImplementorResolver $implementorResolver {
         get => $this->implementorResolver ??= new InterfaceImplementorResolver($this->managedObjectModel);
@@ -38,6 +38,6 @@ final  class AuthorizationScopeBuilder
         /** @var FetchRequest<Authorization> $fetchRequest */
         $fetchRequest = $this->authorizationClass::fetchRequest();
         $fetchRequest->predicate = CompoundPredicate::andPredicateWithSubpredicates(new ArrayClass([new ComparisonPredicate(Expression::expressionForKeyPath("roles.name"), Expression::expressionForConstantValue($subject->roles->map(fn(AuthorizableRole $role): string => $role->name)), PredicateOperatorType::in, ComparisonPredicateModifier::any)]));
-        return new ArrayClass(new Set($context->fetch($fetchRequest)->map(fn(Authorization $authorization): string => "$authorization->name:{$authorization->type->name}")));
+        return new ArrayClass(new Set($context->fetch($fetchRequest)->map(fn(Authorization $authorization): string => "$authorization->name:{$authorization->type->name}:{$authorization->scope->name}")));
     }
 }

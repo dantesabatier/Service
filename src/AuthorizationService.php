@@ -33,7 +33,7 @@ final readonly class AuthorizationService
         $anyAction = AuthorizationType::any;
         $scopeToCheck = "$resource:$action->name";
         $anyScope = "$resource:$anyAction->name";
-        if ($authorizationScopes->contains(fn(string $authorizationScope): bool => $authorizationScope === $scopeToCheck || $authorizationScope === $anyScope)) {
+        if ($authorizationScopes->contains(fn(string $authorizationScope): bool => str_starts_with($authorizationScope, $scopeToCheck) || str_starts_with($authorizationScope, $anyScope))) {
             return true;
         }
         if (!($authorizations = $this->inRequestCache->getAuthorizableAuthorizations($entity)) && ($authorizations = $this->persistentCache?->getAuthorizableAuthorizations($entity))) {

@@ -19,6 +19,7 @@ final class DeletePersistentSpaceResponseStrategy extends PersistentSpaceRespons
             if (!($object = $this->managedObject($objectID))) {
                 throw new NotFoundException();
             }
+            $this->verify($object);
             $context = $this->managedObjectContext;
             $context->delete($object);
             $context->save();

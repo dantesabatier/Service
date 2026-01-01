@@ -34,7 +34,7 @@ final class CreatePersistentSpaceResponseStrategy extends PersistentSpaceRespons
                 }
             }
             $object = EntityDescription::insertNewObject($entity->name, $context);
-            $object->setValuesForKeys(new FieldPermissionFilter($object, $this->authorizationContext->user)->filter($body));
+            $object->setValuesForKeys(new FieldSecurityFilter($object, $this->authorizationContext->user)->filterWrite($body));
             $context->save();
             $object = $this->managedObject($object->objectID);
             return new Response($request->url, HTTPStatusCode::created, body: $object?->serialized($this->request->serialization));

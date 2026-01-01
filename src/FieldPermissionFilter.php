@@ -13,10 +13,10 @@ use Sabatier\Foundation\Set;
 final class FieldPermissionFilter
 {
     /** @var ArrayClass<string> */
-    private ArrayClass $writableFields {
+    private ArrayClass $readOnlyFields {
         get {
-            if (isset($this->writableFields)) {
-                return $this->writableFields;
+            if (isset($this->readOnlyFields)) {
+                return $this->readOnlyFields;
             }
             $fields = new ArrayClass();
             $reflection = new ReflectionClass($this->resource);
@@ -24,7 +24,7 @@ final class FieldPermissionFilter
                 foreach ($property->getAttributes(Writable::class) as $attribute) {
                     /** @var Writable $writable */
                     $writable = $attribute->newInstance();
-                    if (new Set($writable->by)->isDisjoint($this->user->roles->map(fn(AuthorizableRole $role): string => $role->name))) {
+                    if (!new Set($writable->by)->isDisjoint($this->user->roles->map(fn(AuthorizableRole $role): string => $role->name))) {
                         continue;
                     }
                     if ($writable->scope === AuthorizationScope::own) {
@@ -36,7 +36,7 @@ final class FieldPermissionFilter
                     $fields[] = $property->getName();
                 }
             }
-            return $this->writableFields = $fields;
+            return $this->readOnlyFields = $fields;
         }
     }
 
@@ -50,6 +50,6 @@ final class FieldPermissionFilter
      */
     public function filter(Dictionary $data): Dictionary
     {
-        return $this->writableFields->isEmpty ? $data : $data->filter(fn(mixed $value, string $key): bool => $this->writableFields->containsElement($key));
+        return $this->readOnlyFields->isEmpty ? $data : $data->filter(fn(mixed $value, string $key): bool => !$this->readOnlyFields->containsElement($key));
     }
 }

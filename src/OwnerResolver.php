@@ -17,7 +17,8 @@ final class OwnerResolver
             $reflection = new ReflectionClass($this->resource);
             foreach ($reflection->getProperties(ReflectionProperty::IS_PUBLIC) as $property) {
                 if ($property->getAttributes(Owner::class) !== []) {
-                    (void)$property->setAccessible(true);
+                    /** @noinspection PhpExpressionResultUnusedInspection */
+                    $property->setAccessible(true);
                     $value = $property->getValue($this->resource);
                     return $this->info = new OwnerInfo($property->getName(), $value instanceof Authorizable ? $value : null);
                 }

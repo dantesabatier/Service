@@ -5,9 +5,9 @@
 namespace Sabatier\Service;
 
 use Exception;
-use Sabatier\CoreData\BatchFaultingArray;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\FetchRequestResultType;
+use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\Dictionary;
 
 /** @internal */
@@ -30,8 +30,12 @@ final class ReadPersistentSpaceResponseStrategy extends PersistentSpaceResponseS
                 FetchRequestResultType::dictionaryResultType => $context->fetch($fetchRequest),
                 FetchRequestResultType::countResultType => new Dictionary(["count" => $context->count($fetchRequest)])
             };
-            if ($fetchRequestResult instanceof BatchFaultingArray) {
-                return new ChunkedResponse($this->request->url, $fetchRequestResult, $fetchRequest->fetchBatchSize);
+            if ($fetchRequest->resultType === FetchRequestResultType::managedObjectResultType) {
+                $filter = null;
+                $fetchRequestResult = $fetchRequestResult->map(function (ManagedObject $object) use (&$filter): Dictionary {
+                    $filter ??= new FieldSecurityFilter($object, $this->authorizationContext->user);
+                    return $filter->filterRead($object->jsonSerialize());
+                });
             }
             return new Response($this->request->url, body: $fetchRequestResult);
         }

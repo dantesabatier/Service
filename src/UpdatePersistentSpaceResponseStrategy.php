@@ -28,8 +28,7 @@ final class UpdatePersistentSpaceResponseStrategy extends PersistentSpaceRespons
             $this->managedObjectContext->save();
             /** @var ManagedObject $refreshed */
             $refreshed = $this->fetchBy($object->objectID);
-            $serialized = $refreshed->serialized($request->serialization);
-            $body = $this->applySecureRead($serialized, $serialized->dictionaryWithValues($serialized->serializationKeys));
+            $body = $this->applySecureRead($refreshed, $refreshed->jsonSerialize());
             return new Response($request->url, body: $body);
         }
     }

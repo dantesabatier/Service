@@ -37,10 +37,9 @@ final class CreatePersistentSpaceResponseStrategy extends PersistentSpaceRespons
             $object = EntityDescription::insertNewObject($entity->name, $context);
             $this->applySecureUpdate($object, $parsedBody);
             $context->save();
-            /** @var ManagedObject $object */
-            $object = $this->fetchBy($object->objectID);
-            $serialized = $object->serialized($request->serialization);
-            $body = $this->applySecureRead($serialized, $object->dictionaryWithValues($object->serializationKeys));
+            /** @var ManagedObject $refreshed */
+            $refreshed = $this->fetchBy($object->objectID);
+            $body = $this->applySecureRead($refreshed, $refreshed->jsonSerialize());
             return new Response($request->url, HTTPStatusCode::created, body: $body);
         }
     }

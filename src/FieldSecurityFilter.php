@@ -12,7 +12,7 @@ use Sabatier\Foundation\Set;
 /** @internal */
 final class FieldSecurityFilter
 {
-    private readonly OwnershipService $ownership;
+    private readonly OwnershipService $service;
     /** @var Set<string> */
     private readonly Set $userRoles;
     /** @var array<class-string<Readable|Writable>, ArrayClass<string>> */
@@ -20,7 +20,7 @@ final class FieldSecurityFilter
 
     public function __construct(private readonly ManagedObject $resource, private readonly Authenticatable $user)
     {
-        $this->ownership = new OwnershipService(new OwnerResolver($this->resource), $this->user);
+        $this->service = new OwnershipService(new OwnerResolver($this->resource), $this->user);
         $this->userRoles = $this->user->roles->map(fn(AuthorizableRole $role): string => $role->name);
     }
 
@@ -42,7 +42,7 @@ final class FieldSecurityFilter
                 if (!new Set($meta->by)->isDisjoint($this->userRoles)) {
                     continue;
                 }
-                if ($meta->scope === AuthorizationScope::own && $this->ownership->isOwner) {
+                if ($meta->scope === AuthorizationScope::own && $this->service->isOwner) {
                     continue;
                 }
                 $fields[] = $property->getName();

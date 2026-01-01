@@ -26,6 +26,7 @@ final class FieldSecurityFilter
 
     /**
      * @param class-string<Readable|Writable> $attributeClass
+     * @return ArrayClass<string>
      */
     private function getRestrictedFields(string $attributeClass): ArrayClass
     {
@@ -49,16 +50,29 @@ final class FieldSecurityFilter
         return $this->cache[$attributeClass] = $fields;
     }
 
+    /**
+     * @param Dictionary<mixed> $data
+     * @param ArrayClass<string> $restricted
+     * @return Dictionary<mixed>
+     */
     private function apply(Dictionary $data, ArrayClass $restricted): Dictionary
     {
         return $restricted->isEmpty ? $data : $data->filter(fn($v, $key) => !$restricted->containsElement($key));
     }
 
+    /**
+     * @param Dictionary<mixed> $data
+     * @return Dictionary<mixed>
+     */
     public function filterRead(Dictionary $data): Dictionary
     {
         return $this->apply($data, $this->getRestrictedFields(Readable::class));
     }
 
+    /**
+     * @param Dictionary<mixed> $data
+     * @return Dictionary<mixed>
+     */
     public function filterWrite(Dictionary $data): Dictionary
     {
         return $this->apply($data, $this->getRestrictedFields(Writable::class));

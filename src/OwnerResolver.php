@@ -12,7 +12,7 @@ final class OwnerResolver
     private bool $isOwnerResolved = false;
     public ?Authorizable $owner {
         get {
-            if (isset($this->isOwnerResolved)) {
+            if ($this->isOwnerResolved) {
                 return $this->owner;
             }
             $this->isOwnerResolved = true;

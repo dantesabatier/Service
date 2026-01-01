@@ -13,15 +13,14 @@ use Sabatier\Foundation\Set;
 final class FieldSecurityFilter
 {
     private readonly OwnershipService $ownership;
-    /** @var ArrayClass<string> */
-    private readonly ArrayClass $userRoles;
+    /** @var Set<string> */
+    private readonly Set $userRoles;
     private array $cache = [];
 
     public function __construct(private readonly ManagedObject $resource, private readonly Authenticatable $user)
     {
         $this->ownership = new OwnershipService(new OwnerResolver($this->resource), $this->user);
-        $this->userRoles = $this->user->roles->map(fn(AuthorizableRole $r) => $r->name);
-
+        $this->userRoles = $this->user->roles->map(fn(AuthorizableRole $role): string => $role->name);
     }
 
     /**

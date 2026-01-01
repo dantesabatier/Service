@@ -25,7 +25,7 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
         $this->authorizationContext = $authorizationContext;
     }
 
-    protected function verify(ManagedObject $object): void
+    protected function enforceOwnership(ManagedObject $object): void
     {
         if ($this->authorizationContext->scopes->contains(fn(string $scope): bool => str_ends_with($scope, AuthorizationScope::own->name))) {
             $service = new OwnershipService(new OwnerResolver($object), $this->authorizationContext->user);

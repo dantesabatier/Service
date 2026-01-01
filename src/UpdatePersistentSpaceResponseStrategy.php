@@ -22,7 +22,7 @@ final class UpdatePersistentSpaceResponseStrategy extends PersistentSpaceRespons
             if (!($object = $this->managedObject($objectID))) {
                 throw new NotFoundException();
             }
-            $this->verify($object);
+            $this->enforceOwnership($object);
             $object->setValuesForKeys(new FieldSecurityFilter($object, $this->authorizationContext->user)->filterWrite($body));
             $this->managedObjectContext->save();
             $object = $this->managedObject($object->objectID);

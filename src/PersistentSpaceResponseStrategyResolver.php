@@ -26,7 +26,7 @@ final class PersistentSpaceResponseStrategyResolver
             return $this->byHTTPMethodResponseStrategyClassesTable;
         }
     }
-    public ResponseStrategy $strategy {
+    public PersistentSpaceResponseStrategy $strategy {
         get {
             /** @var class-string<PersistentSpaceResponseStrategy> $responseStrategyClass */
             $responseStrategyClass = $this->byHTTPMethodResponseStrategyClassesTable[$this->request->httpMethod];

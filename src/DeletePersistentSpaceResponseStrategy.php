@@ -14,7 +14,7 @@ final class DeletePersistentSpaceResponseStrategy extends PersistentSpaceRespons
          */
         get {
             if (!($objectID = $this->request->parsedBody[ServiceIdentity::identityKey])) {
-                throw new BadRequestException(sprintf("\"%s\" can not be null", ServiceIdentity::identityKey));
+                throw new BadRequestException();
             }
             if (!($object = $this->fetchBy($objectID))) {
                 throw new NotFoundException();

@@ -22,9 +22,9 @@ final class RequestToFetchRequestAdapter
         get {
             $request = $this->request;
             $fetchRequest = new FetchRequest();
-            $components = new URLComponents((string)$request->url);
+            $components = new URLComponents($request->url->absoluteString);
             if ($queryItems = $components->queryItems) {
-                if ($item = $queryItems->first(fn(URLQueryItem $item): bool => string_is_equal($item->name, "fetchRequest", CompareOptions::caseInsensitive))) {
+                if ($item = $queryItems->first(fn(URLQueryItem $item): bool => string_is_equal($item->name, ServiceFetchRequestKey, CompareOptions::caseInsensitive))) {
                     if (($value = $item->value) && ($json = base64_decode($value)) && (json_validate($json))) {
                         /** @var FetchRequestRepresentation $fetchRequestRepresentation */
                         $fetchRequestRepresentation = json_decode($json);

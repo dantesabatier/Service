@@ -14,3 +14,5 @@ const ApplicationEnvironmentProduction = "production";
 const ApplicationEnvironmentTesting = "testing";
 /** @var string The dictionary key used to return the total number of objects in a count request. */
 const ServiceResponseCountKey = "count";
+/** @var string The URL query item name used to provide a base64-encoded JSON representation of a FetchRequest. */
+const ServiceFetchRequestKey = "fetchRequest";

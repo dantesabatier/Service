@@ -18,14 +18,14 @@ use Sabatier\Foundation\URL;
 final class StreamResponse extends Response implements IteratorAggregate
 {
     private int $chunkSize;
-    /** @var (Closure(ManagedObject): Dictionary)|null */
+    /** @var Closure(ManagedObject): Dictionary|null */
     private ?Closure $transform;
 
     /**
      * @param URL $url
      * @param ArrayClass<ManagedObject> $body
      * @param int $chunkSize
-     * @param ?Closure $transform
+     * @param Closure(ManagedObject): Dictionary|null $transform
      */
     public function __construct(URL $url, ArrayClass $body, int $chunkSize, ?Closure $transform)
     {

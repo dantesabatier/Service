@@ -6,6 +6,7 @@ use Exception;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\FetchRequestResultType;
 use Sabatier\CoreData\ManagedObject;
+use Sabatier\CoreData\ManagedObjectID;
 use Sabatier\Foundation\Dictionary;
 
 /** @internal */
@@ -35,11 +36,12 @@ final class ReadPersistentSpaceResponseStrategy extends PersistentSpaceResponseS
             FetchRequestResultType::dictionaryResultType => $context->fetch($fetchRequest),
             FetchRequestResultType::countResultType => new Dictionary([ServiceResponseCountKey => $context->count($fetchRequest)])
         };
+        $transform = fn(ManagedObject|ManagedObjectID|Dictionary $item): ManagedObject|ManagedObjectID|Dictionary => $item instanceof ManagedObject ? $this->applySecureRead($item, $item->jsonSerialize()) : $item;
         if ($fetchRequest->fetchBatchSize) {
-            return new StreamResponse($this->request->url, $fetchRequestResult, chunkSize: $fetchRequest->fetchBatchSize, transform: fn(ManagedObject $object): Dictionary => $this->applySecureRead($object, $object->jsonSerialize()));
+            return new StreamResponse($this->request->url, $fetchRequestResult, chunkSize: $fetchRequest->fetchBatchSize, transform: $transform);
         }
         if ($fetchRequest->resultType === FetchRequestResultType::managedObjectResultType) {
-            return new Response($this->request->url, body: $fetchRequestResult->map(fn(ManagedObject $object): Dictionary => new FieldSecurityFilter($object, $this->authorizationContext->user)->filterRead($object->jsonSerialize())));
+            return new Response($this->request->url, body: $fetchRequestResult->map($transform));
         }
         return new Response($this->request->url, body: $fetchRequestResult);
     }

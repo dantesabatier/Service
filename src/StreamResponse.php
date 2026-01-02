@@ -7,6 +7,7 @@ use Generator;
 use IteratorAggregate;
 use Override;
 use Sabatier\CoreData\ManagedObject;
+use Sabatier\CoreData\ManagedObjectID;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\URL;
@@ -23,7 +24,7 @@ final class StreamResponse extends Response implements IteratorAggregate
 
     /**
      * @param URL $url
-     * @param ArrayClass<ManagedObject> $body
+     * @param ArrayClass<ManagedObject|ManagedObjectID|Dictionary<mixed>> $body
      * @param int $chunkSize
      * @param Closure(ManagedObject): Dictionary|null $transform
      */
@@ -44,7 +45,7 @@ final class StreamResponse extends Response implements IteratorAggregate
         return (function () {
             /** @var ArrayClass<ManagedObject> $chunk */
             $chunk = new ArrayClass();
-            /** @var ArrayClass<ManagedObject> $body */
+            /** @var ArrayClass<ManagedObject|ManagedObjectID|Dictionary<mixed>> $body */
             $body = $this->body;
             foreach ($body as $item) {
                 $chunk[] = $this->transform ? ($this->transform)($item) : $item;

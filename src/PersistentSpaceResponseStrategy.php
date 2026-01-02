@@ -18,8 +18,8 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
     protected readonly EntityDescription $entity;
     protected readonly ManagedObjectContext $managedObjectContext;
     protected readonly AuthorizationContext $authorizationContext;
-    private bool $hasOwnScope {
-        get => $this->hasOwnScope ??= $this->authorizationContext->scopes->contains(fn(string $scope): bool => str_ends_with($scope, AuthorizationScope::own->name));
+    private PersistentSpaceSecurityPolicy $securityPolicy {
+        get => $this->securityPolicy ??= new PersistentSpaceSecurityPolicy($this->authorizationContext);
     }
 
     public function __construct(Request $request, EntityDescription $entity, ManagedObjectContext $managedObjectContext, AuthorizationContext $authorizationContext)
@@ -45,10 +45,7 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
 
     protected function enforceOwnership(ManagedObject $object): void
     {
-        if ($this->hasOwnScope) {
-            $service = new OwnershipService(new OwnerResolver($object), $this->authorizationContext->user);
-            $service->isOwner ?: throw new ForbiddenException();
-        }
+        $this->securityPolicy->enforceOwnership($object);
     }
 
     /**
@@ -58,7 +55,7 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
      */
     protected function applySecureUpdate(ManagedObject $object, Dictionary $body): void
     {
-        $object->setValuesForKeys(new FieldSecurityFilter($object, $this->authorizationContext->user)->filterWrite($body));
+        $this->securityPolicy->applySecureUpdate($object, $body);
     }
 
     /**
@@ -69,6 +66,6 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
      */
     protected function applySecureRead(ManagedObject $object, Dictionary $data): Dictionary
     {
-        return new FieldSecurityFilter($object, $this->authorizationContext->user)->filterRead($data);
+        return $this->securityPolicy->applySecureRead($object, $data);
     }
 }

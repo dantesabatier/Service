@@ -4,7 +4,9 @@ namespace Sabatier\Service;
 
 use Exception;
 use Sabatier\CoreData\EntityDescription;
+use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObject;
+use Sabatier\CoreData\ManagedObjectID;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 
 /** @internal */
@@ -27,6 +29,21 @@ final class CreatePersistentSpaceResponseStrategy extends PersistentSpaceRespons
             $refreshed = $this->fetchBy($object->objectID);
             $body = $this->applySecureRead($refreshed, $refreshed->jsonSerialize());
             return new Response($request->url, HTTPStatusCode::created, body: $body);
+        }
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function assertUniqueness(ManagedObjectID|int $objectID): void
+    {
+        if (!$objectID) {
+            return;
+        }
+        /** @var FetchRequest<Number> $fetchRequest */
+        $fetchRequest = $this->fetchRequestFor($objectID);
+        if ($this->managedObjectContext->count($fetchRequest)) {
+            throw new ConflictException();
         }
     }
 }

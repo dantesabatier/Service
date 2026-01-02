@@ -9,7 +9,6 @@ use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\CoreData\ManagedObjectID;
 use Sabatier\Foundation\Dictionary;
-use Sabatier\Foundation\Number;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
 
@@ -56,21 +55,6 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
         /** @var FetchRequest<ManagedObject> $fetchRequest */
         $fetchRequest = $this->fetchRequestFor($objectID);
         return $this->managedObjectContext->fetch($fetchRequest)->first;
-    }
-
-    /**
-     * @throws Exception
-     */
-    protected function assertUniqueness(ManagedObjectID|int $objectID): void
-    {
-        if (!$objectID) {
-            return;
-        }
-        /** @var FetchRequest<Number> $fetchRequest */
-        $fetchRequest = $this->fetchRequestFor($objectID);
-        if ($this->managedObjectContext->count($fetchRequest)) {
-            throw new ConflictException();
-        }
     }
 
     protected function enforceOwnership(ManagedObject $object): void

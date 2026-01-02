@@ -9,7 +9,7 @@ use Sabatier\Foundation\Dictionary;
 /** @internal */
 final readonly class PersistentSpaceSecurityPolicy
 {
-    private bool $hasOwnScope;
+    public bool $hasOwnScope;
 
     public function __construct(protected AuthorizationContext $authorizationContext)
     {

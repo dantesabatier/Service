@@ -7,14 +7,30 @@ use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\FetchRequestResultType;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectID;
+use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
+use Sabatier\Foundation\Predicates\ComparisonPredicate;
+use Sabatier\Foundation\Predicates\CompoundPredicate;
+use Sabatier\Foundation\Predicates\Expression;
 
 /** @internal */
 final class ReadPersistentSpaceResponseStrategy extends PersistentSpaceResponseStrategy
 {
     public FetchRequest $fetchRequest {
+        /**
+         * @throws Exception
+         */
         get {
-            return new RequestToFetchRequestAdapter($this->request, $this->entity)->fetchRequest;
+            $fetchRequest = new RequestToFetchRequestAdapter($this->request, $this->entity)->fetchRequest;
+            if ($this->securityPolicy->hasOwnScope && ($ownerKey = OwnerResolver::getOwnerFieldName($this->entity->managedObjectClassName ?? $this->entity->name))) {
+                $ownershipPredicate = new ComparisonPredicate(Expression::expressionForKeyPath($ownerKey), Expression::expressionForConstantValue($this->authorizationContext->user));
+                if ($fetchRequest->predicate) {
+                    $fetchRequest->predicate = CompoundPredicate::andPredicateWithSubpredicates(new ArrayClass([$fetchRequest->predicate, $ownershipPredicate]));
+                } else {
+                    $fetchRequest->predicate = $ownershipPredicate;
+                }
+            }
+            return $fetchRequest;
         }
     }
     public Response $response {

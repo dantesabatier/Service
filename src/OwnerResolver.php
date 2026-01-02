@@ -39,7 +39,7 @@ final class OwnerResolver
      * @param class-string $className
      * @throws Exception
      */
-    private static function getOwnerFieldName(string $className): ?string
+    public static function getOwnerFieldName(string $className): ?string
     {
         if (array_key_exists($className, self::$ownerFieldCache)) {
             return self::$ownerFieldCache[$className];

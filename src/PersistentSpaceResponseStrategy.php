@@ -19,7 +19,7 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
     protected readonly EntityDescription $entity;
     protected readonly ManagedObjectContext $managedObjectContext;
     protected readonly AuthorizationContext $authorizationContext;
-    private PersistentSpaceSecurityPolicy $securityPolicy {
+    protected PersistentSpaceSecurityPolicy $securityPolicy {
         get => $this->securityPolicy ??= new PersistentSpaceSecurityPolicy($this->authorizationContext);
     }
 

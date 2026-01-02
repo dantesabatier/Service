@@ -4,6 +4,7 @@ namespace Sabatier\Service;
 
 use Sabatier\Foundation\Set;
 
+/** @internal */
 final readonly class FieldRule
 {
     public bool $requiresOwner;

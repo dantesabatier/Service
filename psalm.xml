@@ -33,6 +33,7 @@
             <errorLevel type="suppress">
                 <file name="src/AuthorizationResolver.php"/>
                 <file name="src/AuthorizationScopeBuilder.php"/>
+                <file name="src/ReadPersistentSpaceResponseStrategy.php"/>
                 <file name="src/StreamResponse.php"/>
             </errorLevel>
         </InvalidArgument>
@@ -56,6 +57,11 @@
                 <file name="src/AuthorizationService.php"/>
             </errorLevel>
         </TypeDoesNotContainNull>
+        <LessSpecificImplementedReturnType>
+            <errorLevel type="suppress">
+                <file name="src/StreamResponse.php"/>
+            </errorLevel>
+        </LessSpecificImplementedReturnType>
         <NoInterfaceProperties errorLevel="suppress"/>
         <InternalClass errorLevel="suppress"/>
         <InternalProperty errorLevel="suppress"/>

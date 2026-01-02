@@ -15,7 +15,7 @@ final class FieldSecurityFilter
     private readonly OwnershipService $service;
     /** @var Set<string> */
     private readonly Set $userRoles;
-    /** @var array<class-string<Readable|Writable>, ArrayClass<string>> */
+    /** @var array<string, ArrayClass<string>> */
     private static array $reflectionCache = [];
 
     public function __construct(private readonly ManagedObject $resource, private readonly Authorizable $user)

@@ -4,11 +4,9 @@ namespace Sabatier\Service;
 
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
-use Sabatier\CoreData\FetchRequestResultType;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\CoreData\ManagedObjectID;
-use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
@@ -69,21 +67,5 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
     protected function applySecureRead(ManagedObject $object, Dictionary $data): Dictionary
     {
         return new FieldSecurityFilter($object, $this->authorizationContext->user)->filterRead($data);
-    }
-
-    protected function executeSecureFetch(FetchRequest $fetchRequest): ArrayClass|Dictionary
-    {
-        $context = $this->managedObjectContext;
-        /** @noinspection PhpUnhandledExceptionInspection */
-        $fetchRequestResult = match ($fetchRequest->resultType) {
-            FetchRequestResultType::managedObjectResultType,
-            FetchRequestResultType::managedObjectIDResultType,
-            FetchRequestResultType::dictionaryResultType => $context->fetch($fetchRequest),
-            FetchRequestResultType::countResultType => new Dictionary([ServiceResponseCountKey => $context->count($fetchRequest)])
-        };
-        if ($fetchRequest->resultType === FetchRequestResultType::managedObjectResultType) {
-            return $fetchRequestResult->map(fn(ManagedObject $object): Dictionary => new FieldSecurityFilter($object, $this->authorizationContext->user)->filterRead($object->jsonSerialize()));
-        }
-        return $fetchRequestResult;
     }
 }

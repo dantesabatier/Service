@@ -33,7 +33,7 @@
             <errorLevel type="suppress">
                 <file name="src/AuthorizationResolver.php"/>
                 <file name="src/AuthorizationScopeBuilder.php"/>
-                <file name="src/ChunkedResponse.php"/>
+                <file name="src/StreamResponse.php"/>
             </errorLevel>
         </InvalidArgument>
         <NullableReturnStatement>

@@ -11,6 +11,13 @@ use Attribute;
  * interface elements or resources within a view. This allows the framework
  * to automatically bind UI components to the corresponding properties in
  * the controller.
+ *
+ * Example usage:
+ *
+ * <code>
+ *     #[Outlet]
+ *    public string $labelText;
+ * </code>
  */
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final class Outlet

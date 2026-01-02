@@ -15,10 +15,12 @@ use Sabatier\Foundation\Networking\HTTPRequestMethod;
  *
  * Example usage:
  *
- * #[Action(method: HTTPRequestMethod::post, path: "/login", decorators: [JSONDecorator::class, CacheHeaderDecorator::class])]
- * public function login(): void {
- *     // mutate internal state or perform side effects
- * }
+ * <code>
+ *  #[Action(method: HTTPRequestMethod::post, path: "/login", decorators: [JSONDecorator::class, CacheHeaderDecorator::class])]
+ *  public function login(): void {
+ *      // mutate internal state or perform side effects
+ *  }
+ * </code>
  */
 #[Attribute(Attribute::TARGET_METHOD)]
 final readonly class Action

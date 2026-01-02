@@ -2,10 +2,12 @@
 
 namespace Sabatier\Service;
 
+use Sabatier\Foundation\Equatable;
+
 /**
  * Defines a contract for any class that can handle authentication processes.
  */
-interface Authenticatable
+interface Authenticatable extends Equatable
 {
     /** @var string The username of the authenticatable entity. */
     public string $username {

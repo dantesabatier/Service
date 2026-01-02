@@ -21,28 +21,23 @@ final class ReadPersistentSpaceResponseStrategy extends PersistentSpaceResponseS
         /**
          * @throws Exception
          */
-        get => $this->executeSecureFetch($this->fetchRequest);
-    }
-
-    /**
-     * @throws Exception
-     */
-    private function executeSecureFetch(FetchRequest $fetchRequest): Response
-    {
-        $context = $this->managedObjectContext;
-        $fetchRequestResult = match ($fetchRequest->resultType) {
-            FetchRequestResultType::managedObjectResultType,
-            FetchRequestResultType::managedObjectIDResultType,
-            FetchRequestResultType::dictionaryResultType => $context->fetch($fetchRequest),
-            FetchRequestResultType::countResultType => new Dictionary([ServiceResponseCountKey => $context->count($fetchRequest)])
-        };
-        $transform = fn(ManagedObject|ManagedObjectID|Dictionary $item): ManagedObject|ManagedObjectID|Dictionary => $item instanceof ManagedObject ? $this->applySecureRead($item, $item->jsonSerialize()) : $item;
-        if ($fetchRequest->fetchBatchSize) {
-            return new StreamResponse($this->request->url, $fetchRequestResult, chunkSize: $fetchRequest->fetchBatchSize, transform: $transform);
+        get {
+            $context = $this->managedObjectContext;
+            $fetchRequest = $this->fetchRequest;
+            $fetchRequestResult = match ($fetchRequest->resultType) {
+                FetchRequestResultType::managedObjectResultType,
+                FetchRequestResultType::managedObjectIDResultType,
+                FetchRequestResultType::dictionaryResultType => $context->fetch($fetchRequest),
+                FetchRequestResultType::countResultType => new Dictionary([ServiceResponseCountKey => $context->count($fetchRequest)])
+            };
+            $transform = fn(ManagedObject|ManagedObjectID|Dictionary $item): ManagedObject|ManagedObjectID|Dictionary => $item instanceof ManagedObject ? $this->applySecureRead($item, $item->jsonSerialize()) : $item;
+            if ($fetchRequest->fetchBatchSize) {
+                return new StreamResponse($this->request->url, $fetchRequestResult, chunkSize: $fetchRequest->fetchBatchSize, transform: $transform);
+            }
+            if ($fetchRequest->resultType === FetchRequestResultType::managedObjectResultType) {
+                return new Response($this->request->url, body: $fetchRequestResult->map($transform));
+            }
+            return new Response($this->request->url, body: $fetchRequestResult);
         }
-        if ($fetchRequest->resultType === FetchRequestResultType::managedObjectResultType) {
-            return new Response($this->request->url, body: $fetchRequestResult->map($transform));
-        }
-        return new Response($this->request->url, body: $fetchRequestResult);
     }
 }

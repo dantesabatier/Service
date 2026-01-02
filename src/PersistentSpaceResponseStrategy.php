@@ -20,7 +20,7 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
     protected readonly ManagedObjectContext $managedObjectContext;
     protected readonly AuthorizationContext $authorizationContext;
     protected PersistentSpaceSecurityPolicy $securityPolicy {
-        get => $this->securityPolicy ??= new PersistentSpaceSecurityPolicy($this->authorizationContext);
+        get => $this->securityPolicy ??= new PersistentSpaceSecurityPolicy($this->authorizationContext->user, $this->authorizationContext->scopes);
     }
 
     public function __construct(Request $request, EntityDescription $entity, ManagedObjectContext $managedObjectContext, AuthorizationContext $authorizationContext)

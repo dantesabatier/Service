@@ -58,6 +58,9 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
      */
     protected function assertUniqueness(ManagedObjectID|int $objectID): void
     {
+        if (!$objectID) {
+            return;
+        }
         /** @var FetchRequest<Number> $fetchRequest */
         $fetchRequest = $this->fetchRequestFor($objectID);
         if ($this->managedObjectContext->count($fetchRequest)) {

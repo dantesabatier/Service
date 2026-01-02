@@ -19,9 +19,7 @@ final class CreatePersistentSpaceResponseStrategy extends PersistentSpaceRespons
             $parsedBody = $request->parsedBody;
             $context = $this->managedObjectContext;
             $entity = $this->entity;
-            if ($objectID = $parsedBody[ServiceIdentity::identityKey]) {
-                $this->assertUniqueness($objectID);
-            }
+            $this->assertUniqueness($parsedBody[ServiceIdentity::identityKey] ?? 0);
             $object = EntityDescription::insertNewObject($entity->name, $context);
             $this->applySecureUpdate($object, $parsedBody);
             $context->save();

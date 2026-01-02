@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use Exception;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObject;
@@ -53,6 +54,7 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
     /**
      * @param ManagedObject $object
      * @param Dictionary<mixed> $body
+     * @throws Exception
      */
     protected function applySecureUpdate(ManagedObject $object, Dictionary $body): void
     {
@@ -63,6 +65,7 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
      * @param ManagedObject $object
      * @param Dictionary<mixed> $data
      * @return Dictionary<mixed>
+     * @throws Exception
      */
     protected function applySecureRead(ManagedObject $object, Dictionary $data): Dictionary
     {

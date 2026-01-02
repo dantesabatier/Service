@@ -2,8 +2,8 @@
 
 namespace Sabatier\Service;
 
+use Exception;
 use ReflectionClass;
-use ReflectionException;
 use ReflectionProperty;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
@@ -34,7 +34,7 @@ final class FieldSecurityFilter
      * @param class-string<ManagedObject> $className
      * @param class-string<Writable|Readable> $attributeClass
      * @return RulesCache
-     * @throws ReflectionException
+     * @throws Exception
      */
     private static function getRules(string $className, string $attributeClass): array
     {
@@ -58,7 +58,7 @@ final class FieldSecurityFilter
      * @param Dictionary<mixed> $data
      * @param class-string<Writable|Readable> $attributeClass
      * @return Dictionary<mixed>
-     * @throws ReflectionException
+     * @throws Exception
      */
     private function apply(Dictionary $data, string $attributeClass): Dictionary
     {
@@ -95,7 +95,7 @@ final class FieldSecurityFilter
     }
 
     /**
-     * @throws ReflectionException
+     * @throws Exception
      */
     public function filterRead(Dictionary $data): Dictionary
     {
@@ -103,7 +103,7 @@ final class FieldSecurityFilter
     }
 
     /**
-     * @throws ReflectionException
+     * @throws Exception
      */
     public function filterWrite(Dictionary $data): Dictionary
     {

@@ -30,11 +30,11 @@ final class PersistentSpaceResponseStrategyResolver
         get {
             /** @var class-string<PersistentSpaceResponseStrategy> $responseStrategyClass */
             $responseStrategyClass = $this->byHTTPMethodResponseStrategyClassesTable[$this->request->httpMethod];
-            return new $responseStrategyClass($this->request, $this->entity, $this->managedObjectContext, $this->authorizationContext);
+            return new $responseStrategyClass($this->request, $this->entity, $this->managedObjectContext, $this->authorizationContext, $this->isSecurityEnabled);
         }
     }
 
-    public function __construct(public readonly Request $request, public readonly EntityDescription $entity, public readonly ManagedObjectContext $managedObjectContext, public readonly AuthorizationContext $authorizationContext)
+    public function __construct(public readonly Request $request, public readonly EntityDescription $entity, public readonly ManagedObjectContext $managedObjectContext, public readonly AuthorizationContext $authorizationContext, public readonly bool $isSecurityEnabled = true)
     {
     }
 }

@@ -22,7 +22,7 @@ final class ReadPersistentSpaceResponseStrategy extends PersistentSpaceResponseS
          */
         get {
             $fetchRequest = new RequestToFetchRequestAdapter($this->request, $this->entity)->fetchRequest;
-            if ($this->securityPolicy->hasOwnScope && ($ownerKey = OwnerResolver::getOwnerFieldName($this->entity->managedObjectClassName ?? $this->entity->name))) {
+            if ($this->isSecurityEnabled && $this->securityPolicy->hasOwnScope && ($ownerKey = OwnerResolver::getOwnerFieldName($this->entity->managedObjectClassName ?? $this->entity->name))) {
                 $ownershipPredicate = new ComparisonPredicate(Expression::expressionForKeyPath($ownerKey), Expression::expressionForConstantValue($this->authorizationContext->user));
                 if ($fetchRequest->predicate) {
                     $fetchRequest->predicate = CompoundPredicate::andPredicateWithSubpredicates(new ArrayClass([$fetchRequest->predicate, $ownershipPredicate]));
@@ -48,10 +48,12 @@ final class ReadPersistentSpaceResponseStrategy extends PersistentSpaceResponseS
             };
             $transform = fn(ManagedObject|ManagedObjectID|Dictionary $item): ManagedObject|ManagedObjectID|Dictionary => $item instanceof ManagedObject ? $this->applySecureRead($item, $item->jsonSerialize()) : $item;
             if ($fetchRequest->fetchBatchSize) {
-                return new StreamResponse($this->request->url, $fetchRequestResult, chunkSize: $fetchRequest->fetchBatchSize, transform: $transform);
+                return new StreamResponse($this->request->url, $fetchRequestResult, chunkSize: $fetchRequest->fetchBatchSize, transform: $this->isSecurityEnabled ? $transform : null);
             }
-            if ($fetchRequest->resultType === FetchRequestResultType::managedObjectResultType) {
-                return new Response($this->request->url, body: $fetchRequestResult->map($transform));
+            if ($this->isSecurityEnabled) {
+                if ($fetchRequest->resultType === FetchRequestResultType::managedObjectResultType) {
+                    return new Response($this->request->url, body: $fetchRequestResult->map($transform));
+                }
             }
             return new Response($this->request->url, body: $fetchRequestResult);
         }

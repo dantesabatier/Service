@@ -23,6 +23,9 @@ final class PersistentSpace extends Responder
             return new AuthorizationContext($authentication->authorizationScopes, $authentication->authenticatedUser ?? fatal_error());
         }
     }
+    public bool $isSecurityEnabled {
+        get => Application::shared()->accessPolicy instanceof DefaultAccessPolicy;
+    }
     public bool $isFirstResponder {
         get => (bool)$this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel?->entitiesByName?->offsetExists($this->request->url->lastPathComponent);
     }
@@ -32,7 +35,7 @@ final class PersistentSpace extends Responder
                 if ($this->isSessionEnabled) {
                     $this->session->start();
                 }
-                return new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new JSONDecorator(new PersistentSpaceResponseStrategyResolver($this->request, $this->entity, $this->managedObjectContext, $this->authorizationContext)->strategy->response)->response)->response, $this->request, $this->corsPolicy)->response;
+                return new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new JSONDecorator(new PersistentSpaceResponseStrategyResolver($this->request, $this->entity, $this->managedObjectContext, $this->authorizationContext, $this->isSecurityEnabled)->strategy->response)->response)->response, $this->request, $this->corsPolicy)->response;
             } finally {
                 if ($this->isSessionEnabled) {
                     $this->session->commit();

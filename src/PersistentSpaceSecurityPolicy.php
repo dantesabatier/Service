@@ -10,20 +10,25 @@ use Sabatier\Foundation\Dictionary;
 /** @internal */
 final readonly class PersistentSpaceSecurityPolicy
 {
+    private Authorizable $user;
     public bool $hasOwnScope;
+    public bool $isSecurityEnabled;
 
     /**
      * @param Authorizable $user
      * @param ArrayClass<string> $scopes
+     * @param bool $isSecurityEnabled
      */
-    public function __construct(private Authorizable $user, ArrayClass $scopes)
+    public function __construct(Authorizable $user, ArrayClass $scopes, bool $isSecurityEnabled = true)
     {
+        $this->user = $user;
         $this->hasOwnScope = $scopes->contains(fn(string $scope): bool => str_ends_with($scope, AuthorizationScope::own->name));
+        $this->isSecurityEnabled = $isSecurityEnabled;
     }
 
     public function enforceOwnership(ManagedObject $object): void
     {
-        if ($this->hasOwnScope) {
+        if ($this->hasOwnScope && $this->isSecurityEnabled) {
             $service = new OwnershipService(new OwnerResolver($object), $this->user);
             $service->isOwner ?: throw new ForbiddenException();
         }
@@ -36,7 +41,9 @@ final readonly class PersistentSpaceSecurityPolicy
      */
     public function applySecureUpdate(ManagedObject $object, Dictionary $body): void
     {
-        $object->setValuesForKeys(new FieldSecurityFilter($object, $this->user)->filterWrite($body));
+        if ($this->isSecurityEnabled) {
+            $object->setValuesForKeys(new FieldSecurityFilter($object, $this->user)->filterWrite($body));
+        }
     }
 
     /**
@@ -47,6 +54,6 @@ final readonly class PersistentSpaceSecurityPolicy
      */
     public function applySecureRead(ManagedObject $object, Dictionary $data): Dictionary
     {
-        return new FieldSecurityFilter($object, $this->user)->filterRead($data);
+        return $this->isSecurityEnabled ? new FieldSecurityFilter($object, $this->user)->filterRead($data) : $data;
     }
 }

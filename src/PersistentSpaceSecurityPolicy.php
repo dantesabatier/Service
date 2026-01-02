@@ -41,9 +41,7 @@ final readonly class PersistentSpaceSecurityPolicy
      */
     public function applySecureUpdate(ManagedObject $object, Dictionary $body): void
     {
-        if ($this->isSecurityEnabled) {
-            $object->setValuesForKeys(new FieldSecurityFilter($object, $this->user)->filterWrite($body));
-        }
+        $object->setValuesForKeys($this->isSecurityEnabled ? new FieldSecurityFilter($object, $this->user)->filterWrite($body) : $body);
     }
 
     /**

@@ -63,7 +63,7 @@ final class FieldSecurityFilter
     private function apply(Dictionary $data, string $attributeClass): Dictionary
     {
         $rules = self::getRules($this->resource::class, $attributeClass);
-        if (empty($rules)) {
+        if ($rules === []) {
             return $data;
         }
         /** @var ArrayClass<string> $restrictedFields */

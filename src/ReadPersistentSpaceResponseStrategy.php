@@ -22,7 +22,7 @@ final class ReadPersistentSpaceResponseStrategy extends PersistentSpaceResponseS
          */
         get {
             $fetchRequest = new RequestToFetchRequestAdapter($this->request, $this->entity)->fetchRequest;
-            if ($this->isSecurityEnabled && $this->securityPolicy->hasOwnScope && ($ownerKey = OwnerResolver::getOwnerFieldName($this->entity->managedObjectClassName ?? $this->entity->name))) {
+            if ($this->isSecurityEnabled && $this->hasOwnScope && ($ownerKey = OwnerResolver::getOwnerFieldName($this->entity->managedObjectClassName ?? $this->entity->name))) {
                 $ownershipPredicate = new ComparisonPredicate(Expression::expressionForKeyPath($ownerKey), Expression::expressionForConstantValue($this->authorizationContext->user));
                 if ($fetchRequest->predicate) {
                     $fetchRequest->predicate = CompoundPredicate::andPredicateWithSubpredicates(new ArrayClass([$fetchRequest->predicate, $ownershipPredicate]));
@@ -41,19 +41,16 @@ final class ReadPersistentSpaceResponseStrategy extends PersistentSpaceResponseS
             $context = $this->managedObjectContext;
             $fetchRequest = $this->fetchRequest;
             $fetchRequestResult = match ($fetchRequest->resultType) {
-                FetchRequestResultType::managedObjectResultType,
-                FetchRequestResultType::managedObjectIDResultType,
-                FetchRequestResultType::dictionaryResultType => $context->fetch($fetchRequest),
+                FetchRequestResultType::managedObjectResultType, FetchRequestResultType::managedObjectIDResultType, FetchRequestResultType::dictionaryResultType => $context->fetch($fetchRequest),
                 FetchRequestResultType::countResultType => new Dictionary([ServiceResponseCountKey => $context->count($fetchRequest)])
             };
-            $transform = fn(ManagedObject|ManagedObjectID|Dictionary $item): ManagedObject|ManagedObjectID|Dictionary => $item instanceof ManagedObject ? $this->applySecureRead($item, $item->jsonSerialize()) : $item;
+            $secure = $this->isSecurityEnabled && $this->hasOwnScope;
+            $transform = fn(ManagedObject|ManagedObjectID|Dictionary $item): ManagedObjectID|Dictionary => $item instanceof ManagedObject ? $this->applySecureRead($item, $item->jsonSerialize()) : $item;
             if ($fetchRequest->fetchBatchSize) {
-                return new StreamResponse($this->request->url, $fetchRequestResult, chunkSize: $fetchRequest->fetchBatchSize, transform: $this->isSecurityEnabled ? $transform : null);
+                return new StreamResponse($this->request->url, $fetchRequestResult, chunkSize: $fetchRequest->fetchBatchSize, transform: $secure ? $transform : null);
             }
-            if ($this->isSecurityEnabled) {
-                if ($fetchRequest->resultType === FetchRequestResultType::managedObjectResultType) {
-                    return new Response($this->request->url, body: $fetchRequestResult->map($transform));
-                }
+            if ($secure && $fetchRequest->resultType === FetchRequestResultType::managedObjectResultType) {
+                return new Response($this->request->url, body: $fetchRequestResult->map($transform));
             }
             return new Response($this->request->url, body: $fetchRequestResult);
         }

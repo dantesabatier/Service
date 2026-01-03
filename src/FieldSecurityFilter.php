@@ -45,9 +45,9 @@ final class FieldSecurityFilter
         $reflection = new ReflectionClass($className);
         foreach ($reflection->getProperties(ReflectionProperty::IS_PUBLIC) as $property) {
             foreach ($property->getAttributes($attributeClass) as $attribute) {
-                /** @var Writable|Readable $meta */
-                $meta = $attribute->newInstance();
-                $rules[$property->getName()] = new FieldRule(new Set($meta->by), $meta->scope);
+                /** @var Writable|Readable $securityAttribute */
+                $securityAttribute = $attribute->newInstance();
+                $rules[$property->getName()] = new FieldRule(new Set($securityAttribute->by), $securityAttribute->scope);
             }
         }
         self::$metaCache[$className] ??= [];
@@ -60,7 +60,7 @@ final class FieldSecurityFilter
      * @return Dictionary<mixed>
      * @throws Exception
      */
-    private function apply(Dictionary $data, string $attributeClass): Dictionary
+    private function filterByAttribute(string $attributeClass, Dictionary $data): Dictionary
     {
         $rules = self::getRules($this->resource::class, $attributeClass);
         if ($rules === []) {
@@ -99,7 +99,7 @@ final class FieldSecurityFilter
      */
     public function filterRead(Dictionary $data): Dictionary
     {
-        return $this->apply($data, Readable::class);
+        return $this->filterByAttribute(Readable::class, $data);
     }
 
     /**
@@ -107,6 +107,6 @@ final class FieldSecurityFilter
      */
     public function filterWrite(Dictionary $data): Dictionary
     {
-        return $this->apply($data, Writable::class);
+        return $this->filterByAttribute(Writable::class, $data);
     }
 }

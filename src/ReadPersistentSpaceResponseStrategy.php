@@ -44,12 +44,12 @@ final class ReadPersistentSpaceResponseStrategy extends PersistentSpaceResponseS
                 FetchRequestResultType::managedObjectResultType, FetchRequestResultType::managedObjectIDResultType, FetchRequestResultType::dictionaryResultType => $context->fetch($fetchRequest),
                 FetchRequestResultType::countResultType => new Dictionary([ServiceResponseCountKey => $context->count($fetchRequest)])
             };
-            $secure = $this->isSecurityEnabled && $this->hasOwnScope;
+            $isSecurityEnabled = $this->isSecurityEnabled;
             $transform = fn(ManagedObject|ManagedObjectID|Dictionary $item): ManagedObjectID|Dictionary => $item instanceof ManagedObject ? $this->applySecureRead($item, $item->jsonSerialize()) : $item;
             if ($fetchRequest->fetchBatchSize) {
-                return new StreamResponse($this->request->url, $fetchRequestResult, chunkSize: $fetchRequest->fetchBatchSize, transform: $secure ? $transform : null);
+                return new StreamResponse($this->request->url, $fetchRequestResult, chunkSize: $fetchRequest->fetchBatchSize, transform: $isSecurityEnabled ? $transform : null);
             }
-            if ($secure && $fetchRequest->resultType === FetchRequestResultType::managedObjectResultType) {
+            if ($isSecurityEnabled && $fetchRequest->resultType === FetchRequestResultType::managedObjectResultType) {
                 return new Response($this->request->url, body: $fetchRequestResult->map($transform));
             }
             return new Response($this->request->url, body: $fetchRequestResult);

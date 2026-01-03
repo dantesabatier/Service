@@ -17,13 +17,15 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
 {
     protected readonly EntityDescription $entity;
     protected readonly ManagedObjectContext $managedObjectContext;
-    protected readonly AuthorizationContext $authorizationContext;
-    protected PersistentSpaceSecurityPolicy $securityPolicy;
-    protected bool $isSecurityEnabled {
-        get => $this->securityPolicy->isSecurityEnabled;
+    private readonly PersistentSpaceSecurityPolicy $securityPolicy;
+    protected Authenticatable $user {
+        get => $this->securityPolicy->user;
     }
     protected bool $hasOwnScope {
         get => $this->securityPolicy->hasOwnScope;
+    }
+    protected bool $isSecurityEnabled {
+        get => $this->securityPolicy->isSecurityEnabled;
     }
 
     public function __construct(Request $request, EntityDescription $entity, ManagedObjectContext $managedObjectContext, AuthorizationContext $authorizationContext, bool $isSecurityEnabled = true)
@@ -31,8 +33,7 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
         parent::__construct($request);
         $this->entity = $entity;
         $this->managedObjectContext = $managedObjectContext;
-        $this->authorizationContext = $authorizationContext;
-        $this->securityPolicy = new PersistentSpaceSecurityPolicy($this->authorizationContext->user, $this->authorizationContext->scopes, $isSecurityEnabled);
+        $this->securityPolicy = new PersistentSpaceSecurityPolicy($authorizationContext->user, $authorizationContext->scopes, $isSecurityEnabled);
     }
 
     protected function fetchRequestFor(ManagedObjectID|int $objectID): FetchRequest

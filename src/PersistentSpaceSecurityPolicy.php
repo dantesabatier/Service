@@ -10,7 +10,7 @@ use Sabatier\Foundation\Dictionary;
 /** @internal */
 final readonly class PersistentSpaceSecurityPolicy
 {
-    private Authorizable $user;
+    public Authorizable $user;
     public bool $hasOwnScope;
     public bool $isSecurityEnabled;
 

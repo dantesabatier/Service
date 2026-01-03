@@ -7,6 +7,7 @@ use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectID;
+use Sabatier\Foundation\Number;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 
 /** @internal */

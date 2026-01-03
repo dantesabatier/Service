@@ -23,7 +23,7 @@ final class ReadPersistentSpaceResponseStrategy extends PersistentSpaceResponseS
         get {
             $fetchRequest = new RequestToFetchRequestAdapter($this->request, $this->entity)->fetchRequest;
             if ($this->isSecurityEnabled && $this->hasOwnScope && ($ownerKey = OwnerResolver::getOwnerFieldName($this->entity->managedObjectClassName ?? $this->entity->name))) {
-                $ownershipPredicate = new ComparisonPredicate(Expression::expressionForKeyPath($ownerKey), Expression::expressionForConstantValue($this->authorizationContext->user));
+                $ownershipPredicate = new ComparisonPredicate(Expression::expressionForKeyPath($ownerKey), Expression::expressionForConstantValue($this->user));
                 if ($fetchRequest->predicate) {
                     $fetchRequest->predicate = CompoundPredicate::andPredicateWithSubpredicates(new ArrayClass([$fetchRequest->predicate, $ownershipPredicate]));
                 } else {
@@ -46,7 +46,10 @@ final class ReadPersistentSpaceResponseStrategy extends PersistentSpaceResponseS
             };
             $isSecurityEnabled = $this->isSecurityEnabled;
             $transform = fn(ManagedObject|ManagedObjectID|Dictionary $item): ManagedObjectID|Dictionary => $item instanceof ManagedObject ? $this->applySecureRead($item, $item->jsonSerialize()) : $item;
-            if ($fetchRequest->fetchBatchSize) {
+            if ($fetchRequest->fetchBatchSize && match ($fetchRequest->resultType) {
+                    FetchRequestResultType::managedObjectResultType, FetchRequestResultType::managedObjectIDResultType => true,
+                    default => false
+                }) {
                 return new StreamResponse($this->request->url, $fetchRequestResult, chunkSize: $fetchRequest->fetchBatchSize, transform: $isSecurityEnabled ? $transform : null);
             }
             if ($isSecurityEnabled && $fetchRequest->resultType === FetchRequestResultType::managedObjectResultType) {

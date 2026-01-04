@@ -23,7 +23,7 @@ final class PersistentSpace extends Responder
         }
     }
     public bool $isSecurityEnabled {
-        get => Application::shared()->accessPolicy instanceof DefaultAccessPolicy;
+        get => $this->accessPolicy instanceof DefaultAccessPolicy;
     }
     public bool $isFirstResponder {
         get => (bool)$this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel?->entitiesByName?->offsetExists($this->request->url->lastPathComponent);

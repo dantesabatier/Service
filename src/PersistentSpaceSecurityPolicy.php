@@ -6,20 +6,21 @@ use Exception;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
+use function Sabatier\Foundation\fatal_error;
 
 /** @internal */
 final readonly class PersistentSpaceSecurityPolicy
 {
-    public Authorizable $user;
+    public ?Authorizable $user;
     public bool $hasOwnScope;
     public bool $isSecurityEnabled;
 
     /**
-     * @param Authorizable $user
+     * @param Authorizable|null $user
      * @param ArrayClass<string> $scopes
      * @param bool $isSecurityEnabled
      */
-    public function __construct(Authorizable $user, ArrayClass $scopes, bool $isSecurityEnabled = true)
+    public function __construct(?Authorizable $user, ArrayClass $scopes, bool $isSecurityEnabled = true)
     {
         $this->user = $user;
         $this->hasOwnScope = $scopes->contains(fn(string $scope): bool => str_ends_with($scope, AuthorizationScope::own->name));
@@ -29,7 +30,7 @@ final readonly class PersistentSpaceSecurityPolicy
     public function enforceOwnership(ManagedObject $object): void
     {
         if ($this->hasOwnScope && $this->isSecurityEnabled) {
-            $service = new OwnershipService(new OwnerResolver($object), $this->user);
+            $service = new OwnershipService(new OwnerResolver($object), $this->user ?? fatal_error());
             $service->isOwner ?: throw new ForbiddenException();
         }
     }
@@ -41,7 +42,7 @@ final readonly class PersistentSpaceSecurityPolicy
      */
     public function applySecureUpdate(ManagedObject $object, Dictionary $body): void
     {
-        $object->setValuesForKeys($this->isSecurityEnabled ? new FieldSecurityFilter($object, $this->user)->filterWrite($body) : $body);
+        $object->setValuesForKeys($this->isSecurityEnabled ? new FieldSecurityFilter($object, $this->user ?? fatal_error())->filterWrite($body) : $body);
     }
 
     /**
@@ -52,6 +53,6 @@ final readonly class PersistentSpaceSecurityPolicy
      */
     public function applySecureRead(ManagedObject $object, Dictionary $data): Dictionary
     {
-        return $this->isSecurityEnabled ? new FieldSecurityFilter($object, $this->user)->filterRead($data) : $data;
+        return $this->isSecurityEnabled ? new FieldSecurityFilter($object, $this->user ?? fatal_error())->filterRead($data) : $data;
     }
 }

@@ -5,7 +5,6 @@ namespace Sabatier\Service;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
-use function Sabatier\Foundation\fatal_error;
 
 /** @internal */
 final class PersistentSpace extends Responder
@@ -20,7 +19,7 @@ final class PersistentSpace extends Responder
     public AuthorizationContext $authorizationContext {
         get {
             $authentication = Application::shared()->authenticationManager->authentication;
-            return new AuthorizationContext($authentication->authorizationScopes, $authentication->authenticatedUser ?? fatal_error());
+            return new AuthorizationContext($authentication->authenticatedUser, $authentication->authorizationScopes);
         }
     }
     public bool $isSecurityEnabled {

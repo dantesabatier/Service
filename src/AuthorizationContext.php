@@ -8,9 +8,10 @@ use Sabatier\Foundation\ArrayClass;
 final readonly class AuthorizationContext
 {
     /**
+     * @param Authorizable|null $user
      * @param ArrayClass<string> $scopes
      */
-    public function __construct(public ArrayClass $scopes, public Authorizable $user)
+    public function __construct(public ?Authorizable $user, public ArrayClass $scopes)
     {
     }
 }

@@ -41,6 +41,9 @@ abstract class Responder extends ObjectClass
             return $this->corsPolicy;
         }
     }
+    public AccessPolicy $accessPolicy {
+        get => Application::shared()->accessPolicy;
+    }
     /** @var ManagedObjectContext The managed object context associated with this responder. */
     public ManagedObjectContext $managedObjectContext {
         get => Application::shared()->persistentContainer->viewContext;

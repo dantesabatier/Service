@@ -30,7 +30,7 @@ final class PersistentSpaceResponseStrategyResolver
         get {
             /** @var class-string<PersistentSpaceResponseStrategy> $responseStrategyClass */
             $responseStrategyClass = $this->byHTTPMethodResponseStrategyClassesTable[$this->request->httpMethod];
-            return new $responseStrategyClass($this->request, $this->entity, $this->managedObjectContext);
+            return new $responseStrategyClass($this->request, $this->entity, $this->managedObjectContext, $this->authorizationContext);
         }
     }
 

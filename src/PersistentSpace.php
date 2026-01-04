@@ -16,14 +16,14 @@ final class PersistentSpace extends Responder
     private(set) EntityDescription $entity {
         get => $this->entity ??= $this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel?->entitiesByName?->valueForKey($this->request->url->lastPathComponent) ?? throw new NotFoundException();
     }
+    public bool $isSecurityEnabled {
+        get => $this->accessPolicy instanceof DefaultAccessPolicy;
+    }
     public AuthorizationContext $authorizationContext {
         get {
             $authentication = Application::shared()->authenticationManager->authentication;
-            return new AuthorizationContext($authentication->authenticatedUser, $authentication->authorizationScopes);
+            return new AuthorizationContext($authentication->authenticatedUser, $authentication->authorizationScopes, $this->isSecurityEnabled);
         }
-    }
-    public bool $isSecurityEnabled {
-        get => $this->accessPolicy instanceof DefaultAccessPolicy;
     }
     public bool $isFirstResponder {
         get => (bool)$this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel?->entitiesByName?->offsetExists($this->request->url->lastPathComponent);
@@ -34,7 +34,7 @@ final class PersistentSpace extends Responder
                 if ($this->isSessionEnabled) {
                     $this->session->start();
                 }
-                return new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new JSONDecorator(new PersistentSpaceResponseStrategyResolver($this->request, $this->entity, $this->managedObjectContext, $this->authorizationContext, $this->isSecurityEnabled)->strategy->response)->response)->response, $this->request, $this->corsPolicy)->response;
+                return new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new JSONDecorator(new PersistentSpaceResponseStrategyResolver($this->request, $this->entity, $this->managedObjectContext, $this->authorizationContext)->strategy->response)->response)->response, $this->request, $this->corsPolicy)->response;
             } finally {
                 if ($this->isSessionEnabled) {
                     $this->session->commit();

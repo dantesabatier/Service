@@ -8,8 +8,8 @@ use ReflectionMethod;
 use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Set;
 use Sabatier\Foundation\URLComponents;
+use function Sabatier\Foundation\is_parseable_url;
 use function Sabatier\Foundation\string_is_equal;
-use function Sabatier\Foundation\url_validate;
 
 /** @internal */
 final class ResponderResolution
@@ -43,7 +43,7 @@ final class ResponderResolution
             foreach ($method->getAttributes(Action::class) as $attribute) {
                 $action = $attribute->newInstance();
                 $other = $action->path ?? "/$method->name";
-                if (url_validate($other)) {
+                if (is_parseable_url($other)) {
                     $components = new URLComponents($other);
                     $other = "$components->path$components->query";
                 }

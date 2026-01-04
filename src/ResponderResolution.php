@@ -36,7 +36,7 @@ final class ResponderResolution
             }
             if (string_is_equal($path, $other, CompareOptions::caseInsensitive)) {
                 $this->matches = true;
-                $this->decorators->appendContentsOf($endpoint->decorators);
+                $this->decorators->formUnion($endpoint->decorators);
             }
         }
         foreach ($reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
@@ -50,14 +50,14 @@ final class ResponderResolution
                 if (string_is_equal($path, $other, CompareOptions::caseInsensitive)) {
                     $this->matches = true;
                     $this->selector = $method->name;
-                    $this->decorators->appendContentsOf($action->decorators);
+                    $this->decorators->formUnion($action->decorators);
                     break 2;
                 }
             }
         }
-        $this->decorators->append(ResponseHeaderSanitizerDecorator::class);
+        $this->decorators->insert(ResponseHeaderSanitizerDecorator::class);
         if ($reflectionClass->isSubclassOf(ViewController::class)) {
-            $this->decorators->append(HTMLDecorator::class);
+            $this->decorators->insert(HTMLDecorator::class);
         }
     }
 }

@@ -58,7 +58,7 @@ final class ErrorResponder extends Responder
 
     public function handle(Throwable $throwable): never
     {
-        error_log("$this->debugDescription $throwable");
+        error_log("$this->debugDescription $this->request $throwable");
         $this->throwable = $throwable;
         $this->response->send();
     }

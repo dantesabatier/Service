@@ -42,7 +42,8 @@ final readonly class PersistentSpaceSecurityPolicy
      */
     public function applySecureUpdate(ManagedObject $object, Dictionary $body): void
     {
-        $object->setValuesForKeys($this->isSecurityEnabled ? new FieldSecurityFilter($object, $this->user ?? fatal_error())->filterWrite($body) : $body);
+        $this->securePassword($object, $body);
+        $object->setValuesForKeys($this->applySecureWrite($object, $body));
     }
 
     /**
@@ -54,5 +55,33 @@ final readonly class PersistentSpaceSecurityPolicy
     public function applySecureRead(ManagedObject $object, Dictionary $data): Dictionary
     {
         return $this->isSecurityEnabled ? new FieldSecurityFilter($object, $this->user ?? fatal_error())->filterRead($data) : $data;
+    }
+
+    /**
+     * @param ManagedObject $object
+     * @param Dictionary<mixed> $body
+     * @return Dictionary<mixed>
+     * @throws Exception
+     */
+    private function applySecureWrite(ManagedObject $object, Dictionary $body): Dictionary
+    {
+        return $this->isSecurityEnabled ? new FieldSecurityFilter($object, $this->user ?? fatal_error())->filterWrite($body) : $body;
+    }
+
+    /**
+     * @param ManagedObject $object
+     * @param Dictionary<mixed> $body
+     */
+    private function securePassword(ManagedObject $object, Dictionary $body): void
+    {
+        if (!$object instanceof Authorizable) {
+            return;
+        }
+        /** @var string|null $password */
+        $password = $body["password"];
+        if (!$password) {
+            return;
+        }
+        $body["password"] = password_hash($password, PASSWORD_DEFAULT);
     }
 }

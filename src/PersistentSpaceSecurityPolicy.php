@@ -74,14 +74,12 @@ final readonly class PersistentSpaceSecurityPolicy
      */
     private function securePassword(ManagedObject $object, Dictionary $body): void
     {
-        if (!$object instanceof Authorizable) {
-            return;
+        if ($object instanceof Authorizable) {
+            /** @var string|null $password */
+            $password = $body["password"];
+            if ($password) {
+                $body["password"] = password_hash($password, PASSWORD_DEFAULT);
+            }
         }
-        /** @var string|null $password */
-        $password = $body["password"];
-        if (!$password) {
-            return;
-        }
-        $body["password"] = password_hash($password, PASSWORD_DEFAULT);
     }
 }

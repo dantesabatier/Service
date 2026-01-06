@@ -41,7 +41,7 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
         /** @var FetchRequest<ManagedObject> $fetchRequest */
         $fetchRequest = new FetchRequest();
         $fetchRequest->entity = $this->entity;
-        $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath(ServiceIdentity::identityKey), Expression::expressionForConstantValue($objectID));
+        $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath(ServiceObjectIDKey), Expression::expressionForConstantValue($objectID));
         if ($serialization = $this->request->serialization) {
             $fetchRequest->serialization = $serialization;
         }

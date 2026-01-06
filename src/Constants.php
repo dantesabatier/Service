@@ -16,3 +16,4 @@ const ApplicationEnvironmentTesting = "testing";
 const ServiceResponseCountKey = "count";
 /** @var string The URL query item name used to provide a base64-encoded JSON representation of a FetchRequest. */
 const ServiceFetchRequestKey = "fetchRequest";
+const ServiceObjectIDKey = "objectID";

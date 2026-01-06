@@ -23,7 +23,7 @@ interface Authorizable extends Authenticatable
     /**
      * Returns a dictionary defining the default representation of the object.
      *
-     * This serves as a fallback when a {@see Request} does not provide a specific serialization configuration. It ensures that the most essential fields (e.g., username, roles, refreshVersion) are included so that the request can be processed safely.
+     * This serves as a fallback when a {@see Request} does not provide a specific serialization configuration. It ensures that the most essential fields (e.g., username, roles, version) are included so that the request can be processed safely.
      *
      * Developers may provide a more detailed representation in the request, in which case this fallback is not used.
      *

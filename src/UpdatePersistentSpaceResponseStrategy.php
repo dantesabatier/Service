@@ -17,7 +17,7 @@ final class UpdatePersistentSpaceResponseStrategy extends PersistentSpaceRespons
         get {
             $request = $this->request;
             $parsedBody = $request->parsedBody;
-            if (!($objectID = $parsedBody[ServiceIdentity::identityKey])) {
+            if (!($objectID = $parsedBody[ServiceObjectIDKey])) {
                 throw new BadRequestException();
             }
             if (!($object = $this->fetchBy($objectID))) {

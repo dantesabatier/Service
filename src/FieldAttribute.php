@@ -10,7 +10,7 @@ namespace Sabatier\Service;
 abstract readonly class FieldAttribute
 {
     /**
-     * @param list<string> $by Set of role names allowed to write this property.
+     * @param list<string> $by list of role names allowed to write this property.
      * @param AuthorizationScope $scope Scope of the permission.
      */
     public function __construct(public array $by, public AuthorizationScope $scope)

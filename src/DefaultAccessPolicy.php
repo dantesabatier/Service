@@ -25,7 +25,7 @@ final class DefaultAccessPolicy extends AccessPolicy
         if ($responder->isProtectedContentAvailable || $authenticationManager->isProtectedContentAvailable) {
             return;
         }
-        if ($authenticationManager->authentication->isValid) {
+        if ($authenticationManager->authentication->isValid && $authenticationManager->authentication->authenticatedUser->isEnabled) {
             throw new ForbiddenException(match ($responder->request->httpMethod) {
                 HTTPRequestMethod::get => localized_string("You don't have permission to access this resource."),
                 default => localized_string("You don't have permission to perform this action.")

@@ -32,6 +32,8 @@ const JWTScopesKey = "scp";
 const JWTAuthorizationScopesKey = "authz";
 /** @var string Payload claim key providing the token version for the JWT */
 const JWTVersionKey = "ver";
+/** @var string Payload claim key indicating whether the authenticated entity is enabled and allowed to authenticate */
+const JWTEnabledKey = "enb";
 /** @var string Header value defining the canonical type of the JSON Web Token */
 const JWTTypeValue = "JWT";
 /** @var string Delimiter used to separate the JWT components (header, payload, signature) */

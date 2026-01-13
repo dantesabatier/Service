@@ -17,4 +17,8 @@ interface Authenticatable extends Equatable
     public ?string $password {
         get;
     }
+    /** @var bool Indicates whether the authenticatable entity is enabled and can authenticate. */
+    public bool $isEnabled {
+        get;
+    }
 }

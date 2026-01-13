@@ -7,7 +7,7 @@ use Override;
 use Sabatier\Foundation\Date;
 
 /**
- * @psalm-type JSONWebTokenPayloadRawValue array{iss: string|null, sub: string|null, aud: string|null, exp: float|null, nbf: float|null, iat: float|null, jti: string|null, ver: int|null, scp: string[]|null, authz: string[]|null}
+ * @psalm-type JSONWebTokenPayloadRawValue array{iss: string|null, sub: string|null, aud: string|null, exp: float|null, nbf: float|null, iat: float|null, jti: string|null, ver: int|null, scp: string[]|null, authz: string[]|null, enb: boolean|null}
  */
 final class JSONWebTokenPayload implements JsonSerializable
 {
@@ -60,6 +60,7 @@ final class JSONWebTokenPayload implements JsonSerializable
      *
      * @param string|null $iss Issuer
      * @param string|null $sub Subject
+     * @param bool|null $enb Enable
      * @param string|null $aud Audience
      * @param Date|null $exp Expiration
      * @param Date|null $nbf Not before
@@ -69,9 +70,9 @@ final class JSONWebTokenPayload implements JsonSerializable
      * @param string[]|null $scp Technical scopes
      * @param string[]|null $authz Authorization scopes
      */
-    public function __construct(?string $iss = null, ?string $sub = null, ?string $aud = null, ?Date $exp = null, ?Date $nbf = null, ?Date $iat = null, ?string $jti = null, ?int $ver = null, ?array $scp = null, ?array $authz = null)
+    public function __construct(?string $iss = null, ?bool $enb = null, ?string $sub = null, ?string $aud = null, ?Date $exp = null, ?Date $nbf = null, ?Date $iat = null, ?string $jti = null, ?int $ver = null, ?array $scp = null, ?array $authz = null)
     {
-        $this->rawValue = [JWTIssuerKey => $iss, JWTSubjectKey => $sub, JWTAudienceKey => $aud, JWTExpirationTimeKey => $exp?->timeIntervalSinceReferenceDate, JWTNotBeforeTimeKey => $nbf?->timeIntervalSinceReferenceDate, JWTIssuedAtTimeKey => $iat?->timeIntervalSinceReferenceDate, JWTIdKey => $jti, JWTVersionKey => $ver, JWTScopesKey => $scp, JWTAuthorizationScopesKey => $authz];
+        $this->rawValue = [JWTIssuerKey => $iss, JWTSubjectKey => $sub, JWTEnabledKey => $enb, JWTAudienceKey => $aud, JWTExpirationTimeKey => $exp?->timeIntervalSinceReferenceDate, JWTNotBeforeTimeKey => $nbf?->timeIntervalSinceReferenceDate, JWTIssuedAtTimeKey => $iat?->timeIntervalSinceReferenceDate, JWTIdKey => $jti, JWTVersionKey => $ver, JWTScopesKey => $scp, JWTAuthorizationScopesKey => $authz];
     }
 
     /**

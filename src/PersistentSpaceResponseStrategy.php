@@ -18,7 +18,7 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
     protected readonly EntityDescription $entity;
     protected readonly ManagedObjectContext $managedObjectContext;
     private readonly PersistentSpaceSecurityPolicy $securityPolicy;
-    protected ?Authenticatable $user {
+    protected ?Authorizable $user {
         get => $this->securityPolicy->user;
     }
     protected bool $hasOwnScope {

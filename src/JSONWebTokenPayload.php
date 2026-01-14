@@ -22,6 +22,10 @@ final class JSONWebTokenPayload implements JsonSerializable
     public ?string $sub {
         get => $this->rawValue[JWTSubjectKey] ?? null;
     }
+    /** @var bool|null enable */
+    public ?bool $enb {
+        get => $this->rawValue[JWTEnabledKey] ?? null;
+    }
     /** @var string|null audience */
     public ?string $aud {
         get => $this->rawValue[JWTAudienceKey] ?? null;

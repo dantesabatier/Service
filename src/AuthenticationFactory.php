@@ -2,22 +2,22 @@
 
 namespace Sabatier\Service;
 
-use Sabatier\Foundation\ArrayClass;
+use Sabatier\Foundation\Set;
 
 /**
  * A factory class for managing authentication strategy classes.
  */
 final class AuthenticationFactory
 {
-    /** @var ArrayClass<class-string<Authentication>>|null */
-    private static ?ArrayClass $registeredAuthenticationClasses = null;
+    /** @var Set<class-string<Authentication>>|null */
+    private static ?Set $registeredAuthenticationClasses = null;
 
     /**
-     * @return ArrayClass<class-string<Authentication>>
+     * @return Set<class-string<Authentication>>
      */
-    private static function registeredAuthenticationClasses(): ArrayClass
+    private static function registeredAuthenticationClasses(): Set
     {
-        self::$registeredAuthenticationClasses ??= new ArrayClass();
+        self::$registeredAuthenticationClasses ??= new Set();
         return self::$registeredAuthenticationClasses;
     }
 
@@ -34,9 +34,7 @@ final class AuthenticationFactory
             return false;
         }
         $registeredAuthenticationClasses = self::registeredAuthenticationClasses();
-        if (!$registeredAuthenticationClasses->containsElement($authenticationClass)) {
-            $registeredAuthenticationClasses[] = $authenticationClass;
-        }
+        $registeredAuthenticationClasses->insert($authenticationClass);
         return true;
     }
 
@@ -44,11 +42,11 @@ final class AuthenticationFactory
     /**
      * Retrieves the authentication class that supports the specified authentication scheme.
      *
-     * @param ArrayClass<class-string<Authentication>> $authenticationClasses List of authentication classes.
+     * @param Set<class-string<Authentication>> $authenticationClasses List of authentication classes.
      * @param AuthenticationScheme $scheme The authentication scheme to check for support.
      * @return class-string<Authentication>|null The authentication class that supports the scheme or null if none is found.
      */
-    public static function getAuthenticationClass(ArrayClass $authenticationClasses, AuthenticationScheme $scheme): ?string
+    public static function getAuthenticationClass(Set $authenticationClasses, AuthenticationScheme $scheme): ?string
     {
         return $authenticationClasses->first(
         /**
@@ -60,9 +58,9 @@ final class AuthenticationFactory
     }
 
     /**
-     * @return ArrayClass<class-string<Authentication>>|null
+     * @return Set<class-string<Authentication>>|null
      */
-    public static function getAuthentications(): ?ArrayClass
+    public static function getAuthentications(): ?Set
     {
         return self::$registeredAuthenticationClasses;
     }

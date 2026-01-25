@@ -44,7 +44,7 @@ final class Uploader extends Responder
             $name = $values->name;
             /** @var string $path */
             $path = $values->path;
-            $files[] = new Dictionary([URLResourceKey::nameKey => $name, URLResourceKey::pathKey => $path]);
+            $files->append(new Dictionary([URLResourceKey::nameKey => $name, URLResourceKey::pathKey => $path]));
         }
         $this->data = $files;
     }

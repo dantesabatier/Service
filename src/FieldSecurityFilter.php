@@ -86,7 +86,7 @@ final class FieldSecurityFilter
                     continue;
                 }
             }
-            $restrictedFields[] = $fieldName;
+            $restrictedFields->append($fieldName);
         }
         if ($restrictedFields->isEmpty) {
             return $data;

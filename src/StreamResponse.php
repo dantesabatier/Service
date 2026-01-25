@@ -48,7 +48,7 @@ final class StreamResponse extends Response implements IteratorAggregate
             /** @var ArrayClass<ManagedObject>|ArrayClass<ManagedObjectID> $body */
             $body = $this->body;
             foreach ($body as $item) {
-                $chunk[] = $this->transform ? ($this->transform)($item) : $item;
+                $chunk->append($this->transform ? ($this->transform)($item) : $item);
                 if ($chunk->count >= $this->chunkSize) {
                     /** @var non-empty-string $json */
                     $json = json_encode($chunk, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);

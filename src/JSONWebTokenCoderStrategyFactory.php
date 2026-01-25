@@ -33,9 +33,9 @@ final class JSONWebTokenCoderStrategyFactory
             return false;
         }
         if (is_subclass_of($strategyClass, JSONWebTokenEncoderStrategy::class)) {
-            $this->encoderStrategies[] = $strategyClass;
+            $this->encoderStrategies->insert($strategyClass);
         } elseif (is_subclass_of($strategyClass, JSONWebTokenDecoderStrategy::class)) {
-            $this->decoderStrategies[] = $strategyClass;
+            $this->decoderStrategies->insert($strategyClass);
         }
         return true;
     }

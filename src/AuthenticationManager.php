@@ -8,6 +8,7 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Number;
+use Sabatier\Foundation\Set;
 use function Sabatier\Foundation\fatal_error;
 
 /**
@@ -23,7 +24,7 @@ final class AuthenticationManager extends Responder
     private(set) Authentication $authentication {
         get {
             if (!isset($this->authentication)) {
-                $authenticationClass = AuthenticationFactory::getAuthenticationClass(AuthenticationFactory::getAuthentications() ?? new ArrayClass(), $this->request->authorizationHeader->scheme) ?? throw new UnimplementedException();
+                $authenticationClass = AuthenticationFactory::getAuthenticationClass(AuthenticationFactory::getAuthentications() ?? new Set(), $this->request->authorizationHeader->scheme) ?? throw new UnimplementedException();
                 $this->authentication = new $authenticationClass(new AuthenticationContext($this->request->authorizationHeader, $this->request->url->host, $this->request->httpMethod, $this->managedObjectContext, $this->isFirstResponder ? $this->request->serialization : null, $this->authenticationService), $this->environment);
             }
             return $this->authentication;

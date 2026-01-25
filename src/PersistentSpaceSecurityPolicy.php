@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpInternalEntityUsedInspection */
+
 namespace Sabatier\Service;
 
 use Exception;
@@ -43,7 +45,7 @@ final readonly class PersistentSpaceSecurityPolicy
     public function applySecureUpdate(ManagedObject $object, Dictionary $body): void
     {
         $this->securePassword($object, $body);
-        $object->setValuesForKeys($this->applySecureWrite($object, $body));
+        $object->updateFromSnapshot($this->applySecureWrite($object, $body));
     }
 
     /**

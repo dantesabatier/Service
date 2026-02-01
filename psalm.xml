@@ -29,14 +29,6 @@
                 <file name="src/AuthenticationManager.php"/>
             </errorLevel>
         </PossiblyNullArgument>
-        <InvalidArgument>
-            <errorLevel type="suppress">
-                <file name="src/AuthorizationResolver.php"/>
-                <file name="src/AuthorizationScopeBuilder.php"/>
-                <file name="src/ReadPersistentSpaceResponseStrategy.php"/>
-                <file name="src/StreamResponse.php"/>
-            </errorLevel>
-        </InvalidArgument>
         <NullableReturnStatement>
             <errorLevel type="suppress">
                 <file name="src/InterfaceImplementorResolver.php"/>
@@ -67,4 +59,7 @@
         <InternalProperty errorLevel="suppress"/>
         <RiskyTruthyFalsyComparison errorLevel="suppress"/>
     </issueHandlers>
+    <plugins>
+        <pluginClass class="Sabatier\Foundation\Plugins\Plugin"/>
+    </plugins>
 </psalm>

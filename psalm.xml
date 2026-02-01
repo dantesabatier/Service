@@ -60,6 +60,6 @@
         <RiskyTruthyFalsyComparison errorLevel="suppress"/>
     </issueHandlers>
     <plugins>
-        <pluginClass class="Sabatier\Foundation\Plugins\Plugin"/>
+        <pluginClass class="Sabatier\Foundation\Plugins\Psalm\Plugin"/>
     </plugins>
 </psalm>

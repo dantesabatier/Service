@@ -6,6 +6,7 @@ namespace Sabatier\Service;
 
 use Exception;
 use Sabatier\CoreData\ManagedObject;
+use const Sabatier\CoreData\ManagedObjectObjectIDKey;
 
 /** @internal */
 final class UpdatePersistentSpaceResponseStrategy extends PersistentSpaceResponseStrategy
@@ -17,7 +18,7 @@ final class UpdatePersistentSpaceResponseStrategy extends PersistentSpaceRespons
         get {
             $request = $this->request;
             $parsedBody = $request->parsedBody;
-            if (!($objectID = $parsedBody[ServiceObjectIDKey])) {
+            if (!($objectID = $parsedBody[ManagedObjectObjectIDKey])) {
                 throw new BadRequestException();
             }
             if (!($object = $this->fetchBy($objectID))) {

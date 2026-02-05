@@ -4,6 +4,7 @@ namespace Sabatier\Service;
 
 use Exception;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
+use const Sabatier\CoreData\ManagedObjectObjectIDKey;
 
 /** @internal */
 final class DeletePersistentSpaceResponseStrategy extends PersistentSpaceResponseStrategy
@@ -13,7 +14,7 @@ final class DeletePersistentSpaceResponseStrategy extends PersistentSpaceRespons
          * @throws Exception
          */
         get {
-            if (!($objectID = $this->request->parsedBody[ServiceObjectIDKey])) {
+            if (!($objectID = $this->request->parsedBody[ManagedObjectObjectIDKey])) {
                 throw new BadRequestException();
             }
             if (!($object = $this->fetchBy($objectID))) {

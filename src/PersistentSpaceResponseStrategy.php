@@ -11,6 +11,7 @@ use Sabatier\CoreData\ManagedObjectID;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
+use const Sabatier\CoreData\ManagedObjectObjectIDKey;
 
 /** @internal */
 abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
@@ -41,7 +42,7 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
         /** @var FetchRequest<ManagedObject> $fetchRequest */
         $fetchRequest = new FetchRequest();
         $fetchRequest->entity = $this->entity;
-        $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath(ServiceObjectIDKey), Expression::expressionForConstantValue($objectID));
+        $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath(ManagedObjectObjectIDKey), Expression::expressionForConstantValue($objectID));
         if ($serialization = $this->request->serialization) {
             $fetchRequest->serialization = $serialization;
         }

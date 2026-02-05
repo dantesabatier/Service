@@ -7,8 +7,9 @@ use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectID;
-use Sabatier\Foundation\Number;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
+use Sabatier\Foundation\Number;
+use const Sabatier\CoreData\ManagedObjectObjectIDKey;
 
 /** @internal */
 final class CreatePersistentSpaceResponseStrategy extends PersistentSpaceResponseStrategy
@@ -22,7 +23,7 @@ final class CreatePersistentSpaceResponseStrategy extends PersistentSpaceRespons
             $parsedBody = $request->parsedBody;
             $context = $this->managedObjectContext;
             $entity = $this->entity;
-            $this->assertUniqueness($parsedBody[ServiceObjectIDKey] ?? 0);
+            $this->assertUniqueness($parsedBody[ManagedObjectObjectIDKey] ?? 0);
             $object = EntityDescription::insertNewObject($entity->name, $context);
             $this->applySecureUpdate($object, $parsedBody);
             $context->save();

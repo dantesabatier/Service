@@ -83,7 +83,7 @@ final class AuthenticationManager extends Responder
             return;
         }
         $user = $this->authentication->authenticatedUser ?? throw new UnauthorizedException();
-        $user->version += 1;
+        $user->refreshTokenVersion += 1;
         $this->managedObjectContext->save();
         $this->statusCode = HTTPStatusCode::noContent;
     }

@@ -15,7 +15,7 @@ interface Authorizable extends Authenticatable
         get;
     }
     /** @var int<0, max> Indicates the current refresh version of the entity. This property is used to validate refresh tokens. When a token is presented, its version is compared against this value. If the token version is lower, the token is considered invalid. */
-    public int $version {
+    public int $refreshTokenVersion {
         get;
         set;
     }

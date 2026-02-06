@@ -20,6 +20,6 @@ final class JSONWebTokenVersionEvaluator implements AccessEvaluator
         if (!($user = $authentication->authenticatedUser)) {
             return false;
         }
-        return $user->version === $payload->ver;
+        return $user->refreshTokenVersion === $payload->ver;
     }
 }

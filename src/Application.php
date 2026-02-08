@@ -4,6 +4,7 @@ namespace Sabatier\Service;
 
 use ErrorException;
 use Exception;
+use Sabatier\CoreData\MergePolicy;
 use Sabatier\CoreData\PersistentContainer;
 use Sabatier\CoreData\PersistentStoreDescription;
 use Sabatier\Foundation\Bundle;
@@ -70,7 +71,10 @@ class Application extends Responder
     private(set) Responder $firstResponder {
         get => $this->firstResponder ??= new FirstResponderResolver($this, $this->authenticationManager)->firstResponder;
     }
-    /** @var AuthenticationService The authentication service for managing user authentication. */
+    /**
+     * @var AuthenticationService The authentication service for managing user authentication.
+     * @disregard P1070 Visibility restriction intentional for readonly semantic
+     */
     private(set) AuthenticationService $authenticationService {
         get => $this->authenticationService ??= new AuthenticationService($this->persistentContainer->managedObjectModel);
     }
@@ -134,7 +138,9 @@ class Application extends Responder
     private function initializeDelegateClass(string $delegateClass): void
     {
         if (is_subclass_of($delegateClass, ObjectClass::class)) {
-            $delegateClass::initialize();
+            /** @var class-string<ObjectClass> $objectClass */
+            $objectClass = $delegateClass;
+            $objectClass::initialize();
         }
     }
 
@@ -144,6 +150,7 @@ class Application extends Responder
         $this->configurePersistentStoreDescriptions($persistentContainer);
         $this->initializePersistentStores($persistentContainer);
         $this->addPersistentStoreObservers($persistentContainer);
+        $this->configureViewContext($persistentContainer);
         return $persistentContainer;
     }
 
@@ -161,6 +168,11 @@ class Application extends Responder
         $persistentContainer->loadPersistentStores(function (PersistentStoreDescription $description, ?Error $error): void {
             $error === null ?: throw new InternalInconsistencyException(error: $error);
         });
+    }
+
+    private function configureViewContext(PersistentContainer $persistentContainer): void
+    {
+        $persistentContainer->viewContext->mergePolicy = MergePolicy::mergeByPropertyObjectTrump();
     }
 
     private function addPersistentStoreObservers(PersistentContainer $persistentContainer): void

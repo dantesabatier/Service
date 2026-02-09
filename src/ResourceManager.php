@@ -24,8 +24,7 @@ final class ResourceManager extends Responder
     public ArrayClass $allowedHeaders {
         get => new ArrayClass(["Content-Type"]);
     }
-    public bool $isProtectedContentAvailable = true;
-    public URL $resourceURL {
+    private(set) URL $resourceURL {
         get => $this->resourceURL ??= new URL($this->request->url->path, FileManager::default()->documentRootDirectory)->absoluteURL;
     }
     private StaticResourceDisposition $staticResourceDisposition {
@@ -33,6 +32,9 @@ final class ResourceManager extends Responder
     }
     public bool $isFirstResponder {
         get => $this->staticResourceDisposition->shouldHandle;
+    }
+    public bool $isProtectedContentAvailable {
+        get => $this->staticResourceDisposition->isProtectedContentAvailable;
     }
     public Response $response {
         /**

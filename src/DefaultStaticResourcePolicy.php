@@ -18,13 +18,14 @@ final class DefaultStaticResourcePolicy implements StaticResourcePolicy
     #[Override]
     public function evaluate(URL $resourceURL): StaticResourceDisposition
     {
-        $path = $resourceURL->path;
-        if (FileManager::default()->fileExists($path, $isDirectory) && !$isDirectory) {
-            return new StaticResourceDisposition(true, false, false, true);
-        }
         if ($this->optionalResourceNames->containsElement($resourceURL->lastPathComponent)) {
-            return new StaticResourceDisposition(true, true, true, true);
+            return new StaticResourceDisposition(true, true, true, true, true);
         }
-        return new StaticResourceDisposition(false, false, false, false);
+        if (FileManager::default()->fileExists($resourceURL->path, $isDirectory) && !$isDirectory) {
+            $publicURL = FileManager::default()->documentRootDirectory->appendingPathComponent("Public/");
+            $isPublic = str_starts_with($resourceURL->path, $publicURL->path);
+            return new StaticResourceDisposition(true, false, false, $isPublic, $isPublic);
+        }
+        return new StaticResourceDisposition(false, false, false, false, false);
     }
 }

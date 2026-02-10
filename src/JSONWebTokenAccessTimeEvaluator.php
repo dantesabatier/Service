@@ -19,9 +19,9 @@ final class JSONWebTokenAccessTimeEvaluator implements AccessEvaluator
             return false;
         }
         $now = new Date()->timeIntervalSinceReferenceDate;
-        if ($payload->nbf && $payload->nbf > $now) {
+        if ($payload->notBefore && $payload->notBefore > $now) {
             return false;
         }
-        return !($payload->exp && $payload->exp < $now);
+        return !($payload->expiration && $payload->expiration < $now);
     }
 }

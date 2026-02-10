@@ -21,11 +21,11 @@ final class BearerAuthentication extends Authentication
     private(set) ?JSONWebToken $token = null;
     /** @var ArrayClass<string> */
     protected(set) ArrayClass $technicalScopes {
-        get => $this->technicalScopes ??= new ArrayClass($this->token?->payload?->scp ?? []);
+        get => $this->technicalScopes ??= new ArrayClass($this->token?->payload?->technicalScopes ?? []);
     }
     /** @var ArrayClass<string> */
     protected(set) ArrayClass $authorizationScopes {
-        get => $this->authorizationScopes ??= new ArrayClass($this->token?->payload?->authz ?? []);
+        get => $this->authorizationScopes ??= new ArrayClass($this->token?->payload?->authorizationScopes ?? []);
     }
 
     /**
@@ -37,7 +37,7 @@ final class BearerAuthentication extends Authentication
         if ($jwtKey = $this->environment[JWTPrivateKey]) {
             $this->token = new JSONWebTokenService($jwtKey, $this->context->tokenIssuer)->decode($this->context->authorizationHeader->value);
         }
-        if ($username = $this->token?->payload?->sub) {
+        if ($username = $this->token?->payload?->subject) {
             $this->credential = new URLCredential($username);
         }
     }

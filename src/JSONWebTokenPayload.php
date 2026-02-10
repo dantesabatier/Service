@@ -15,68 +15,68 @@ final class JSONWebTokenPayload implements JsonSerializable
     private(set) array $rawValue;
 
     /** @var string|null issuer */
-    public ?string $iss {
+    public ?string $issuer {
         get => $this->rawValue[JWTIssuerKey] ?? null;
     }
     /** @var string|null subject */
-    public ?string $sub {
+    public ?string $subject {
         get => $this->rawValue[JWTSubjectKey] ?? null;
     }
     /** @var bool|null enable */
-    public ?bool $enb {
+    public ?bool $isEnabled {
         get => $this->rawValue[JWTEnabledKey] ?? null;
     }
     /** @var string|null audience */
-    public ?string $aud {
+    public ?string $audience {
         get => $this->rawValue[JWTAudienceKey] ?? null;
     }
     /** @var float|null expiration */
-    public ?float $exp {
+    public ?float $expiration {
         get => $this->rawValue[JWTExpirationTimeKey] ?? null;
     }
     /** @var float|null not before */
-    public ?float $nbf {
+    public ?float $notBefore {
         get => $this->rawValue[JWTNotBeforeTimeKey] ?? null;
     }
     /** @var float|null issued at */
-    public ?float $iat {
+    public ?float $issuedAt {
         get => $this->rawValue[JWTIssuedAtTimeKey] ?? null;
     }
     /** @var string|null JWT ID */
-    public ?string $jti {
+    public ?string $jwtID {
         get => $this->rawValue[JWTIdKey] ?? null;
     }
     /** @var int|null version */
-    public ?int $ver {
+    public ?int $version {
         get => $this->rawValue[JWTVersionKey] ?? null;
     }
     /** @var string[]|null technical scopes */
-    public ?array $scp {
+    public ?array $technicalScopes {
         get => $this->rawValue[JWTScopesKey] ?? null;
     }
     /** @var string[]|null authorization scopes */
-    public ?array $authz {
+    public ?array $authorizationScopes {
         get => $this->rawValue[JWTAuthorizationScopesKey] ?? null;
     }
 
     /**
      * Constructor
      *
-     * @param string|null $iss Issuer
-     * @param string|null $sub Subject
-     * @param bool|null $enb Enable
-     * @param string|null $aud Audience
-     * @param Date|null $exp Expiration
-     * @param Date|null $nbf Not before
-     * @param Date|null $iat Issued at
-     * @param string|null $jti JWT ID
-     * @param int|null $ver Version
-     * @param string[]|null $scp Technical scopes
-     * @param string[]|null $authz Authorization scopes
+     * @param string|null $issuer Issuer
+     * @param string|null $subject Subject
+     * @param bool|null $isEnabled Enable
+     * @param string|null $audience Audience
+     * @param Date|null $expirationDate Expiration
+     * @param Date|null $notBefore Not before
+     * @param Date|null $issuedAt Issued at
+     * @param string|null $jwtID JWT ID
+     * @param int|null $version Version
+     * @param string[]|null $technicalScopes Technical scopes
+     * @param string[]|null $authorizationScopes Authorization scopes
      */
-    public function __construct(?string $iss = null, ?bool $enb = null, ?string $sub = null, ?string $aud = null, ?Date $exp = null, ?Date $nbf = null, ?Date $iat = null, ?string $jti = null, ?int $ver = null, ?array $scp = null, ?array $authz = null)
+    public function __construct(?string $issuer = null, ?bool $isEnabled = null, ?string $subject = null, ?string $audience = null, ?Date $expirationDate = null, ?Date $notBefore = null, ?Date $issuedAt = null, ?string $jwtID = null, ?int $version = null, ?array $technicalScopes = null, ?array $authorizationScopes = null)
     {
-        $this->rawValue = [JWTIssuerKey => $iss, JWTSubjectKey => $sub, JWTEnabledKey => $enb, JWTAudienceKey => $aud, JWTExpirationTimeKey => $exp?->timeIntervalSinceReferenceDate, JWTNotBeforeTimeKey => $nbf?->timeIntervalSinceReferenceDate, JWTIssuedAtTimeKey => $iat?->timeIntervalSinceReferenceDate, JWTIdKey => $jti, JWTVersionKey => $ver, JWTScopesKey => $scp, JWTAuthorizationScopesKey => $authz];
+        $this->rawValue = [JWTIssuerKey => $issuer, JWTSubjectKey => $subject, JWTEnabledKey => $isEnabled, JWTAudienceKey => $audience, JWTExpirationTimeKey => $expirationDate?->timeIntervalSinceReferenceDate, JWTNotBeforeTimeKey => $notBefore?->timeIntervalSinceReferenceDate, JWTIssuedAtTimeKey => $issuedAt?->timeIntervalSinceReferenceDate, JWTIdKey => $jwtID, JWTVersionKey => $version, JWTScopesKey => $technicalScopes, JWTAuthorizationScopesKey => $authorizationScopes];
     }
 
     /**

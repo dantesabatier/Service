@@ -26,7 +26,7 @@ final readonly class JSONWebTokenValidator
             throw new JSONWebTokenException(localized_string("Access token algorithm is invalid."), JWTTokenInvalidErrorCode);
         }
         $payload = $token->payload;
-        if ($payload->iss && $payload->iss !== $this->issuer) {
+        if ($payload->issuer && $payload->issuer !== $this->issuer) {
             throw new JSONWebTokenException(localized_string("Access token issuer is invalid."), JWTTokenInvalidErrorCode);
         }
     }

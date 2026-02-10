@@ -4,6 +4,7 @@ namespace Sabatier\Service;
 
 use Exception;
 use NoDiscard;
+use Sabatier\CoreData\AttributeType;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
@@ -44,11 +45,12 @@ final class AuthenticationService
     {
         /** @var FetchRequest<Authorizable> $fetchRequest */
         $fetchRequest = $this->authorizableClass::fetchRequest();
-        $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath("username"), Expression::expressionForConstantValue($username), PredicateOperatorType::like);
+        $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath(AuthenticationUsernameKey), Expression::expressionForConstantValue($username), PredicateOperatorType::like);
         $fetchRequest->includesPendingChanges = false;
         /** @var class-string<Authorizable> $authorizableClass */
         $authorizableClass = $this->authorizableClass;
         $serialization ??= $authorizableClass::defaultRepresentation();
+        $serialization[AuthenticationRefreshTokenVersionKey] ??= AttributeType::integer32;
         $fetchRequest->serialization = $serialization;
         return $context->fetch($fetchRequest)->first;
     }

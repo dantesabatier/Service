@@ -172,7 +172,7 @@ class Application extends Responder
 
     private function configureViewContext(PersistentContainer $persistentContainer): void
     {
-        $persistentContainer->viewContext->mergePolicy = MergePolicy::error();
+        $persistentContainer->viewContext->mergePolicy = MergePolicy::mergeByPropertyObjectTrump();
     }
 
     private function addPersistentStoreObservers(PersistentContainer $persistentContainer): void

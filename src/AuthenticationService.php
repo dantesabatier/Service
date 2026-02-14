@@ -19,6 +19,8 @@ use Sabatier\Foundation\Predicates\PredicateOperatorType;
  */
 final class AuthenticationService
 {
+    /** @var Dictionary<mixed>|null */
+    private static ?Dictionary $authenticationRequirements = null;
     private InterfaceImplementorResolver $implementorResolver {
         get => $this->implementorResolver ??= new InterfaceImplementorResolver($this->managedObjectModel);
     }
@@ -49,9 +51,17 @@ final class AuthenticationService
         $fetchRequest->includesPendingChanges = false;
         /** @var class-string<Authorizable> $authorizableClass */
         $authorizableClass = $this->authorizableClass;
+        self::$authenticationRequirements ??= Dictionary::dictionaryWithArray([
+            AuthenticationUsernameKey => AttributeType::string,
+            AuthenticationPasswordKey => AttributeType::string,
+            AuthenticationIsEnabledKey => AttributeType::boolean,
+            AuthenticationRefreshTokenVersionKey => AttributeType::integer32,
+            AuthenticationRolesKey => [
+                AuthenticationRoleNameKey => AttributeType::string
+            ]
+        ]);
         $serialization ??= $authorizableClass::defaultRepresentation();
-        $serialization[AuthenticationPasswordKey] ??= AttributeType::string;
-        $serialization[AuthenticationRefreshTokenVersionKey] ??= AttributeType::integer32;
+        $serialization = $serialization->merging(self::$authenticationRequirements);
         $fetchRequest->serialization = $serialization;
         return $context->fetch($fetchRequest)->first;
     }

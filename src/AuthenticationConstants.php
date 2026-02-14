@@ -22,3 +22,10 @@ const SessionUserKey = "user";
 const AuthenticationUsernameKey = "username";
 /** @var string Key used to store the authenticated user's password */
 const AuthenticationPasswordKey = "password";
+/** @var string Key used to store the authenticated user's enabled/disabled state */
+const AuthenticationIsEnabledKey = "isEnabled";
+/** @var string Key used to store the authenticated user's assigned roles */
+const AuthenticationRolesKey = "roles";
+/** @var string Key used to identify the name of a role within the roles collection */
+const AuthenticationRoleNameKey = "name";
+

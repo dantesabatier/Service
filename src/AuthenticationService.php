@@ -61,8 +61,7 @@ final class AuthenticationService
             ]
         ]);
         $serialization ??= $authorizableClass::defaultRepresentation();
-        $serialization = $serialization->merging(self::$authenticationRequirements);
-        $fetchRequest->serialization = $serialization;
+        $fetchRequest->serialization = $serialization->merging(self::$authenticationRequirements);
         return $context->fetch($fetchRequest)->first;
     }
 }

@@ -20,3 +20,5 @@ const SessionAuthenticatedKey = "authenticated";
 const SessionUserKey = "user";
 /** @var string Key used to store the authenticated user's username */
 const AuthenticationUsernameKey = "username";
+/** @var string Key used to store the authenticated user's password */
+const AuthenticationPasswordKey = "password";

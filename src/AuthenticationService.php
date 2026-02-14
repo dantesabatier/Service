@@ -50,6 +50,7 @@ final class AuthenticationService
         /** @var class-string<Authorizable> $authorizableClass */
         $authorizableClass = $this->authorizableClass;
         $serialization ??= $authorizableClass::defaultRepresentation();
+        $serialization[AuthenticationPasswordKey] ??= AttributeType::string;
         $serialization[AuthenticationRefreshTokenVersionKey] ??= AttributeType::integer32;
         $fetchRequest->serialization = $serialization;
         return $context->fetch($fetchRequest)->first;

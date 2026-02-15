@@ -2,9 +2,11 @@
 
 namespace Sabatier\Service;
 
+use Exception;
 use Override;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\FileManager;
+use Sabatier\Foundation\SearchPathDirectory;
 use Sabatier\Foundation\URL;
 
 /** @internal */
@@ -15,14 +17,18 @@ final class DefaultStaticResourcePolicy implements StaticResourcePolicy
         get => $this->optionalResourceNames ??= new ArrayClass(["favicon.ico"]);
     }
 
+    /**
+     * @throws Exception
+     */
     #[Override]
     public function evaluate(URL $resourceURL): StaticResourceDisposition
     {
         if ($this->optionalResourceNames->containsElement($resourceURL->lastPathComponent)) {
             return new StaticResourceDisposition(true, true, true, true, true);
         }
-        if (FileManager::default()->fileExists($resourceURL->path, $isDirectory) && !$isDirectory) {
-            $publicURL = FileManager::default()->documentRootDirectory->appendingPathComponent("Public/");
+        $fileManager = FileManager::default();
+        if ($fileManager->fileExists($resourceURL->path, $isDirectory) && !$isDirectory) {
+            $publicURL = $fileManager->url(SearchPathDirectory::sharedPublicDirectory);
             $isPublic = str_starts_with($resourceURL->path, $publicURL->path);
             return new StaticResourceDisposition(true, false, false, $isPublic, $isPublic);
         }

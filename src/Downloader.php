@@ -34,9 +34,11 @@ final class Downloader extends Responder
         $fileManager->fileExists($path) ?: throw new NotFoundException();
         $fileManager->isReadableFile($path) ?: throw new MethodNotAllowedException();
         $body = $fileManager->contents($path) ?? throw new InternalServerErrorException();
-        if (($contentType = URLFileTypeMappings::shared()->mimeType($resourceURL->pathExtension)) && ($encoding = mb_detect_encoding($body))) {
+        $contentType = URLFileTypeMappings::shared()->mimeType($resourceURL->pathExtension);
+        if ($contentType && ($encoding = mb_detect_encoding($body))) {
             $contentType .= "; charset=$encoding";
         }
+        $contentType ??= "application/octet-stream";
         $this->data = ["body" => $body, "filename" => $resourceURL->lastPathComponent, "contentType" => $contentType];
     }
 }

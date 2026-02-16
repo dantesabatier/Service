@@ -66,19 +66,24 @@ final class UploadsEnumerator extends DirectoryEnumerator
     public function getIterator(): Traversable
     {
         return (function (): Generator {
+            $fileAttributes = new Dictionary([FileAttributeKey::posixPermissions => 0777]);
+            $directoryURL = $this->directoryURL;
             $fileManager = FileManager::default();
+            if (!$fileManager->fileExists($directoryURL->path)) {
+                $fileManager->createDirectory($directoryURL, true, $fileAttributes);
+            }
             $keys = $this->keys;
             /** @var array{name: string, tmp_name: string} $file */
             foreach ($_FILES as $file) {
                 $name = $file["name"];
-                $url = $this->directoryURL->appendingPathComponent($name);
+                $url = $directoryURL->appendingPathComponent($name);
                 $destination = $url->path;
                 if ($fileManager->fileExists($destination)) {
                     $fileManager->removeItem($url);
                 }
                 $source = $file["tmp_name"] ?? throw new BadRequestException();
                 $fileManager->moveItem(URL::fileURL($source), $url) ?: throw new InternalServerErrorException();
-                $fileManager->setAttributes(new Dictionary([FileAttributeKey::posixPermissions => 0777]), $destination);
+                $fileManager->setAttributes($fileAttributes, $destination);
                 if ($keys !== null) {
                     $values = $url->resourceValues($keys);
                     foreach ($values->allValues as $key => $value) {

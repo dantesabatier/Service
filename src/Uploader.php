@@ -28,8 +28,8 @@ final class Uploader extends Responder
     public function upload(): void
     {
         $parsedBody = $this->request->parsedBody;
-        $directory = $parsedBody["directory"] ?? "throw new BadRequestException()";
-        preg_match('/^[A-Za-z0-9_-]+$/', $directory) ?: throw new BadRequestException();
+        $directory = $parsedBody["directory"] ?? throw new BadRequestException();
+        preg_match("/^[A-Za-z0-9_-]+\$/", $directory) ?: throw new BadRequestException();
         $directoryURL = new URL($directory, FileManager::default()->documentRootDirectory)->absoluteURL;
         $keys = new Set([URLResourceKey::nameKey, URLResourceKey::pathKey]);
         $enumerator = new UploadsEnumerator($directoryURL, $keys);

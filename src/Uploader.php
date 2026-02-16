@@ -20,12 +20,6 @@ final class Uploader extends Responder
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::post]);
     }
-    public URL $directoryURL {
-        /**
-         * @throws Exception
-         */
-        get => $this->directoryURL ??= FileManager::default()->url(SearchPathDirectory::sharedPublicDirectory, SearchPathDomainMask::local, null, true);
-    }
 
     /**
      * @throws Exception
@@ -33,8 +27,11 @@ final class Uploader extends Responder
     #[Action(decorators: [JSONDecorator::class])]
     public function upload(): void
     {
+        $parsedBody = $this->request->parsedBody;
+        $directory = $parsedBody["directory"] ?? throw new BadRequestException();
+        $directoryURL = new URL($directory, FileManager::default()->documentRootDirectory)->absoluteURL;
         $keys = new Set([URLResourceKey::nameKey, URLResourceKey::pathKey]);
-        $enumerator = new UploadsEnumerator($this->directoryURL, $keys);
+        $enumerator = new UploadsEnumerator($directoryURL, $keys);
         !$enumerator->isEmpty ?: throw new BadRequestException();
         /** @var ArrayClass<Dictionary<string>> $files */
         $files = new ArrayClass();

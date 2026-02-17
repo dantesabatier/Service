@@ -29,7 +29,7 @@ final class Uploader extends Responder
         $directory = $parsedBody["directory"] ?? throw new BadRequestException();
         preg_match("/^[A-Za-z0-9_-]+\$/", $directory) ?: throw new BadRequestException();
         $directoryURL = new URL($directory, FileManager::default()->documentRootDirectory)->absoluteURL;
-        $keys = new Set([URLResourceKey::nameKey, URLResourceKey::pathKey]);
+        $keys = new Set([URLResourceKey::nameKey]);
         $enumerator = new UploadsEnumerator($directoryURL, $keys);
         !$enumerator->isEmpty ?: throw new BadRequestException();
         /** @var ArrayClass<Dictionary<string>> $files */
@@ -38,9 +38,7 @@ final class Uploader extends Responder
             $values = $url->resourceValues($keys);
             /** @var string $name */
             $name = $values->name;
-            /** @var string $path */
-            $path = $values->path;
-            $files->append(new Dictionary([URLResourceKey::nameKey => $name, URLResourceKey::pathKey => $path]));
+            $files->append(new Dictionary([URLResourceKey::nameKey => $name]));
         }
         $this->data = $files;
     }

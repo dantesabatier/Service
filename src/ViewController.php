@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use Override;
 use ReflectionClass;
 use ReflectionProperty;
 use Sabatier\Foundation\Bundle;
@@ -60,6 +61,7 @@ abstract class ViewController extends Responder
     public ?string $title {
         get => $this->title ??= $this->bundle->object(kCFBundleNameKey);
     }
+    #[Override]
     public Response $response {
         get {
             if ($this->request->httpMethod === HTTPRequestMethod::get) {

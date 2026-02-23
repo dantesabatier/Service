@@ -3,6 +3,7 @@
 namespace Sabatier\Service;
 
 use Exception;
+use Override;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\FetchRequestResultType;
 use Sabatier\CoreData\ManagedObject;
@@ -33,6 +34,7 @@ final class ReadPersistentSpaceResponseStrategy extends PersistentSpaceResponseS
             return $fetchRequest;
         }
     }
+    #[Override]
     public Response $response {
         /**
          * @throws Exception

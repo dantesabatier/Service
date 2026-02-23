@@ -26,6 +26,7 @@ final class UploadsEnumerator extends DirectoryEnumerator
         get => $this->count === 0;
     }
     private ?URL $currentURL = null;
+    #[Override]
     public ?Dictionary $directoryAttributes {
         get {
             try {
@@ -35,6 +36,7 @@ final class UploadsEnumerator extends DirectoryEnumerator
             }
         }
     }
+    #[Override]
     public ?Dictionary $fileAttributes {
         get {
             if (!($currentURL = $this->currentURL)) {
@@ -47,9 +49,11 @@ final class UploadsEnumerator extends DirectoryEnumerator
             }
         }
     }
+    #[Override]
     public int $level {
         get => 0;
     }
+    #[Override]
     public bool $isEnumeratingDirectoryPostOrder {
         get => false;
     }

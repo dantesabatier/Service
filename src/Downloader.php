@@ -5,6 +5,7 @@
 namespace Sabatier\Service;
 
 use Exception;
+use Override;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
@@ -15,6 +16,7 @@ use Sabatier\Foundation\URLFileTypeMappings;
 final class Downloader extends Responder
 {
     /** @var ArrayClass<string> */
+    #[Override]
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::post]);
     }

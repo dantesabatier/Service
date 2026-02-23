@@ -9,12 +9,15 @@ use Sabatier\Foundation\Networking\URLCredential;
 /** @internal */
 final class DigestAuthentication extends Authentication
 {
+    #[Override]
     public AuthenticationScheme $scheme {
         get => AuthenticationScheme::digest;
     }
     /** @var Dictionary<string> */
     private(set) Dictionary $parameters;
+    #[Override]
     private(set) ?URLCredential $credential = null;
+    #[Override]
     private(set) bool $isValid {
         get {
             if (isset($this->isValid)) {

@@ -3,6 +3,7 @@
 namespace Sabatier\Service;
 
 use Exception;
+use Override;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
@@ -17,6 +18,7 @@ use function Sabatier\Foundation\fatal_error;
 final class AuthenticationManager extends Responder
 {
     /** @var ArrayClass<string> */
+    #[Override]
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::post]);
     }
@@ -35,6 +37,7 @@ final class AuthenticationManager extends Responder
         get => $this->accessEvaluator ??= $this->selector === AuthenticationRefreshSelector ? new AccessEvaluatorChain(new ArrayClass([new AuthenticationEvaluator(), new JSONWebTokenScopeEvaluator(AuthenticationScopeRefresh), new JSONWebTokenRefreshTimeEvaluator(), new JSONWebTokenEnabledEvaluator(), new JSONWebTokenVersionEvaluator()])) : new AccessEvaluatorChain(new ArrayClass([new SessionAuthenticationEvaluator(), new AuthenticationEvaluator(), new JSONWebTokenScopeEvaluator(AuthenticationScopeAccess), new JSONWebTokenAccessTimeEvaluator(), new JSONWebTokenEnabledEvaluator(), new JSONWebTokenVersionEvaluator(), new AuthorizationEvaluator()]));
     }
     /** @var bool Indicates whether the current request can access protected content. Determined by evaluating the configured access evaluator chain. */
+    #[Override]
     public bool $isProtectedContentAvailable {
         /**
          * @throws Exception

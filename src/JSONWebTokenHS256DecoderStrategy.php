@@ -9,6 +9,7 @@ use function Sabatier\Foundation\localized_string;
 /** @internal */
 final class JSONWebTokenHS256DecoderStrategy extends JSONWebTokenDecoderStrategy
 {
+    #[Override]
     protected JSONWebTokenSigningAlgorithm $algorithm {
         get => JSONWebTokenSigningAlgorithm::hs256;
     }

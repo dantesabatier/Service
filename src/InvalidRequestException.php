@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use Override;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Error;
 use Sabatier\Foundation\InternalInconsistencyException;
@@ -14,6 +15,7 @@ use const Sabatier\Foundation\LocalizedFailureReasonErrorKey;
  */
 abstract class InvalidRequestException extends InternalInconsistencyException
 {
+    #[Override]
     public Error $error {
         get => $this->error ??= new Error(ServiceErrorDomain, $this->code, new Dictionary([LocalizedDescriptionKey => HTTPURLResponse::localizedString($this->code), LocalizedFailureReasonErrorKey => $this->message ?: null]));
     }

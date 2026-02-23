@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use Override;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
@@ -10,6 +11,7 @@ use Sabatier\Foundation\Networking\HTTPRequestMethod;
 final class PersistentSpace extends Responder
 {
     /** @var ArrayClass<string> */
+    #[Override]
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::delete]);
     }
@@ -25,9 +27,11 @@ final class PersistentSpace extends Responder
             return new AuthorizationContext($authentication->authenticatedUser, $authentication->authorizationScopes, $this->isSecurityEnabled);
         }
     }
+    #[Override]
     public bool $isFirstResponder {
         get => (bool)$this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel?->entitiesByName?->offsetExists($this->request->url->lastPathComponent);
     }
+    #[Override]
     public Response $response {
         get {
             try {

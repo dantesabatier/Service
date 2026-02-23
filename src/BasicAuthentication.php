@@ -9,10 +9,13 @@ use Sabatier\Foundation\Networking\URLCredential;
 /** @internal */
 final class BasicAuthentication extends Authentication
 {
+    #[Override]
     public AuthenticationScheme $scheme {
         get => AuthenticationScheme::basic;
     }
+    #[Override]
     private(set) ?URLCredential $credential = null;
+    #[Override]
     private(set) bool $isValid {
         get {
             if (isset($this->isValid)) {

@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use Override;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
@@ -15,15 +16,20 @@ use const Sabatier\Foundation\kCFBundleVersionKey;
 final class HomeController extends ViewController
 {
     /** @var ArrayClass<string> */
+    #[Override]
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::get]);
     }
+    #[Override]
     public string $name = "Home";
+    #[Override]
     public bool $isProtectedContentAvailable = true;
+    #[Override]
     public Bundle $bundle {
         get => $this->bundle ??= Bundle::bundleForClass(self::class);
     }
     #[Outlet]
+    #[Override]
     public ?string $title {
         get => Bundle::main()->object(kCFBundleNameKey);
     }

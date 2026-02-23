@@ -4,6 +4,7 @@ namespace Sabatier\Service;
 
 use ErrorException;
 use Exception;
+use Override;
 use Sabatier\CoreData\MergePolicy;
 use Sabatier\CoreData\PersistentContainer;
 use Sabatier\CoreData\PersistentStoreDescription;
@@ -75,6 +76,7 @@ class Application extends Responder
      * @var AuthenticationService The authentication service for managing user authentication.
      * @disregard P1070 Visibility restriction intentional for readonly semantic
      */
+    #[Override]
     private(set) AuthenticationService $authenticationService {
         get => $this->authenticationService ??= new AuthenticationService($this->persistentContainer->managedObjectModel);
     }
@@ -86,6 +88,7 @@ class Application extends Responder
         get => $this->authorizationCache ??= new InMemoryAuthorizationCache();
     }
     /** @var AuthorizationService The authorization service for managing user authorization. */
+    #[Override]
     public AuthorizationService $authorizationService {
         get => $this->authorizationService ??= new AuthorizationService($this->authorizationResolver, $this->authorizationCache);
     }
@@ -94,10 +97,12 @@ class Application extends Responder
         get => $this->authenticationManager ??= new AuthenticationManager();
     }
     /** @var CORSPolicy The CORS policy applied to all incoming requests. This policy defines which origins, HTTP methods, and headers are permitted for cross-origin requests and whether credentials are allowed. */
+    #[Override]
     public CORSPolicy $corsPolicy {
         get => $this->corsPolicy ??= CORSPolicy::policy();
     }
     /** @var AccessPolicy The access policy for enforcing access control. */
+    #[Override]
     public AccessPolicy $accessPolicy {
         get => $this->accessPolicy ??= new DefaultAccessPolicy();
     }

@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use Override;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Error;
 use Sabatier\Foundation\InternalInconsistencyException;
@@ -18,6 +19,7 @@ final class ErrorResponder extends Responder
     public bool $isDevelopmentMode {
         get => $this->environment[ApplicationEnvironmentKey] === ApplicationEnvironmentDevelopment;
     }
+    #[Override]
     public Response $response {
         get {
             try {

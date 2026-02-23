@@ -5,6 +5,7 @@
 namespace Sabatier\Service;
 
 use Exception;
+use Override;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\FileManager;
@@ -17,10 +18,12 @@ use Sabatier\Foundation\URLFileTypeMappings;
 final class ResourceManager extends Responder
 {
     /** @var ArrayClass<string> */
+    #[Override]
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::head, HTTPRequestMethod::get]);
     }
     /** @var ArrayClass<string> */
+    #[Override]
     public ArrayClass $allowedHeaders {
         get => new ArrayClass(["Content-Type"]);
     }
@@ -30,12 +33,15 @@ final class ResourceManager extends Responder
     private StaticResourceDisposition $staticResourceDisposition {
         get => $this->staticResourceDisposition ??= Application::shared()->staticResourcePolicy->evaluate($this->resourceURL);
     }
+    #[Override]
     public bool $isFirstResponder {
         get => $this->staticResourceDisposition->shouldHandle;
     }
+    #[Override]
     public bool $isProtectedContentAvailable {
         get => $this->staticResourceDisposition->isProtectedContentAvailable;
     }
+    #[Override]
     public Response $response {
         /**
          * @throws Exception

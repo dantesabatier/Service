@@ -5,12 +5,14 @@
 namespace Sabatier\Service;
 
 use Exception;
+use Override;
 use Sabatier\CoreData\ManagedObject;
 use const Sabatier\CoreData\ManagedObjectObjectIDKey;
 
 /** @internal */
 final class UpdatePersistentSpaceResponseStrategy extends PersistentSpaceResponseStrategy
 {
+    #[Override]
     public Response $response {
         /**
          * @throws Exception

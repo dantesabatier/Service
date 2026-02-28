@@ -18,7 +18,7 @@ final class JSONWebTokenException extends UnauthorizedException
 {
     private ?int $errorCode;
     #[Override]
-    public Error $error {
+    protected(set) Error $error {
         get => $this->error ??= new Error(ServiceErrorDomain, $this->errorCode ?? $this->code, new Dictionary([LocalizedDescriptionKey => HTTPURLResponse::localizedString($this->code), LocalizedFailureReasonErrorKey => $this->message ?: null]));
     }
 

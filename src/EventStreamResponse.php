@@ -11,15 +11,17 @@ use Sabatier\Foundation\URL;
 
 /**
  * @implements IteratorAggregate<int, non-empty-string>
+ * @psalm-type SSEEmitter Closure(string, string|null=, string|null=): string
+ * @psalm-type SSEGenerator = Closure(SSEEmitter): Generator<int,string>
  */
 final class EventStreamResponse extends Response implements IteratorAggregate
 {
-    /** @var Closure(Closure(string, ?string, ?string): string): Generator */
+    /** @var SSEGenerator */
     private Closure $generator;
 
     /**
      * @param URL $url
-     * @param Closure(Closure(string, ?string, ?string): string): Generator $generator
+     * @param SSEGenerator $generator
      */
     public function __construct(URL $url, Closure $generator)
     {

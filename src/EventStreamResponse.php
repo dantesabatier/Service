@@ -11,17 +11,15 @@ use Sabatier\Foundation\URL;
 
 /**
  * @implements IteratorAggregate<int, non-empty-string>
- * @psalm-type SSEEmitter Closure(string, string|null=, string|null=): string
- * @psalm-type SSEGenerator = Closure(SSEEmitter): Generator<int,string>
  */
 final class EventStreamResponse extends Response implements IteratorAggregate
 {
-    /** @var SSEGenerator */
+    /** @var Closure(): Generator<int, ServerSentEvent> */
     private Closure $generator;
 
     /**
      * @param URL $url
-     * @param SSEGenerator $generator
+     * @param Closure(): Generator<int, ServerSentEvent> $generator
      */
     public function __construct(URL $url, Closure $generator)
     {
@@ -33,19 +31,21 @@ final class EventStreamResponse extends Response implements IteratorAggregate
     #[Override]
     public function getIterator(): Generator
     {
-        $emit = function (string $data, ?string $event = null, ?string $id = null): string {
-            $buffer = "";
-            if ($id !== null) {
-                $buffer .= "id: $id\n";
+        foreach (($this->generator)() as $event) {
+            if (connection_aborted()) {
+                break;
             }
-            if ($event !== null) {
-                $buffer .= "event: $event\n";
+            if ($event->id !== null) {
+                yield "id: $event->id";
             }
+            if ($event->event !== null) {
+                yield "event: $event->event";
+            }
+            $data = json_encode($event, JSON_THROW_ON_ERROR);
             foreach (explode("\n", $data) as $line) {
-                $buffer .= "data: $line\n";
+                yield "data: $line";
             }
-            return "$buffer\n";
-        };
-        return ($this->generator)($emit);
+            yield "";
+        }
     }
 }

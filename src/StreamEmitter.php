@@ -4,6 +4,7 @@ namespace Sabatier\Service;
 
 use Override;
 use Sabatier\Foundation\Dictionary;
+use Traversable;
 use function Sabatier\Foundation\human_readable_value;
 
 /** @internal */
@@ -12,7 +13,7 @@ final class StreamEmitter extends Emitter
     #[Override]
     public function emit(Response $response, Dictionary $headers, ?string $content = null, bool $useCompression = true): never
     {
-        assert($response instanceof StreamResponse);
+        assert($response instanceof Traversable);
         if (headers_sent()) {
             die("Headers already sent");
         }

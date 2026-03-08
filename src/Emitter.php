@@ -23,7 +23,10 @@ class Emitter
         }
         header(sprintf("%s %s %s", $response->httpVersion, $response->statusCode, Response::localizedString($response->statusCode)));
         foreach ($headers as $key => $value) {
-            header(sprintf("%s: %s", $key, human_readable_value($value)));
+            $value
+                |> human_readable_value(...)
+                |> (fn($x) => sprintf("%s: %s", $key, $x))
+                |> header(...);
         }
         if ($contentLength > 0) {
             header(sprintf("Content-Length: %d", $contentLength));

@@ -42,7 +42,7 @@ final class EventStreamResponse extends Response implements IteratorAggregate
             foreach (explode("\n", $data) as $line) {
                 $buffer .= "data: $line\n";
             }
-            return $buffer . "\n";
+            return "$buffer\n";
         };
         return ($this->generator)($emit);
     }

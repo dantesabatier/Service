@@ -120,6 +120,14 @@ final class Session extends ObjectClass
     }
 
     /**
+     * Closes the current session and writes session data
+     */
+    public function close(): void
+    {
+        session_write_close();
+    }
+
+    /**
      * Write session data and end the session
      */
     public function commit(): void

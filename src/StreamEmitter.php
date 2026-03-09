@@ -4,16 +4,22 @@ namespace Sabatier\Service;
 
 use Override;
 use Sabatier\Foundation\Dictionary;
-use Traversable;
 use function Sabatier\Foundation\human_readable_value;
 
 /** @internal */
-final class StreamEmitter extends Emitter
+class StreamEmitter extends Emitter
 {
     #[Override]
     public function emit(Response $response, Dictionary $headers, ?string $content = null, bool $useCompression = true): never
     {
-        assert($response instanceof Traversable);
+        $this->emitHeaders($response, $headers);
+        $this->emitContent($response);
+        exit(0);
+    }
+
+    #[Override]
+    protected function emitHeaders(Response $response, Dictionary $headers, int $contentLength = 0): void
+    {
         if (headers_sent()) {
             die("Headers already sent");
         }
@@ -34,10 +40,14 @@ final class StreamEmitter extends Emitter
                 flush();
             }
         });
-        foreach ($response as $chunk) {
+    }
+
+    #[Override]
+    protected function emitContent(mixed $content, bool $useCompression = true): void
+    {
+        foreach ($content as $chunk) {
             echo "$chunk\n";
             flush();
         }
-        die();
     }
 }

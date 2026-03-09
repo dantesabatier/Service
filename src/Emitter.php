@@ -10,10 +10,16 @@ use function Sabatier\Foundation\human_readable_value;
  */
 class Emitter
 {
-    /**
-     * Emits the response headers to the client.
-     */
-    private function emitHeaders(Response $response, Dictionary $headers, int $contentLength = 0): void
+    public function emit(Response $response, Dictionary $headers, ?string $content = null, bool $useCompression = true): never
+    {
+        $content ??= "";
+        $contentLength = strlen($content);
+        $this->emitHeaders($response, $headers, $contentLength);
+        $this->emitContent($content, $useCompression);
+        exit(0);
+    }
+
+    protected function emitHeaders(Response $response, Dictionary $headers, int $contentLength = 0): void
     {
         if (headers_sent()) {
             die();
@@ -33,10 +39,7 @@ class Emitter
         }
     }
 
-    /**
-     * Emits the response content with optional compression.
-     */
-    private function emitContent(string $content = "", bool $useCompression = true): void
+    protected function emitContent(mixed $content, bool $useCompression = true): void
     {
         if ($useCompression && !ob_get_level()) {
             ob_start("ob_gzhandler");
@@ -46,17 +49,5 @@ class Emitter
         echo $content;
         ob_flush();
         flush();
-    }
-
-    /**
-     * Emits headers and content, computes Content-Length for compression-safe delivery, then exits.
-     */
-    public function emit(Response $response, Dictionary $headers, ?string $content = null, bool $useCompression = true): never
-    {
-        $content ??= "";
-        $contentLength = strlen($content);
-        $this->emitHeaders($response, $headers, $contentLength);
-        $this->emitContent($content, $useCompression);
-        exit(0);
     }
 }

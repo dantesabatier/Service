@@ -51,7 +51,7 @@ final class EventStreamResponse extends Response implements IteratorAggregate
     {
         parent::__construct($url, headerFields: new Dictionary(["Content-Type" => "text/event-stream", "Cache-Control" => "no-cache", "Connection" => "keep-alive", "X-Accel-Buffering" => "no"]));
         $this->generator = $generator;
-        $this->emitter = new StreamEmitter();
+        $this->emitter = new EventStreamEmitter();
     }
 
     #[Override]

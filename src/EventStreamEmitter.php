@@ -2,12 +2,14 @@
 
 namespace Sabatier\Service;
 
+use Override;
 use Sabatier\Foundation\Dictionary;
 use function Sabatier\Foundation\human_readable_value;
 
 /** @internal */
 final class EventStreamEmitter extends StreamEmitter
 {
+    #[Override]
     protected function emitHeaders(Response $response, Dictionary $headers, int $contentLength = 0): void
     {
         if (headers_sent()) {

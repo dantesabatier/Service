@@ -12,7 +12,7 @@ use Sabatier\Foundation\Predicates\Predicate;
 use Sabatier\Foundation\SortDescriptor;
 
 /**
- * @psalm-type FetchRequestRepresentation object{predicate: object{format: string, arguments?: array}, includesSubentities?: bool, fetchLimit?: int, fetchOffset?: int, fetchBatchSize?: int, sortDescriptors?: object{key: string, ascending: bool}[], resultType: int, propertiesToFetch?: array, returnsDistinctResults?: bool, propertiesToGroupBy?: array, havingPredicate: object{format: string, arguments?: array}}
+ * @psalm-type FetchRequestRepresentation object{entityName?: string, predicate: object{format: string, arguments?: array}, includesSubentities?: bool, fetchLimit?: int, fetchOffset?: int, fetchBatchSize?: int, sortDescriptors?: object{key: string, ascending: bool}[], resultType: int, propertiesToFetch?: array, returnsDistinctResults?: bool, propertiesToGroupBy?: array, havingPredicate: object{format: string, arguments?: array}}
  * @internal
  */
 final class FetchRequestAdapter
@@ -21,6 +21,9 @@ final class FetchRequestAdapter
         get {
             $fetchRequest = new FetchRequest();
             $fetchRequestRepresentation = $this->fetchRequestRepresentation;
+            if (isset($fetchRequestRepresentation->entityName)) {
+                $fetchRequest->entityName = $fetchRequestRepresentation->entityName;
+            }
             if (isset($fetchRequestRepresentation->predicate) && is_object($fetchRequestRepresentation->predicate)) {
                 $predicate = $fetchRequestRepresentation->predicate;
                 if (isset($predicate->format)) {

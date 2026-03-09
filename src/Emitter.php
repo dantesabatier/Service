@@ -24,14 +24,11 @@ class Emitter
         if (headers_sent()) {
             die();
         }
-        foreach (["Expires", "Cache-Control", "Pragma"] as $header) {
-            header_remove($header);
-        }
         header(sprintf("%s %s %s", $response->httpVersion, $response->statusCode, Response::localizedString($response->statusCode)));
         foreach ($headers as $key => $value) {
             $value
                 |> human_readable_value(...)
-                |> (fn($x) => sprintf("%s: %s", $key, $x))
+                |> (fn(string $x): string => sprintf("%s: %s", $key, $x))
                 |> header(...);
         }
         if ($contentLength > 0) {

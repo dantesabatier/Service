@@ -35,7 +35,7 @@ class StreamEmitter extends Emitter
             foreach ($headers as $key => $value) {
                 $value
                     |> human_readable_value(...)
-                    |> (fn($x) => sprintf("%s: %s", $key, $x))
+                    |> (fn(string $x): string => sprintf("%s: %s", $key, $x))
                     |> header(...);
                 flush();
             }

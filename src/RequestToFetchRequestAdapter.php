@@ -4,6 +4,7 @@ namespace Sabatier\Service;
 
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
+use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\CompareOptions;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\CompoundPredicate;
@@ -38,12 +39,14 @@ final class RequestToFetchRequestAdapter
             if ($serialization = $request->serialization) {
                 $fetchRequest->serialization = $serialization;
             }
-            $fetchRequest->entity = $this->entity;
+            if ($fetchRequest->entityName) {
+                $fetchRequest->entity = EntityDescription::entity($fetchRequest->entityName, $this->context);
+            }
             return $fetchRequest;
         }
     }
 
-    public function __construct(private readonly Request $request, private readonly EntityDescription $entity)
+    public function __construct(private readonly Request $request, private readonly ManagedObjectContext $context)
     {
     }
 }

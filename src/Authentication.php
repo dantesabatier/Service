@@ -36,7 +36,7 @@ abstract class Authentication
     }
     private bool $isAuthenticatedUserResolved = false;
     /** @var Authorizable|null Represents the authenticated user. */
-    final public ?Authorizable $authenticatedUser {
+    private(set) ?Authorizable $authenticatedUser {
         /**
          * @throws Exception
          */

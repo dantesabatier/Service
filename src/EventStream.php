@@ -9,7 +9,6 @@ use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
 use function Sabatier\Foundation\absolute_time_get_current;
-use function Symfony\Component\String\s;
 
 /** @internal */
 final readonly class EventStream

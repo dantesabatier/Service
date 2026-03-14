@@ -110,10 +110,13 @@ abstract class Responder extends ObjectClass
                     } && ($selector = $this->selector)) {
                     $this->perform($selector);
                 }
-                $response = new Response($request->url, $this->statusCode, body: $this->data);
-                foreach ($this->decorators as $decorator) {
-                    $response = new $decorator($response)->response;
-                }
+                $response = $this->decorators->reduce(new Response($request->url, $this->statusCode, body: $this->data),
+                    /**
+                     * @param Response $response
+                     * @param class-string<ResponseDecorator> $decorator
+                     * @return Response
+                     */
+                    fn(Response $response, string $decorator): Response => new $decorator($response)->response);
                 return new CORSResponseDecorator($response, $request, $this->corsPolicy)->response;
             } finally {
                 if ($this->isSessionEnabled) {

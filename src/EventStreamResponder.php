@@ -18,7 +18,6 @@ final class EventStreamResponder extends Responder
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::get]);
     }
-    public bool $isProtectedContentAvailable = true;
     private FetchRequest $fetchRequest {
         get => $this->fetchRequest ??= new RequestToFetchRequestAdapter($this->request, $this->managedObjectContext)->fetchRequest;
     }

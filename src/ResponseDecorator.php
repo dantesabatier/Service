@@ -16,7 +16,7 @@ namespace Sabatier\Service;
  */
 abstract class ResponseDecorator
 {
-    public function __construct(public Response $response)
+    public function __construct(public readonly Response $response)
     {
     }
 }

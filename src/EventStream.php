@@ -30,11 +30,11 @@ final readonly class EventStream
             }
             /** @var ArrayClass<ManagedObject> $managedObjects */
             $managedObjects = $this->context->fetch($this->fetchRequest);
-            if ($managedObject = $managedObjects->first) {
-                $hash = md5((string)json_encode($managedObject));
+            if (!$managedObjects->isEmpty) {
+                $hash = md5($managedObjects->map(fn(ManagedObject $managedObject): string => "{$managedObject->objectID->referenceObject}:$managedObject->version")->join("|"));
                 if ($hash !== $previousHash) {
                     $previousHash = $hash;
-                    yield new ServerSentEvent($managedObject);
+                    yield new ServerSentEvent($managedObjects);
                 }
             }
             if (absolute_time_get_current() - $time > 15) {

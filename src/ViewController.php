@@ -28,15 +28,9 @@ abstract class ViewController extends Responder
                 return $this->view;
             }
             $this->isViewLoaded = true;
-            if ($this->isSessionEnabled) {
-                $this->session->start();
-            }
             $this->viewWillLoad();
             $this->view = new View($this->name, $this->context, new self::$rendererClass($this->bundle));
             $this->viewDidLoad();
-            if ($this->isSessionEnabled) {
-                $this->session->commit();
-            }
             return $this->view;
         }
     }

@@ -6,7 +6,6 @@ use Override;
 use ReflectionClass;
 use ReflectionProperty;
 use Sabatier\Foundation\Bundle;
-use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use function Sabatier\Foundation\class_name;
 use const Sabatier\Foundation\kCFBundleNameKey;
 
@@ -62,23 +61,8 @@ abstract class ViewController extends Responder
         get => $this->title ??= $this->bundle->object(kCFBundleNameKey);
     }
     #[Override]
-    public Response $response {
-        get {
-            if ($this->request->httpMethod === HTTPRequestMethod::get) {
-                $this->loadView();
-            }
-            return parent::$response::get();
-        }
-    }
-
-    /**
-     * Creates the view that the controller manages.
-     *
-     * You should never call this method directly. This method loads or creates a view and assigns it to the view property.
-     */
-    public function loadView(): void
-    {
-        $this->data = $this->view->render();
+    public mixed $data {
+        get => $this->data ??= $this->view->render();
     }
 
     /**

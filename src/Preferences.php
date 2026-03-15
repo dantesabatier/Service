@@ -8,7 +8,7 @@ use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\UserDefaults;
 
 /** @internal */
-#[Endpoint]
+#[Endpoint("Preferences", decorators: [JSONDecorator::class])]
 final class Preferences extends Responder
 {
     /** @var ArrayClass<string> */

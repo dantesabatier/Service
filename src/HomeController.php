@@ -12,7 +12,7 @@ use const Sabatier\Foundation\kCFBundleShortVersionStringKey;
 use const Sabatier\Foundation\kCFBundleVersionKey;
 
 /** @internal */
-#[Endpoint("/")]
+#[Endpoint("/", decorators: [HTMLDecorator::class])]
 final class HomeController extends ViewController
 {
     /** @var ArrayClass<string> */

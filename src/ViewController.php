@@ -6,7 +6,6 @@ use Override;
 use ReflectionClass;
 use ReflectionProperty;
 use Sabatier\Foundation\Bundle;
-use Sabatier\Foundation\Set;
 use function Sabatier\Foundation\class_name;
 use const Sabatier\Foundation\kCFBundleNameKey;
 
@@ -54,11 +53,6 @@ abstract class ViewController extends Responder
     #[Outlet]
     public ?string $title {
         get => $this->title ??= $this->bundle->object(kCFBundleNameKey);
-    }
-    /** @var Set<class-string<ResponseDecorator>> */
-    #[Override]
-    protected Set $decorators {
-        get => $this->decorators ??= new Set([HTMLDecorator::class, NoCacheHeaderDecorator::class]);
     }
     #[Override]
     protected mixed $data {

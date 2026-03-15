@@ -21,12 +21,12 @@ final class Preferences extends Responder
     public Response $response {
         get {
             try {
-                $defaults = UserDefaults::standard();
                 $request = $this->request;
                 $this->allowedMethods->containsElement($request->httpMethod) ?: throw new MethodNotAllowedException();
                 if ($this->isSessionEnabled) {
                     $this->session->start();
                 }
+                $defaults = UserDefaults::standard();
                 if ($request->httpMethod === HTTPRequestMethod::patch) {
                     foreach ($request->parsedBody as $key => $value) {
                         $defaults->setObject($value, $key);

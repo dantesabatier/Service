@@ -35,6 +35,7 @@ final class PersistentSpace extends Responder
     public Response $response {
         get {
             try {
+                $this->allowedMethods->containsElement($this->request->httpMethod) ?: throw new MethodNotAllowedException();
                 if ($this->isSessionEnabled) {
                     $this->session->start();
                 }

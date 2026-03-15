@@ -1,7 +1,5 @@
 <?php
 
-/** @noinspection PhpInternalEntityUsedInspection */
-
 namespace Sabatier\Service;
 
 use Override;
@@ -25,6 +23,7 @@ final class EventStreamResponder extends Responder
     public Response $response {
         get {
             try {
+                $this->allowedMethods->containsElement($this->request->httpMethod) ?: throw new MethodNotAllowedException();
                 if ($this->isSessionEnabled) {
                     $this->session->start();
                 }

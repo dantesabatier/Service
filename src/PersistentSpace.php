@@ -18,9 +18,6 @@ final class PersistentSpace extends Responder
     private(set) EntityDescription $entity {
         get => $this->entity ??= $this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel?->entitiesByName?->valueForKey($this->request->url->lastPathComponent) ?? throw new NotFoundException();
     }
-    public bool $isSecurityEnabled {
-        get => $this->accessPolicy instanceof DefaultAccessPolicy;
-    }
     public AuthorizationContext $authorizationContext {
         get {
             $authentication = Application::shared()->authenticationManager->authentication;

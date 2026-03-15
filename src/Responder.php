@@ -89,9 +89,12 @@ abstract class Responder extends ObjectClass
     }
     /** @var bool Checks if the protected content is available by determining if the request is authorized. */
     public bool $isProtectedContentAvailable = false;
+    public bool $isSecurityEnabled {
+        get => $this->accessPolicy instanceof DefaultAccessPolicy;
+    }
     /** @var bool Determines if the infrastructure should use session-based persistence as a fallback mechanism when high-security authentication providers are not configured. */
     public bool $isSessionEnabled {
-        get => !$this->environment->offsetExists(JWTPrivateKey);
+        get => $this->isSecurityEnabled && !$this->environment->offsetExists(JWTPrivateKey);
     }
     /** @var Response The response associated with this responder. */
     public Response $response {

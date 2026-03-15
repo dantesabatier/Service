@@ -56,6 +56,7 @@ abstract class ViewController extends Responder
         get => $this->title ??= $this->bundle->object(kCFBundleNameKey);
     }
     /** @var Set<class-string<ResponseDecorator>> */
+    #[Override]
     public Set $decorators {
         get => $this->decorators ??= new Set([HTMLDecorator::class, NoCacheHeaderDecorator::class]);
     }

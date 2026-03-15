@@ -38,7 +38,7 @@ final class ResourceManager extends Responder
     }
     #[Override]
     public bool $isProtectedContentAvailable {
-        get => $this->staticResourceDisposition->isProtectedContentAvailable;
+        get => $this->isProtectedContentAvailable ??= $this->staticResourceDisposition->isProtectedContentAvailable;
     }
     #[Override]
     public Response $response {

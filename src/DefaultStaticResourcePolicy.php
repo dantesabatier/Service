@@ -33,9 +33,11 @@ final class DefaultStaticResourcePolicy implements StaticResourcePolicy
         if ($fileManager->fileExists($resourceURL->path, $isDirectory) && !$isDirectory) {
             /** @var Set<Bundle> $bundles */
             $bundles = new Set([Bundle::main(), Bundle::bundleForClass(self::class)]);
+            /** @var Set<string> $directories */
+            $directories = new Set(["Images", "Scripts", "Styles"]);
             /** @var Set<URL> $publicURLs */
             $publicURLs = new Set([$fileManager->url(SearchPathDirectory::sharedPublicDirectory)]);
-            $publicURLs->formUnion($bundles->compactMap(fn(Bundle $bundle): ?URL => $bundle->url($resourceName)));
+            $publicURLs->formUnion($directories->flatMap(fn(string $directory): Set => $bundles->compactMap(fn(Bundle $bundle): ?URL => $bundle->url($resourceName, subpath: $directory))));
             $isPublic = $publicURLs->contains(fn(URL $publicURL): bool => str_starts_with($resourceURL->path, $publicURL->path));
             return new StaticResourceDisposition(true, false, false, $isPublic, $isPublic);
         }

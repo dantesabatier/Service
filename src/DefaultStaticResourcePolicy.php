@@ -8,6 +8,7 @@ use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\SearchPathDirectory;
+use Sabatier\Foundation\Set;
 use Sabatier\Foundation\URL;
 
 /** @internal */
@@ -30,9 +31,12 @@ final class DefaultStaticResourcePolicy implements StaticResourcePolicy
         }
         $fileManager = FileManager::default();
         if ($fileManager->fileExists($resourceURL->path, $isDirectory) && !$isDirectory) {
-            $publicURL = $fileManager->url(SearchPathDirectory::sharedPublicDirectory);
-            $bundleURL = Bundle::main()->url($resourceName);
-            $isPublic = str_starts_with($resourceURL->path, $publicURL->path) || str_starts_with($resourceURL->path, $bundleURL?->path ?? "");
+            /** @var Set<Bundle> $bundles */
+            $bundles = new Set([Bundle::main(), Bundle::bundleForClass(self::class)]);
+            /** @var Set<URL> $publicURLs */
+            $publicURLs = new Set([$fileManager->url(SearchPathDirectory::sharedPublicDirectory)]);
+            $publicURLs->formUnion($bundles->compactMap(fn(Bundle $bundle): ?URL => $bundle->url($resourceName)));
+            $isPublic = $publicURLs->contains(fn(URL $publicURL): bool => str_starts_with($resourceURL->path, $publicURL->path));
             return new StaticResourceDisposition(true, false, false, $isPublic, $isPublic);
         }
         return new StaticResourceDisposition(false, false, false, false, false);

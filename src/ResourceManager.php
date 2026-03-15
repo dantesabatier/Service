@@ -64,6 +64,9 @@ final class ResourceManager extends Responder
             if ($this->isDataResolved) {
                 return $this->data;
             }
+            if ($this->request->httpMethod === HTTPRequestMethod::head) {
+                return $this->data = null;
+            }
             $path = $this->resourceURL->path;
             if (FileManager::default()->isReadableFile($path)) {
                 return $this->data = FileManager::default()->contents($path) ?? throw new InternalServerErrorException();

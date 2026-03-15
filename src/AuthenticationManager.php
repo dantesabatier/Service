@@ -19,7 +19,7 @@ final class AuthenticationManager extends Responder
 {
     /** @var ArrayClass<string> */
     #[Override]
-    public ArrayClass $allowedMethods {
+    protected ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::post]);
     }
     /** @var Authentication The authentication object managing the authentication process. */

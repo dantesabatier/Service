@@ -13,7 +13,7 @@ final class EventStreamResponder extends Responder
 {
     /** @var ArrayClass<string> */
     #[Override]
-    public ArrayClass $allowedMethods {
+    protected ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::get]);
     }
     private FetchRequest $fetchRequest {

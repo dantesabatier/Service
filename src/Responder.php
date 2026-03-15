@@ -32,7 +32,7 @@ abstract class Responder extends ObjectClass
         get => ProcessInfo::processInfo()->environment;
     }
     /** @var CORSPolicy The CORS policy applied to the response produced by this responder. */
-    public CORSPolicy $corsPolicy {
+    protected CORSPolicy $corsPolicy {
         get {
             if (!isset($this->corsPolicy)) {
                 $policy = Application::shared()->corsPolicy;
@@ -41,7 +41,7 @@ abstract class Responder extends ObjectClass
             return $this->corsPolicy;
         }
     }
-    public AccessPolicy $accessPolicy {
+    protected AccessPolicy $accessPolicy {
         get => Application::shared()->accessPolicy;
     }
     /** @var ManagedObjectContext The managed object context associated with this responder. */
@@ -49,11 +49,11 @@ abstract class Responder extends ObjectClass
         get => Application::shared()->persistentContainer->viewContext;
     }
     /** @var ArrayClass<string> The allowed methods associated with this responder. */
-    public ArrayClass $allowedMethods {
+    protected ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::head, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::delete]);
     }
     /** @var ArrayClass<string> Defines the HTTP headers this responder is capable of understanding. It does not grant permission by itself; the effective allowed headers are the intersection between the responder’s declared headers and the application’s global CORS policy. */
-    public ArrayClass $allowedHeaders {
+    protected ArrayClass $allowedHeaders {
         get => new ArrayClass(["Content-Type", "Authorization", "Serialization"]);
     }
     /** @var Responder|null The next responder. */
@@ -69,31 +69,31 @@ abstract class Responder extends ObjectClass
         get => $this->resolution->matches;
     }
     /** @var string|null The selector associated with this responder. */
-    public ?string $selector {
+    protected ?string $selector {
         get => $this->resolution->selector;
     }
     /** @var Set<class-string<ResponseDecorator>> The set of response decorators applied to this responder. Each decorator is applied to the response returned by the action method. */
-    public Set $decorators {
+    protected Set $decorators {
         get => $this->decorators ??= $this->resolution->decorators;
     }
     /** @var mixed The data produced or returned by the responder's action method. This value is used as the body of the response or as input to response decorators. */
-    public mixed $data = null;
+    protected mixed $data = null;
     /** @var int The HTTP status code to be returned in the response. */
     #[ExpectedValues(valuesFromClass: HTTPStatusCode::class)]
-    public int $statusCode = HTTPStatusCode::ok;
-    public AuthenticationService $authenticationService {
+    protected int $statusCode = HTTPStatusCode::ok;
+    protected AuthenticationService $authenticationService {
         get => Application::shared()->authenticationService;
     }
-    public AuthorizationService $authorizationService {
+    protected AuthorizationService $authorizationService {
         get => Application::shared()->authorizationService;
     }
     /** @var bool Checks if the protected content is available by determining if the request is authorized. */
     public bool $isProtectedContentAvailable = false;
-    public bool $isSecurityEnabled {
+    protected bool $isSecurityEnabled {
         get => $this->accessPolicy instanceof DefaultAccessPolicy;
     }
     /** @var bool Determines if the infrastructure should use session-based persistence as a fallback mechanism when high-security authentication providers are not configured. */
-    public bool $isSessionEnabled {
+    protected bool $isSessionEnabled {
         get => $this->isSecurityEnabled && !$this->environment->offsetExists(JWTPrivateKey);
     }
     /** @var Response The response associated with this responder. */

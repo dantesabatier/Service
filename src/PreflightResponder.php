@@ -9,7 +9,7 @@ use Sabatier\Foundation\Set;
 final class PreflightResponder extends Responder
 {
     #[Override]
-    public Set $decorators {
+    protected Set $decorators {
         get => $this->decorators ??= new Set([ResponseHeaderSanitizerDecorator::class]);
     }
 

@@ -17,7 +17,7 @@ final class Uploader extends Responder
 {
     /** @var ArrayClass<string> */
     #[Override]
-    public ArrayClass $allowedMethods {
+    protected ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::post]);
     }
 

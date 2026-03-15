@@ -19,7 +19,7 @@ abstract class ViewController extends Responder
     /** @var class-string<Renderer> The class used to render the view controller's view */
     public static string $rendererClass = Renderer::class;
     /** @var string The name of the view controller's template file. The default value is the name of the class */
-    public string $name {
+    protected string $name {
         get => $this->name ??= class_name($this->class);
     }
     /** @var View The view that the controller manages. */
@@ -38,7 +38,7 @@ abstract class ViewController extends Responder
     /** @var bool A Boolean value indicating whether the view is currently loaded into memory. */
     private(set) bool $isViewLoaded = false;
     /** @var array<string, mixed> An associative array consisting of the property names and the properties marked as {@see Outlet} passed to the view's rendering system. */
-    public array $context {
+    protected array $context {
         get => $this->context ??= array_reduce(new ReflectionClass($this)->getProperties(ReflectionProperty::IS_PUBLIC), function (array $context, ReflectionProperty $property): array {
             if ($property->getAttributes(Outlet::class) !== []) {
                 $context[$property->name] = $this->valueForKey($property->name);
@@ -47,7 +47,7 @@ abstract class ViewController extends Responder
         }, []);
     }
     /** @var Bundle The view controller's template bundle if it exists. */
-    public Bundle $bundle {
+    protected Bundle $bundle {
         get => $this->bundle ??= Bundle::main();
     }
     /** @var string|null A localized string that represents the view this controller manages. */
@@ -57,11 +57,11 @@ abstract class ViewController extends Responder
     }
     /** @var Set<class-string<ResponseDecorator>> */
     #[Override]
-    public Set $decorators {
+    protected Set $decorators {
         get => $this->decorators ??= new Set([HTMLDecorator::class, NoCacheHeaderDecorator::class]);
     }
     #[Override]
-    public mixed $data {
+    protected mixed $data {
         get => $this->data ??= $this->view->render();
     }
 

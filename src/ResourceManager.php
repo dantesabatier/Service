@@ -17,15 +17,15 @@ final class ResourceManager extends Responder
 {
     /** @var ArrayClass<string> */
     #[Override]
-    public ArrayClass $allowedMethods {
+    protected ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::head, HTTPRequestMethod::get]);
     }
     /** @var ArrayClass<string> */
     #[Override]
-    public ArrayClass $allowedHeaders {
+    protected ArrayClass $allowedHeaders {
         get => new ArrayClass(["Content-Type"]);
     }
-    private(set) URL $resourceURL {
+    private URL $resourceURL {
         get => $this->resourceURL ??= new URL($this->request->url->path, FileManager::default()->documentRootDirectory)->absoluteURL;
     }
     private StaticResourceDisposition $staticResourceDisposition {
@@ -41,7 +41,7 @@ final class ResourceManager extends Responder
     }
     /** @var Set<class-string<ResponseDecorator>> */
     #[Override]
-    public Set $decorators {
+    protected Set $decorators {
         get {
             if (isset($this->decorators)) {
                 return $this->decorators;
@@ -56,7 +56,7 @@ final class ResourceManager extends Responder
     }
     private bool $isDataResolved = false;
     #[Override]
-    public mixed $data {
+    protected mixed $data {
         /**
          * @throws Exception
          */

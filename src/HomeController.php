@@ -17,15 +17,15 @@ final class HomeController extends ViewController
 {
     /** @var ArrayClass<string> */
     #[Override]
-    public ArrayClass $allowedMethods {
+    protected ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::get]);
     }
     #[Override]
-    public string $name = "Home";
+    protected string $name = "Home";
     #[Override]
     public bool $isProtectedContentAvailable = true;
     #[Override]
-    public Bundle $bundle {
+    protected Bundle $bundle {
         get => $this->bundle ??= Bundle::bundleForClass(self::class);
     }
     #[Outlet]

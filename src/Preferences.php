@@ -13,11 +13,11 @@ final class Preferences extends Responder
 {
     /** @var ArrayClass<string> */
     #[Override]
-    public ArrayClass $allowedMethods {
+    protected ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::patch]);
     }
     #[Override]
-    public mixed $data {
+    protected mixed $data {
         get => $this->data ??= UserDefaults::standard()->dictionaryRepresentation();
     }
 

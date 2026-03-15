@@ -5,7 +5,6 @@ namespace Sabatier\Service;
 use Override;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
-use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\UserDefaults;
 
 /** @internal */
@@ -18,26 +17,16 @@ final class Preferences extends Responder
         get => new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::patch]);
     }
     #[Override]
-    public Response $response {
-        get {
-            try {
-                $request = $this->request;
-                $this->allowedMethods->containsElement($request->httpMethod) ?: throw new MethodNotAllowedException();
-                if ($this->isSessionEnabled) {
-                    $this->session->start();
-                }
-                $defaults = UserDefaults::standard();
-                if ($request->httpMethod === HTTPRequestMethod::patch) {
-                    foreach ($request->parsedBody as $key => $value) {
-                        $defaults->setObject($value, $key);
-                    }
-                }
-                return new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new JSONDecorator(new Response($request->url, HTTPStatusCode::ok, body: $defaults->dictionaryRepresentation()))->response)->response, $request, $this->corsPolicy)->response;
-            } finally {
-                if ($this->isSessionEnabled) {
-                    $this->session->commit();
-                }
-            }
+    public mixed $data {
+        get => $this->data ??= UserDefaults::standard()->dictionaryRepresentation();
+    }
+
+    #[Action(HTTPRequestMethod::patch, decorators: [JSONDecorator::class])]
+    public function synchronize(): void
+    {
+        $body = $this->request->parsedBody;
+        foreach ($body as $key => $value) {
+            UserDefaults::standard()->setObject($value, $key);
         }
     }
 }

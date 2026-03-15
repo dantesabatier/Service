@@ -15,13 +15,13 @@ final class PersistentSpace extends Responder
     public ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::delete]);
     }
-    private(set) EntityDescription $entity {
+    private EntityDescription $entity {
         get => $this->entity ??= $this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel?->entitiesByName?->valueForKey($this->request->url->lastPathComponent) ?? throw new NotFoundException();
     }
-    public AuthorizationContext $authorizationContext {
+    private AuthorizationContext $authorizationContext {
         get {
             $authentication = Application::shared()->authenticationManager->authentication;
-            return new AuthorizationContext($authentication->authenticatedUser, $authentication->authorizationScopes, $this->isSecurityEnabled);
+            return $this->authorizationContext ??= new AuthorizationContext($authentication->authenticatedUser, $authentication->authorizationScopes, $this->isSecurityEnabled);
         }
     }
     #[Override]

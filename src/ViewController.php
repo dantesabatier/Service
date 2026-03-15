@@ -46,7 +46,7 @@ abstract class ViewController extends Responder
         }, []);
     }
     /** @var Bundle The view controller's template bundle if it exists. */
-    protected Bundle $bundle {
+    public Bundle $bundle {
         get => $this->bundle ??= Bundle::main();
     }
     /** @var string|null A localized string that represents the view this controller manages. */

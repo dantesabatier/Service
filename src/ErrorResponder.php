@@ -16,9 +16,6 @@ use const Sabatier\Foundation\URLErrorDomain;
 /** @internal */
 final class ErrorResponder extends Responder
 {
-    protected bool $isDevelopmentMode {
-        get => $this->environment[ApplicationEnvironmentKey] === ApplicationEnvironmentDevelopment;
-    }
     #[Override]
     public Response $response {
         get {
@@ -55,6 +52,9 @@ final class ErrorResponder extends Responder
                 }
             }
         }
+    }
+    private bool $isDevelopmentMode {
+        get => $this->isDevelopmentMode ??= $this->environment[ApplicationEnvironmentKey] === ApplicationEnvironmentDevelopment;
     }
     private Throwable $throwable;
 

@@ -25,7 +25,7 @@ final class HomeController extends ViewController
     #[Override]
     public bool $isProtectedContentAvailable = true;
     #[Override]
-    protected Bundle $bundle {
+    public Bundle $bundle {
         get => $this->bundle ??= Bundle::bundleForClass(self::class);
     }
     #[Outlet]

@@ -24,11 +24,11 @@ abstract class Responder extends ObjectClass
     public Request $request {
         get => self::$staticAssociatedValues[self::class][__PROPERTY__] ??= new Request();
     }
-    public Session $session {
+    protected Session $session {
         get => self::$staticAssociatedValues[self::class][__PROPERTY__] ??= new Session();
     }
     /** @var Dictionary<string> The environment variables associated with this responder. */
-    public Dictionary $environment {
+    protected Dictionary $environment {
         get => ProcessInfo::processInfo()->environment;
     }
     /** @var CORSPolicy The CORS policy applied to the response produced by this responder. */

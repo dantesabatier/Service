@@ -6,7 +6,7 @@ namespace Sabatier\Service;
  * Decorates a Response object by adding headers that prevent caching.
  *
  * This decorator modifies the response's header fields to include a
- * "Cache-Control" directive with a no-store policy, and sets "Pragma"
+ * "Cache-Control" directive with a no-store policy and sets "Pragma"
  * and "Expires" for broader client compatibility.
  */
 final class NoCacheHeaderDecorator extends ResponseDecorator

@@ -74,7 +74,7 @@ abstract class Responder extends ObjectClass
     }
     /** @var Set<class-string<ResponseDecorator>> The set of response decorators applied to this responder. Each decorator is applied to the response returned by the action method. */
     public Set $decorators {
-        get => $this->resolution->decorators;
+        get => $this->decorators ??= $this->resolution->decorators;
     }
     /** @var mixed The data produced or returned by the responder's action method. This value is used as the body of the response or as input to response decorators. */
     public mixed $data = null;

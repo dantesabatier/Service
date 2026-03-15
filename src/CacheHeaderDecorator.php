@@ -14,7 +14,7 @@ final class CacheHeaderDecorator extends ResponseDecorator
     public function __construct(Response $response)
     {
         $headers = $response->allHeaderFields;
-        $headers["Cache-Control"] = "public, max-age=3600";
+        $headers["Cache-Control"] = "public, max-age=31536000, s-maxage=31536000, immutable";
         parent::__construct($response);
     }
 }

@@ -3,13 +3,14 @@
 namespace Sabatier\Service;
 
 use Override;
+use Sabatier\Foundation\Set;
 
 /** @internal */
 final class PreflightResponder extends Responder
 {
     #[Override]
-    public Response $response {
-        get => new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new Response($this->request->url))->response, $this->request, $this->corsPolicy)->response;
+    public Set $decorators {
+        get => $this->decorators ??= new Set([ResponseHeaderSanitizerDecorator::class]);
     }
 
     public function respondToPreflightIfNeeded(): void

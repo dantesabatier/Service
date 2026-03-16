@@ -14,7 +14,7 @@ final class EventStreamResponder extends Responder
     /** @var ArrayClass<string> */
     #[Override]
     protected ArrayClass $allowedMethods {
-        get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::get]);
+        get => new ArrayClass([HTTPRequestMethod::get]);
     }
     private FetchRequest $fetchRequest {
         get => $this->fetchRequest ??= new RequestToFetchRequestAdapter($this->request, $this->managedObjectContext)->fetchRequest;

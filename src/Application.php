@@ -5,7 +5,6 @@ namespace Sabatier\Service;
 use ErrorException;
 use Exception;
 use Override;
-use Sabatier\CoreData\MergePolicy;
 use Sabatier\CoreData\PersistentContainer;
 use Sabatier\CoreData\PersistentStoreDescription;
 use Sabatier\Foundation\Bundle;
@@ -23,39 +22,36 @@ use const Sabatier\CoreData\PersistentStoreRemoteChangeNotificationPostOptionKey
 use const Sabatier\Foundation\kCFBundleNameKey;
 
 /**
- * The central object that coordinates request handling, persistence,
- * session management, authentication, authorization, and high-level
- * application lifecycle events.
+ * The central coordinator for request handling, persistence, session
+ * management, authentication/authorization, and lifecycle events.
  *
- * The `Application` class acts as the root of the responder chain and
- * provides access to shared services such as the persistent container,
- * authentication and authorization managers, and the currently active
- * session. It is designed as a singleton accessed through `Application::shared()`.
+ * `Application` is the root of the responder chain and exposes shared
+ * services (persistent container, auth services, policies, session).
+ * It is a singleton accessed via `Application::shared()`.
  *
  * ## Responsibilities
  * - Initializes and configures the Core Data stack.
- * - Manages the application delegate lifecycle events.
- * - Sets up and maintains the user session.
+ * - Manages application delegate lifecycle events.
+ * - Handles preflight requests and shutdown/crash reporting.
  * - Resolves the first responder for each request.
- * - Applies access control policies and establishes the transaction author.
- * - Executes the main application run loop and handles any exceptions.
+ * - Applies access control and sets the transaction author.
+ * - Executes the main run loop and guarantees a structured error response.
  *
  * ## Customization
- * Developers can customize:
+ * You can override or replace:
  * - `authorizationCache` to use custom cache backends.
- * - `authorizationService` to override authorization logic.
+ * - `authorizationService` to replace authorization logic.
  * - `accessPolicy` to define custom access-control behavior.
+ * - `corsPolicy` and `staticResourcePolicy` for platform-level behavior.
  *
- * ## Lifecycle
- * The `run()` method performs:
- * - Application initialization,
- * - Session initialization,
- * - Access checking,
- * - Transaction author assignment,
- * - Response processing.
+ * ## Run Loop (High-Level)
+ * 1. Bootstrap and delegate initialization
+ * 2. Preflight handling (when needed)
+ * 3. Application initialization
+ * 4. Access enforcement and transaction author assignment
+ * 5. Response processing and delivery
  *
- * Any thrown exception is captured and delegated to an internal responder
- * that renders a safe, consistent error response.
+ * Any uncaught exception is converted into a safe, structured error response.
  */
 class Application extends Responder
 {
@@ -155,7 +151,6 @@ class Application extends Responder
         $this->configurePersistentStoreDescriptions($persistentContainer);
         $this->initializePersistentStores($persistentContainer);
         $this->addPersistentStoreObservers($persistentContainer);
-        $this->configureViewContext($persistentContainer);
         return $persistentContainer;
     }
 
@@ -173,11 +168,6 @@ class Application extends Responder
         $persistentContainer->loadPersistentStores(function (PersistentStoreDescription $description, ?Error $error): void {
             $error === null ?: throw new InternalInconsistencyException(error: $error);
         });
-    }
-
-    private function configureViewContext(PersistentContainer $persistentContainer): void
-    {
-        $persistentContainer->viewContext->mergePolicy = MergePolicy::error();
     }
 
     private function addPersistentStoreObservers(PersistentContainer $persistentContainer): void
@@ -271,8 +261,7 @@ class Application extends Responder
      */
     public static function shared(): Application
     {
-        static::$shared ??= new static();
-        return static::$shared;
+        return static::$shared ??= new static();
     }
 
     /**

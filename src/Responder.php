@@ -50,7 +50,7 @@ abstract class Responder extends ObjectClass
     }
     /** @var ArrayClass<string> The allowed methods associated with this responder. */
     protected ArrayClass $allowedMethods {
-        get => new ArrayClass([HTTPRequestMethod::head, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::delete]);
+        get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::head, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::delete]);
     }
     /** @var ArrayClass<string> Defines the HTTP headers this responder is capable of understanding. It does not grant permission by itself; the effective allowed headers are the intersection between the responder’s declared headers and the application’s global CORS policy. */
     protected ArrayClass $allowedHeaders {

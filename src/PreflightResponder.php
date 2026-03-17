@@ -2,9 +2,6 @@
 
 namespace Sabatier\Service;
 
-use Sabatier\Foundation\ArrayClass;
-use Sabatier\Foundation\Networking\HTTPRequestMethod;
-
 /** @internal */
 final class PreflightResponder extends Responder
 {

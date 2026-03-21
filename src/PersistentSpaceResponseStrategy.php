@@ -18,23 +18,23 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
 {
     protected readonly EntityDescription $entity;
     protected readonly ManagedObjectContext $managedObjectContext;
-    private readonly ManagedObjectSecurityPolicy $securityPolicy;
+    private readonly FieldSecurityPolicy $fieldSecurityPolicy;
     protected ?Authorizable $user {
-        get => $this->securityPolicy->user;
+        get => $this->fieldSecurityPolicy->user;
     }
     protected bool $hasOwnScope {
-        get => $this->securityPolicy->hasOwnScope;
+        get => $this->fieldSecurityPolicy->hasOwnScope;
     }
     protected bool $isSecurityEnabled {
-        get => $this->securityPolicy->isSecurityEnabled;
+        get => $this->fieldSecurityPolicy->isSecurityEnabled;
     }
 
-    public function __construct(Request $request, EntityDescription $entity, ManagedObjectContext $managedObjectContext, ManagedObjectSecurityPolicy $securityPolicy)
+    public function __construct(Request $request, EntityDescription $entity, ManagedObjectContext $managedObjectContext, FieldSecurityPolicy $fieldSecurityPolicy)
     {
         parent::__construct($request);
         $this->entity = $entity;
         $this->managedObjectContext = $managedObjectContext;
-        $this->securityPolicy = $securityPolicy;
+        $this->fieldSecurityPolicy = $fieldSecurityPolicy;
     }
 
     protected function fetchRequestFor(ManagedObjectID|int $objectID): FetchRequest
@@ -61,7 +61,7 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
 
     protected function enforceOwnership(ManagedObject $object): void
     {
-        $this->securityPolicy->enforceOwnership($object);
+        $this->fieldSecurityPolicy->enforceOwnership($object);
     }
 
     /**
@@ -71,7 +71,7 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
      */
     protected function applySecureUpdate(ManagedObject $object, Dictionary $body): void
     {
-        $this->securityPolicy->applySecureUpdate($object, $body);
+        $this->fieldSecurityPolicy->applySecureUpdate($object, $body);
     }
 
     /**
@@ -82,6 +82,6 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
      */
     protected function applySecureRead(ManagedObject $object, Dictionary $data): Dictionary
     {
-        return $this->securityPolicy->applySecureRead($object, $data);
+        return $this->fieldSecurityPolicy->applySecureRead($object, $data);
     }
 }

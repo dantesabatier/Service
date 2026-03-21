@@ -6,17 +6,16 @@ namespace Sabatier\Service;
 
 use Exception;
 use Sabatier\CoreData\ManagedObject;
-use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use function Sabatier\Foundation\fatal_error;
 
 /**
- * Base policy for securing managed object reads and writes.
+ * Base policy for field-level security on managed object reads and writes.
  *
  * Provides shared authorization context and ownership enforcement,
  * while delegating read/write filtering to subclasses.
  */
-abstract readonly class ManagedObjectSecurityPolicy
+abstract readonly class FieldSecurityPolicy
 {
     /** @var Authorizable|null The authenticated user for policy evaluation. */
     public ?Authorizable $user;
@@ -26,15 +25,13 @@ abstract readonly class ManagedObjectSecurityPolicy
     public bool $isSecurityEnabled;
 
     /**
-     * @param Authorizable|null $user The authenticated user for authorization checks.
-     * @param ArrayClass<string> $scopes The authorization scopes associated with the user.
-     * @param bool $isSecurityEnabled Whether security enforcement is enabled for this request.
+     * @param AuthorizationContext $authorizationContext The authorization context for the current request.
      */
-    public function __construct(?Authorizable $user, ArrayClass $scopes, bool $isSecurityEnabled = true)
+    public function __construct(AuthorizationContext $authorizationContext)
     {
-        $this->user = $user;
-        $this->hasOwnScope = $scopes->contains(fn(string $scope): bool => str_ends_with($scope, AuthorizationScope::own->name));
-        $this->isSecurityEnabled = $isSecurityEnabled;
+        $this->user = $authorizationContext->user;
+        $this->hasOwnScope = $authorizationContext->scopes->contains(fn(string $scope): bool => str_ends_with($scope, AuthorizationScope::own->name));
+        $this->isSecurityEnabled = $authorizationContext->isSecurityEnabled;
     }
 
     /**

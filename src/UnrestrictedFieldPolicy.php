@@ -11,7 +11,7 @@ use Sabatier\Foundation\Dictionary;
 /**
  * No-op policy that allows unrestricted reads and writes.
  */
-final readonly class UnrestrictedObjectPropertyPolicy extends ManagedObjectSecurityPolicy
+final readonly class UnrestrictedFieldPolicy extends FieldSecurityPolicy
 {
     #[Override]
     public function applySecureUpdate(ManagedObject $object, Dictionary $body): void

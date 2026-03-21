@@ -13,7 +13,7 @@ use function Sabatier\Foundation\fatal_error;
 /**
  * Default restrictive policy that applies field-level security filters.
  */
-final readonly class SecureObjectPropertyPolicy extends ManagedObjectSecurityPolicy
+final readonly class FieldLevelSecurityPolicy extends FieldSecurityPolicy
 {
     #[Override]
     public function applySecureUpdate(ManagedObject $object, Dictionary $body): void

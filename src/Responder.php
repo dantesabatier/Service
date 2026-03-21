@@ -42,6 +42,20 @@ abstract class Responder extends ObjectClass
     public ManagedObjectContext $managedObjectContext {
         get => Application::shared()->persistentContainer->viewContext;
     }
+    protected AuthenticationService $authenticationService {
+        get => Application::shared()->authenticationService;
+    }
+    protected AuthorizationService $authorizationService {
+        get => Application::shared()->authorizationService;
+    }
+    /** @var AuthorizationContext Authorization context derived from the current authentication. */
+    protected AuthorizationContext $authorizationContext {
+        get => $this->authorizationContext ??= new AuthorizationContext(Application::shared()->authenticationManager->authentication->authenticatedUser, Application::shared()->authenticationManager->authentication->authorizationScopes, $this->isSecurityEnabled);
+    }
+    /** @var FieldSecurityPolicy Security policy used for field-level read/write enforcement. */
+    protected FieldSecurityPolicy $fieldSecurityPolicy {
+        get => $this->fieldSecurityPolicy ??= new FieldLevelSecurityPolicy($this->authorizationContext);
+    }
     /** @var ArrayClass<string> The allowed methods associated with this responder. */
     protected ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::options, HTTPRequestMethod::head, HTTPRequestMethod::get, HTTPRequestMethod::post, HTTPRequestMethod::patch, HTTPRequestMethod::delete]);
@@ -75,20 +89,6 @@ abstract class Responder extends ObjectClass
     /** @var int The HTTP status code to be returned in the response. */
     #[ExpectedValues(valuesFromClass: HTTPStatusCode::class)]
     protected int $statusCode = HTTPStatusCode::ok;
-    protected AuthenticationService $authenticationService {
-        get => Application::shared()->authenticationService;
-    }
-    protected AuthorizationService $authorizationService {
-        get => Application::shared()->authorizationService;
-    }
-    /** @var AuthorizationContext Authorization context derived from the current authentication. */
-    protected AuthorizationContext $authorizationContext {
-        get => $this->authorizationContext ??= new AuthorizationContext(Application::shared()->authenticationManager->authentication->authenticatedUser, Application::shared()->authenticationManager->authentication->authorizationScopes, $this->isSecurityEnabled);
-    }
-    /** @var ManagedObjectSecurityPolicy Security policy used for managed object read/write enforcement. */
-    protected ManagedObjectSecurityPolicy $securityPolicy {
-        get => $this->securityPolicy ??= new SecureObjectPropertyPolicy($this->authorizationContext->user, $this->authorizationContext->scopes, $this->authorizationContext->isSecurityEnabled);
-    }
     /** @var bool Checks if the protected content is available by determining if the request is authorized. */
     public bool $isProtectedContentAvailable = false;
     protected bool $isSecurityEnabled {

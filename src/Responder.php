@@ -83,10 +83,7 @@ abstract class Responder extends ObjectClass
     }
     /** @var AuthorizationContext Authorization context derived from the current authentication. */
     protected AuthorizationContext $authorizationContext {
-        get {
-            $authentication = Application::shared()->authenticationManager->authentication;
-            return $this->authorizationContext ??= new AuthorizationContext($authentication->authenticatedUser, $authentication->authorizationScopes, $this->isSecurityEnabled);
-        }
+        get => $this->authorizationContext ??= new AuthorizationContext(Application::shared()->authenticationManager->authentication->authenticatedUser, Application::shared()->authenticationManager->authentication->authorizationScopes, $this->isSecurityEnabled);
     }
     /** @var ManagedObjectSecurityPolicy Security policy used for managed object read/write enforcement. */
     protected ManagedObjectSecurityPolicy $securityPolicy {

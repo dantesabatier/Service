@@ -16,12 +16,8 @@ final class DeletePersistentSpaceResponseStrategy extends PersistentSpaceRespons
          * @throws Exception
          */
         get {
-            if (!($objectID = $this->request->parameters[ManagedObjectObjectIDKey])) {
-                throw new BadRequestException();
-            }
-            if (!($object = $this->fetchBy($objectID))) {
-                throw new NotFoundException();
-            }
+            $objectID = $parameters[ManagedObjectObjectIDKey] ?? throw new BadRequestException();
+            $object = $this->fetchBy($objectID) ?? throw new NotFoundException();
             $this->enforceOwnership($object);
             $context = $this->managedObjectContext;
             $context->delete($object);

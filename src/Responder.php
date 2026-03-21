@@ -33,13 +33,7 @@ abstract class Responder extends ObjectClass
     }
     /** @var CORSPolicy The CORS policy applied to the response produced by this responder. */
     protected CORSPolicy $corsPolicy {
-        get {
-            if (!isset($this->corsPolicy)) {
-                $policy = Application::shared()->corsPolicy;
-                $this->corsPolicy = new CORSPolicy($policy->allowedOrigins, $policy->allowedMethods->intersection(new Set($this->allowedMethods)), $policy->allowedHeaders->intersection(new Set($this->allowedHeaders)), $policy->allowCredentials);
-            }
-            return $this->corsPolicy;
-        }
+        get => $this->corsPolicy = new CORSPolicy(Application::shared()->corsPolicy->allowedOrigins, Application::shared()->corsPolicy->allowedMethods->intersection(new Set($this->allowedMethods)), Application::shared()->corsPolicy->allowedHeaders->intersection(new Set($this->allowedHeaders)), Application::shared()->corsPolicy->allowCredentials);
     }
     protected AccessPolicy $accessPolicy {
         get => Application::shared()->accessPolicy;
@@ -86,6 +80,17 @@ abstract class Responder extends ObjectClass
     }
     protected AuthorizationService $authorizationService {
         get => Application::shared()->authorizationService;
+    }
+    /** @var AuthorizationContext Authorization context derived from the current authentication. */
+    protected AuthorizationContext $authorizationContext {
+        get {
+            $authentication = Application::shared()->authenticationManager->authentication;
+            return $this->authorizationContext ??= new AuthorizationContext($authentication->authenticatedUser, $authentication->authorizationScopes, $this->isSecurityEnabled);
+        }
+    }
+    /** @var ManagedObjectSecurityPolicy Security policy used for managed object read/write enforcement. */
+    protected ManagedObjectSecurityPolicy $securityPolicy {
+        get => $this->securityPolicy ??= new SecureObjectPropertyPolicy($this->authorizationContext->user, $this->authorizationContext->scopes, $this->authorizationContext->isSecurityEnabled);
     }
     /** @var bool Checks if the protected content is available by determining if the request is authorized. */
     public bool $isProtectedContentAvailable = false;

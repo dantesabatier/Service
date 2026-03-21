@@ -2,7 +2,6 @@
 
 namespace Sabatier\Service;
 
-use JetBrains\PhpStorm\Deprecated;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLRequest;
@@ -40,11 +39,6 @@ final class Request extends URLRequest
                 $result[$queryItem->name] = $queryItem->value;
                 return $result;
             }) ?? new Dictionary();
-    }
-    /** @var Dictionary<mixed> */
-    #[Deprecated]
-    public Dictionary $parsedBody {
-        get => $this->parameters;
     }
     /** @var Dictionary<mixed> Request input parameters merged from the parsed body and query string. */
     private(set) Dictionary $parameters {

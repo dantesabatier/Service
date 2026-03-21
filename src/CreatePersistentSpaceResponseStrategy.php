@@ -22,12 +22,12 @@ final class CreatePersistentSpaceResponseStrategy extends PersistentSpaceRespons
          */
         get {
             $request = $this->request;
-            $parsedBody = $request->parsedBody;
+            $parameters = $request->parameters;
             $context = $this->managedObjectContext;
             $entity = $this->entity;
-            $this->assertUniqueness($parsedBody[ManagedObjectObjectIDKey] ?? 0);
+            $this->assertUniqueness($parameters[ManagedObjectObjectIDKey] ?? 0);
             $object = EntityDescription::insertNewObject($entity->name, $context);
-            $this->applySecureUpdate($object, $parsedBody);
+            $this->applySecureUpdate($object, $parameters);
             $context->save();
             /** @var ManagedObject $refreshed */
             $refreshed = $this->fetchBy($object->objectID);

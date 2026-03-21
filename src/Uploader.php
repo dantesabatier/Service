@@ -27,9 +27,9 @@ final class Uploader extends Responder
     #[Action(decorators: [JSONDecorator::class])]
     public function upload(): void
     {
-        $parsedBody = $this->request->parsedBody;
+        $parameters = $this->request->parameters;
         /** @var string $directory */
-        $directory = $parsedBody["directory"] ?? throw new BadRequestException();
+        $directory = $parameters["directory"] ?? throw new BadRequestException();
         preg_match("/^[A-Za-z0-9_-]+\$/", $directory) ?: throw new BadRequestException();
         $directoryURL = new URL($directory, FileManager::default()->documentRootDirectory)->absoluteURL;
         $keys = new Set([URLResourceKey::nameKey]);

@@ -2,6 +2,7 @@
 
 namespace Sabatier\Service;
 
+use JetBrains\PhpStorm\Deprecated;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLRequest;
@@ -27,34 +28,40 @@ use function Sabatier\Foundation\request_url;
  */
 final class Request extends URLRequest
 {
-    /** @var Dictionary<mixed> Parsed body of the request. */
-    private(set) Dictionary $parsedBody {
-        get {
-            if (!isset($this->parsedBody)) {
-                $this->parsedBody = Dictionary::dictionaryWithArray($this->getParsedBody());
-                if ($this->parsedBody->isEmpty) {
-                    $components = new URLComponents($this->url->absoluteString);
-                    if ($dictionary = $components->queryItems?->reduce(new Dictionary(), function (Dictionary $result, URLQueryItem $queryItem): Dictionary {
-                        $result[$queryItem->name] = $queryItem->value;
-                        return $result;
-                    })) {
-                        $this->parsedBody->merge($dictionary);
-                    }
-                }
-            }
-            return $this->parsedBody;
-        }
+    /** @var Dictionary<string> Query string parameters parsed from the request URL. */
+    private(set) Dictionary $queryParameters {
+        get => $this->queryParameters ??= new URLComponents($this->url->absoluteString)->queryItems?->reduce(new Dictionary(),
+            /**
+             * @param Dictionary<string> $result
+             * @param URLQueryItem $queryItem
+             * @return Dictionary<string>
+             */
+            function (Dictionary $result, URLQueryItem $queryItem): Dictionary {
+                $result[$queryItem->name] = $queryItem->value;
+                return $result;
+            }) ?? new Dictionary();
     }
+    /** @var Dictionary<mixed> */
+    #[Deprecated]
+    public Dictionary $parsedBody {
+        get => $this->parameters;
+    }
+    /** @var Dictionary<mixed> Request input parameters merged from the parsed body and query string. */
+    private(set) Dictionary $parameters {
+        get => $this->parameters ??= Dictionary::dictionaryWithArray($this->getParsedBody())->merging($this->queryParameters);
+    }
+    private bool $isSerializationResolved = false;
     /** @var Dictionary<mixed>|null Describes which attributes/relationships to include when serializing objects for this request. */
     private(set) ?Dictionary $serialization {
         get {
-            if (!isset($this->serialization)) {
-                if (($string = $this->valueForHttpHeaderField("Serialization")) && json_validate($string) && ($array = json_decode($string, true))) {
-                    $this->serialization = Dictionary::dictionaryWithArray($array);
-                }
-                $this->serialization ??= null;
+            if ($this->isSerializationResolved) {
+                return $this->serialization;
             }
-            return $this->serialization;
+            $this->isSerializationResolved = true;
+            if (($string = $this->valueForHttpHeaderField("Serialization")) && json_validate($string) && ($array = json_decode($string, true))) {
+                return $this->serialization = Dictionary::dictionaryWithArray($array);
+            }
+            return $this->serialization = null;
         }
     }
     /** @var AuthorizationHeader Parsed `Authorization` header. */

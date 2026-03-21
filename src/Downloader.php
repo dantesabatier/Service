@@ -27,7 +27,7 @@ final class Downloader extends Responder
     #[Action(decorators: [DownloadResponseDecorator::class])]
     public function download(): void
     {
-        $parsedBody = $this->request->parsedBody;
+        $parsedBody = $this->request->parameters;
         /** @var string $urlString */
         $urlString = $parsedBody["url"] ?? throw new BadRequestException();
         $attachmentURL = new URL($urlString);

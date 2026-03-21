@@ -24,8 +24,8 @@ final class Preferences extends Responder
     #[Action(HTTPRequestMethod::patch, decorators: [JSONDecorator::class])]
     public function synchronize(): void
     {
-        $body = $this->request->parsedBody;
-        foreach ($body as $key => $value) {
+        $parameters = $this->request->parameters;
+        foreach ($parameters as $key => $value) {
             UserDefaults::standard()->setObject($value, $key);
         }
     }

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-12-10 10:12-0600\n"
+"POT-Creation-Date: 2026-04-02 05:57-0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -37,3 +37,9 @@ msgstr "El token de acceso ha expirado."
 
 msgid "Access token issuer is invalid."
 msgstr "El emisor del token de acceso no es válido."
+
+msgid "Access denied: evaluator %s rejected the request."
+msgstr "Acceso denegado: el evaluador %s rechazó la solicitud."
+
+msgid "Access denied: no evaluator allowed access."
+msgstr "Acceso denegado: ningún evaluador permitió el acceso."

@@ -6,7 +6,7 @@ use Override;
 use Sabatier\Foundation\Date;
 
 /** @internal */
-final class JSONWebTokenRefreshTimeEvaluator implements AccessEvaluator
+final class JSONWebTokenRefreshTimeEvaluator implements AuthenticationAccessEvaluator
 {
     #[Override]
     public function evaluate(AccessEvaluationContext $context): bool
@@ -18,10 +18,6 @@ final class JSONWebTokenRefreshTimeEvaluator implements AccessEvaluator
         if (!($payload = $authentication->token?->payload)) {
             return false;
         }
-        $now = new Date()->timeIntervalSinceReferenceDate;
-        if ($payload->expiration && $payload->expiration > $now) {
-            return false;
-        }
-        return !($payload->notBefore && $payload->notBefore > $now);
+        return !($payload->notBefore && $payload->notBefore > new Date()->timeIntervalSinceReferenceDate);
     }
 }

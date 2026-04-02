@@ -13,18 +13,22 @@ use Sabatier\Foundation\ArrayClass;
  */
 final class AccessEvaluatorChain implements AccessEvaluator
 {
+    /** @var AccessEvaluator|null The first evaluator that denied access during the most recent evaluation. */
+    private(set) ?AccessEvaluator $failedEvaluator = null;
+
     /**
      * Creates a new evaluator chain that evaluates access in the order provided.
      *
      * @param ArrayClass<AccessEvaluator> $evaluators The ordered sequence of evaluators to execute. The chain grants access only if every evaluator in this list returns `true` when evaluating the given context. Evaluators should be pure in the sense that they must not alter the shared state in a way that compromises later evaluations.
      */
-    public function __construct(public ArrayClass $evaluators)
+    public function __construct(public readonly ArrayClass $evaluators)
     {
     }
 
     #[Override]
     public function evaluate(AccessEvaluationContext $context): bool
     {
-        return $this->evaluators->allSatisfy(fn(AccessEvaluator $evaluator) => $evaluator->evaluate($context));
+        $this->failedEvaluator = $this->evaluators->first(fn(AccessEvaluator $evaluator) => !$evaluator->evaluate($context));
+        return $this->failedEvaluator === null;
     }
 }

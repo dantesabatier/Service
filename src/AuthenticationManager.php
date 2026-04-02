@@ -107,7 +107,7 @@ final class AuthenticationManager extends Responder
         /** @var Dictionary<mixed> $data */
         $data = new Dictionary();
         $data[AuthenticationUserKey] = $user;
-        $data[AuthenticationTokenKey] = new JSONWebTokenIssuer(new JSONWebTokenService($privateKey, $this->request->url->host), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? JWTValidityDefaultTimeInterval)->floatValue)->issue($user, $authentication->context, new ArrayClass([AuthenticationScopeAccess]));
+        $data[AuthenticationTokenKey] = new JSONWebTokenIssuer(new JSONWebTokenService($privateKey, $this->request->url->host), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? JWTValidityDefaultTimeInterval)->floatValue)->issue($user, $authentication->context, new ArrayClass([AuthenticationScopeAccess, AuthenticationScopeRefresh]));
         $this->data = $data;
     }
 }

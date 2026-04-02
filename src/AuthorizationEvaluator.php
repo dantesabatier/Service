@@ -6,7 +6,7 @@ use Override;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 
 /** @internal */
-final class AuthorizationEvaluator implements AccessEvaluator
+final class AuthorizationEvaluator implements AuthorizationAccessEvaluator
 {
     #[Override]
     public function evaluate(AccessEvaluationContext $context): bool

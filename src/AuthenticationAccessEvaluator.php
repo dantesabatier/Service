@@ -2,7 +2,7 @@
 
 namespace Sabatier\Service;
 
-interface AuthenticationAccessEvaluator
+interface AuthenticationAccessEvaluator extends AccessEvaluator
 {
 
 }

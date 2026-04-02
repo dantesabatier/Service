@@ -5,7 +5,7 @@ namespace Sabatier\Service;
 use Override;
 
 /** @internal */
-final class SessionAuthenticationEvaluator implements AccessEvaluator
+final class SessionAuthenticationEvaluator implements AuthenticationAccessEvaluator
 {
     #[Override]
     public function evaluate(AccessEvaluationContext $context): bool

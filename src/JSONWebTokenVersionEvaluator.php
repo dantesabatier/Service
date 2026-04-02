@@ -5,7 +5,7 @@ namespace Sabatier\Service;
 use Override;
 
 /** @internal */
-final class JSONWebTokenVersionEvaluator implements AccessEvaluator
+final class JSONWebTokenVersionEvaluator implements AuthenticationAccessEvaluator
 {
     #[Override]
     public function evaluate(AccessEvaluationContext $context): bool

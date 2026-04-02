@@ -34,7 +34,7 @@ final class Downloader extends Responder
         $fileManager = FileManager::default();
         $resourceURL = new URL($attachmentURL->path, $fileManager->documentRootDirectory)->absoluteURL;
         $path = $resourceURL->path;
-        $fileManager->fileExists($path) ?: throw new NotFoundException();
+        $fileManager->fileExists($path) ?: throw new NotFoundException("The requested URL was not found on this server $resourceURL");
         $fileManager->isReadableFile($path) ?: throw new MethodNotAllowedException();
         $body = $fileManager->contents($path) ?? throw new InternalServerErrorException();
         $contentType = URLFileTypeMappings::shared()->mimeType($resourceURL->pathExtension);

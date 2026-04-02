@@ -25,11 +25,11 @@ final class AuthenticationManager extends Responder
     /** @var Authentication The authentication object managing the authentication process. */
     private(set) Authentication $authentication {
         get {
-            if (!isset($this->authentication)) {
-                $authenticationClass = AuthenticationFactory::getAuthenticationClass(AuthenticationFactory::getAuthentications() ?? new Set(), $this->request->authorizationHeader->scheme) ?? throw new UnimplementedException();
-                $this->authentication = new $authenticationClass(new AuthenticationContext($this->request->authorizationHeader, $this->request->url->host, $this->request->httpMethod, $this->managedObjectContext, $this->isFirstResponder ? $this->request->serialization : null, $this->authenticationService), $this->environment);
+            if (isset($this->authentication)) {
+                return $this->authentication;
             }
-            return $this->authentication;
+            $authenticationClass = AuthenticationFactory::getAuthenticationClass(AuthenticationFactory::getAuthentications() ?? new Set(), $this->request->authorizationHeader->scheme) ?? throw new UnimplementedException();
+            return $this->authentication = new $authenticationClass(new AuthenticationContext($this->request->authorizationHeader, $this->request->url->host, $this->request->httpMethod, $this->managedObjectContext, $this->isFirstResponder ? $this->request->serialization : null, $this->authenticationService), $this->environment);
         }
     }
     /** @var AccessEvaluator The access evaluator responsible for determining if a request has permission to access a protected resource. */

@@ -5,9 +5,9 @@ namespace Sabatier\Service;
 use Sabatier\Foundation\Set;
 
 /**
- * A factory class for managing authentication strategy classes.
+ * A resolver class for managing authentication strategy classes.
  */
-final class AuthenticationFactory
+final class AuthenticationResolver
 {
     /** @var Set<class-string<Authentication>>|null */
     private static ?Set $registeredAuthenticationClasses = null;

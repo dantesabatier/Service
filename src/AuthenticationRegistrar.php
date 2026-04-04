@@ -14,7 +14,7 @@ final class AuthenticationRegistrar
         }
         $classes = [BasicAuthentication::class, BearerAuthentication::class, DigestAuthentication::class];
         foreach ($classes as $class) {
-            AuthenticationFactory::registerClass($class);
+            AuthenticationResolver::registerClass($class);
         }
         self::$registered = true;
     }

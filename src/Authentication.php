@@ -53,7 +53,7 @@ abstract class Authentication
     }
 
     /**
-     * Initializes a new instance of the AuthenticationStrategy class.
+     * Initializes a new instance of the Authentication class.
      *
      * @param AuthenticationContext $context The authentication context.
      * @param Dictionary<string> $environment The environment variables.

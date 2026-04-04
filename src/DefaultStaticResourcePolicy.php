@@ -16,7 +16,28 @@ final class DefaultStaticResourcePolicy implements StaticResourcePolicy
 {
     /** @var ArrayClass<string> */
     private ArrayClass $optionalResourceNames {
-        get => $this->optionalResourceNames ??= new ArrayClass(["favicon.ico"]);
+        get => $this->optionalResourceNames ??= new ArrayClass(["favicon.ico", "favicon.png", "apple-touch-icon.png", "apple-touch-icon-precomposed.png", "browserconfig.xml", "robots.txt", "ads.txt", "manifest.json", "site.webmanifest"]);
+    }
+    /** @var list<string> */
+    private const array resourceKeys = ["resourceURL", "privateFrameworksURL", "sharedFrameworksURL", "builtInPlugInsURL", "sharedSupportURL", "vendorURL", "nodeModulesURL"];
+    /** @var Set<URL> */
+    private Set $publicURLs {
+        /**
+         * @throws Exception
+         */
+        get {
+            if (isset($this->publicURLs)) {
+                return $this->publicURLs;
+            }
+            /** @var Set<Bundle> $bundles */
+            $bundles = new Set([Bundle::main(), Bundle::bundleForClass(self::class)]);
+            /** @var Set<string> $keys */
+            $keys = new Set(self::resourceKeys);
+            /** @var Set<URL> $publicURLs */
+            $publicURLs = new Set([FileManager::default()->url(SearchPathDirectory::sharedPublicDirectory)]);
+            $publicURLs->formUnion($bundles->flatMap(fn(Bundle $bundle): Set => $keys->compactMap(fn(string $key): ?URL => $bundle->valueForKey($key))));
+            return $this->publicURLs = $publicURLs;
+        }
     }
 
     /**
@@ -31,15 +52,7 @@ final class DefaultStaticResourcePolicy implements StaticResourcePolicy
         }
         $fileManager = FileManager::default();
         if ($fileManager->fileExists($resourceURL->path, $isDirectory) && !$isDirectory) {
-            /** @var Set<Bundle> $bundles */
-            $bundles = new Set([Bundle::main(), Bundle::bundleForClass(self::class)]);
-            /** @var Set<string> $directories */
-            $directories = new Set(["vendor", "node_modules"]);
-            /** @var Set<URL> $publicURLs */
-            $publicURLs = new Set([$fileManager->url(SearchPathDirectory::sharedPublicDirectory)]);
-            $publicURLs->formUnion($bundles->compactMap(fn(Bundle $bundle): ?URL => $bundle->resourceURL));
-            $publicURLs->formUnion($directories->flatMap(fn(string $directory): Set => $bundles->map(fn(Bundle $bundle): URL => $bundle->bundleURL->appendingPathComponent($directory))));
-            $isPublic = $publicURLs->contains(fn(URL $publicURL): bool => str_starts_with($resourceURL->path, $publicURL->path));
+            $isPublic = $this->publicURLs->contains(fn(URL $publicURL): bool => str_starts_with($resourceURL->path, $publicURL->path));
             return new StaticResourceDisposition(true, false, false, $isPublic, $isPublic);
         }
         return new StaticResourceDisposition(false, false, false, false, false);

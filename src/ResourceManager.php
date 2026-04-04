@@ -66,8 +66,9 @@ final class ResourceManager extends Responder
                 return $this->data = null;
             }
             $path = $this->resourceURL->path;
-            if (FileManager::default()->isReadableFile($path)) {
-                return $this->data = FileManager::default()->contents($path) ?? throw new InternalServerErrorException();
+            $fileManager = FileManager::default();
+            if ($fileManager->isReadableFile($path)) {
+                return $this->data = $fileManager->contents($path) ?? throw new InternalServerErrorException();
             }
             $this->staticResourceDisposition->allowEmptyResponse ?: throw new NotFoundException("The requested URL was not found on this server $this->resourceURL");
             return $this->data = null;

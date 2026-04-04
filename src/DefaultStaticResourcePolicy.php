@@ -50,8 +50,7 @@ final class DefaultStaticResourcePolicy implements StaticResourcePolicy
         if ($this->optionalResourceNames->containsElement($resourceName)) {
             return new StaticResourceDisposition(true, true, true, true, true);
         }
-        $fileManager = FileManager::default();
-        if ($fileManager->fileExists($resourceURL->path, $isDirectory) && !$isDirectory) {
+        if (FileManager::default()->fileExists($resourceURL->path, $isDirectory) && !$isDirectory) {
             $isPublic = $this->publicURLs->contains(fn(URL $publicURL): bool => str_starts_with($resourceURL->path, $publicURL->path));
             return new StaticResourceDisposition(true, false, false, $isPublic, $isPublic);
         }

@@ -22,11 +22,11 @@ final class AuthenticationResolver
     }
 
     /**
-     * Attempts to register a subclass of AuthenticationStrategy, making it visible to the access manager.
+     * Attempts to register a subclass of Authentication, making it visible to the access manager.
      *
-     * The first AuthenticationStrategy subclass to return true when sent a {@see canHandle()} message is used to authenticate the request. There is no guarantee that all registered authentication classes will be consulted.
+     * The first Authentication subclass to return true when sent a {@see canHandle()} message is used to authenticate the request. There is no guarantee that all registered authentication classes will be consulted.
      * @param class-string<Authentication> $authenticationClass
-     * @return bool true if the registration is successful, false otherwise. The only failure condition is if authenticationClass is not a subclass of AuthenticationStrategy.
+     * @return bool true if the registration is successful, false otherwise. The only failure condition is if authenticationClass is not a subclass of Authentication.
      */
     public static function registerClass(string $authenticationClass): bool
     {
@@ -66,7 +66,7 @@ final class AuthenticationResolver
     }
 
     /**
-     * Unregisters the specified subclass of AuthenticationStrategy.
+     * Unregisters the specified subclass of Authentication.
      * @param class-string<Authentication> $authenticationClass
      */
     public function unregisterClass(string $authenticationClass): void

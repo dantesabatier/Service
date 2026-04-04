@@ -12,7 +12,7 @@ final readonly class StaticResourceDisposition
      * @param bool $isOptional Whether the resource is considered optional.
      * @param bool $allowEmptyResponse Whether an empty response is allowed when the resource is missing.
      * @param bool $cacheable Whether the response may be cached.
-     * @param bool $isProtectedContentAvailable Whether the requested resource is permitted to be served even if it resides outside standard public directories (or similar logic).
+     * @param bool $isProtectedContentAvailable Whether the requested resource is permitted to be served even if it resides outside standard public directories.
      */
     public function __construct(public bool $shouldHandle, public bool $isOptional, public bool $allowEmptyResponse, public bool $cacheable, public bool $isProtectedContentAvailable)
     {

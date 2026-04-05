@@ -14,9 +14,29 @@ final class DigestAuthentication extends Authentication
         get => AuthenticationScheme::digest;
     }
     /** @var Dictionary<string> */
-    private(set) Dictionary $parameters;
+    private(set) Dictionary $parameters {
+        get {
+            if (isset($this->parameters)) {
+                return $this->parameters;
+            }
+            preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->context->authorizationHeader->value, $matches);
+            return $this->parameters = new Dictionary(array_combine($matches[1], $matches[2]));
+        }
+    }
+    private bool $isCredentialResolved = false;
     #[Override]
-    private(set) ?URLCredential $credential = null;
+    private(set) ?URLCredential $credential {
+        get {
+            if ($this->isCredentialResolved) {
+                return $this->credential;
+            }
+            $this->isCredentialResolved = true;
+            if (!($username = $this->parameters["username"])) {
+                return $this->credential = null;
+            }
+            return $this->credential = new URLCredential($username);
+        }
+    }
     #[Override]
     private(set) bool $isValid {
         get {
@@ -39,16 +59,6 @@ final class DigestAuthentication extends Authentication
             $HA2 = hash($algo, "{$this->context->httpMethod}:$uri");
             $response = hash($algo, "$HA1:$nonce:$nc:$cnonce:$qop:$HA2");
             return $this->isValid = $parameters["response"] === $response;
-        }
-    }
-
-    public function __construct(AuthenticationContext $context, Dictionary $environment)
-    {
-        parent::__construct($context, $environment);
-        preg_match_all("/(username|uri|nonce|nc|cnonce|qop|algorithm|response|opaque)=['\"]?([^'\",]+)/", $this->context->authorizationHeader->value, $matches);
-        $this->parameters = new Dictionary(array_combine($matches[1], $matches[2]));
-        if ($username = $this->parameters["username"]) {
-            $this->credential = new URLCredential($username);
         }
     }
 

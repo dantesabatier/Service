@@ -38,6 +38,10 @@ abstract class Responder extends ObjectClass
     protected AccessPolicy $accessPolicy {
         get => Application::shared()->accessPolicy;
     }
+    /** @var SecurityHeadersPolicy The security policy applied to the response produced by this responder. */
+    protected SecurityHeadersPolicy $securityHeadersPolicy {
+        get => Application::shared()->securityHeadersPolicy;
+    }
     /** @var ManagedObjectContext The managed object context associated with this responder. */
     public ManagedObjectContext $managedObjectContext {
         get => Application::shared()->persistentContainer->viewContext;
@@ -115,7 +119,7 @@ abstract class Responder extends ObjectClass
                     } && ($selector = $this->selector)) {
                     $this->perform($selector);
                 }
-                return new CORSResponseTransformer(new ResponsePipeline($this->transformers)->process(new Response($request->url, $this->statusCode, body: $this->data)), $request, $this->corsPolicy)->response;
+                return new CORSResponseTransformer(new SecurityHeadersTransformer(new ResponsePipeline($this->transformers)->process(new Response($request->url, $this->statusCode, body: $this->data)), $this->securityHeadersPolicy)->response, $request, $this->corsPolicy)->response;
             } finally {
                 if ($this->isSessionEnabled) {
                     $this->session->commit();

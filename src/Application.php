@@ -97,6 +97,10 @@ class Application extends Responder
     public CORSPolicy $corsPolicy {
         get => $this->corsPolicy ??= CORSPolicy::policy();
     }
+    #[Override]
+    public SecurityHeadersPolicy $securityHeadersPolicy {
+        get => $this->securityHeadersPolicy ??= SecurityHeadersPolicy::policy();
+    }
     /** @var AccessPolicy The access policy for enforcing access control. */
     #[Override]
     public AccessPolicy $accessPolicy {

@@ -46,6 +46,7 @@
       "src/CORSConstants.php",
       "src/JSONWebTokenConstants.php",
       "src/JSONWebTokenErrorCodes.php",
+      "src/SecurityHeadersConstants.php",
       "src/SessionAdditions.php"
     ]
   },

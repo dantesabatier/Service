@@ -115,13 +115,7 @@ abstract class Responder extends ObjectClass
                     } && ($selector = $this->selector)) {
                     $this->perform($selector);
                 }
-                return new CORSResponseTransformer($this->transformers->reduce(new Response($request->url, $this->statusCode, body: $this->data),
-                    /**
-                     * @param Response $response
-                     * @param class-string<ResponseTransformer> $transformer
-                     * @return Response
-                     */
-                    fn(Response $response, string $transformer): Response => new $transformer($response)->response), $request, $this->corsPolicy)->response;
+                return new CORSResponseTransformer(new ResponsePipeline($this->transformers)->process(new Response($request->url, $this->statusCode, body: $this->data)), $request, $this->corsPolicy)->response;
             } finally {
                 if ($this->isSessionEnabled) {
                     $this->session->commit();

@@ -1,0 +1,25 @@
+<?php
+
+namespace Sabatier\Service;
+
+use Sabatier\Foundation\Set;
+
+/** @internal */
+final readonly class ResponsePipeline
+{
+    /** @param Set<class-string<ResponseTransformer>> $transformers */
+    public function __construct(private Set $transformers)
+    {
+    }
+
+    public function process(Response $response): Response
+    {
+        return $this->transformers->reduce($response,
+            /**
+             * @param Response $response
+             * @param class-string<ResponseTransformer> $transformer
+             * @return Response
+             */
+            fn(Response $response, string $transformer): Response => new $transformer($response)->response);
+    }
+}

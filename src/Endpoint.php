@@ -12,9 +12,9 @@ final readonly class Endpoint
 {
     /**
      * @param string|null $path Opcional, path del endpoint. Por omisión, se usa el nombre de la clase.
-     * @param array<class-string<ResponseDecorator>> $decorators Decorators aplicados a todas las acciones de este endpoint.
+     * @param array<class-string<ResponseTransformer>> $transformers Transformers aplicados a todas las acciones de este endpoint.
      */
-    public function __construct(public ?string $path = null, public array $decorators = [])
+    public function __construct(public ?string $path = null, public array $transformers = [])
     {
     }
 }

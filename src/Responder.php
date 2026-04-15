@@ -80,11 +80,11 @@ abstract class Responder extends ObjectClass
     protected ?string $selector {
         get => $this->resolution->selector;
     }
-    /** @var Set<class-string<ResponseDecorator>> The set of response decorators applied to this responder. Each decorator is applied to the response returned by the action method. */
-    protected Set $decorators {
-        get => $this->decorators ??= $this->resolution->decorators;
+    /** @var Set<class-string<ResponseTransformer>> The ordered set of response transformers applied to this responder. */
+    protected Set $transformers {
+        get => $this->transformers ??= $this->resolution->transformers;
     }
-    /** @var mixed The data produced or returned by the responder's action method. This value is used as the body of the response or as input to response decorators. */
+    /** @var mixed The data produced or returned by the responder's action method. This value is used as the body of the response or as input to response transformers. */
     protected mixed $data = null;
     /** @var int The HTTP status code to be returned in the response. */
     #[ExpectedValues(valuesFromClass: HTTPStatusCode::class)]
@@ -115,13 +115,13 @@ abstract class Responder extends ObjectClass
                     } && ($selector = $this->selector)) {
                     $this->perform($selector);
                 }
-                return new CORSResponseDecorator($this->decorators->reduce(new Response($request->url, $this->statusCode, body: $this->data),
+                return new CORSResponseTransformer($this->transformers->reduce(new Response($request->url, $this->statusCode, body: $this->data),
                     /**
                      * @param Response $response
-                     * @param class-string<ResponseDecorator> $decorator
+                     * @param class-string<ResponseTransformer> $transformer
                      * @return Response
                      */
-                    fn(Response $response, string $decorator): Response => new $decorator($response)->response), $request, $this->corsPolicy)->response;
+                    fn(Response $response, string $transformer): Response => new $transformer($response)->response), $request, $this->corsPolicy)->response;
             } finally {
                 if ($this->isSessionEnabled) {
                     $this->session->commit();

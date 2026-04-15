@@ -48,7 +48,7 @@ final class AuthenticationManager extends Responder
      *
      * @throws Exception
      */
-    #[Action(decorators: [JSONDecorator::class])]
+    #[Action(transformers: [JSONTransformer::class])]
     public function login(): void
     {
         $user = $this->authentication->authenticatedUser ?? throw new UnauthorizedException();
@@ -89,7 +89,7 @@ final class AuthenticationManager extends Responder
      *
      * @throws Exception
      */
-    #[Action(decorators: [JSONDecorator::class])]
+    #[Action(transformers: [JSONTransformer::class])]
     public function refresh(): void
     {
         $authentication = $this->authentication;

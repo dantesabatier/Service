@@ -16,8 +16,8 @@ final class ResponderResolution
 {
     private(set) bool $matches = false;
     private(set) ?string $selector = null;
-    /** @var Set<class-string<ResponseDecorator>> */
-    private(set) Set $decorators;
+    /** @var Set<class-string<ResponseTransformer>> */
+    private(set) Set $transformers;
 
     /**
      * @param class-string<Responder> $responderClass
@@ -26,7 +26,7 @@ final class ResponderResolution
      */
     public function __construct(string $responderClass, string $path)
     {
-        $this->decorators = new Set();
+        $this->transformers = new Set();
         $reflectionClass = new ReflectionClass($responderClass);
         foreach ($reflectionClass->getAttributes(Endpoint::class) as $attribute) {
             $endpoint = $attribute->newInstance();
@@ -36,7 +36,7 @@ final class ResponderResolution
             }
             if (string_is_equal($path, $other, CompareOptions::caseInsensitive)) {
                 $this->matches = true;
-                $this->decorators->formUnion($endpoint->decorators);
+                $this->transformers->formUnion($endpoint->transformers);
             }
         }
         foreach ($reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
@@ -50,11 +50,11 @@ final class ResponderResolution
                 if (string_is_equal($path, $other, CompareOptions::caseInsensitive)) {
                     $this->matches = true;
                     $this->selector = $method->name;
-                    $this->decorators->formUnion($action->decorators);
+                    $this->transformers->formUnion($action->transformers);
                     break 2;
                 }
             }
         }
-        $this->decorators->insert(ResponseHeaderSanitizerDecorator::class);
+        $this->transformers->insert(ResponseHeaderSanitizerTransformer::class);
     }
 }

@@ -24,7 +24,7 @@ final class Uploader extends Responder
     /**
      * @throws Exception
      */
-    #[Action(decorators: [JSONDecorator::class])]
+    #[Action(transformers: [JSONTransformer::class])]
     public function upload(): void
     {
         $parameters = $this->request->parameters;

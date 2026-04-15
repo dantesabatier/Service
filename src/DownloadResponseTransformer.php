@@ -2,14 +2,14 @@
 
 namespace Sabatier\Service;
 /**
- * @psalm-type DownloadResponseDecoratorData array{body: string, filename: string, contentType: string}
+ * @psalm-type DownloadResponseTransformerData array{body: string, filename: string, contentType: string}
  * @internal
  */
-final class DownloadResponseDecorator extends ResponseDecorator
+final class DownloadResponseTransformer extends ResponseTransformer
 {
     public function __construct(Response $response)
     {
-        /** @var DownloadResponseDecoratorData $data */
+        /** @var DownloadResponseTransformerData $data */
         $data = $response->body;
         $body = $data["body"];
         $headers = $response->allHeaderFields;

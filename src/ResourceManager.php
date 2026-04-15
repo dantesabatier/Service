@@ -37,19 +37,19 @@ final class ResourceManager extends Responder
     public bool $isProtectedContentAvailable {
         get => $this->isProtectedContentAvailable ??= $this->staticResourceDisposition->isProtectedContentAvailable;
     }
-    /** @var Set<class-string<ResponseDecorator>> */
+    /** @var Set<class-string<ResponseTransformer>> */
     #[Override]
-    protected Set $decorators {
+    protected Set $transformers {
         get {
-            if (isset($this->decorators)) {
-                return $this->decorators;
+            if (isset($this->transformers)) {
+                return $this->transformers;
             }
-            /** @var Set<class-string<ResponseDecorator>> $decorators */
-            $decorators = new Set([ContentTypeDecorator::class]);
+            /** @var Set<class-string<ResponseTransformer>> $decorators */
+            $decorators = new Set([ContentTypeTransformer::class]);
             if ($this->staticResourceDisposition->cacheable) {
-                $decorators->insert(CacheHeaderDecorator::class);
+                $decorators->insert(CacheHeaderTransformer::class);
             }
-            return $this->decorators = $decorators;
+            return $this->transformers = $decorators;
         }
     }
     private bool $isDataResolved = false;

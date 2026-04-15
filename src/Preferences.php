@@ -8,7 +8,7 @@ use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\UserDefaults;
 
 /** @internal */
-#[Endpoint("Preferences", decorators: [JSONDecorator::class])]
+#[Endpoint("Preferences", transformers: [JSONTransformer::class])]
 final class Preferences extends Responder
 {
     /** @var ArrayClass<string> */
@@ -21,7 +21,7 @@ final class Preferences extends Responder
         get => $this->data ??= UserDefaults::standard()->dictionaryRepresentation();
     }
 
-    #[Action(HTTPRequestMethod::patch, decorators: [JSONDecorator::class])]
+    #[Action(HTTPRequestMethod::patch, transformers: [JSONTransformer::class])]
     public function synchronize(): void
     {
         $parameters = $this->request->parameters;

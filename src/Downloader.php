@@ -24,7 +24,7 @@ final class Downloader extends Responder
     /**
      * @throws Exception
      */
-    #[Action(decorators: [DownloadResponseDecorator::class])]
+    #[Action(transformers: [DownloadResponseTransformer::class])]
     public function download(): void
     {
         $parsedBody = $this->request->parameters;

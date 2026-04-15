@@ -6,7 +6,7 @@ use Sabatier\Foundation\Set;
 use function Sabatier\Foundation\string_split_trimmed;
 
 /** @internal */
-final class CORSResponseDecorator extends ResponseDecorator
+final class CORSResponseTransformer extends ResponseTransformer
 {
     public function __construct(Response $response, Request $request, CORSPolicy $policy)
     {

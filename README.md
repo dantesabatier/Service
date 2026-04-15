@@ -38,14 +38,14 @@ This keeps endpoint code minimal and ensures errors are always returned in a str
 ### Defining Endpoints and Actions
 The framework uses a declarative approach to map requests to logic. An `#[Endpoint]` defines a class-level route for read access (GET), while `#[Action]` methods represent explicit state changes (mutations) such as PATCH/POST/DELETE. If a class is not an endpoint, it does not serve GET. If it defines no actions, it does not mutate state.
 ```php
-#[Endpoint("/preferences", decorators: [JSONDecorator::class])]
+#[Endpoint("/preferences", transformers: [JSONTransformer::class])]
 final class Preferences extends Responder {
     #[Override]
     protected mixed $data {
         get => $this->data ??= UserDefaults::standard()->dictionaryRepresentation();
     }
 
-    #[Action(method: HTTPRequestMethod::patch, decorators: [JSONDecorator::class])]
+    #[Action(method: HTTPRequestMethod::patch, transformers: [JSONTransformer::class])]
     public function update(): void {
         foreach ($this->request->parsedBody as $key => $value) {
             UserDefaults::standard()->setObject($value, $key);
@@ -57,7 +57,7 @@ final class Preferences extends Responder {
 ### ViewController + Outlets
 `ViewController` renders server-side templates and exposes data via `#[Outlet]` properties. Outlets are reflected into the view context automatically, so templates receive the values without manual wiring.
 ```php
-#[Endpoint("/", decorators: [HTMLDecorator::class])]
+#[Endpoint("/", transformers: [HTMLTransformer::class])]
 final class HomeController extends ViewController {
     protected string $name = "Home";
 

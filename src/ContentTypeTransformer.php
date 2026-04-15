@@ -5,7 +5,7 @@ namespace Sabatier\Service;
 use Sabatier\Foundation\URLFileTypeMappings;
 
 /** @internal */
-final class ContentTypeDecorator extends ResponseDecorator
+final class ContentTypeTransformer extends ResponseTransformer
 {
     public function __construct(Response $response)
     {

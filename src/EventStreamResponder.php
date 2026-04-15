@@ -27,7 +27,7 @@ final class EventStreamResponder extends Responder
                 if ($this->isSessionEnabled) {
                     $this->session->start();
                 }
-                return new CORSResponseDecorator(new ResponseHeaderSanitizerDecorator(new EventStreamResponse($this->request->url, new EventStream($this->fetchRequest, $this->managedObjectContext)->generator(...)))->response, $this->request, $this->corsPolicy)->response;
+                return new CORSResponseTransformer(new ResponseHeaderSanitizerTransformer(new EventStreamResponse($this->request->url, new EventStream($this->fetchRequest, $this->managedObjectContext)->generator(...)))->response, $this->request, $this->corsPolicy)->response;
             } finally {
                 if ($this->isSessionEnabled) {
                     $this->session->commit();

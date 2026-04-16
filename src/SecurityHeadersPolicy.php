@@ -14,6 +14,6 @@ final readonly class SecurityHeadersPolicy
     public static function policy(): SecurityHeadersPolicy
     {
         $environment = ProcessInfo::processInfo()->environment;
-        return new SecurityHeadersPolicy($environment[SecurityContentSecurityPolicyKey], $environment[SecurityStrictTransportSecurityKey], $environment[SecurityXContentTypeOptionsKey], $environment[SecurityXFrameOptionsKey], $environment[SecurityReferrerPolicyKey], $environment[SecurityPermissionsPolicyKey]);
+        return new SecurityHeadersPolicy($environment[SecurityContentSecurityPolicyKey], $environment[SecurityStrictTransportSecurityKey], $environment[SecurityXContentTypeOptionsKey] ?? SecurityXContentTypeOptionsDefault, $environment[SecurityXFrameOptionsKey] ?? SecurityXFrameOptionsDefault, $environment[SecurityReferrerPolicyKey] ?? SecurityReferrerPolicyDefault, $environment[SecurityPermissionsPolicyKey] ?? SecurityPermissionsPolicyDefault);
     }
 }

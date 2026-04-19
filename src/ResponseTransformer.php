@@ -43,6 +43,9 @@ namespace Sabatier\Service;
  *     }
  * }
  * </code>
+ *
+ * @psalm-consistent-constructor
+ * @phpstan-consistent-constructor
  */
 abstract class ResponseTransformer
 {

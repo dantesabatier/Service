@@ -58,6 +58,12 @@
         <InternalClass errorLevel="suppress"/>
         <InternalProperty errorLevel="suppress"/>
         <RiskyTruthyFalsyComparison errorLevel="suppress"/>
+        <ConstructorSignatureMismatch>
+            <errorLevel type="suppress">
+                <file name="src/CORSResponseTransformer.php"/>
+                <file name="src/SecurityHeadersTransformer.php"/>
+            </errorLevel>
+        </ConstructorSignatureMismatch>
         <InvalidAttribute errorLevel="suppress"/>
     </issueHandlers>
     <plugins>

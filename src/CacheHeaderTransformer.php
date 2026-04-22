@@ -14,7 +14,7 @@ final class CacheHeaderTransformer extends ResponseTransformer
     public function __construct(Response $response)
     {
         $headers = $response->allHeaderFields;
-        $headers["Cache-Control"] = "public, max-age=31536000, s-maxage=31536000, immutable";
+        $headers["Cache-Control"] = "no-cache";
         parent::__construct($response);
     }
 }

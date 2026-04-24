@@ -47,8 +47,8 @@ abstract class Responder extends ObjectClass
         get => Application::shared()->cachePolicy;
     }
     /** @var ResponseTransformerContext The transformer context assembling the request and all policies for this responder's response pipeline. Override to customize which context is propagated to internal transformers. */
-    protected ResponseTransformerContext $context {
-        get => $this->context ??= new ResponseTransformerContext(
+    protected ResponseTransformerContext $transformerContext {
+        get => $this->transformerContext ??= new ResponseTransformerContext(
             request: $this->request,
             cachePolicy: $this->cachePolicy,
             corsPolicy: $this->corsPolicy,
@@ -138,11 +138,11 @@ abstract class Responder extends ObjectClass
                             new ResponsePipeline($this->transformers)->process(
                                 new Response($request->url, $this->statusCode, body: $this->data)
                             ),
-                            $this->context
+                            $this->transformerContext
                         )->response,
-                        $this->context
+                        $this->transformerContext
                     )->response,
-                    $this->context
+                    $this->transformerContext
                 )->response;
             } finally {
                 if ($this->isSessionEnabled) {

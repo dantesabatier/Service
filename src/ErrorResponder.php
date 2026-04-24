@@ -54,7 +54,17 @@ final class ErrorResponder extends Responder
                     };
                     $headerFields["WWW-Authenticate"] = $schemeHeader;
                 }
-                return new CORSResponseTransformer(new SecurityHeadersTransformer(new ResponseHeaderSanitizerTransformer(new JSONTransformer(new Response($request->url, $statusCode, $headerFields, $body))->response)->response, $this->securityHeadersPolicy)->response, $request, $this->corsPolicy)->response;
+                return new CORSResponseTransformer(
+                    new SecurityHeadersTransformer(
+                        new ResponseHeaderSanitizerTransformer(
+                            new JSONTransformer(
+                                new Response($request->url, $statusCode, $headerFields, $body)
+                            )->response
+                        )->response,
+                        $this->transformerContext
+                    )->response,
+                    $this->transformerContext
+                )->response;
             } finally {
                 if ($this->isSessionEnabled) {
                     $this->session->commit();

@@ -260,7 +260,7 @@ class Application extends Responder
         $remaining = max(0, $policy->maxRequests - $count);
         $this->rateLimitInfo = new RateLimitInfo($policy->maxRequests, $remaining, $reset);
         if ($count > $policy->maxRequests) {
-            throw new TooManyRequestsException($ttl);
+            throw new TooManyRequestsException(max(1, $ttl));
         }
     }
 

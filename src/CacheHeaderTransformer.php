@@ -13,7 +13,11 @@ class CacheHeaderTransformer extends ResponseTransformer
 {
     public function __construct(Response $response, ResponseTransformerContext $context = new ResponseTransformerContext())
     {
-        $policy = $context->cachePolicy ?? Application::shared()->cachePolicy;
+        $policy = $context->cachePolicy;
+        if ($policy === null) {
+            parent::__construct($response, $context);
+            return;
+        }
         $headers = $response->allHeaderFields;
         $directives = [$policy->visibility, "max-age=$policy->maxAge"];
         if ($policy->staleWhileRevalidate !== null) {

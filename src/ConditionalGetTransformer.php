@@ -32,7 +32,8 @@ final class ConditionalGetTransformer extends ResponseTransformer
             parent::__construct($response, $context);
             return;
         }
-        $etag = '"' . md5(serialize($response->body)) . '"';
+        $body = $response->body;
+        $etag = '"' . md5(is_string($body) ? $body : serialize($body)) . '"';
         $headers["ETag"] = $etag;
         $ifNoneMatch = $request->valueForHttpHeaderField("If-None-Match");
         if ($ifNoneMatch !== null) {

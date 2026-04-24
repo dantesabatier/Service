@@ -22,8 +22,8 @@ final class CORSResponseTransformer extends ResponseTransformer
     public function __construct(Response $response, ResponseTransformerContext $context = new ResponseTransformerContext())
     {
         $request = $context->request;
-        $policy = $context->corsPolicy ?? Application::shared()->corsPolicy;
-        if ($request === null || !($origin = $request->valueForHttpHeaderField("Origin"))) {
+        $policy = $context->corsPolicy;
+        if ($policy === null || $request === null || !($origin = $request->valueForHttpHeaderField("Origin"))) {
             parent::__construct($response, $context);
             return;
         }

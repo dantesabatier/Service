@@ -18,8 +18,7 @@ final class APCuRateLimitStore implements RateLimitStore
 {
     public function increment(string $key, int $windowSeconds): int
     {
-        if (!apcu_exists($key)) {
-            apcu_store($key, 1, $windowSeconds);
+        if (apcu_add($key, 1, $windowSeconds)) {
             return 1;
         }
         /** @var int $count */

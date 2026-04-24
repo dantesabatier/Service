@@ -27,7 +27,8 @@
     "ext-zlib": "*",
     "ext-openssl": "*",
     "sabatier/foundation": "@dev",
-    "sabatier/coredata": "@dev"
+    "sabatier/coredata": "@dev",
+    "ext-apcu": "*"
   },
   "config": {
     "platform": {

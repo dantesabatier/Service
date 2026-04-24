@@ -8,14 +8,16 @@ use function Sabatier\Foundation\string_split_trimmed;
 /** @internal */
 final class CORSResponseTransformer extends ResponseTransformer
 {
-    public function __construct(Response $response, Request $request, CORSPolicy $policy)
+    public function __construct(Response $response, ResponseTransformerContext $context = new ResponseTransformerContext())
     {
-        if (!($origin = $request->valueForHttpHeaderField("Origin"))) {
-            parent::__construct($response);
+        $request = $context->request;
+        $policy = $context->corsPolicy ?? Application::shared()->corsPolicy;
+        if ($request === null || !($origin = $request->valueForHttpHeaderField("Origin"))) {
+            parent::__construct($response, $context);
             return;
         }
         if (!$policy->allowsOrigin($origin)) {
-            parent::__construct($response);
+            parent::__construct($response, $context);
             return;
         }
         $headers = $response->allHeaderFields;
@@ -38,6 +40,6 @@ final class CORSResponseTransformer extends ResponseTransformer
                 $headers["Access-Control-Allow-Headers"] = $allowedHeaders->join(", ");
             }
         }
-        parent::__construct($response);
+        parent::__construct($response, $context);
     }
 }

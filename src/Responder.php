@@ -123,19 +123,18 @@ abstract class Responder extends ObjectClass
                     } && ($selector = $this->selector)) {
                     $this->perform($selector);
                 }
+                $context = new ResponseTransformerContext(request: $request, cachePolicy: $this->cachePolicy, corsPolicy: $this->corsPolicy, securityHeadersPolicy: $this->securityHeadersPolicy);
                 return new CORSResponseTransformer(
                     new SecurityHeadersTransformer(
                         new ConditionalGetTransformer(
                             new ResponsePipeline($this->transformers)->process(
                                 new Response($request->url, $this->statusCode, body: $this->data)
                             ),
-                            $request,
-                            $this->cachePolicy
+                            $context
                         )->response,
-                        $this->securityHeadersPolicy
+                        $context
                     )->response,
-                    $request,
-                    $this->corsPolicy
+                    $context
                 )->response;
             } finally {
                 if ($this->isSessionEnabled) {

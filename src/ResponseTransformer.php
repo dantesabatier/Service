@@ -49,7 +49,7 @@ namespace Sabatier\Service;
  */
 abstract class ResponseTransformer
 {
-    public function __construct(public readonly Response $response)
+    public function __construct(public readonly Response $response, ResponseTransformerContext $context = new ResponseTransformerContext())
     {
     }
 }

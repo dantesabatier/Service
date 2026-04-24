@@ -13,16 +13,18 @@ use Sabatier\Foundation\Networking\HTTPStatusCode;
  */
 final class ConditionalGetTransformer extends ResponseTransformer
 {
-    public function __construct(Response $response, Request $request, HTTPCachePolicy $policy = new HTTPCachePolicy())
+    public function __construct(Response $response, ResponseTransformerContext $context = new ResponseTransformerContext())
     {
-        if (!$policy->etagEnabled || $request->httpMethod !== HTTPRequestMethod::get || $response->statusCode < HTTPStatusCode::ok || $response->statusCode > 299) {
-            parent::__construct($response);
+        $request = $context->request;
+        $policy = $context->cachePolicy ?? Application::shared()->cachePolicy;
+        if (!$policy->etagEnabled || $request === null || $request->httpMethod !== HTTPRequestMethod::get || $response->statusCode < HTTPStatusCode::ok || $response->statusCode > 299) {
+            parent::__construct($response, $context);
             return;
         }
         $headers = $response->allHeaderFields;
         $cacheControl = (string)$headers["Cache-Control"];
         if (str_contains($cacheControl, "no-store")) {
-            parent::__construct($response);
+            parent::__construct($response, $context);
             return;
         }
         $etag = '"' . md5(serialize($response->body)) . '"';
@@ -39,9 +41,9 @@ final class ConditionalGetTransformer extends ResponseTransformer
             if ($vary !== "") {
                 $notModifiedHeaders["Vary"] = $vary;
             }
-            parent::__construct($notModified);
+            parent::__construct($notModified, $context);
             return;
         }
-        parent::__construct($response);
+        parent::__construct($response, $context);
     }
 }

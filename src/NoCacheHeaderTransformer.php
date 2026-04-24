@@ -11,12 +11,12 @@ namespace Sabatier\Service;
  */
 final class NoCacheHeaderTransformer extends ResponseTransformer
 {
-    public function __construct(Response $response)
+    public function __construct(Response $response, ResponseTransformerContext $context = new ResponseTransformerContext())
     {
         $headers = $response->allHeaderFields;
         $headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0";
         $headers["Pragma"] = "no-cache";
         $headers["Expires"] = "0";
-        parent::__construct($response);
+        parent::__construct($response, $context);
     }
 }

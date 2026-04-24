@@ -23,7 +23,7 @@ use Sabatier\Foundation\Networking\HTTPStatusCode;
  */
 final class ResponseHeaderSanitizerTransformer extends ResponseTransformer
 {
-    public function __construct(Response $response)
+    public function __construct(Response $response, ResponseTransformerContext $context = new ResponseTransformerContext())
     {
         $headers = $response->allHeaderFields;
         if (match ($response->statusCode) {
@@ -37,6 +37,6 @@ final class ResponseHeaderSanitizerTransformer extends ResponseTransformer
                 default => false
             });
         }
-        parent::__construct($response);
+        parent::__construct($response, $context);
     }
 }

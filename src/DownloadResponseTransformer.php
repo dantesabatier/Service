@@ -7,7 +7,7 @@ namespace Sabatier\Service;
  */
 final class DownloadResponseTransformer extends ResponseTransformer
 {
-    public function __construct(Response $response)
+    public function __construct(Response $response, ResponseTransformerContext $context = new ResponseTransformerContext())
     {
         /** @var DownloadResponseTransformerData $data */
         $data = $response->body;
@@ -17,6 +17,6 @@ final class DownloadResponseTransformer extends ResponseTransformer
         $headers["Content-Disposition"] = "attachment; filename=\"{$data["filename"]}\"";
         $headers["Content-Length"] = (string)strlen($body);
         $response->body = $body;
-        parent::__construct($response);
+        parent::__construct($response, $context);
     }
 }

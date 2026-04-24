@@ -15,10 +15,10 @@ final class HTMLTransformer extends ResponseTransformer
      *
      * @param Response $response The response to decorate.
      */
-    public function __construct(Response $response)
+    public function __construct(Response $response, ResponseTransformerContext $context = new ResponseTransformerContext())
     {
         $headers = $response->allHeaderFields;
         $headers["Content-Type"] = "text/html; charset=utf-8";
-        parent::__construct($response);
+        parent::__construct($response, $context);
     }
 }

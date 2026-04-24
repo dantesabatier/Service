@@ -11,9 +11,9 @@ namespace Sabatier\Service;
  */
 class CacheHeaderTransformer extends ResponseTransformer
 {
-    public function __construct(Response $response, ?HTTPCachePolicy $policy = null)
+    public function __construct(Response $response, ResponseTransformerContext $context = new ResponseTransformerContext())
     {
-        $policy ??= Application::shared()->cachePolicy;
+        $policy = $context->cachePolicy ?? Application::shared()->cachePolicy;
         $headers = $response->allHeaderFields;
         $directives = [$policy->visibility, "max-age=$policy->maxAge"];
         if ($policy->staleWhileRevalidate !== null) {
@@ -23,6 +23,6 @@ class CacheHeaderTransformer extends ResponseTransformer
         if ($policy->vary !== null) {
             $headers["Vary"] = $policy->vary;
         }
-        parent::__construct($response);
+        parent::__construct($response, $context);
     }
 }

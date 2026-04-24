@@ -30,6 +30,10 @@
     "sabatier/coredata": "@dev",
     "ext-apcu": "*"
   },
+  "suggest": {
+    "ext-redis": "Required to use RedisRateLimitStore for distributed rate limiting across multiple servers.",
+    "ext-memcached": "Required to use MemcachedRateLimitStore for distributed rate limiting across multiple servers."
+  },
   "config": {
     "platform": {
       "ext-pcntl": "8.5",

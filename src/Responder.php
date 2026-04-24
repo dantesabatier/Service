@@ -46,6 +46,15 @@ abstract class Responder extends ObjectClass
     protected HTTPCachePolicy $cachePolicy {
         get => Application::shared()->cachePolicy;
     }
+    /** @var ResponseTransformerContext The transformer context assembling the request and all policies for this responder's response pipeline. Override to customize which context is propagated to internal transformers. */
+    protected ResponseTransformerContext $context {
+        get => $this->context ??= new ResponseTransformerContext(
+            request: $this->request,
+            cachePolicy: $this->cachePolicy,
+            corsPolicy: $this->corsPolicy,
+            securityHeadersPolicy: $this->securityHeadersPolicy,
+        );
+    }
     /** @var ManagedObjectContext The managed object context associated with this responder. */
     public ManagedObjectContext $managedObjectContext {
         get => Application::shared()->persistentContainer->viewContext;
@@ -123,18 +132,17 @@ abstract class Responder extends ObjectClass
                     } && ($selector = $this->selector)) {
                     $this->perform($selector);
                 }
-                $context = new ResponseTransformerContext(request: $request, cachePolicy: $this->cachePolicy, corsPolicy: $this->corsPolicy, securityHeadersPolicy: $this->securityHeadersPolicy);
                 return new CORSResponseTransformer(
                     new SecurityHeadersTransformer(
                         new ConditionalGetTransformer(
                             new ResponsePipeline($this->transformers)->process(
                                 new Response($request->url, $this->statusCode, body: $this->data)
                             ),
-                            $context
+                            $this->context
                         )->response,
-                        $context
+                        $this->context
                     )->response,
-                    $context
+                    $this->context
                 )->response;
             } finally {
                 if ($this->isSessionEnabled) {

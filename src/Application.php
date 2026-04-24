@@ -110,6 +110,10 @@ class Application extends Responder
     public StaticResourcePolicy $staticResourcePolicy {
         get => $this->staticResourcePolicy ??= new DefaultStaticResourcePolicy();
     }
+    /** @var HTTPCachePolicy The HTTP cache policy that controls caching behavior (ETags, Cache-Control directives) for all responses. Override this property in the application delegate to customize the default policy. */
+    public HTTPCachePolicy $cachePolicy {
+        get => $this->cachePolicy ??= HTTPCachePolicy::policy();
+    }
     private bool $isTerminated = false;
     private bool $isBootstrapped = false;
 

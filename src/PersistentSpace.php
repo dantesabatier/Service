@@ -30,7 +30,7 @@ final class PersistentSpace extends Responder
                 if ($this->isSessionEnabled) {
                     $this->session->start();
                 }
-                return new CORSResponseTransformer(new SecurityHeadersTransformer(new ResponseHeaderSanitizerTransformer(new JSONTransformer(new PersistentSpaceResponseStrategyResolver($this->request, $this->entity, $this->managedObjectContext, $this->fieldSecurityPolicy)->strategy->response)->response)->response, $this->securityHeadersPolicy)->response, $this->request, $this->corsPolicy)->response;
+                return new CORSResponseTransformer(new SecurityHeadersTransformer(new ConditionalGetTransformer(new ResponseHeaderSanitizerTransformer(new JSONTransformer(new PersistentSpaceResponseStrategyResolver($this->request, $this->entity, $this->managedObjectContext, $this->fieldSecurityPolicy)->strategy->response)->response)->response, $this->request, $this->cachePolicy)->response, $this->securityHeadersPolicy)->response, $this->request, $this->corsPolicy)->response;
             } finally {
                 if ($this->isSessionEnabled) {
                     $this->session->commit();

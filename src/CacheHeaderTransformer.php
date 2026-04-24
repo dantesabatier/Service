@@ -7,14 +7,22 @@ namespace Sabatier\Service;
  * caching behavior for the response.
  *
  * This transformer modifies the response's header fields to include a
- * "Cache-Control" directive with the value "public, max-age=3600".
+ * "Cache-Control" directive built from the supplied HTTPCachePolicy.
  */
-final class CacheHeaderTransformer extends ResponseTransformer
+class CacheHeaderTransformer extends ResponseTransformer
 {
-    public function __construct(Response $response)
+    public function __construct(Response $response, ?HTTPCachePolicy $policy = null)
     {
+        $policy ??= Application::shared()->cachePolicy;
         $headers = $response->allHeaderFields;
-        $headers["Cache-Control"] = "no-cache";
+        $directives = [$policy->visibility, "max-age=$policy->maxAge"];
+        if ($policy->staleWhileRevalidate !== null) {
+            $directives[] = "stale-while-revalidate=$policy->staleWhileRevalidate";
+        }
+        $headers["Cache-Control"] = implode(", ", $directives);
+        if ($policy->vary !== null) {
+            $headers["Vary"] = $policy->vary;
+        }
         parent::__construct($response);
     }
 }

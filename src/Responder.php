@@ -42,6 +42,10 @@ abstract class Responder extends ObjectClass
     protected SecurityHeadersPolicy $securityHeadersPolicy {
         get => Application::shared()->securityHeadersPolicy;
     }
+    /** @var HTTPCachePolicy The HTTP cache policy controlling ETag generation and Cache-Control defaults for this responder. */
+    protected HTTPCachePolicy $cachePolicy {
+        get => Application::shared()->cachePolicy;
+    }
     /** @var ManagedObjectContext The managed object context associated with this responder. */
     public ManagedObjectContext $managedObjectContext {
         get => Application::shared()->persistentContainer->viewContext;
@@ -119,7 +123,20 @@ abstract class Responder extends ObjectClass
                     } && ($selector = $this->selector)) {
                     $this->perform($selector);
                 }
-                return new CORSResponseTransformer(new SecurityHeadersTransformer(new ResponsePipeline($this->transformers)->process(new Response($request->url, $this->statusCode, body: $this->data)), $this->securityHeadersPolicy)->response, $request, $this->corsPolicy)->response;
+                return new CORSResponseTransformer(
+                    new SecurityHeadersTransformer(
+                        new ConditionalGetTransformer(
+                            new ResponsePipeline($this->transformers)->process(
+                                new Response($request->url, $this->statusCode, body: $this->data)
+                            ),
+                            $request,
+                            $this->cachePolicy
+                        )->response,
+                        $this->securityHeadersPolicy
+                    )->response,
+                    $request,
+                    $this->corsPolicy
+                )->response;
             } finally {
                 if ($this->isSessionEnabled) {
                     $this->session->commit();

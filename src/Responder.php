@@ -46,6 +46,10 @@ abstract class Responder extends ObjectClass
     protected HTTPCachePolicy $cachePolicy {
         get => Application::shared()->cachePolicy;
     }
+    /** @var RateLimitPolicy The rate limiting policy in effect for this responder. */
+    protected RateLimitPolicy $rateLimitPolicy {
+        get => Application::shared()->rateLimitPolicy;
+    }
     /** @var ResponseTransformerContext The transformer context assembling the request and all policies for this responder's response pipeline. Override to customize which context is propagated to internal transformers. */
     protected ResponseTransformerContext $transformerContext {
         get => $this->transformerContext ??= new ResponseTransformerContext(
@@ -53,6 +57,7 @@ abstract class Responder extends ObjectClass
             cachePolicy: $this->cachePolicy,
             corsPolicy: $this->corsPolicy,
             securityHeadersPolicy: $this->securityHeadersPolicy,
+            rateLimitInfo: Application::shared()->rateLimitInfo,
         );
     }
     /** @var ManagedObjectContext The managed object context associated with this responder. */
@@ -134,10 +139,13 @@ abstract class Responder extends ObjectClass
                 }
                 return new CORSResponseTransformer(
                     new SecurityHeadersTransformer(
-                        new ConditionalGetTransformer(
-                            new ResponsePipeline($this->transformers)->process(
-                                new Response($request->url, $this->statusCode, body: $this->data)
-                            ),
+                        new RateLimitHeaderTransformer(
+                            new ConditionalGetTransformer(
+                                new ResponsePipeline($this->transformers)->process(
+                                    new Response($request->url, $this->statusCode, body: $this->data)
+                                ),
+                                $this->transformerContext
+                            )->response,
                             $this->transformerContext
                         )->response,
                         $this->transformerContext

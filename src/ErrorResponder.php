@@ -54,6 +54,9 @@ final class ErrorResponder extends Responder
                     };
                     $headerFields["WWW-Authenticate"] = $schemeHeader;
                 }
+                if ($throwable instanceof TooManyRequestsException) {
+                    $headerFields["Retry-After"] = (string)$throwable->retryAfter;
+                }
                 return new CORSResponseTransformer(
                     new SecurityHeadersTransformer(
                         new ResponseHeaderSanitizerTransformer(

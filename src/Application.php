@@ -114,6 +114,16 @@ class Application extends Responder
     public HTTPCachePolicy $cachePolicy {
         get => $this->cachePolicy ??= HTTPCachePolicy::policy();
     }
+    /** @var RateLimitPolicy The rate limiting policy controlling request quotas per client. Override in the application delegate to customize limits or disable rate limiting. */
+    public RateLimitPolicy $rateLimitPolicy {
+        get => $this->rateLimitPolicy ??= RateLimitPolicy::policy();
+    }
+    /** @var RateLimitStore The storage backend used to track request counters. Defaults to APCuRateLimitStore (shared memory across workers). Override with a Redis-backed store for multi-server deployments. */
+    public RateLimitStore $rateLimitStore {
+        get => $this->rateLimitStore ??= new APCuRateLimitStore();
+    }
+    /** @var RateLimitInfo|null The rate limit state produced for the current request. Populated by enforceRateLimitIfNeeded() and consumed by RateLimitHeaderTransformer via the transformer context. */
+    private(set) ?RateLimitInfo $rateLimitInfo = null;
     private bool $isTerminated = false;
     private bool $isBootstrapped = false;
 
@@ -236,6 +246,24 @@ class Application extends Responder
         register_shutdown_function($this->handleShutdown(...));
     }
 
+    private function enforceRateLimitIfNeeded(): void
+    {
+        $policy = $this->rateLimitPolicy;
+        if (!$policy->enabled) {
+            return;
+        }
+        $ip = $_SERVER["REMOTE_ADDR"] ?? "unknown";
+        $key = "rate_limit:$ip";
+        $count = $this->rateLimitStore->increment($key, $policy->windowSeconds);
+        $ttl = $this->rateLimitStore->ttl($key);
+        $reset = time() + $ttl;
+        $remaining = max(0, $policy->maxRequests - $count);
+        $this->rateLimitInfo = new RateLimitInfo($policy->maxRequests, $remaining, $reset);
+        if ($count > $policy->maxRequests) {
+            throw new TooManyRequestsException($ttl);
+        }
+    }
+
     private function checkAccessPermissions(): void
     {
         $this->accessPolicy->enforceAccess($this->firstResponder, $this->authenticationManager);
@@ -283,6 +311,7 @@ class Application extends Responder
             $this->bootstrapIfNeeded();
             $this->handlePreflightIfNeeded();
             $this->initializeApplication();
+            $this->enforceRateLimitIfNeeded();
             $this->checkAccessPermissions();
             $this->setTransactionAuthor();
             $this->processResponse();

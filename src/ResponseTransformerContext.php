@@ -23,5 +23,6 @@ final class ResponseTransformerContext
         public readonly ?HTTPCachePolicy $cachePolicy = null,
         public readonly ?CORSPolicy $corsPolicy = null,
         public readonly ?SecurityHeadersPolicy $securityHeadersPolicy = null,
+        public readonly ?RateLimitInfo $rateLimitInfo = null,
     ) {}
 }

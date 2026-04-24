@@ -8,7 +8,7 @@ use Sabatier\Foundation\Set;
 final readonly class ResponsePipeline
 {
     /** @param Set<class-string<ResponseTransformer>> $transformers */
-    public function __construct(private Set $transformers)
+    public function __construct(private Set $transformers, private ResponseTransformerContext $context = new ResponseTransformerContext())
     {
     }
 
@@ -20,6 +20,6 @@ final readonly class ResponsePipeline
              * @param class-string<ResponseTransformer> $transformer
              * @return Response
              */
-            fn(Response $response, string $transformer): Response => new $transformer($response)->response);
+            fn(Response $response, string $transformer): Response => new $transformer($response, $this->context)->response);
     }
 }

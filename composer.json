@@ -47,6 +47,7 @@
       "src/HTTPCacheConstants.php",
       "src/JSONWebTokenConstants.php",
       "src/JSONWebTokenErrorCodes.php",
+      "src/RateLimitConstants.php",
       "src/SecurityHeadersConstants.php",
       "src/SessionAdditions.php"
     ]

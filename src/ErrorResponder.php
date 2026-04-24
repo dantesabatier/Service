@@ -9,6 +9,7 @@ use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
 use Sabatier\Foundation\ProcessInfo;
+use Sabatier\Foundation\Set;
 use Throwable;
 use const Sabatier\Foundation\LocalizedDescriptionKey;
 use const Sabatier\Foundation\LocalizedFailureReasonErrorKey;
@@ -57,17 +58,9 @@ final class ErrorResponder extends Responder
                 if ($throwable instanceof TooManyRequestsException) {
                     $headerFields["Retry-After"] = (string)$throwable->retryAfter;
                 }
-                return new CORSResponseTransformer(
-                    new SecurityHeadersTransformer(
-                        new ResponseHeaderSanitizerTransformer(
-                            new JSONTransformer(
-                                new Response($request->url, $statusCode, $headerFields, $body)
-                            )->response
-                        )->response,
-                        $this->transformerContext
-                    )->response,
-                    $this->transformerContext
-                )->response;
+                return new ResponsePipeline(new Set([JSONTransformer::class, ResponseHeaderSanitizerTransformer::class, RateLimitHeaderTransformer::class, SecurityHeadersTransformer::class, CORSResponseTransformer::class]), $this->transformerContext)->process(
+                    new Response($request->url, $statusCode, $headerFields, $body)
+                );
             } finally {
                 if ($this->isSessionEnabled) {
                     $this->session->commit();

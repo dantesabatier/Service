@@ -3,7 +3,15 @@
 namespace Sabatier\Service;
 
 /**
- * @internal
+ * Writes X-RateLimit-* informational headers onto the response.
+ *
+ * When rate limit state is available in the ResponseTransformerContext, adds three standard
+ * headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset` (Unix timestamp).
+ * If no rate limit info is present — for example, when rate limiting is disabled — this transformer
+ * is a no-op.
+ *
+ * @see RateLimitInfo
+ * @see RateLimitPolicy
  */
 final class RateLimitHeaderTransformer extends ResponseTransformer
 {

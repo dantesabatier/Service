@@ -52,13 +52,7 @@ abstract class Responder extends ObjectClass
     }
     /** @var ResponseTransformerContext The transformer context assembling the request and all policies for this responder's response pipeline. Override to customize which context is propagated to internal transformers. */
     protected ResponseTransformerContext $transformerContext {
-        get => $this->transformerContext ??= new ResponseTransformerContext(
-            request: $this->request,
-            cachePolicy: $this->cachePolicy,
-            corsPolicy: $this->corsPolicy,
-            securityHeadersPolicy: $this->securityHeadersPolicy,
-            rateLimitInfo: Application::shared()->rateLimitInfo,
-        );
+        get => $this->transformerContext ??= new ResponseTransformerContext($this->request, $this->cachePolicy, $this->corsPolicy, $this->securityHeadersPolicy, Application::shared()->rateLimitInfo);
     }
     /** @var ManagedObjectContext The managed object context associated with this responder. */
     public ManagedObjectContext $managedObjectContext {
@@ -102,7 +96,7 @@ abstract class Responder extends ObjectClass
     protected ?string $selector {
         get => $this->resolution->selector;
     }
-    /** @var Set<class-string<ResponseTransformer>> The ordered set of response transformers applied to this responder. */
+    /** @var Set<class-string<ResponseTransformer>> The ordered set of response transformers applied to this responder. Sourced from the #[Endpoint] and #[Action] attributes. Override to declare additional transformers; the infrastructure layer (ConditionalGetTransformer, RateLimitHeaderTransformer, SecurityHeadersTransformer, CORSResponseTransformer) is always applied unconditionally after this set and must not be included here. */
     protected Set $transformers {
         get => $this->transformers ??= $this->resolution->transformers;
     }
@@ -137,21 +131,11 @@ abstract class Responder extends ObjectClass
                     } && ($selector = $this->selector)) {
                     $this->perform($selector);
                 }
-                return new CORSResponseTransformer(
-                    new SecurityHeadersTransformer(
-                        new RateLimitHeaderTransformer(
-                            new ConditionalGetTransformer(
-                                new ResponsePipeline($this->transformers)->process(
-                                    new Response($request->url, $this->statusCode, body: $this->data)
-                                ),
-                                $this->transformerContext
-                            )->response,
-                            $this->transformerContext
-                        )->response,
-                        $this->transformerContext
-                    )->response,
-                    $this->transformerContext
-                )->response;
+                return new ResponsePipeline(new Set([ConditionalGetTransformer::class, RateLimitHeaderTransformer::class, SecurityHeadersTransformer::class, CORSResponseTransformer::class]), $this->transformerContext)->process(
+                    new ResponsePipeline($this->transformers, $this->transformerContext)->process(
+                        new Response($request->url, $this->statusCode, body: $this->data)
+                    )
+                );
             } finally {
                 if ($this->isSessionEnabled) {
                     $this->session->commit();

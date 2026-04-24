@@ -2,7 +2,17 @@
 
 namespace Sabatier\Service;
 
-/** @internal */
+/**
+ * Applies security-related HTTP response headers derived from the SecurityHeadersPolicy in the ResponseTransformerContext.
+ *
+ * Writes the standard browser security headers on every response: `X-Content-Type-Options`,
+ * `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security`,
+ * and `Content-Security-Policy`. Header values are sourced from the policy, which is configured
+ * either programmatically via `Application::$securityHeadersPolicy` or through environment variables.
+ *
+ * @see SecurityHeadersPolicy
+ * @see Application::$securityHeadersPolicy
+ */
 final class SecurityHeadersTransformer extends ResponseTransformer
 {
     public function __construct(Response $response, ResponseTransformerContext $context = new ResponseTransformerContext())

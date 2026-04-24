@@ -35,11 +35,11 @@ namespace Sabatier\Service;
  * <code>
  * final class JSONTransformer extends ResponseTransformer
  * {
- *     public function __construct(Response $response)
+ *     public function __construct(Response $response, ResponseTransformerContext $context = new ResponseTransformerContext())
  *     {
  *         $response->body = json_encode($response->body);
  *         $response->allHeaderFields["Content-Type"] = "application/json";
- *         parent::__construct($response);
+ *         parent::__construct($response, $context);
  *     }
  * }
  * </code>

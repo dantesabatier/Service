@@ -6,6 +6,7 @@ use Override;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
+use Sabatier\Foundation\Set;
 
 /** @internal */
 final class PersistentSpace extends Responder
@@ -30,23 +31,9 @@ final class PersistentSpace extends Responder
                 if ($this->isSessionEnabled) {
                     $this->session->start();
                 }
-                return new CORSResponseTransformer(
-                    new SecurityHeadersTransformer(
-                        new RateLimitHeaderTransformer(
-                            new ConditionalGetTransformer(
-                                new ResponseHeaderSanitizerTransformer(
-                                    new JSONTransformer(
-                                        new PersistentSpaceResponseStrategyResolver($this->request, $this->entity, $this->managedObjectContext, $this->fieldSecurityPolicy)->strategy->response
-                                    )->response
-                                )->response,
-                                $this->transformerContext
-                            )->response,
-                            $this->transformerContext
-                        )->response,
-                        $this->transformerContext
-                    )->response,
-                    $this->transformerContext
-                )->response;
+                return new ResponsePipeline(new Set([JSONTransformer::class, ResponseHeaderSanitizerTransformer::class, ConditionalGetTransformer::class, RateLimitHeaderTransformer::class, SecurityHeadersTransformer::class, CORSResponseTransformer::class]), $this->transformerContext)->process(
+                    new PersistentSpaceResponseStrategyResolver($this->request, $this->entity, $this->managedObjectContext, $this->fieldSecurityPolicy)->strategy->response
+                );
             } finally {
                 if ($this->isSessionEnabled) {
                     $this->session->commit();

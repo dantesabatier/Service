@@ -18,11 +18,7 @@ namespace Sabatier\Service;
  */
 final class ResponseTransformerContext
 {
-    public function __construct(
-        public readonly ?Request $request = null,
-        public readonly ?HTTPCachePolicy $cachePolicy = null,
-        public readonly ?CORSPolicy $corsPolicy = null,
-        public readonly ?SecurityHeadersPolicy $securityHeadersPolicy = null,
-        public readonly ?RateLimitInfo $rateLimitInfo = null,
-    ) {}
+    public function __construct(public readonly ?Request $request = null, public readonly ?HTTPCachePolicy $cachePolicy = null, public readonly ?CORSPolicy $corsPolicy = null, public readonly ?SecurityHeadersPolicy $securityHeadersPolicy = null, public readonly ?RateLimitInfo $rateLimitInfo = null)
+    {
+    }
 }

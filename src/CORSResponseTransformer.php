@@ -5,7 +5,18 @@ namespace Sabatier\Service;
 use Sabatier\Foundation\Set;
 use function Sabatier\Foundation\string_split_trimmed;
 
-/** @internal */
+/**
+ * Applies CORS response headers derived from the CORSPolicy in the ResponseTransformerContext.
+ *
+ * Validates the incoming `Origin` header against the policy's allowed origins. When the origin
+ * is permitted, writes the appropriate `Access-Control-*` headers. Wildcard origin (`*`) is
+ * emitted only when credentials are not required; otherwise the exact matched origin is reflected
+ * and a `Vary: Origin` header is added. Requests without an `Origin` header, or from disallowed
+ * origins, pass through without modification.
+ *
+ * @see CORSPolicy
+ * @see Application::$corsPolicy
+ */
 final class CORSResponseTransformer extends ResponseTransformer
 {
     public function __construct(Response $response, ResponseTransformerContext $context = new ResponseTransformerContext())

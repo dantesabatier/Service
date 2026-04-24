@@ -2,6 +2,8 @@
 
 namespace Sabatier\Service;
 
+use Override;
+
 /**
  * A per-process, in-memory rate limit store intended for testing and development.
  *
@@ -19,6 +21,7 @@ final class InMemoryRateLimitStore implements RateLimitStore
     /** @var array<string, array{count: int, expiresAt: int}> */
     private static array $buckets = [];
 
+    #[Override]
     public function increment(string $key, int $windowSeconds): int
     {
         $now = time();
@@ -29,6 +32,7 @@ final class InMemoryRateLimitStore implements RateLimitStore
         return ++self::$buckets[$key]["count"];
     }
 
+    #[Override]
     public function ttl(string $key): int
     {
         $now = time();

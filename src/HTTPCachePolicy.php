@@ -45,6 +45,6 @@ final readonly class HTTPCachePolicy
     public static function policy(): HTTPCachePolicy
     {
         $environment = ProcessInfo::processInfo()->environment;
-        return new HTTPCachePolicy((int)($environment[HTTPCacheMaxAgeKey] ?? HTTPCacheMaxAgeDefault), (string)($environment[HTTPCacheVisibilityKey] ?? HTTPCacheVisibilityDefault), $environment[HTTPCacheStaleWhileRevalidateKey], $environment[HTTPCacheVaryKey], filter_var($environment[HTTPCacheETagEnabledKey] ?? HTTPCacheETagEnabledDefault, FILTER_VALIDATE_BOOL));
+        return new HTTPCachePolicy((int)($environment[HTTPCacheMaxAgeKey] ?? HTTPCacheMaxAgeDefault), (string)($environment[HTTPCacheVisibilityKey] ?? HTTPCacheVisibilityDefault), $environment->offsetExists(HTTPCacheStaleWhileRevalidateKey) ? (int)$environment[HTTPCacheStaleWhileRevalidateKey] : null, $environment[HTTPCacheVaryKey], filter_var($environment[HTTPCacheETagEnabledKey] ?? HTTPCacheETagEnabledDefault, FILTER_VALIDATE_BOOL));
     }
 }

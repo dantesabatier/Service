@@ -2,6 +2,8 @@
 
 namespace Sabatier\Service;
 
+use Override;
+
 /**
  * An APCu-backed rate limit store shared across PHP workers on the same server.
  *
@@ -16,6 +18,7 @@ namespace Sabatier\Service;
  */
 final class APCuRateLimitStore implements RateLimitStore
 {
+    #[Override]
     public function increment(string $key, int $windowSeconds): int
     {
         if (apcu_add($key, 1, $windowSeconds)) {
@@ -26,6 +29,7 @@ final class APCuRateLimitStore implements RateLimitStore
         return $count;
     }
 
+    #[Override]
     public function ttl(string $key): int
     {
         $info = apcu_key_info($key);

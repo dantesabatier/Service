@@ -11,7 +11,22 @@ use Sabatier\Foundation\URL;
 use function Sabatier\Foundation\human_readable_value;
 
 /**
- * A service response.
+ * A mutable HTTP response produced by the responder pipeline.
+ *
+ * `Response` extends `HTTPURLResponse` with a writable `$body` and an `Emitter`
+ * responsible for flushing status, headers, and body to the PHP output layer.
+ *
+ * Response instances flow through the `ResponsePipeline` and the manually-wired
+ * internal transformers (`ConditionalGetTransformer`, `SecurityHeadersTransformer`,
+ * `CORSResponseTransformer`). Each transformer operates on the same instance —
+ * mutating headers in-place and optionally replacing the body.
+ *
+ * `send()` must be called exactly once, after all transformers have run. It is
+ * invoked automatically by `Application::processResponse()`.
+ *
+ * @see ResponseTransformer
+ * @see ResponsePipeline
+ * @see Emitter
  */
 class Response extends HTTPURLResponse
 {

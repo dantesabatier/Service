@@ -4,6 +4,28 @@ namespace Sabatier\Service;
 
 use Sabatier\Foundation\ArrayClass;
 
+/**
+ * Contract for caching resolved authorization sets for `Authorizable` entities.
+ *
+ * `AuthorizationService` uses two cache layers that both implement this interface:
+ * - **In-request cache** (`InMemoryAuthorizationCache` by default) — lives for the duration
+ *   of a single PHP request. Always present.
+ * - **Persistent cache** (optional, e.g. Redis or APCu) — survives across requests, reducing
+ *   database round-trips for repeat requests by the same user.
+ *
+ * Override `Application::$authorizationCache` in the application delegate to supply a
+ * persistent implementation:
+ *
+ * <code>
+ * Application::shared()->authorizationCache = new RedisAuthorizationCache($redis);
+ * </code>
+ *
+ * Implementations must be safe to call in any order: `get` returns `null` on a cache miss,
+ * `set` stores the resolved set, and `invalidate` removes it when the user's roles change.
+ *
+ * @see AuthorizationService
+ * @see Application::$authorizationCache
+ */
 interface AuthorizationCache
 {
     /**

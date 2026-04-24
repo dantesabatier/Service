@@ -21,7 +21,35 @@ use function Sabatier\Foundation\request_url;
 use function Sabatier\Foundation\unsafe_value;
 
 /**
- * An object-oriented wrapper for a session.
+ * An object-oriented wrapper around PHP's native session subsystem.
+ *
+ * `Session` is managed automatically by `Responder` when `$isSessionEnabled` is `true`
+ * (i.e. security is active but no JWT private key is configured). It is started before the
+ * action runs and committed in the `finally` block of `Responder::$response`, so session
+ * data is always flushed even if the action throws.
+ *
+ * ## Storage
+ * Session files are written to a per-bundle subdirectory inside the system caches directory
+ * (`SearchPathDirectory::cachesDirectory / bundleIdentifier / Session`). The directory is
+ * created automatically on first access with full permissions.
+ *
+ * ## Stale-session cleanup
+ * The destructor scans the storage directory and removes session files that either belong
+ * to a different session ID or have exceeded the configured cookie lifetime. This keeps the
+ * session directory from growing unboundedly without requiring a separate garbage-collection
+ * process.
+ *
+ * ## KVC access
+ * `valueForKey` and `setValueForKey` are overridden to proxy reads and writes through
+ * `$_SESSION`, making session data accessible via the standard Foundation KVC interface.
+ * Setting a key to `null` unsets it from the session.
+ *
+ * ## Cookie configuration
+ * `$cookieParameters` controls the session cookie attributes (domain, path, lifetime,
+ * secure, HTTP-only, SameSite). It defaults to a policy derived from the current request URL.
+ *
+ * @see CookieParameters
+ * @see Responder
  */
 final class Session extends ObjectClass
 {

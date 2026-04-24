@@ -6,7 +6,20 @@ use Sabatier\Foundation\Representable;
 use Sabatier\Foundation\Set;
 
 /**
- * Defines a contract for any class that can handle authentication and authorization processes.
+ * Contract for user entities that support both authentication and role-based authorization.
+ *
+ * Implement this interface on the Core Data managed object class that represents a user.
+ * `AuthenticationService` discovers the implementing entity automatically at runtime by
+ * scanning the managed object model, so no explicit registration is required.
+ *
+ * `Authorizable` extends `Authenticatable` (username/password/enabled) with role membership
+ * and a refresh token version counter used to invalidate outstanding tokens when the user's
+ * credentials change.
+ *
+ * @see Authenticatable
+ * @see AuthorizableRole
+ * @see AuthenticationService
+ * @see AuthorizationService
  */
 interface Authorizable extends Authenticatable, Representable
 {

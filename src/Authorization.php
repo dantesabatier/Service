@@ -3,7 +3,21 @@
 namespace Sabatier\Service;
 
 /**
- * Represents an authorization entity.
+ * Contract for a single, fine-grained permission entry attached to a role.
+ *
+ * An authorization combines three dimensions:
+ * - `$name` — the resource it protects (e.g. `"posts"`, `"users"`).
+ * - `$type` — the action allowed on that resource (e.g. `read`, `write`, `delete`, `any`).
+ * - `$scope` — whether the permission covers all records (`AuthorizationScope::all`) or
+ *   only records owned by the authenticated user (`AuthorizationScope::own`).
+ *
+ * `AuthorizationService::isAuthorized()` matches incoming requests against the
+ * resolved set of authorizations for the current user.
+ *
+ * @see AuthorizationType
+ * @see AuthorizationScope
+ * @see AuthorizableRole
+ * @see AuthorizationService
  */
 interface Authorization
 {

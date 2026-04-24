@@ -15,7 +15,19 @@ use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Foundation\Predicates\PredicateOperatorType;
 
 /**
- * AuthenticationService resolves and fetches objects implementing Authorizable from a ManagedObjectModel. It lazily determines the Authorizable entity and provides a single lookup method based on username and optional serialization.
+ * Resolves and fetches `Authorizable` entities from the persistent store for authentication.
+ *
+ * On first use, `AuthenticationService` scans the managed object model to find the entity class
+ * that implements `Authorizable`. This resolution is lazy and cached for the lifetime of the
+ * service instance, so the model is only inspected once per request.
+ *
+ * `find()` fetches the matching user by username, merging the caller-supplied serialization with
+ * the minimum set of attributes required for authentication and token validation (username,
+ * password, enabled flag, refresh token version, and role names). This ensures authentication
+ * never issues unnecessary SQL joins beyond what is needed for credential verification.
+ *
+ * @see Authorizable
+ * @see AuthenticationScheme
  */
 final class AuthenticationService
 {

@@ -5,7 +5,23 @@ namespace Sabatier\Service;
 use Throwable;
 
 /**
- * A set of methods to manage shared behaviors for your app.
+ * A set of lifecycle callbacks invoked by `Application` at key points in its run loop.
+ *
+ * Implement this interface in the class declared as `principalClass` in the application
+ * bundle's `Info.plist`. The `Application` singleton discovers and instantiates it automatically.
+ *
+ * ## Lifecycle order
+ * 1. `applicationWillFinishLaunching` — called after the persistent container is ready but before
+ *    access control is enforced. Use this to register defaults, configure services, or override
+ *    framework-level policies (e.g. `PersistentStore::$rowCacheClass`, `Application::$cachePolicy`).
+ * 2. `applicationDidFinishLaunching` — called after the response has been produced and is about to
+ *    be sent. Use this for post-response bookkeeping.
+ * 3. `applicationWillTerminate` — called during the PHP shutdown sequence when no fatal error
+ *    was detected.
+ * 4. `applicationDidCrash` — called during the PHP shutdown sequence when a fatal error is
+ *    detected. Use this to log the throwable or notify an error tracker.
+ *
+ * @see Application
  */
 interface ApplicationDelegate
 {

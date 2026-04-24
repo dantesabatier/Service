@@ -5,7 +5,21 @@ namespace Sabatier\Service;
 use Sabatier\Foundation\Equatable;
 
 /**
- * Defines a contract for any class that can handle authentication processes.
+ * Contract for entities that can be authenticated by the framework.
+ *
+ * `Authenticatable` is the minimal identity contract: a username, an optional
+ * password, and an enabled flag. It is the base of `Authorizable`, which adds
+ * role membership for authorization decisions.
+ *
+ * Authentication providers (Basic, Bearer, Digest) receive an `Authenticatable`
+ * instance resolved by `AuthenticationService` and validate the supplied credentials
+ * against it.
+ *
+ * Implement this interface — or more commonly `Authorizable` — on the managed object
+ * class that represents a user in the application's domain model.
+ *
+ * @see Authorizable
+ * @see AuthenticationService
  */
 interface Authenticatable extends Equatable
 {

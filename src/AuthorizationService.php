@@ -9,7 +9,27 @@ use Sabatier\Foundation\CompareOptions;
 use function Sabatier\Foundation\string_is_equal;
 
 /**
- * Service interface responsible for handling authorization logic.
+ * Evaluates whether an authenticated entity is permitted to perform an action on a resource.
+ *
+ * Authorization is checked in three layers, from fastest to slowest:
+ * 1. **Token scopes** — if the JWT or session token already carries an explicit scope string
+ *    matching `{resource}:{action}` or `{resource}:any`, access is granted immediately without
+ *    any cache or database lookup.
+ * 2. **In-request cache** — a per-request `AuthorizationCache` (always present) stores the
+ *    resolved authorization set for the current request's lifetime.
+ * 3. **Persistent cache** — an optional cross-request `AuthorizationCache` (e.g. Redis or APCu)
+ *    reduces database round-trips for repeat requests by the same user.
+ *
+ * If neither cache has a result, `AuthorizationResolver` fetches the entity's roles and
+ * authorizations from the database and populates both caches for subsequent lookups.
+ *
+ * `AuthorizationService` is exposed on `Application` and `Responder` as a shared service.
+ * Override `Application::$authorizationCache` or `Application::$authorizationService` in the
+ * application delegate to customize cache backends or authorization logic.
+ *
+ * @see AuthorizationCache
+ * @see AuthorizationResolver
+ * @see Application::$authorizationService
  */
 final readonly class AuthorizationService
 {

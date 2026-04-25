@@ -134,7 +134,7 @@ abstract class Responder extends ObjectClass
                 }
                 $idempotencyKey = $this->resolveIdempotencyKey($request);
                 if (($idempotencyKey !== null) && ($stored = Application::shared()->idempotencyStore->get($idempotencyKey))) {
-                    return new ResponsePipeline($this->infrastructureTransformers, $this->transformerContext)->process(new Response($request->url, $stored->statusCode, new Dictionary($stored->headers), $stored->body));
+                    return new ResponsePipeline($this->infrastructureTransformers, $this->transformerContext)->process(new Response($request->url, $stored->statusCode, $stored->headers, $stored->body));
                 }
                 if (match ($request->httpMethod) {
                         HTTPRequestMethod::post,
@@ -172,8 +172,8 @@ abstract class Responder extends ObjectClass
 
     protected function storeIdempotentResponse(string $key, Response $response): void
     {
-        /** @var array<string, string> $headers */
-        $headers = $response->allHeaderFields->mapValues(fn(mixed $value): string => human_readable_value($value))->array;
+        /** @var Dictionary<string> $headers */
+        $headers = $response->allHeaderFields->mapValues(fn(mixed $value): string => human_readable_value($value));
         Application::shared()->idempotencyStore->store($key, new IdempotentResponse($response->statusCode, $headers, $response->body), $this->idempotencyPolicy->ttl);
     }
 }

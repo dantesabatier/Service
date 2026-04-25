@@ -2,6 +2,10 @@
 
 namespace Sabatier\Service;
 
+use JetBrains\PhpStorm\ExpectedValues;
+use Sabatier\Foundation\Dictionary;
+use Sabatier\Foundation\Networking\HTTPStatusCode;
+
 /**
  * An immutable snapshot of a response stored by the idempotency layer.
  *
@@ -16,10 +20,14 @@ final readonly class IdempotentResponse
 {
     /**
      * @param int $statusCode The HTTP status code of the stored response.
-     * @param array<string, string> $headers The response headers after the user pipeline.
+     * @param Dictionary<string> $headers The response headers after the user pipeline.
      * @param mixed $body The response body after the user pipeline (typically a JSON string).
      */
-    public function __construct(public int $statusCode, public array $headers, public mixed $body)
-    {
+    public function __construct(
+        #[ExpectedValues(valuesFromClass: HTTPStatusCode::class)]
+        public int $statusCode,
+        public Dictionary $headers,
+        public mixed $body
+    ) {
     }
 }

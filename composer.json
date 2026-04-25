@@ -26,13 +26,13 @@
     "ext-pdo": "*",
     "ext-zlib": "*",
     "ext-openssl": "*",
+    "ext-apcu": "8.5",
+    "ext-memcached": "8.5",
+    "ext-redis": "8.5",
     "sabatier/foundation": "@dev",
-    "sabatier/coredata": "@dev",
-    "ext-apcu": "*"
+    "sabatier/coredata": "@dev"
   },
   "suggest": {
-    "ext-redis": "Required to use RedisRateLimitStore for distributed rate limiting across multiple servers.",
-    "ext-memcached": "Required to use MemcachedRateLimitStore for distributed rate limiting across multiple servers."
   },
   "config": {
     "platform": {
@@ -50,6 +50,7 @@
       "src/ConstantsInternal.php",
       "src/CORSConstants.php",
       "src/HTTPCacheConstants.php",
+      "src/IdempotencyConstants.php",
       "src/JSONWebTokenConstants.php",
       "src/JSONWebTokenErrorCodes.php",
       "src/RateLimitConstants.php",

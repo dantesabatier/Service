@@ -5,6 +5,7 @@ namespace Sabatier\Service;
 use Override;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\Foundation\ArrayClass;
+use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Set;
 
@@ -31,9 +32,15 @@ final class PersistentSpace extends Responder
                 if ($this->isSessionEnabled) {
                     $this->session->start();
                 }
-                return new ResponsePipeline(new Set([JSONTransformer::class, ResponseHeaderSanitizerTransformer::class, ConditionalGetTransformer::class, RateLimitHeaderTransformer::class, SecurityHeadersTransformer::class, CORSResponseTransformer::class]), $this->transformerContext)->process(
-                    new PersistentSpaceResponseStrategyResolver($this->request, $this->entity, $this->managedObjectContext, $this->fieldSecurityPolicy)->strategy->response
-                );
+                $idempotencyKey = $this->resolveIdempotencyKey($this->request);
+                if (($idempotencyKey !== null) && ($stored = Application::shared()->idempotencyStore->get($idempotencyKey))) {
+                    return new ResponsePipeline($this->infrastructureTransformers, $this->transformerContext)->process(new Response($this->request->url, $stored->statusCode, new Dictionary($stored->headers), $stored->body));
+                }
+                $userResponse = new ResponsePipeline(new Set([JSONTransformer::class, ResponseHeaderSanitizerTransformer::class]), $this->transformerContext)->process( new PersistentSpaceResponseStrategyResolver($this->request, $this->entity, $this->managedObjectContext, $this->fieldSecurityPolicy)->strategy->response);
+                if ($idempotencyKey !== null) {
+                    $this->storeIdempotentResponse($idempotencyKey, $userResponse);
+                }
+                return new ResponsePipeline($this->infrastructureTransformers, $this->transformerContext)->process($userResponse);
             } finally {
                 if ($this->isSessionEnabled) {
                     $this->session->commit();

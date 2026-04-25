@@ -25,7 +25,7 @@ use Redis;
  * @see RateLimitStore
  * @see Application::$rateLimitStore
  */
-final class RedisRateLimitStore implements RateLimitStore
+final readonly class RedisRateLimitStore implements RateLimitStore
 {
     public function __construct(private Redis $redis)
     {
@@ -34,13 +34,15 @@ final class RedisRateLimitStore implements RateLimitStore
     #[Override]
     public function increment(string $key, int $windowSeconds): int
     {
-        $this->redis->set($key, 0, ['nx', 'ex' => $windowSeconds]);
-        return (int)$this->redis->incr($key);
+        $this->redis->set($key, "0", ["nx", "ex" => $windowSeconds]);
+        $count = $this->redis->incr($key);
+        return is_int($count) ? $count : 0;
     }
 
     #[Override]
     public function ttl(string $key): int
     {
-        return max(0, $this->redis->ttl($key));
+        $ttl = $this->redis->ttl($key);
+        return is_int($ttl) ? max(0, $ttl) : 0;
     }
 }

@@ -122,6 +122,14 @@ class Application extends Responder
     public RateLimitStore $rateLimitStore {
         get => $this->rateLimitStore ??= new APCuRateLimitStore();
     }
+    /** @var IdempotencyPolicy The idempotency policy controlling replay behavior for POST and PATCH requests. */
+    public IdempotencyPolicy $idempotencyPolicy {
+        get => $this->idempotencyPolicy ??= IdempotencyPolicy::policy();
+    }
+    /** @var IdempotencyStore The storage backend used to persist and retrieve idempotent response snapshots. Defaults to APCuIdempotencyStore. Override with a Redis or Memcached store for multi-server deployments. */
+    public IdempotencyStore $idempotencyStore {
+        get => $this->idempotencyStore ??= new APCuIdempotencyStore();
+    }
     /** @var RateLimitInfo|null The rate limit state produced for the current request. Populated by enforceRateLimitIfNeeded() and consumed by RateLimitHeaderTransformer via the transformer context. */
     private(set) ?RateLimitInfo $rateLimitInfo = null;
     private bool $isTerminated = false;

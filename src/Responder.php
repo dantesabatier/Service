@@ -12,6 +12,7 @@ use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Foundation\Set;
+use function Sabatier\Foundation\human_readable_value;
 
 /**
  * An abstract class for responding to and handling url requests.
@@ -49,6 +50,10 @@ abstract class Responder extends ObjectClass
     /** @var RateLimitPolicy The rate limiting policy in effect for this responder. */
     protected RateLimitPolicy $rateLimitPolicy {
         get => Application::shared()->rateLimitPolicy;
+    }
+    /** @var IdempotencyPolicy The idempotency policy controlling replay behavior for POST and PATCH requests. */
+    protected IdempotencyPolicy $idempotencyPolicy {
+        get => Application::shared()->idempotencyPolicy;
     }
     /** @var ResponseTransformerContext The transformer context assembling the request and all policies for this responder's response pipeline. Override to customize which context is propagated to internal transformers. */
     protected ResponseTransformerContext $transformerContext {
@@ -100,6 +105,10 @@ abstract class Responder extends ObjectClass
     protected Set $transformers {
         get => $this->transformers ??= $this->resolution->transformers;
     }
+    /** @var Set<class-string<ResponseTransformer>> The fixed infrastructure transformer layer applied after the user pipeline on every response. Always runs regardless of subclass overrides to $transformers. */
+    protected Set $infrastructureTransformers {
+        get => $this->infrastructureTransformers ??= new Set([ConditionalGetTransformer::class, RateLimitHeaderTransformer::class, SecurityHeadersTransformer::class, CORSResponseTransformer::class]);
+    }
     /** @var mixed The data produced or returned by the responder's action method. This value is used as the body of the response or as input to response transformers. */
     protected mixed $data = null;
     /** @var int The HTTP status code to be returned in the response. */
@@ -123,6 +132,10 @@ abstract class Responder extends ObjectClass
                 if ($this->isSessionEnabled) {
                     $this->session->start();
                 }
+                $idempotencyKey = $this->resolveIdempotencyKey($request);
+                if (($idempotencyKey !== null) && ($stored = Application::shared()->idempotencyStore->get($idempotencyKey))) {
+                    return new ResponsePipeline($this->infrastructureTransformers, $this->transformerContext)->process(new Response($request->url, $stored->statusCode, new Dictionary($stored->headers), $stored->body));
+                }
                 if (match ($request->httpMethod) {
                         HTTPRequestMethod::post,
                         HTTPRequestMethod::patch,
@@ -131,16 +144,36 @@ abstract class Responder extends ObjectClass
                     } && ($selector = $this->selector)) {
                     $this->perform($selector);
                 }
-                return new ResponsePipeline(new Set([ConditionalGetTransformer::class, RateLimitHeaderTransformer::class, SecurityHeadersTransformer::class, CORSResponseTransformer::class]), $this->transformerContext)->process(
-                    new ResponsePipeline($this->transformers, $this->transformerContext)->process(
-                        new Response($request->url, $this->statusCode, body: $this->data)
-                    )
-                );
+                $userResponse = new ResponsePipeline($this->transformers, $this->transformerContext)->process(new Response($request->url, $this->statusCode, body: $this->data));
+                if ($idempotencyKey !== null) {
+                    $this->storeIdempotentResponse($idempotencyKey, $userResponse);
+                }
+                return new ResponsePipeline($this->infrastructureTransformers, $this->transformerContext)->process($userResponse);
             } finally {
                 if ($this->isSessionEnabled) {
                     $this->session->commit();
                 }
             }
         }
+    }
+
+    protected function resolveIdempotencyKey(Request $request): ?string
+    {
+        $policy = $this->idempotencyPolicy;
+        if (!$policy->enabled || !match ($request->httpMethod) {
+                HTTPRequestMethod::post, HTTPRequestMethod::patch => true,
+                default => false
+            }) {
+            return null;
+        }
+        $raw = $request->valueForHttpHeaderField($policy->headerName);
+        return $raw !== null ? "$raw:$request->httpMethod:{$request->url->path}" : null;
+    }
+
+    protected function storeIdempotentResponse(string $key, Response $response): void
+    {
+        /** @var array<string, string> $headers */
+        $headers = $response->allHeaderFields->mapValues(fn(mixed $value): string => human_readable_value($value))->array;
+        Application::shared()->idempotencyStore->store($key, new IdempotentResponse($response->statusCode, $headers, $response->body), $this->idempotencyPolicy->ttl);
     }
 }

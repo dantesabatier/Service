@@ -17,7 +17,7 @@ use Override;
  * derives the remaining seconds from that timestamp.
  *
  * Requires the `ext-memcached` PHP extension and an injected `Memcached` connection.
- * Suitable for multi-server deployments where all workers share the same Memcached instance.
+ * Suitable for multiserver deployments where all workers share the same Memcached instance.
  *
  * <code>
  * $memcached = new Memcached();
@@ -28,7 +28,7 @@ use Override;
  * @see RateLimitStore
  * @see Application::$rateLimitStore
  */
-final class MemcachedRateLimitStore implements RateLimitStore
+final readonly class MemcachedRateLimitStore implements RateLimitStore
 {
     public function __construct(private Memcached $memcached)
     {
@@ -42,7 +42,7 @@ final class MemcachedRateLimitStore implements RateLimitStore
             return 1;
         }
         $count = $this->memcached->increment($key);
-        return $count !== false ? (int)$count : 1;
+        return $count !== false ? $count : 1;
     }
 
     #[Override]

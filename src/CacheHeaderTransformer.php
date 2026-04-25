@@ -21,7 +21,7 @@ class CacheHeaderTransformer extends ResponseTransformer
             return;
         }
         $headers = $response->allHeaderFields;
-        if (!isset($headers["Cache-Control"])) {
+        if (!$headers["Cache-Control"]) {
             $directives = [$policy->visibility, "max-age=$policy->maxAge"];
             if ($policy->staleWhileRevalidate !== null) {
                 $directives[] = "stale-while-revalidate=$policy->staleWhileRevalidate";

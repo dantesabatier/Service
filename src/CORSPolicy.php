@@ -27,7 +27,7 @@ final readonly class CORSPolicy
      * @param Set<string> $allowedHeaders Set of allowed HTTP headers.
      * @param bool $allowCredentials Whether credentials are allowed.
      */
-    public function __construct(public Set $allowedOrigins = new Set(), public Set $allowedMethods = new Set(), public Set $allowedHeaders = new Set(), public bool $allowCredentials = false)
+    public function __construct(public Set $allowedOrigins = new Set(), public Set $allowedMethods = new Set(), public Set $allowedHeaders = new Set(), public bool $allowCredentials = false, public Set $exposedHeaders = new Set())
     {
         $this->isEmpty = $this->allowedOrigins->isEmpty && $this->allowedMethods->isEmpty && $this->allowedHeaders->isEmpty && !$this->allowCredentials;
     }
@@ -39,7 +39,7 @@ final readonly class CORSPolicy
     public static function policy(): CORSPolicy
     {
         $environment = ProcessInfo::processInfo()->environment;
-        return new CORSPolicy(new Set(string_split_trimmed((string)$environment[CORSAllowedOriginsKey])), new Set(string_split_trimmed((string)$environment[CORSAllowedMethodsKey])), new Set(string_split_trimmed((string)$environment[CORSAllowedHeadersKey])), filter_var($environment[CORSAllowCredentialsKey], FILTER_VALIDATE_BOOL));
+        return new CORSPolicy(new Set(string_split_trimmed((string)$environment[CORSAllowedOriginsKey])), new Set(string_split_trimmed((string)$environment[CORSAllowedMethodsKey])), new Set(string_split_trimmed((string)$environment[CORSAllowedHeadersKey])), filter_var($environment[CORSAllowCredentialsKey], FILTER_VALIDATE_BOOL), new Set(string_split_trimmed((string)($environment[CORSExposedHeadersKey] ?? ""))));
     }
 
     /**

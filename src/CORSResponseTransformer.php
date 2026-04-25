@@ -51,6 +51,9 @@ final class CORSResponseTransformer extends ResponseTransformer
                 $headers["Access-Control-Allow-Headers"] = $allowedHeaders->join(", ");
             }
         }
+        if (!$policy->exposedHeaders->isEmpty) {
+            $headers["Access-Control-Expose-Headers"] = $policy->exposedHeaders->join(", ");
+        }
         parent::__construct($response, $context);
     }
 }

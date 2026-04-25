@@ -23,11 +23,7 @@ final readonly class IdempotentResponse
      * @param Dictionary<string> $headers The response headers after the user pipeline.
      * @param mixed $body The response body after the user pipeline (typically a JSON string).
      */
-    public function __construct(
-        #[ExpectedValues(valuesFromClass: HTTPStatusCode::class)]
-        public int $statusCode,
-        public Dictionary $headers,
-        public mixed $body
-    ) {
+    public function __construct(#[ExpectedValues(valuesFromClass: HTTPStatusCode::class)] public int $statusCode, public Dictionary $headers, public mixed $body)
+    {
     }
 }

@@ -107,7 +107,7 @@ abstract class Responder extends ObjectClass
     }
     /** @var Set<class-string<ResponseTransformer>> The fixed infrastructure transformer layer applied after the user pipeline on every response. Always runs regardless of subclass overrides to $transformers. */
     protected Set $infrastructureTransformers {
-        get => $this->infrastructureTransformers ??= new Set([ConditionalGetTransformer::class, RateLimitHeaderTransformer::class, SecurityHeadersTransformer::class, CORSResponseTransformer::class]);
+        get => $this->infrastructureTransformers ??= new Set([CacheHeaderTransformer::class, ConditionalGetTransformer::class, RateLimitHeaderTransformer::class, SecurityHeadersTransformer::class, CORSResponseTransformer::class]);
     }
     /** @var mixed The data produced or returned by the responder's action method. This value is used as the body of the response or as input to response transformers. */
     protected mixed $data = null;

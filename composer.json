@@ -26,9 +26,9 @@
     "ext-pdo": "*",
     "ext-zlib": "*",
     "ext-openssl": "*",
-    "ext-apcu": "8.5",
-    "ext-memcached": "8.5",
-    "ext-redis": "8.5",
+    "ext-apcu": "*",
+    "ext-memcached": "*",
+    "ext-redis": "*",
     "sabatier/foundation": "@dev",
     "sabatier/coredata": "@dev"
   },

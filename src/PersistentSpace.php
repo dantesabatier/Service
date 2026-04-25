@@ -35,7 +35,7 @@ final class PersistentSpace extends Responder
                 if (($idempotencyKey !== null) && ($stored = Application::shared()->idempotencyStore->get($idempotencyKey))) {
                     return new ResponsePipeline($this->infrastructureTransformers, $this->transformerContext)->process(new Response($this->request->url, $stored->statusCode, $stored->headers, $stored->body));
                 }
-                $userResponse = new ResponsePipeline(new Set([JSONTransformer::class, ResponseHeaderSanitizerTransformer::class]), $this->transformerContext)->process( new PersistentSpaceResponseStrategyResolver($this->request, $this->entity, $this->managedObjectContext, $this->fieldSecurityPolicy)->strategy->response);
+                $userResponse = new ResponsePipeline(new Set([JSONTransformer::class, ResponseHeaderSanitizerTransformer::class]), $this->transformerContext)->process(new PersistentSpaceResponseStrategyResolver($this->request, $this->entity, $this->managedObjectContext, $this->fieldSecurityPolicy)->strategy->response);
                 if ($idempotencyKey !== null) {
                     $this->storeIdempotentResponse($idempotencyKey, $userResponse);
                 }

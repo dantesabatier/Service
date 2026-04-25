@@ -24,7 +24,7 @@ final class Uploader extends Responder
     /**
      * @throws Exception
      */
-    #[Action(transformers: [JSONTransformer::class])]
+    #[Action(transformers: [JSONTransformer::class, NoCacheHeaderTransformer::class])]
     public function upload(): void
     {
         $parameters = $this->request->parameters;

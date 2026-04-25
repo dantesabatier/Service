@@ -46,8 +46,8 @@ final class ResourceManager extends Responder
             }
             /** @var Set<class-string<ResponseTransformer>> $decorators */
             $decorators = new Set([ContentTypeTransformer::class]);
-            if ($this->staticResourceDisposition->cacheable) {
-                $decorators->insert(CacheHeaderTransformer::class);
+            if (!$this->staticResourceDisposition->cacheable) {
+                $decorators->insert(NoCacheHeaderTransformer::class);
             }
             return $this->transformers = $decorators;
         }

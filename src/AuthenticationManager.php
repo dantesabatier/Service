@@ -48,7 +48,7 @@ final class AuthenticationManager extends Responder
      *
      * @throws Exception
      */
-    #[Action(transformers: [JSONTransformer::class])]
+    #[Action(transformers: [JSONTransformer::class, NoCacheHeaderTransformer::class])]
     public function login(): void
     {
         $user = $this->authentication->authenticatedUser ?? throw new UnauthorizedException();
@@ -71,7 +71,7 @@ final class AuthenticationManager extends Responder
      * Invalidates the current authenticated identity.
      * @throws Exception
      */
-    #[Action]
+    #[Action(transformers: [NoCacheHeaderTransformer::class])]
     public function logout(): void
     {
         if ($this->isSessionEnabled) {
@@ -89,7 +89,7 @@ final class AuthenticationManager extends Responder
      *
      * @throws Exception
      */
-    #[Action(transformers: [JSONTransformer::class])]
+    #[Action(transformers: [JSONTransformer::class, NoCacheHeaderTransformer::class])]
     public function refresh(): void
     {
         $authentication = $this->authentication;

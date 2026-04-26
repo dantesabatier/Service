@@ -63,11 +63,12 @@ final class Session extends ObjectClass
          * @throws Exception
          */
         get {
-            if (!isset($this->storageURL)) {
-                $this->storageURL = FileManager::default()->url(SearchPathDirectory::cachesDirectory)->appendingPathComponent(Bundle::main()->bundleIdentifier ?? ProcessInfo::processInfo()->processName)->appendingPathComponent("Session");
-                if (!FileManager::default()->fileExists($this->storageURL->path)) {
-                    FileManager::default()->createDirectory($this->storageURL, true, new Dictionary([FileAttributeKey::posixPermissions => 0777]));
-                }
+            if (isset($this->storageURL)) {
+                return $this->storageURL;
+            }
+            $this->storageURL = FileManager::default()->url(SearchPathDirectory::cachesDirectory)->appendingPathComponent(Bundle::main()->bundleIdentifier ?? ProcessInfo::processInfo()->processName)->appendingPathComponent("Session");
+            if (!FileManager::default()->fileExists($this->storageURL->path)) {
+                FileManager::default()->createDirectory($this->storageURL, true, new Dictionary([FileAttributeKey::posixPermissions => 0777]));
             }
             return $this->storageURL;
         }

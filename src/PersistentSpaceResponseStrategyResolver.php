@@ -13,16 +13,17 @@ final class PersistentSpaceResponseStrategyResolver
     /** @var Dictionary<class-string<PersistentSpaceResponseStrategy>> */
     private Dictionary $byHTTPMethodResponseStrategyClassesTable {
         get {
-            if (!isset($this->byHTTPMethodResponseStrategyClassesTable)) {
-                $this->byHTTPMethodResponseStrategyClassesTable = new Dictionary();
-                $this->byHTTPMethodResponseStrategyClassesTable[$this->request->httpMethod] = match ($this->request->httpMethod) {
-                    HTTPRequestMethod::get => ReadPersistentSpaceResponseStrategy::class,
-                    HTTPRequestMethod::post => CreatePersistentSpaceResponseStrategy::class,
-                    HTTPRequestMethod::patch => UpdatePersistentSpaceResponseStrategy::class,
-                    HTTPRequestMethod::delete => DeletePersistentSpaceResponseStrategy::class,
-                    default => throw new MethodNotAllowedException(),
-                };
+            if (isset($this->byHTTPMethodResponseStrategyClassesTable)) {
+                return $this->byHTTPMethodResponseStrategyClassesTable;
             }
+            $this->byHTTPMethodResponseStrategyClassesTable = new Dictionary();
+            $this->byHTTPMethodResponseStrategyClassesTable[$this->request->httpMethod] = match ($this->request->httpMethod) {
+                HTTPRequestMethod::get => ReadPersistentSpaceResponseStrategy::class,
+                HTTPRequestMethod::post => CreatePersistentSpaceResponseStrategy::class,
+                HTTPRequestMethod::patch => UpdatePersistentSpaceResponseStrategy::class,
+                HTTPRequestMethod::delete => DeletePersistentSpaceResponseStrategy::class,
+                default => throw new MethodNotAllowedException(),
+            };
             return $this->byHTTPMethodResponseStrategyClassesTable;
         }
     }

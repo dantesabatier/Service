@@ -20,21 +20,21 @@ final class JSONWebTokenService
     /** @var JSONWebTokenEncoderStrategy The encoder strategy instance based on the algorithm and key. */
     private JSONWebTokenEncoderStrategy $encoderStrategy {
         get {
-            if (!isset($this->encoderStrategy)) {
-                $strategyClass = JSONWebTokenCoderStrategyFactory::shared()->getStrategyClass(JSONWebTokenCoderStrategyFactory::shared()->encoderStrategies, $this->algorithm);
-                $this->encoderStrategy = new $strategyClass($this->key);
+            if (isset($this->encoderStrategy)) {
+                return $this->encoderStrategy;
             }
-            return $this->encoderStrategy;
+            $strategyClass = JSONWebTokenCoderStrategyFactory::shared()->getStrategyClass(JSONWebTokenCoderStrategyFactory::shared()->encoderStrategies, $this->algorithm);
+            return $this->encoderStrategy = new $strategyClass($this->key);
         }
     }
     /** @var JSONWebTokenDecoderStrategy The decoder strategy instance based on the algorithm and key. */
     private JSONWebTokenDecoderStrategy $decoderStrategy {
         get {
-            if (!isset($this->decoderStrategy)) {
-                $strategyClass = JSONWebTokenCoderStrategyFactory::shared()->getStrategyClass(JSONWebTokenCoderStrategyFactory::shared()->decoderStrategies, $this->algorithm);
-                $this->decoderStrategy = new $strategyClass($this->key, $this->issuer);
+            if (isset($this->decoderStrategy)) {
+                return $this->decoderStrategy;
             }
-            return $this->decoderStrategy;
+            $strategyClass = JSONWebTokenCoderStrategyFactory::shared()->getStrategyClass(JSONWebTokenCoderStrategyFactory::shared()->decoderStrategies, $this->algorithm);
+            return $this->decoderStrategy = new $strategyClass($this->key, $this->issuer);
         }
     }
 

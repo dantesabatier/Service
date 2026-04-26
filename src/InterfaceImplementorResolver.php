@@ -13,28 +13,29 @@ final class InterfaceImplementorResolver
     /** @var Dictionary<class-string<ManagedObject>> */
     private Dictionary $index {
         get {
-            if (!isset($this->index)) {
-                static $targets = [
-                    Authorizable::class => true,
-                    Authorization::class => true,
-                ];
-                $this->index = new Dictionary();
-                foreach ($this->model as $entity) {
-                    if (!($class = $entity->managedObjectClassName)) {
+            if (isset($this->index)) {
+                return $this->index;
+            }
+            static $targets = [
+                Authorizable::class => true,
+                Authorization::class => true,
+            ];
+            $this->index = new Dictionary();
+            foreach ($this->model as $entity) {
+                if (!($class = $entity->managedObjectClassName)) {
+                    continue;
+                }
+                if (!class_exists($class)) {
+                    continue;
+                }
+                if (!($implements = class_implements($class))) {
+                    continue;
+                }
+                foreach ($implements as $implement) {
+                    if (!isset($targets[$implement])) {
                         continue;
                     }
-                    if (!class_exists($class)) {
-                        continue;
-                    }
-                    if (!($implements = class_implements($class))) {
-                        continue;
-                    }
-                    foreach ($implements as $implement) {
-                        if (!isset($targets[$implement])) {
-                            continue;
-                        }
-                        $this->index[$implement] ??= $class;
-                    }
+                    $this->index[$implement] ??= $class;
                 }
             }
             return $this->index;

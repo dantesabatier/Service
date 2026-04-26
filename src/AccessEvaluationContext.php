@@ -18,10 +18,10 @@ use Sabatier\Foundation\Dictionary;
  * implementations.
  *
  * Typical usage of this context includes:
- * - resolving the authenticated identity
- * - checking resource-based authorization
- * - retrieving persisted user and permission data
- * - reading environment-driven settings
+ * - Resolving the authenticated identity
+ * - Checking resource-based authorization
+ * - Retrieving persisted user and permission data
+ * - Reading environment-driven settings
  */
 final readonly class AccessEvaluationContext
 {

@@ -245,7 +245,6 @@ class Application extends Responder
         $this->delegate?->applicationWillTerminate($this);
     }
 
-
     private function initializeApplication(): void
     {
         $delegate = $this->delegate;
@@ -270,9 +269,7 @@ class Application extends Responder
         $reset = time() + $ttl;
         $remaining = max(0, $policy->maxRequests - $count);
         $this->rateLimitInfo = new RateLimitInfo($policy->maxRequests, $remaining, $reset);
-        if ($count > $policy->maxRequests) {
-            throw new TooManyRequestsException(max(1, $ttl));
-        }
+        $count <= $policy->maxRequests ?:  throw new TooManyRequestsException(max(1, $ttl));
     }
 
     private function checkAccessPermissions(): void

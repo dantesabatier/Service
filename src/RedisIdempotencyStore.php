@@ -9,7 +9,7 @@ use Redis;
  * A Redis-backed idempotency store for distributed deployments.
  *
  * Uses `SETEX` to store serialized response snapshots with a TTL, and `GET` to retrieve them.
- * Suitable for multi-server deployments where all workers share the same Redis instance.
+ * Suitable for multiserver deployments where all workers share the same Redis instance.
  *
  * Requires the `ext-redis` PHP extension and an injected `Redis` connection.
  *

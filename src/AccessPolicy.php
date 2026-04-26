@@ -15,8 +15,7 @@ use Sabatier\Foundation\ProcessInfo;
  * may throw `UnauthorizedException` or `ForbiddenException` to short-circuit the request.
  *
  * `setTransactionAuthor` is a concrete convenience that wires the authenticated username (or the
- * process name for unauthenticated mutation requests) into the Core Data managed object context,
- * so persistent history records the author of every write.
+ * process name for unauthenticated mutation requests) into the Core Data managed object context, so persistent history records the author of every write.
  *
  * ## Built-in implementations
  * - `DefaultAccessPolicy` — enforces authentication for all non-public routes.

@@ -11,8 +11,8 @@ use Override;
  * to maintain per-key counters that survive across requests and are visible to all
  * worker processes on the same machine.
  *
- * Requires the APCu PHP extension (`ext-apcu`). For multi-server deployments, replace
- * this with a distributed store (e.g. Redis) via `Application::$rateLimitStore`.
+ * Requires the APCu PHP extension (`ext-apcu`). For multiserver deployments, replace
+ * this with a distributed store (e.g., Redis) via `Application::$rateLimitStore`.
  *
  * @see RateLimitStore
  */

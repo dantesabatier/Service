@@ -19,8 +19,7 @@ final class JSONWebTokenCoderStrategyFactory
 
     public static function shared(): JSONWebTokenCoderStrategyFactory
     {
-        self::$shared ??= new self();
-        return self::$shared;
+        return self::$shared ??= new self();
     }
 
     /**

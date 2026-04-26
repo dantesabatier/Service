@@ -17,8 +17,7 @@ final class AuthenticationResolver
      */
     private static function registeredAuthenticationClasses(): Set
     {
-        self::$registeredAuthenticationClasses ??= new Set();
-        return self::$registeredAuthenticationClasses;
+        return self::$registeredAuthenticationClasses ??= new Set();
     }
 
     /**

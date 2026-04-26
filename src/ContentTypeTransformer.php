@@ -1,8 +1,11 @@
 <?php
 
+/** @noinspection PhpInternalEntityUsedInspection */
+
 declare(strict_types=1);
 
 /** @noinspection PhpInternalEntityUsedInspection */
+
 namespace Sabatier\Service;
 
 use Sabatier\Foundation\URLFileTypeMappings;

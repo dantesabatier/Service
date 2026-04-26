@@ -111,10 +111,12 @@ class Application extends Responder
         get => $this->staticResourcePolicy ??= new DefaultStaticResourcePolicy();
     }
     /** @var HTTPCachePolicy The HTTP cache policy that controls caching behavior (ETags, Cache-Control directives) for all responses. Override this property in the application delegate to customize the default policy. */
+    #[Override]
     public HTTPCachePolicy $cachePolicy {
         get => $this->cachePolicy ??= HTTPCachePolicy::policy();
     }
     /** @var RateLimitPolicy The rate limiting policy controlling request quotas per client. Override in the application delegate to customize limits or disable rate limiting. */
+    #[Override]
     public RateLimitPolicy $rateLimitPolicy {
         get => $this->rateLimitPolicy ??= RateLimitPolicy::policy();
     }
@@ -123,6 +125,7 @@ class Application extends Responder
         get => $this->rateLimitStore ??= new APCuRateLimitStore();
     }
     /** @var IdempotencyPolicy The idempotency policy controlling replay behavior for POST and PATCH requests. */
+    #[Override]
     public IdempotencyPolicy $idempotencyPolicy {
         get => $this->idempotencyPolicy ??= IdempotencyPolicy::policy();
     }

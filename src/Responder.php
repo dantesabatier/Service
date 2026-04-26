@@ -83,7 +83,7 @@ abstract class Responder extends ObjectClass
     }
     /** @var ArrayClass<string> Defines the HTTP headers this responder is capable of understanding. It does not grant permission by itself; the effective allowed headers are the intersection between the responder’s declared headers and the application’s global CORS policy. */
     protected ArrayClass $allowedHeaders {
-        get => new ArrayClass(["Content-Type", "Authorization", "Serialization"]);
+        get => new ArrayClass(["Content-Type", "Authorization", "Serialization", "If-None-Match"]);
     }
     /** @var Responder|null The next responder. */
     public ?Responder $nextResponder = null;

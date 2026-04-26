@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Sabatier\Service;
 
 /** @var string Environment variable key for the `max-age` Cache-Control directive value in seconds. */

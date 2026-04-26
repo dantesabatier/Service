@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Sabatier\Service;
 
 /** @var string Environment variable key to enable or disable the idempotency layer (`true` or `false`). */

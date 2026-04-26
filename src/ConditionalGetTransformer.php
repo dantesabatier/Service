@@ -37,7 +37,7 @@ final class ConditionalGetTransformer extends ResponseTransformer
         $headers["ETag"] = $etag;
         $ifNoneMatch = $request->valueForHttpHeaderField("If-None-Match");
         if ($ifNoneMatch !== null) {
-            $tags = array_map('trim', explode(',', $ifNoneMatch));
+            $tags = array_map(trim(...), explode(',', $ifNoneMatch));
             if (in_array('*', $tags, true) || in_array($etag, $tags, true)) {
                 $notModified = new Response($response->url, HTTPStatusCode::notModified);
                 $notModifiedHeaders = $notModified->allHeaderFields;

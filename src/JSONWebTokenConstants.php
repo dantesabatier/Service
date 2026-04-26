@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Sabatier\Service;
 
 /** @var string Environment key used to load the private signing key for JWT generation */

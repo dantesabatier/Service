@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Sabatier\Service;
 
 /**
@@ -16,9 +18,9 @@ namespace Sabatier\Service;
  * Adding context to a new transformer type only requires adding a nullable property here;
  * no existing constructor signatures need to change.
  */
-final class ResponseTransformerContext
+final readonly class ResponseTransformerContext
 {
-    public function __construct(public readonly ?Request $request = null, public readonly ?HTTPCachePolicy $cachePolicy = null, public readonly ?CORSPolicy $corsPolicy = null, public readonly ?SecurityHeadersPolicy $securityHeadersPolicy = null, public readonly ?RateLimitInfo $rateLimitInfo = null)
+    public function __construct(public ?Request $request = null, public ?HTTPCachePolicy $cachePolicy = null, public ?CORSPolicy $corsPolicy = null, public ?SecurityHeadersPolicy $securityHeadersPolicy = null, public ?RateLimitInfo $rateLimitInfo = null)
     {
     }
 }

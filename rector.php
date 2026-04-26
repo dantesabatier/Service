@@ -8,6 +8,7 @@ use Rector\CodeQuality\Rector\ClassMethod\LocallyCalledStaticMethodToNonStaticRe
 use Rector\CodeQuality\Rector\Identical\FlipTypeControlToUseExclusiveTypeRector;
 use Rector\CodeQuality\Rector\If_\ExplicitBoolCompareRector;
 use Rector\Config\RectorConfig;
+use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedConstructorParamRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPrivateMethodParameterRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessParamTagRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessReturnTagRector;
@@ -51,6 +52,9 @@ try {
             ],
             RemoveReflectionSetAccessibleCallsRector::class => [
                 __DIR__ . "/src/OwnerResolver.php"
+            ],
+            RemoveUnusedConstructorParamRector::class => [
+                __DIR__ . "/src/ResponseTransformer.php"
             ],
         ])->withPreparedSets(deadCode: true, codeQuality: true, earlyReturn: true);
 } catch (InvalidConfigurationException $e) {

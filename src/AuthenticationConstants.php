@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Sabatier\Service;
 
 /** @var string Key used to expose the authenticated user object in authentication responses */
@@ -28,4 +30,3 @@ const AuthenticationIsEnabledKey = "isEnabled";
 const AuthenticationRolesKey = "roles";
 /** @var string Key used to identify the name of a role within the roles collection */
 const AuthenticationRoleNameKey = "name";
-

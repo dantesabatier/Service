@@ -53,14 +53,14 @@ Responses flow through a `ResponsePipeline` that applies `ResponseTransformer` s
 
 All policies are configured on `Application` and inherited by each `Responder` via lazy property hooks:
 
-| Property | Type | Purpose |
-|---|---|---|
-| `$corsPolicy` | `CORSPolicy` | Allowed origins, methods, headers |
-| `$accessPolicy` | `AccessPolicy` | Access control; override with `DefaultAccessPolicy` / `PublicAccessPolicy` |
-| `$securityHeadersPolicy` | `SecurityHeadersPolicy` | Security response headers |
-| `$cachePolicy` | `HTTPCachePolicy` | ETag generation, Cache-Control defaults |
-| `$rateLimitPolicy` | `RateLimitPolicy` | Rate limiting; backends: APCu, Redis, Memcached, InMemory |
-| `$idempotencyPolicy` | `IdempotencyPolicy` | Replay protection for POST/PATCH; same backends |
+| Property                 | Type                    | Purpose                                                                    |
+|--------------------------|-------------------------|----------------------------------------------------------------------------|
+| `$corsPolicy`            | `CORSPolicy`            | Allowed origins, methods, headers                                          |
+| `$accessPolicy`          | `AccessPolicy`          | Access control; override with `DefaultAccessPolicy` / `PublicAccessPolicy` |
+| `$securityHeadersPolicy` | `SecurityHeadersPolicy` | Security response headers                                                  |
+| `$cachePolicy`           | `HTTPCachePolicy`       | ETag generation, Cache-Control defaults                                    |
+| `$rateLimitPolicy`       | `RateLimitPolicy`       | Rate limiting; backends: APCu, Redis, Memcached, InMemory                  |
+| `$idempotencyPolicy`     | `IdempotencyPolicy`     | Replay protection for POST/PATCH; same backends                            |
 
 ### Security & Auth
 

@@ -20,9 +20,7 @@ use Override;
  * Suitable for multiserver deployments where all workers share the same Memcached instance.
  *
  * <code>
- * $memcached = new Memcached();
- * $memcached->addServer('127.0.0.1', 11211);
- * Application::shared()->rateLimitStore = new MemcachedRateLimitStore($memcached);
+ * Application::shared()->rateLimitStore = new MemcachedRateLimitStore();
  * </code>
  *
  * @see RateLimitStore
@@ -30,8 +28,12 @@ use Override;
  */
 final readonly class MemcachedRateLimitStore implements RateLimitStore
 {
-    public function __construct(private Memcached $memcached)
+    private Memcached $memcached;
+
+    public function __construct(string $host = "127.0.0.1", int $port = 11211)
     {
+        $this->memcached = new Memcached();
+        $this->memcached->addServer($host, $port);
     }
 
     #[Override]

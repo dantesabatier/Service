@@ -9,15 +9,13 @@ use Override;
  * A Memcached-backed idempotency store for distributed deployments.
  *
  * Uses `Memcached::set()` to store serialized response snapshots with a TTL, and
- * `Memcached::get()` to retrieve them. Suitable for multi-server deployments where all
+ * `Memcached::get()` to retrieve them. Suitable for multiserver deployments where all
  * workers share the same Memcached instance.
  *
  * Requires the `ext-memcached` PHP extension and an injected `Memcached` connection.
  *
  * <code>
- * $memcached = new Memcached();
- * $memcached->addServer('127.0.0.1', 11211);
- * Application::shared()->idempotencyStore = new MemcachedIdempotencyStore($memcached);
+ * Application::shared()->idempotencyStore = new MemcachedIdempotencyStore();
  * </code>
  *
  * @see IdempotencyStore
@@ -25,8 +23,12 @@ use Override;
  */
 final readonly class MemcachedIdempotencyStore implements IdempotencyStore
 {
-    public function __construct(private Memcached $memcached)
+    private Memcached $memcached;
+
+    public function __construct(string $host = "127.0.0.1", int $port = 11211)
     {
+        $this->memcached = new Memcached();
+        $this->memcached->addServer($host, $port);
     }
 
     #[Override]

@@ -14,9 +14,7 @@ use Redis;
  * Requires the `ext-redis` PHP extension and an injected `Redis` connection.
  *
  * <code>
- * $redis = new Redis();
- * $redis->connect('127.0.0.1', 6379);
- * Application::shared()->idempotencyStore = new RedisIdempotencyStore($redis);
+ * Application::shared()->idempotencyStore = new RedisIdempotencyStore();
  * </code>
  *
  * @see IdempotencyStore
@@ -24,8 +22,12 @@ use Redis;
  */
 final readonly class RedisIdempotencyStore implements IdempotencyStore
 {
-    public function __construct(private Redis $redis)
+    private Redis $redis;
+
+    public function __construct(string $host = "127.0.0.1", int $port = 6379)
     {
+        $this->redis = new Redis();
+        $this->redis->pconnect($host, $port);
     }
 
     #[Override]

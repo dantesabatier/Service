@@ -14,12 +14,10 @@ use Redis;
  * one succeed; both will then `INCR` the same key, producing correct sequential counts.
  *
  * Requires the `ext-redis` PHP extension and an injected `Redis` connection.
- * Suitable for multi-server deployments where all workers share the same Redis instance.
+ * Suitable for multiserver deployments where all workers share the same Redis instance.
  *
  * <code>
- * $redis = new Redis();
- * $redis->connect('127.0.0.1', 6379);
- * Application::shared()->rateLimitStore = new RedisRateLimitStore($redis);
+ * Application::shared()->rateLimitStore = new RedisRateLimitStore();
  * </code>
  *
  * @see RateLimitStore
@@ -27,8 +25,12 @@ use Redis;
  */
 final readonly class RedisRateLimitStore implements RateLimitStore
 {
-    public function __construct(private Redis $redis)
+    private Redis $redis;
+
+    public function __construct(string $host = "127.0.0.1", int $port = 6379)
     {
+        $this->redis = new Redis();
+        $this->redis->pconnect($host, $port);
     }
 
     #[Override]

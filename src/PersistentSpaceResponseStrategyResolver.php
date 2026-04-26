@@ -18,8 +18,8 @@ final class PersistentSpaceResponseStrategyResolver
             }
             $this->byHTTPMethodResponseStrategyClassesTable = new Dictionary();
             $this->byHTTPMethodResponseStrategyClassesTable[$this->request->httpMethod] = match ($this->request->httpMethod) {
-                HTTPRequestMethod::get => ReadPersistentSpaceResponseStrategy::class,
                 HTTPRequestMethod::post => CreatePersistentSpaceResponseStrategy::class,
+                HTTPRequestMethod::get => ReadPersistentSpaceResponseStrategy::class,
                 HTTPRequestMethod::patch => UpdatePersistentSpaceResponseStrategy::class,
                 HTTPRequestMethod::delete => DeletePersistentSpaceResponseStrategy::class,
                 default => throw new MethodNotAllowedException(),

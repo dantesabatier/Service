@@ -30,7 +30,7 @@ final readonly class RedisETagStore implements ETagStore
     public function __construct(string $host = "127.0.0.1", int $port = 6379)
     {
         $this->redis = new Redis();
-        $this->redis->pconnect($host, $port);
+        $this->redis->pconnect($host, $port) ?: throw new \RuntimeException("RedisETagStore: could not connect to Redis at $host:$port");
     }
 
     #[Override]

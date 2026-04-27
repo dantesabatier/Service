@@ -20,3 +20,7 @@ const HTTPCacheMaxAgeDefault = 0;
 const HTTPCacheVisibilityDefault = "private";
 /** @var bool Default ETag generation state. */
 const HTTPCacheETagEnabledDefault = true;
+/** @var string Environment variable key for the server-side ETag store TTL in seconds. */
+const HTTPCacheETagTTLKey = "HTTP_CACHE_ETAG_TTL";
+/** @var int Default TTL for server-side ETag cache entries (3600 seconds = 1 hour). */
+const HTTPCacheETagTTLDefault = 3600;

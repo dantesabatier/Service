@@ -133,6 +133,10 @@ class Application extends Responder
     public IdempotencyStore $idempotencyStore {
         get => $this->idempotencyStore ??= new APCuIdempotencyStore();
     }
+    /** @var ETagStore The storage backend for server-side ETag caching. Defaults to APCuETagStore. Override with a Redis store for multi-server deployments. */
+    public ETagStore $etagStore {
+        get => $this->etagStore ??= new APCuETagStore();
+    }
     /** @var RateLimitInfo|null The rate limit state produced for the current request. Populated by enforceRateLimitIfNeeded() and consumed by RateLimitHeaderTransformer via the transformer context. */
     private(set) ?RateLimitInfo $rateLimitInfo = null;
     private bool $isTerminated = false;

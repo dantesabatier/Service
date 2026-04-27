@@ -5,7 +5,6 @@ namespace Sabatier\Service;
 use Override;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\Foundation\ArrayClass;
-use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Set;
 
 /** @internal */

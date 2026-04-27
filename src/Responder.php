@@ -136,15 +136,6 @@ abstract class Responder extends ObjectClass
                 if (($idempotencyKey !== null) && ($stored = Application::shared()->idempotencyStore->get($idempotencyKey))) {
                     return new ResponsePipeline($this->infrastructureTransformers, $this->transformerContext)->process(new Response($request->url, $stored->statusCode, $stored->headers, $stored->body));
                 }
-                $etagCacheKey = $this->resolveETagCacheKey($request);
-                if ($etagCacheKey !== null && ($ifNoneMatch = $request->valueForHttpHeaderField("If-None-Match"))) {
-                    $storedEtag = Application::shared()->etagStore->get($etagCacheKey);
-                    if ($storedEtag !== null && $storedEtag === $ifNoneMatch) {
-                        $notModified = new Response($request->url, HTTPStatusCode::notModified);
-                        $notModified->allHeaderFields["ETag"] = $storedEtag;
-                        return new ResponsePipeline($this->infrastructureTransformers, $this->transformerContext)->process($notModified);
-                    }
-                }
                 if (match ($request->httpMethod) {
                         HTTPRequestMethod::post,
                         HTTPRequestMethod::patch,
@@ -152,21 +143,12 @@ abstract class Responder extends ObjectClass
                         default => false,
                     } && ($selector = $this->selector)) {
                     $this->perform($selector);
-                    if ($etagCacheKey !== null) {
-                        Application::shared()->etagStore->deleteWithPrefix("etag:GET:{$request->url->path}");
-                    }
                 }
                 $userResponse = new ResponsePipeline($this->transformers, $this->transformerContext)->process(new Response($request->url, $this->statusCode, body: $this->data));
                 if ($idempotencyKey !== null) {
                     $this->storeIdempotentResponse($idempotencyKey, $userResponse);
                 }
-                $final = new ResponsePipeline($this->infrastructureTransformers, $this->transformerContext)->process($userResponse);
-                if ($etagCacheKey !== null) {
-                    if ($etag = $final->valueForHttpHeaderField("ETag")) {
-                        Application::shared()->etagStore->set($etagCacheKey, $etag, HTTPCacheETagTTLDefault);
-                    }
-                }
-                return $final;
+                return new ResponsePipeline($this->infrastructureTransformers, $this->transformerContext)->process($userResponse);
             } finally {
                 if ($this->isSessionEnabled) {
                     $this->session->commit();
@@ -186,16 +168,6 @@ abstract class Responder extends ObjectClass
         }
         $raw = $request->valueForHttpHeaderField($policy->headerName);
         return $raw !== null ? "$raw:$request->httpMethod:{$request->url->path}" : null;
-    }
-
-    protected function resolveETagCacheKey(Request $request): ?string
-    {
-        if (!$this->cachePolicy->etagEnabled || $request->httpMethod !== HTTPRequestMethod::get) {
-            return null;
-        }
-        $serialization = $request->valueForHttpHeaderField("Serialization") ?? "";
-        $query = $request->url->query ?? "";
-        return "etag:GET:{$request->url->path}?$query|$serialization";
     }
 
     protected function storeIdempotentResponse(string $key, Response $response): void

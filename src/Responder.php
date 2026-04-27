@@ -161,7 +161,7 @@ abstract class Responder extends ObjectClass
                     $this->storeIdempotentResponse($idempotencyKey, $userResponse);
                 }
                 $final = new ResponsePipeline($this->infrastructureTransformers, $this->transformerContext)->process($userResponse);
-                if ($etagCacheKey !== null && $final->statusCode === HTTPStatusCode::ok) {
+                if ($etagCacheKey !== null) {
                     if ($etag = $final->valueForHttpHeaderField("ETag")) {
                         Application::shared()->etagStore->set($etagCacheKey, $etag, HTTPCacheETagTTLDefault);
                     }

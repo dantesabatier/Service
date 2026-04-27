@@ -195,7 +195,7 @@ abstract class Responder extends ObjectClass
         }
         $serialization = $request->valueForHttpHeaderField("Serialization") ?? "";
         $query = $request->url->query ?? "";
-        return "etag:GET:{$request->url->path}?{$query}|{$serialization}";
+        return "etag:GET:{$request->url->path}?$query|$serialization";
     }
 
     protected function storeIdempotentResponse(string $key, Response $response): void

@@ -37,7 +37,7 @@ final class APCuETagStore implements ETagStore
     #[Override]
     public function deleteWithPrefix(string $prefix): void
     {
-        $iterator = new APCUIterator('/^' . preg_quote($prefix, '/') . '/');
+        $iterator = new APCUIterator("/^" . preg_quote($prefix, "/") . "/");
         apcu_delete($iterator);
     }
 }

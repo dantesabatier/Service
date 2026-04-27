@@ -14,12 +14,9 @@ final readonly class ResponsePipeline
 
     public function process(Response $response): Response
     {
-        return $this->transformers->reduce($response,
-            /**
-             * @param Response $response
-             * @param class-string<ResponseTransformer> $transformer
-             * @return Response
-             */
-            fn(Response $response, string $transformer): Response => new $transformer($response, $this->context)->response);
+        foreach ($this->transformers as $transformer) {
+            $response = new $transformer($response, $this->context)->response;
+        }
+        return $response;
     }
 }

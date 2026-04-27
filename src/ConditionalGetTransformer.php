@@ -4,6 +4,7 @@ namespace Sabatier\Service;
 
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
+use function Sabatier\Foundation\string_split_trimmed;
 
 /**
  * Implements HTTP conditional GET semantics using ETags.
@@ -35,16 +36,14 @@ final class ConditionalGetTransformer extends ResponseTransformer
         $body = $response->body;
         $etag = '"' . md5(is_string($body) ? $body : serialize($body)) . '"';
         $headers["ETag"] = $etag;
-        $ifNoneMatch = $request->valueForHttpHeaderField("If-None-Match");
-        if ($ifNoneMatch !== null) {
-            $tags = array_map(trim(...), explode(',', $ifNoneMatch));
-            if (in_array('*', $tags, true) || in_array($etag, $tags, true)) {
+        if ($ifNoneMatch = $request->valueForHttpHeaderField("If-None-Match")) {
+            $tags = string_split_trimmed($ifNoneMatch);
+            if (in_array("*", $tags, true) || in_array($etag, $tags, true)) {
                 $notModified = new Response($response->url, HTTPStatusCode::notModified);
                 $notModifiedHeaders = $notModified->allHeaderFields;
                 $notModifiedHeaders["ETag"] = $etag;
                 $notModifiedHeaders["Cache-Control"] = $cacheControl;
-                $vary = (string)$headers["Vary"];
-                if ($vary !== "") {
+                if ($vary = $headers["Vary"]) {
                     $notModifiedHeaders["Vary"] = $vary;
                 }
                 parent::__construct($notModified, $context);

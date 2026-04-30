@@ -262,8 +262,8 @@ class Application extends Responder
         if (!$policy->enabled) {
             return;
         }
-        $ip = $_SERVER["REMOTE_ADDR"] ?? "unknown";
-        $key = "rate_limit:$ip";
+        $username = $this->authenticationManager->authentication->credential?->user;
+        $key = $username !== null ? "rate_limit:user:$username" : "rate_limit:ip:" . ($_SERVER["REMOTE_ADDR"] ?? "unknown");
         $count = $this->rateLimitStore->increment($key, $policy->windowSeconds);
         $ttl = $this->rateLimitStore->ttl($key);
         $reset = time() + $ttl;

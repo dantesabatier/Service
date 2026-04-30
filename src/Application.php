@@ -263,13 +263,15 @@ class Application extends Responder
             return;
         }
         $username = $this->authenticationManager->authentication->credential?->user;
-        $key = $username !== null ? "rate_limit:user:$username" : "rate_limit:ip:" . ($_SERVER["REMOTE_ADDR"] ?? "unknown");
+        [$key, $limit] = $username !== null
+            ? ["rate_limit:user:$username", $policy->maxRequestsUser]
+            : ["rate_limit:ip:" . ($_SERVER["REMOTE_ADDR"] ?? "unknown"), $policy->maxRequestsIP];
         $count = $this->rateLimitStore->increment($key, $policy->windowSeconds);
         $ttl = $this->rateLimitStore->ttl($key);
         $reset = time() + $ttl;
-        $remaining = max(0, $policy->maxRequests - $count);
-        $this->rateLimitInfo = new RateLimitInfo($policy->maxRequests, $remaining, $reset);
-        $count <= $policy->maxRequests ?:  throw new TooManyRequestsException(max(1, $ttl));
+        $remaining = max(0, $limit - $count);
+        $this->rateLimitInfo = new RateLimitInfo($limit, $remaining, $reset);
+        $count <= $limit ?:  throw new TooManyRequestsException(max(1, $ttl));
     }
 
     private function checkAccessPermissions(): void

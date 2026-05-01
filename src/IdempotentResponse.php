@@ -24,8 +24,9 @@ final readonly class IdempotentResponse
      * @param int $statusCode The HTTP status code of the stored response.
      * @param Dictionary<string> $headers The response headers after the user pipeline.
      * @param mixed $body The response body after the user pipeline (typically a JSON string).
+     * @param bool $isProcessing True when this entry is an in-flight sentinel written before action execution. A concurrent request that finds this sentinel should receive 409 Conflict and retry after the action completes.
      */
-    public function __construct(#[ExpectedValues(valuesFromClass: HTTPStatusCode::class)] public int $statusCode, public Dictionary $headers, public mixed $body)
+    public function __construct(#[ExpectedValues(valuesFromClass: HTTPStatusCode::class)] public int $statusCode, public Dictionary $headers, public mixed $body, public bool $isProcessing = false)
     {
     }
 }

@@ -1,10 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Sabatier\Service;
 
 use Exception;
 use Override;
-use Sabatier\CoreData\ManagedObject;
 use const Sabatier\CoreData\ManagedObjectObjectIDKey;
 
 /** @internal */
@@ -23,10 +24,10 @@ final class UpdatePersistentSpaceResponseStrategy extends PersistentSpaceRespons
             $this->enforceOwnership($object);
             $this->applySecureUpdate($object, $parameters);
             $context = $this->managedObjectContext;
-            $context->hasChanges ?: throw new BadRequestException();
-            $context->save();
-            /** @var ManagedObject $refreshed */
-            $refreshed = $this->fetchBy($object->objectID);
+            if ($context->hasChanges) {
+                $context->save();
+            }
+            $refreshed = $this->fetchBy($object->objectID) ?? throw new InternalServerErrorException();
             $body = $this->applySecureRead($refreshed, $refreshed->jsonSerialize());
             return new Response($request->url, body: $body);
         }

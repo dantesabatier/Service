@@ -14,3 +14,7 @@ const IdempotencyEnabledDefault = true;
 const IdempotencyTTLDefault = 86400;
 /** @var string Name of the HTTP request header carrying the client-supplied idempotency key. */
 const IdempotencyHeaderName = "Idempotency-Key";
+/** @var int Maximum allowed length in characters for a client-supplied idempotency key. */
+const IdempotencyKeyMaxLength = 255;
+/** @var int TTL in seconds for in-flight sentinels written before an action executes. Limits the window during which a duplicate concurrent request receives 409. */
+const IdempotencyInFlightTTL = 60;

@@ -1,12 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Sabatier\Service;
 
 use Exception;
 use Override;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
-use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectID;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Number;
@@ -29,8 +30,7 @@ final class CreatePersistentSpaceResponseStrategy extends PersistentSpaceRespons
             $object = EntityDescription::insertNewObject($entity->name, $context);
             $this->applySecureUpdate($object, $parameters);
             $context->save();
-            /** @var ManagedObject $refreshed */
-            $refreshed = $this->fetchBy($object->objectID);
+            $refreshed = $this->fetchBy($object->objectID) ?? throw new InternalServerErrorException();
             $body = $this->applySecureRead($refreshed, $refreshed->jsonSerialize());
             return new Response($request->url, HTTPStatusCode::created, body: $body);
         }

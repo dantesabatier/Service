@@ -31,9 +31,15 @@ final class PersistentSpace extends Responder
                 if ($this->isSessionEnabled) {
                     $this->session->start();
                 }
-                $idempotencyKey = $this->resolveIdempotencyKey($this->request);
-                if (($idempotencyKey !== null) && ($stored = Application::shared()->idempotencyStore->get($idempotencyKey))) {
-                    return new ResponsePipeline($this->infrastructureTransformers, $this->transformerContext)->process(new Response($this->request->url, $stored->statusCode, $stored->headers, $stored->body));
+                $idempotencyKey = $this->idempotencyKey;
+                if ($idempotencyKey !== null) {
+                    if ($stored = $this->idempotentResponse) {
+                        if ($stored->isProcessing) {
+                            throw new ConflictException();
+                        }
+                        return new ResponsePipeline($this->infrastructureTransformers, $this->transformerContext)->process(new Response($this->request->url, $stored->statusCode, $stored->headers, $stored->body));
+                    }
+                    $this->markInFlight($idempotencyKey);
                 }
                 $userResponse = new ResponsePipeline(new Set([JSONTransformer::class, ResponseHeaderSanitizerTransformer::class]), $this->transformerContext)->process(new PersistentSpaceResponseStrategyResolver($this->request, $this->entity, $this->managedObjectContext, $this->fieldSecurityPolicy)->strategy->response);
                 if ($idempotencyKey !== null) {

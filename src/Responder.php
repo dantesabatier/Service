@@ -123,6 +123,17 @@ abstract class Responder extends ObjectClass
     protected bool $isSessionEnabled {
         get => $this->isSecurityEnabled && !$this->environment->offsetExists(JWTPrivateKey);
     }
+    protected ?string $idempotencyKey {
+        get => $this->resolveIdempotencyKey($this->request);
+    }
+    protected ?IdempotentResponse $idempotentResponse {
+        get {
+            if (!($key = $this->idempotencyKey)) {
+                return null;
+            }
+            return Application::shared()->idempotencyStore->get($key);
+        }
+    }
     /** @var Response The response associated with this responder. */
     public Response $response {
         get {
@@ -132,9 +143,15 @@ abstract class Responder extends ObjectClass
                 if ($this->isSessionEnabled) {
                     $this->session->start();
                 }
-                $idempotencyKey = $this->resolveIdempotencyKey($request);
-                if (($idempotencyKey !== null) && ($stored = Application::shared()->idempotencyStore->get($idempotencyKey))) {
-                    return new ResponsePipeline($this->infrastructureTransformers, $this->transformerContext)->process(new Response($request->url, $stored->statusCode, $stored->headers, $stored->body));
+                $idempotencyKey = $this->idempotencyKey;
+                if ($idempotencyKey !== null) {
+                    if ($stored = $this->idempotentResponse) {
+                        if ($stored->isProcessing) {
+                            throw new ConflictException();
+                        }
+                        return new ResponsePipeline($this->infrastructureTransformers, $this->transformerContext)->process(new Response($request->url, $stored->statusCode, $stored->headers, $stored->body));
+                    }
+                    $this->markInFlight($idempotencyKey);
                 }
                 if (match ($request->httpMethod) {
                         HTTPRequestMethod::post,
@@ -167,7 +184,17 @@ abstract class Responder extends ObjectClass
             return null;
         }
         $raw = $request->valueForHttpHeaderField($policy->headerName);
-        return $raw !== null ? "$raw:$request->httpMethod:{$request->url->path}" : null;
+        if ($raw === null) {
+            return null;
+        }
+        strlen($raw) <= IdempotencyKeyMaxLength ?: throw new BadRequestException();
+        $userIdentity = Application::shared()->authenticationManager->authentication->credential?->user ?? "anonymous";
+        return "$raw:$request->httpMethod:{$request->url->path}:$userIdentity";
+    }
+
+    protected function markInFlight(string $key): void
+    {
+        Application::shared()->idempotencyStore->store($key, new IdempotentResponse(HTTPStatusCode::accepted, new Dictionary(), null, true), IdempotencyInFlightTTL);
     }
 
     protected function storeIdempotentResponse(string $key, Response $response): void

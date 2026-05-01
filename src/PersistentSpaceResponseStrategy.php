@@ -39,8 +39,11 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
         $this->fieldSecurityPolicy = $fieldSecurityPolicy;
     }
 
-    protected function fetchRequestFor(ManagedObjectID|int $objectID): FetchRequest
+    protected function fetchRequestFor(ManagedObjectID|int|string $objectID): FetchRequest
     {
+        if (is_string($objectID) && is_numeric($objectID)) {
+            $objectID = (int)$objectID;
+        }
         /** @var FetchRequest<ManagedObject> $fetchRequest */
         $fetchRequest = new FetchRequest();
         $fetchRequest->entity = $this->entity;
@@ -54,7 +57,7 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
     /**
      * @throws Exception
      */
-    protected function fetchBy(ManagedObjectID|int $objectID): ?ManagedObject
+    protected function fetchBy(ManagedObjectID|int|string $objectID): ?ManagedObject
     {
         /** @var FetchRequest<ManagedObject> $fetchRequest */
         $fetchRequest = $this->fetchRequestFor($objectID);

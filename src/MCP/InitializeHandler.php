@@ -22,11 +22,14 @@ final class InitializeHandler
 {
     private string $instructions {
         get {
+            if (isset($this->instructions)) {
+                return $this->instructions;
+            }
             $filename = ProcessInfo::processInfo()->environment[MCPInstructionsFilenameKey] ?? MCPInstructionsFilenameDefault;
             if (!($url = Bundle::main()->url($filename))) {
-                return "";
+                return $this->instructions = "";
             }
-            return FileManager::default()->contents($url->path) ?? "";
+            return $this->instructions = FileManager::default()->contents($url->path) ?? "";
         }
     }
 

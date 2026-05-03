@@ -1,0 +1,62 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Sabatier\Service\MCP\Tools;
+
+use Exception;
+use InvalidArgumentException;
+use Override;
+use Sabatier\CoreData\BatchDeleteRequest;
+use Sabatier\CoreData\BatchDeleteRequestResultType;
+use Sabatier\CoreData\BatchDeleteResult;
+use Sabatier\Foundation\ArrayClass;
+use Sabatier\Foundation\Dictionary;
+use Sabatier\Service\MCP\Response\ContentItem;
+
+final class BatchDeleteTool extends AbstractTool
+{
+    #[Override]
+    public string $name {
+        get => "batch_delete";
+    }
+    #[Override]
+    public string $description {
+        get => <<<DESC
+        Delete multiple entities matching a required predicate in a single operation.
+        Returns the number of deleted records.
+        DESC;
+    }
+    #[Override]
+    public array $inputSchema {
+        get => [
+            "type" => "object",
+            "properties" => [
+                "entity" => ["type" => "string"],
+                "predicate" => ["type" => "string"],
+                "arguments" => ["type" => "array"],
+            ],
+            "required" => ["entity", "predicate"],
+        ];
+    }
+
+    /**
+     * @return ArrayClass<ContentItem>
+     * @throws Exception
+     */
+    #[Override]
+    public function execute(Dictionary $arguments): ArrayClass
+    {
+        $entityName = $arguments["entity"] ?? throw new InvalidArgumentException("entity is required");
+        $predicate = $arguments["predicate"] ?? throw new InvalidArgumentException("predicate is required");
+        $params = $arguments["arguments"] ?? new ArrayClass();
+        $this->validatePredicateKeyPaths($entityName, $predicate, $params);
+        $fetchRequest = $this->fetchRequest($entityName);
+        $fetchRequest->predicate = $this->buildPredicate($predicate, $params);
+        $request = new BatchDeleteRequest($fetchRequest);
+        $request->resultType = BatchDeleteRequestResultType::count;
+        /** @var BatchDeleteResult $result */
+        $result = $this->context->execute($request);
+        return $this->jsonResult(["deleted" => $result->result]);
+    }
+}

@@ -34,9 +34,7 @@ final class MCPResponder extends Responder
         get => $this->descriptor ??= new ModelDescriptor(new ModelSchemaExtractor($this->managedObjectContext, new AttributeSchemaFactory()), new VocabularyRepository(), new SchemaLocalizer(), new PredicateGuideFactory());
     }
     private ToolRegistry $registry {
-        get => $this->registry ??= new ToolRegistry(
-            new ToolResolver($this->managedObjectContext, $this->descriptor)->resolve()
-        );
+        get => $this->registry ??= new ToolRegistry(new ToolResolver($this->managedObjectContext, $this->descriptor)->resolve());
     }
     #[Override]
     protected mixed $data {

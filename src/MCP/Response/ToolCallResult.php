@@ -8,6 +8,9 @@ use JsonSerializable;
 use Override;
 use Sabatier\Foundation\ArrayClass;
 
+/**
+ * Wrapper for the content returned by a tool invocation.
+ */
 final readonly class ToolCallResult implements JsonSerializable
 {
     /** @param ArrayClass<ContentItem> $content */

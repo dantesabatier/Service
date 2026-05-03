@@ -6,6 +6,7 @@ namespace Sabatier\Service\MCP;
 
 use Sabatier\Foundation\Dictionary;
 
+/** @internal */
 final readonly class RPCMessage
 {
     /**

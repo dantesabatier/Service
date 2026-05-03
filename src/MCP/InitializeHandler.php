@@ -19,6 +19,7 @@ use const Sabatier\Service\MCPServerNameKey;
 use const Sabatier\Service\MCPServerVersionDefault;
 use const Sabatier\Service\MCPServerVersionKey;
 
+/** @internal */
 final class InitializeHandler
 {
     private string $instructions {

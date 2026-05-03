@@ -11,6 +11,7 @@ use Sabatier\Foundation\ProcessInfo;
 use const Sabatier\Service\MCPVocabularyFilenameDefault;
 use const Sabatier\Service\MCPVocabularyFilenameKey;
 
+/** @internal */
 final class VocabularyRepository
 {
     public function load(): array

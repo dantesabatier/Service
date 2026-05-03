@@ -9,6 +9,7 @@ use Sabatier\Service\Request;
 use Throwable;
 use const Sabatier\Foundation\LocalizedFailureReasonErrorKey;
 
+/** @internal */
 final readonly class MCPRequestHandler
 {
     public function __construct(private JSONRPCRequestParser $parser, private MethodDispatcher $dispatcher)

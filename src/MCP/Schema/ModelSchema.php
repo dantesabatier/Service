@@ -8,6 +8,9 @@ use JsonSerializable;
 use Override;
 use Sabatier\Foundation\Dictionary;
 
+/**
+ * Full model schema returned by the describe_model tool.
+ */
 final readonly class ModelSchema implements JsonSerializable
 {
     /**

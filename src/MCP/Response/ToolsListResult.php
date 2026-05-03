@@ -8,6 +8,9 @@ use JsonSerializable;
 use Override;
 use Sabatier\Foundation\ArrayClass;
 
+/**
+ * Result returned by the MCP "tools/list" method.
+ */
 final readonly class ToolsListResult implements JsonSerializable
 {
     /** @param ArrayClass<ToolDescriptor> $tools */

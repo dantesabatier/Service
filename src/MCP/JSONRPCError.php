@@ -10,6 +10,7 @@ use Sabatier\Foundation\Error;
 use function Sabatier\Foundation\localized_string;
 use const Sabatier\Foundation\LocalizedFailureReasonErrorKey;
 
+/** @internal */
 final class JSONRPCError extends Error
 {
     #[Override]

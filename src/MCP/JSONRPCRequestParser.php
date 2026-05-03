@@ -7,6 +7,7 @@ namespace Sabatier\Service\MCP;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\Request;
 
+/** @internal */
 final readonly class JSONRPCRequestParser
 {
     public function __construct(private JSONRPCRequestPruner $pruner = new JSONRPCRequestPruner())

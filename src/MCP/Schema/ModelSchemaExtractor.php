@@ -9,6 +9,7 @@ use Sabatier\CoreData\ManagedObjectModel;
 use Sabatier\Foundation\Dictionary;
 use function Sabatier\Foundation\fatal_error;
 
+/** @internal */
 final readonly class ModelSchemaExtractor
 {
     public function __construct(private ManagedObjectContext $context, private AttributeSchemaFactory $attributes)

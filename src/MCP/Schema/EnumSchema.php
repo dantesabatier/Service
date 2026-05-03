@@ -8,6 +8,9 @@ use BackedEnum;
 use JsonSerializable;
 use Override;
 
+/**
+ * Represents an enum type in the model schema returned by describe_model.
+ */
 final readonly class EnumSchema implements JsonSerializable
 {
     /**

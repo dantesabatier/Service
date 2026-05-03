@@ -7,6 +7,9 @@ namespace Sabatier\Service\MCP\Response;
 use JsonSerializable;
 use Override;
 
+/**
+ * Server capability flags returned during MCP initialization.
+ */
 final readonly class ServerCapabilities implements JsonSerializable
 {
     public function __construct(public ToolsCapability $tools)

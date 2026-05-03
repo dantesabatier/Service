@@ -15,6 +15,7 @@ use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\MCP\Response\ContentItem;
 
+/** @internal */
 final class BatchUpdateTool extends AbstractTool
 {
     #[Override]

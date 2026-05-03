@@ -2,6 +2,12 @@
 
 declare(strict_types=1);
 
+/**
+ * MCP protocol constants and defaults.
+ *
+ * These constants configure the default behavior and filenames used by the
+ * MCP subsystem and are part of the public MCP protocol surface.
+ */
 namespace Sabatier\Service;
 
 /** @var string Earliest MCP protocol version supported for backwards compatibility. */

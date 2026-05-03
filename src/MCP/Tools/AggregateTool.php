@@ -18,6 +18,7 @@ use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\Schema\AttributeSchema;
 use function Sabatier\Foundation\fatal_error;
 
+/** @internal */
 final class AggregateTool extends AbstractTool
 {
     private const array inMemoryFunctions = ["median", "mode", "stddev"];

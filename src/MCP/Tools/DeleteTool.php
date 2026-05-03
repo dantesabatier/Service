@@ -14,6 +14,7 @@ use Sabatier\Service\NotFoundException;
 use function Sabatier\Foundation\fatal_error;
 use const Sabatier\CoreData\ManagedObjectObjectIDKey;
 
+/** @internal */
 final class DeleteTool extends AbstractTool
 {
     #[Override]

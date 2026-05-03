@@ -7,6 +7,9 @@ namespace Sabatier\Service\MCP\Schema;
 use JsonSerializable;
 use Override;
 
+/**
+ * Help text and examples for predicate syntax in the model schema.
+ */
 final readonly class PredicateGuide implements JsonSerializable
 {
     /**

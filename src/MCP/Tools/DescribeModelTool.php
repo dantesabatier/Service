@@ -11,6 +11,7 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\MCP\Response\ContentItem;
 use stdClass;
 
+/** @internal */
 final class DescribeModelTool extends AbstractTool
 {
     #[Override]

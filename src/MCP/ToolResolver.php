@@ -28,6 +28,7 @@ use Sabatier\Service\MCP\Tools\UpdateTool;
 use function Sabatier\Foundation\string_is_equal;
 use const Sabatier\Service\MCPToolsDirectory;
 
+/** @internal */
 final readonly class ToolResolver
 {
     /** @var list<class-string<AbstractTool>> */

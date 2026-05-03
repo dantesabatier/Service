@@ -14,6 +14,7 @@ use Sabatier\Foundation\SortDescriptor;
 use Sabatier\Service\MCP\Response\ContentItem;
 use function Sabatier\Foundation\fatal_error;
 
+/** @internal */
 final class FetchTool extends AbstractTool
 {
     #[Override]

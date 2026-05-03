@@ -6,6 +6,7 @@ namespace Sabatier\Service\MCP\Schema;
 
 use Sabatier\Foundation\Dictionary;
 
+/** @internal */
 final class SchemaLocalizer
 {
     public function apply(Dictionary $entities, array $vocabulary): Dictionary

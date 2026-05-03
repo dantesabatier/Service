@@ -10,6 +10,7 @@ use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
 use function Sabatier\Foundation\fatal_error;
 
+/** @internal */
 final class ToolRegistry
 {
     /** @var Dictionary<AbstractTool> */

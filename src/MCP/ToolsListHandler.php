@@ -7,6 +7,7 @@ namespace Sabatier\Service\MCP;
 use Sabatier\Service\MCP\Response\ToolsListResult;
 use Sabatier\Service\MCP\Tools\ToolRegistry;
 
+/** @internal */
 final readonly class ToolsListHandler
 {
     public function __construct(private ToolRegistry $registry)

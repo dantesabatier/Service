@@ -8,6 +8,9 @@ use JsonSerializable;
 use Override;
 use Sabatier\Foundation\Dictionary;
 
+/**
+ * Describes an entity in the model schema returned by describe_model.
+ */
 final readonly class EntitySchema implements JsonSerializable
 {
     /**

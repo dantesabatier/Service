@@ -14,6 +14,7 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\MCP\Response\ContentItem;
 use function Sabatier\Foundation\fatal_error;
 
+/** @internal */
 final class CreateTool extends AbstractTool
 {
     #[Override]

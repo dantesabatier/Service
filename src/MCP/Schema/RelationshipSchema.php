@@ -7,6 +7,9 @@ namespace Sabatier\Service\MCP\Schema;
 use JsonSerializable;
 use Override;
 
+/**
+ * Describes a relationship on an entity in the model schema returned by describe_model.
+ */
 final readonly class RelationshipSchema implements JsonSerializable
 {
     public function __construct(public string $name, public string $target, public bool $toMany, public bool $nullable)

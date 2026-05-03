@@ -9,6 +9,7 @@ use Sabatier\Service\MCP\Response\ToolCallResult;
 use Sabatier\Service\MCP\Tools\ToolRegistry;
 use const Sabatier\Foundation\LocalizedFailureReasonErrorKey;
 
+/** @internal */
 final readonly class ToolsCallHandler
 {
     public function __construct(private ToolRegistry $registry)

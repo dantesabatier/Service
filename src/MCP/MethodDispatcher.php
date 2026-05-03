@@ -7,6 +7,7 @@ namespace Sabatier\Service\MCP;
 use Sabatier\Foundation\Dictionary;
 use const Sabatier\Foundation\LocalizedFailureReasonErrorKey;
 
+/** @internal */
 final readonly class MethodDispatcher
 {
     public function __construct(private InitializeHandler $initialize, private ToolsListHandler $toolsList, private ToolsCallHandler $toolsCall)

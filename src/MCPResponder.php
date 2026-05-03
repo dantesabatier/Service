@@ -23,6 +23,11 @@ use Sabatier\Service\MCP\ToolsCallHandler;
 use Sabatier\Service\MCP\ToolsListHandler;
 
 #[Endpoint("/mcp", [JSONRPCTransformer::class, JSONTransformer::class])]
+/**
+ * Endpoint that exposes the MCP protocol (GET/POST).
+ *
+ * Serves as the public entrypoint for MCP clients.
+ */
 final class MCPResponder extends Responder
 {
     /** @var ArrayClass<string> */

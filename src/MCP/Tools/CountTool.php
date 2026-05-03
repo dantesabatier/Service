@@ -11,6 +11,7 @@ use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\MCP\Response\ContentItem;
 
+/** @internal */
 final class CountTool extends AbstractTool
 {
     #[Override]

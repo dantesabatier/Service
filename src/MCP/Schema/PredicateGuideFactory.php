@@ -11,6 +11,7 @@ use Sabatier\Foundation\ProcessInfo;
 use const Sabatier\Service\MCPPredicateExamplesFilenameDefault;
 use const Sabatier\Service\MCPPredicateExamplesFilenameKey;
 
+/** @internal */
 final readonly class PredicateGuideFactory
 {
     public function make(): PredicateGuide

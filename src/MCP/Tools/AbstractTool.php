@@ -18,6 +18,7 @@ use function Sabatier\Foundation\fatal_error;
 
 /**
  * @psalm-consistent-constructor
+ * @internal Base class for MCP tools. Not part of the public API.
  */
 abstract class AbstractTool
 {

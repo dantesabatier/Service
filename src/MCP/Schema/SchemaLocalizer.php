@@ -10,16 +10,18 @@ final class SchemaLocalizer
 {
     public function apply(Dictionary $entities, array $vocabulary): Dictionary
     {
+        $entitiesVocabulary = $vocabulary["entities"] ?? [];
+        $attributesVocabulary = $vocabulary["attributes"] ?? [];
         foreach ($entities as $name => $entity) {
-            $entityVocabulary = $vocabulary["entities"][$name] ?? [];
+            $entityVocabulary = $entitiesVocabulary[$name] ?? [];
             /** @var Dictionary<AttributeSchema> $localizedAttributes */
             $localizedAttributes = new Dictionary();
             foreach ($entity->attributes as $attrName => $attribute) {
                 $key = "$name.$attrName";
-                $data = $vocabulary["attributes"][$key] ?? [];
-                $localizedAttributes[$attrName] = new AttributeSchema($attribute->name, $attribute->type, $attribute->nullable, $data["es"] ?? null, $data["aliases"] ?? [], $attribute->enum);
+                $data = $attributesVocabulary[$key] ?? [];
+                $localizedAttributes[$attrName] = new AttributeSchema($attribute->name, $attribute->type, $attribute->nullable, $data["description"] ?? null, $data["aliases"] ?? [], $attribute->enum);
             }
-            $entities[$name] = new EntitySchema($entity->name, $entity->className, $entityVocabulary["es"] ?? $name, $entityVocabulary["aliases"] ?? [], $localizedAttributes, $entity->relationships);
+            $entities[$name] = new EntitySchema($entity->name, $entity->className, $entityVocabulary["description"] ?? $name, $entityVocabulary["aliases"] ?? [], $localizedAttributes, $entity->relationships);
         }
         return $entities;
     }

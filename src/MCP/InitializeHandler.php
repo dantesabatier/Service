@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\MCP;
 
+use Locale;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\ProcessInfo;
@@ -26,7 +27,7 @@ final class InitializeHandler
                 return $this->instructions;
             }
             $filename = ProcessInfo::processInfo()->environment[MCPInstructionsFilenameKey] ?? MCPInstructionsFilenameDefault;
-            if (!($url = Bundle::main()->url($filename))) {
+            if (!($url = Bundle::main()->url($filename, localization: Locale::getPrimaryLanguage(Locale::getDefault())))) {
                 return $this->instructions = "";
             }
             return $this->instructions = FileManager::default()->contents($url->path) ?? "";
@@ -35,13 +36,13 @@ final class InitializeHandler
 
     public function handle(/** @noinspection PhpUnusedParameterInspection */ RPCMessage $message): InitializeResult
     {
-        $env = ProcessInfo::processInfo()->environment;
+        $environment = ProcessInfo::processInfo()->environment;
         return new InitializeResult(
             new ServerCapabilities(new ToolsCapability(false)),
             $this->instructions,
             new ServerInfo(
-                $env[MCPServerNameKey] ?? MCPServerNameDefault,
-                $env[MCPServerVersionKey] ?? MCPServerVersionDefault
+                $environment[MCPServerNameKey] ?? MCPServerNameDefault,
+                $environment[MCPServerVersionKey] ?? MCPServerVersionDefault
             )
         );
     }

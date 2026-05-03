@@ -53,6 +53,7 @@
         <LessSpecificImplementedReturnType>
             <errorLevel type="suppress">
                 <file name="src/StreamResponse.php"/>
+                <file name="src/MCP/ToolResolver.php"/>
             </errorLevel>
         </LessSpecificImplementedReturnType>
         <NoInterfaceProperties errorLevel="suppress"/>

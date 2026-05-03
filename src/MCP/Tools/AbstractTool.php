@@ -16,6 +16,9 @@ use Sabatier\Service\MCP\Schema\ModelDescriptor;
 use Sabatier\Service\MCP\Schema\RelationshipSchema;
 use function Sabatier\Foundation\fatal_error;
 
+/**
+ * @psalm-consistent-constructor
+ */
 abstract class AbstractTool
 {
     abstract public string $name {

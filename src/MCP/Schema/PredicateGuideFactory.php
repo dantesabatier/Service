@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\MCP\Schema;
 
+use Locale;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\ProcessInfo;
@@ -30,10 +31,13 @@ final readonly class PredicateGuideFactory
         );
     }
 
+    /**
+     * @return list<string>
+     */
     private function loadExamples(): array
     {
         $filename = ProcessInfo::processInfo()->environment[MCPPredicateExamplesFilenameKey] ?? MCPPredicateExamplesFilenameDefault;
-        if (!($url = Bundle::main()->url($filename))) {
+        if (!($url = Bundle::main()->url($filename, localization: Locale::getPrimaryLanguage(Locale::getDefault())))) {
             return [];
         }
         if (!($contents = FileManager::default()->contents($url->path))) {

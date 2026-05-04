@@ -11,7 +11,12 @@ use ReflectionUnionType;
 use Sabatier\CoreData\AttributeDescription;
 use Sabatier\CoreData\AttributeType;
 
-/** @internal */
+/**
+ * Creates `AttributeSchema` instances from CoreData attribute descriptions.
+ *
+ * Maps CoreData attribute types to JSON Schema primitives and resolves
+ * backed enum types via reflection to produce `EnumSchema` entries.
+ */
 final class AttributeSchemaFactory
 {
     public function make(string $className, string $name, AttributeDescription $attribute): AttributeSchema

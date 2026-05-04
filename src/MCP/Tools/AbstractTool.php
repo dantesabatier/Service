@@ -51,7 +51,9 @@ abstract class AbstractTool
         $last = count($parts) - 1;
         foreach ($parts as $index => $part) {
             if ($index === $last) {
-                $current->attributes[$part] || !$current->relationships[$part] ?: fatal_error("Unknown property \"$part\" on $current->name. Attributes: [" . $current->attributes->keys->join(", ") . "]. Relationships: [" . $current->relationships->keys->join(", ") . "].");
+                if (!$current->attributes[$part] && !$current->relationships[$part]) {
+                    fatal_error("Unknown property \"$part\" on $current->name. Attributes: [" . $current->attributes->keys->join(", ") . "]. Relationships: [" . $current->relationships->keys->join(", ") . "].");
+                }
                 return;
             }
             /** @var RelationshipSchema $relationship */

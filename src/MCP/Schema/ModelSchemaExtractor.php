@@ -8,8 +8,15 @@ use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\CoreData\ManagedObjectModel;
 use Sabatier\Foundation\Dictionary;
 use function Sabatier\Foundation\fatal_error;
+use const Sabatier\CoreData\ManagedObjectEntityNameKey;
+use const Sabatier\CoreData\ManagedObjectObjectIDKey;
 
-/** @internal */
+/**
+ * Extracts the raw entity and attribute schema from the managed object model.
+ *
+ * Walks the model's entity descriptions and produces a `Dictionary<EntitySchema>`
+ * ready to be enriched by `SchemaLocalizer`.
+ */
 final readonly class ModelSchemaExtractor
 {
     public function __construct(private ManagedObjectContext $context, private AttributeSchemaFactory $attributes)
@@ -24,7 +31,7 @@ final readonly class ModelSchemaExtractor
         $entities = new Dictionary();
         foreach ($model->entitiesByName as $name => $entity) {
             /** @var Dictionary<AttributeSchema> $attributes */
-            $attributes = new Dictionary();
+            $attributes = new Dictionary([ManagedObjectObjectIDKey => new AttributeSchema(ManagedObjectObjectIDKey, "int64", false, "The object's unique identifier"), ManagedObjectEntityNameKey => new AttributeSchema(ManagedObjectEntityNameKey, "string", false, "The name of the entity this object belongs to")]);
             foreach ($entity->attributesByName as $attrName => $attribute) {
                 $attributes[$attrName] = $this->attributes->make($entity->managedObjectClassName ?? $name, $attrName, $attribute);
             }

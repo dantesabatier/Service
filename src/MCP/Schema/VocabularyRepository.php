@@ -11,13 +11,7 @@ use Sabatier\Foundation\ProcessInfo;
 use const Sabatier\Service\MCPVocabularyFilenameDefault;
 use const Sabatier\Service\MCPVocabularyFilenameKey;
 
-/**
- * Loads the localized vocabulary file that enriches the model schema.
- *
- * Resolves the vocabulary JSON bundle resource for the current locale and returns
- * its contents. The filename can be overridden via the `MCPVocabularyFilenameKey`
- * environment variable.
- */
+/** @internal */
 final class VocabularyRepository
 {
     public function load(): array

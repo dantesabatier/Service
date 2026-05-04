@@ -10,9 +10,7 @@ use const Sabatier\Service\MCPProtocolVersionLegacy;
 use const Sabatier\Service\MCPServerNameDefault;
 use const Sabatier\Service\MCPServerVersionDefault;
 
-/**
- * Result returned by the MCP "initialize" method.
- */
+/** @internal */
 final readonly class InitializeResult implements JsonSerializable
 {
     public function __construct(public ServerCapabilities $capabilities, public string $instructions, public ServerInfo $serverInfo = new ServerInfo(MCPServerNameDefault, MCPServerVersionDefault), public string $protocolVersion = MCPProtocolVersionLegacy)

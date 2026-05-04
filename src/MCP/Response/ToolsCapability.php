@@ -7,9 +7,7 @@ namespace Sabatier\Service\MCP\Response;
 use JsonSerializable;
 use Override;
 
-/**
- * Describes server capabilities exposed during initialization.
- */
+/** @internal */
 final readonly class ToolsCapability implements JsonSerializable
 {
     public function __construct(public bool $listChanged)

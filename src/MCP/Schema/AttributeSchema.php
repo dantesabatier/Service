@@ -7,7 +7,9 @@ namespace Sabatier\Service\MCP\Schema;
 use JsonSerializable;
 use Override;
 
-/** @internal */
+/**
+ * Describes an attribute on an entity in the model schema returned by describe_model.
+ */
 final readonly class AttributeSchema implements JsonSerializable
 {
     public function __construct(public string $name, public string $type, public bool $nullable, public ?string $label = null, public array $aliases = [], public ?EnumSchema $enum = null)

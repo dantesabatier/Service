@@ -6,13 +6,7 @@ namespace Sabatier\Service\MCP\Schema;
 
 use Sabatier\Foundation\Dictionary;
 
-/**
- * Applies vocabulary entries to an extracted schema, adding descriptions and aliases.
- *
- * Merges the vocabulary loaded by `VocabularyRepository` into the raw
- * `Dictionary<EntitySchema>` produced by `ModelSchemaExtractor`, replacing
- * bare names with human-readable labels.
- */
+/** @internal */
 final class SchemaLocalizer
 {
     public function apply(Dictionary $entities, array $vocabulary): Dictionary

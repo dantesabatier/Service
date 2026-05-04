@@ -7,9 +7,7 @@ namespace Sabatier\Service\MCP\Response;
 use JsonSerializable;
 use Override;
 
-/**
- * Basic server identity information returned during initialization.
- */
+/** @internal */
 final readonly class ServerInfo implements JsonSerializable
 {
     public function __construct(public string $name, public string $version)

@@ -11,14 +11,7 @@ use Sabatier\Foundation\ProcessInfo;
 use const Sabatier\Service\MCPPredicateExamplesFilenameDefault;
 use const Sabatier\Service\MCPPredicateExamplesFilenameKey;
 
-/**
- * Builds the `PredicateGuide` included in the model schema.
- *
- * Provides the LLM with the format specifiers, comparison operators, and
- * predicate examples it needs to construct valid fetch predicates. Examples
- * are loaded from a localized JSON bundle resource; the filename can be
- * overridden via the `MCPPredicateExamplesFilenameKey` environment variable.
- */
+/** @internal */
 final readonly class PredicateGuideFactory
 {
     public function make(): PredicateGuide

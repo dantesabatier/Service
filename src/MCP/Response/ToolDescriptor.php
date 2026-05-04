@@ -8,7 +8,7 @@ use JsonSerializable;
 use Override;
 
 /**
- * Descriptor describing a single MCP tool (name, description and input schema).
+ * Describes a single MCP tool (name, description and input schema) passed to the LLM client.
  */
 final readonly class ToolDescriptor implements JsonSerializable
 {

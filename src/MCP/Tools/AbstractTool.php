@@ -17,8 +17,13 @@ use Sabatier\Service\MCP\Schema\RelationshipSchema;
 use function Sabatier\Foundation\fatal_error;
 
 /**
+ * Base class for all MCP tools, both built-in and custom.
+ *
+ * Extend this class and place the subclass in the application's `MCPTools`
+ * directory to register a custom tool with the MCP server.
+ *
  * @psalm-consistent-constructor
- * @internal Base class for MCP tools. Not part of the public API.
+ * @phpstan-consistent-constructor
  */
 abstract class AbstractTool
 {

@@ -4,12 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\MCP\Schema;
 
-/**
- * Builds and caches the full model schema for the current managed object model.
- *
- * Combines raw schema extraction, vocabulary enrichment, and predicate guide
- * construction into a single `ModelSchema` that describes the data model to an LLM.
- */
+/** @internal */
 final class ModelDescriptor
 {
     private ModelSchema $schema {

@@ -13,9 +13,8 @@ use function Sabatier\Foundation\fatal_error;
 /**
  * Holds the resolved MCP tools and dispatches calls by name.
  *
- * Exposes the tool catalogue as `$list` (`ArrayClass<ToolDescriptor>`) for LLM
- * clients to include in their requests, and dispatches `call()` to the matching
- * tool implementation.
+ * Exposes the tool catalogue as `$list` (`ArrayClass<ToolDescriptor>`) for the LLM
+ * client, and dispatches `call()` to the matching tool implementation.
  */
 final class ToolRegistry
 {

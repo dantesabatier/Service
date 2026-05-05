@@ -28,7 +28,14 @@ use Sabatier\Service\MCP\Tools\UpdateTool;
 use function Sabatier\Foundation\string_is_equal;
 use const Sabatier\Service\MCPToolsDirectory;
 
-/** @internal */
+/**
+ * Resolves the complete set of MCP tools available to an LLM agent.
+ *
+ * Instantiates all built-in tools and auto-discovers custom tools placed in
+ * the application's `MCPTools` directory. Custom tool classes must extend
+ * `AbstractTool` and be instantiable. Returns an `ArrayClass<AbstractTool>`
+ * ready to be registered with `ToolRegistry`.
+ */
 final readonly class ToolResolver
 {
     /** @var list<class-string<AbstractTool>> */

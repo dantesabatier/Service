@@ -11,7 +11,12 @@ use function Sabatier\Foundation\fatal_error;
 use const Sabatier\CoreData\ManagedObjectEntityNameKey;
 use const Sabatier\CoreData\ManagedObjectObjectIDKey;
 
-/** @internal */
+/**
+ * Extracts the raw entity and attribute schema from the managed object model.
+ *
+ * Walks the model's entity descriptions and produces a `Dictionary<EntitySchema>`
+ * ready to be enriched by `SchemaLocalizer`.
+ */
 final readonly class ModelSchemaExtractor
 {
     public function __construct(private ManagedObjectContext $context, private AttributeSchemaFactory $attributes)

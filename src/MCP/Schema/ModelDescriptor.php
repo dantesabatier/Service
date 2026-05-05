@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\MCP\Schema;
 
-/** @internal */
 final class ModelDescriptor
 {
     private ModelSchema $schema {

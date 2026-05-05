@@ -11,7 +11,6 @@ use ReflectionUnionType;
 use Sabatier\CoreData\AttributeDescription;
 use Sabatier\CoreData\AttributeType;
 
-/** @internal */
 final class AttributeSchemaFactory
 {
     public function make(string $className, string $name, AttributeDescription $attribute): AttributeSchema

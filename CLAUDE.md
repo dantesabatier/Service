@@ -25,7 +25,17 @@ There are no automated tests — this is a framework library with no test suite.
 
 ## Architecture
 
-`sabatier/service` is an application framework for PHP 8.5+ built on two sibling libraries (`sabatier/foundation` and `sabatier/coredata`). All 173 source files live flat in `src/` — no subdirectories.
+`sabatier/service` is an application framework for PHP 8.5+ built on two sibling libraries (`sabatier/foundation` and `sabatier/coredata`). Most source files live flat in `src/`. The exception is `src/MCP/`, which is a self-contained subsystem with its own subdirectories (`Tools/`, `Response/`, `Schema/`).
+
+### The `$data` pattern
+
+A responder never constructs a `Response` directly in the normal case. It **provides data** and lets the framework build the response from it.
+
+- **GET responders** — override the `$data` property hook. The framework reads it once, lazily, and passes the result through the transformer chain declared on `#[Endpoint]`.
+- **Action responders** — define `#[Action]` methods that perform their work and assign `$this->data = ...` before returning. The framework then passes `$this->data` through the transformer chain declared on `#[Action]`.
+- **Override `$response` only** when you need full control: custom status codes with no body, streaming responses (`StreamResponse`), or PersistentSpace-level behavior.
+
+Do **not** introduce a `$response` override when overriding `$data` is sufficient.
 
 ### Responder Chain
 
@@ -37,15 +47,31 @@ There are no automated tests — this is a framework library with no test suite.
 
 `ViewController` extends `Responder` and adds a view rendering lifecycle (`viewWillLoad` / `viewDidLoad`).
 
+Custom responders are **auto-discovered** from `src/Responders/` and `src/ViewControllers/` and prepended to the chain ahead of built-in responders. Custom MCP tools are auto-discovered from `src/MCPTools/`.
+
+### PersistentSpace
+
+`PersistentSpace` handles all standard CRUD for Core Data entities with no custom responder needed. It activates (`$isFirstResponder = true`) when the URL's last path component matches a registered entity name. It handles `GET`, `POST`, `PATCH`, and `DELETE` automatically, including field-level security and ownership scoping.
+
+Do **not** create a custom responder for an entity just to expose basic CRUD — PersistentSpace already does it.
+
+For `PATCH` and `DELETE`, the request body must include `objectID` (the `ManagedObjectObjectIDKey` constant). For `GET`, query parameters become equality predicates; or pass a full `FetchRequest` as a base64-encoded JSON via `?fetchRequest=`.
+
 ### Response Pipeline
 
-Responses flow through a `ResponsePipeline` that applies `ResponseTransformer` subclasses in order. Key built-in transformers:
+Every response goes through two pipelines in sequence:
+
+1. **User pipeline** — the transformers declared on `#[Endpoint]` or `#[Action]` (e.g. `JSONTransformer`, `NoCacheHeaderTransformer`). Determined per-responder.
+2. **Infrastructure pipeline** — always runs, regardless of the responder: `CacheHeaderTransformer`, `ConditionalGetTransformer`, `RateLimitHeaderTransformer`, `SecurityHeadersTransformer`, `CORSResponseTransformer`.
+
+Because `SecurityHeadersTransformer` is part of the infrastructure pipeline, it runs on **every** response automatically — including `ErrorResponder`, `EventStreamResponder`, and `PersistentSpace`. You do not need to add it to your own transformer list.
+
+Key user-pipeline transformers:
 
 - `JSONTransformer` / `HTMLTransformer` — serialization
-- `CORSResponseTransformer` — CORS headers
-- `SecurityHeadersTransformer` — security headers (must be included on **all** responders, including `ErrorResponder`, `EventStreamResponder`, and `PersistentSpace` — not just the base `Responder`)
-- `CacheHeaderTransformer` — Cache-Control / ETag
-- `ConditionalGetTransformer` — ETag/Last-Modified conditional GET
+- `NoCacheHeaderTransformer` — disables caching for the user pipeline leg
+- `DownloadResponseTransformer` — sets `Content-Disposition: attachment`
+- `ResponseHeaderSanitizerTransformer` — strips internal headers before sending
 
 `ResponseTransformerContext` carries the request and all active policies into the transformer chain.
 
@@ -65,13 +91,20 @@ All policies are configured on `Application` and inherited by each `Responder` v
 ### Security & Auth
 
 The framework auto-selects its auth mode from the environment:
-- **JWT mode** — when `JWTPrivateKey` env var is set; stateless, uses `JSONWebTokenService`.
+- **JWT mode** — when `JWT_PRIVATE_KEY` env var is set; stateless, uses `JSONWebTokenService`.
 - **Session fallback** — default for stateful/browser apps.
 
 Authentication strategies: `BasicAuthentication`, `BearerAuthentication`, `DigestAuthentication`.
 JWT codec strategies: `JSONWebTokenHS256EncoderStrategy`, `JSONWebTokenRS256DecoderStrategy` (and HS256/RS256 variants).
 
 Access control flows through `AccessEvaluatorChain` → `AccessPolicy` → `AuthorizationService` → `AuthorizationCache`.
+
+The default evaluator chain (AND short-circuit) is:
+`SessionAuthenticationEvaluator` → `AuthenticationEvaluator` → `JSONWebTokenScopeEvaluator` → `JSONWebTokenAccessTimeEvaluator` → `JSONWebTokenEnabledEvaluator` → `JSONWebTokenVersionEvaluator` → `AuthorizationEvaluator`
+
+The `/refresh` action uses a shorter chain that accepts only the refresh-scoped token and skips `AuthorizationEvaluator`.
+
+Field-level security is declared with `#[Readable]` and `#[Writable]` attributes on managed object properties. `FieldSecurityFilter` applies them at read and write time with a static reflection cache. `#[Owner]` marks the ownership field; `OwnershipService` enforces it on PATCH and DELETE.
 
 ### Property Hooks
 

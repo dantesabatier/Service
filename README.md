@@ -1,87 +1,91 @@
-# Sabatier Service Framework
+# Sabatier Service
 
-**Service** is a multipurpose application framework inspired by the architectural elegance of Apple's **AppKit** and **Core Data**. It provides the infrastructure to build both high-performance headless services and sophisticated, stateful web applications with rich user interfaces.
+**Service** is a PHP 8.5+ application framework built on two sibling libraries — [Foundation](../Foundation) and [CoreData](../CoreData) — that brings the architectural patterns of Apple's AppKit and Core Data to server-side PHP development.
 
-## Dual-Core Architecture
+It covers the full spectrum from zero-boilerplate REST APIs to server-rendered web applications, with a consistent request pipeline, layered security, and a built-in MCP server for LLM tool access — all without routing tables, code generation, or CLI scaffolding.
 
-**Service** is designed to excel in two distinct paradigms:
+---
 
-1.  **Headless API Service**: Perfect for modern PWAs (React, Vue, etc.). It features a robust **CORS engine**, JSON serialization, and stateless **JWT authentication**.
-2.  **Full-Stack Application**: A true "AppKit for the Web." Using `ViewController` and `View` objects, it supports server-side rendering via pluggable renderers (including native PHP), providing a structured lifecycle from `viewWillLoad` to `viewDidLoad`.
+## What makes it different
 
-## Key Features
+**The model is the API.** Define your data model with Core Data entities, and Service automatically exposes a fully functional, secured REST endpoint for each one. No controller, no serializer, no route to register.
 
-- **Responder-Chain Architecture**: Centralized event and request handling through a sophisticated chain of `Responder` objects, ensuring clean separation of concerns.
-- **ViewController & Outlets**: Manage UI logic and data binding using `#[Outlet]` attributes, bringing the familiar metaphors of native development to PHP.
-- **Core Data Integration**: A first-class persistence layer with `ManagedObjectContext` and `PersistentContainer` for industrial-grade data modeling.
-- **Hybrid Security Infrastructure**: Smart, environment-aware security that uses JWT for stateless clients, with a seamless **Session-based fallback** for traditional stateful web applications.
-- **Modern PHP Foundation**: Fully leverages the latest language features, including **Property Hooks** and Attributes, for a declarative and expressive codebase.
+**Security is structural, not optional.** Authentication, authorization, field-level read/write control, rate limiting, idempotency, CORS, and security headers are wired into the framework's pipeline. You opt out of restrictions rather than opting in.
 
-## Request Lifecycle (Overview)
+**The responder chain routes requests.** There are no routing tables. Every request walks a chain of `Responder` objects; the first one that recognizes the URL handles it. Custom endpoints extend `Responder` (or `ViewController` for HTML) and declare their route with a single `#[Endpoint]` attribute.
 
-Every request follows a consistent, centralized pipeline:
+**It self-adapts to the environment.** JWT mode activates automatically when `JWTPrivateKey` is present; session-based auth is the fallback. Rate limiting, idempotency, and CORS are configured through environment variables, not code.
 
-1. Preflight handling (when needed)
-2. Access evaluation
-3. Endpoint resolution and execution
-4. Response decoration (e.g., JSON/HTML/CORS)
-5. Final response delivery
+---
 
-This keeps endpoint code minimal and ensures errors are always returned in a structured, predictable format.
+## Core capabilities
 
-## Positioning
+| Capability                | Description                                                                                                                                                                                 |
+|---------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **PersistentSpace**       | Automatic CRUD REST API over every Core Data entity. Field-level security and ownership scoping included.                                                                                   |
+| **Responder Chain**       | AppKit-style request routing. Built-in responders cover static files, uploads, downloads, preferences, and an MCP endpoint.                                                                 |
+| **Security Pipeline**     | Basic, Bearer (JWT), and Digest authentication. Role-based authorization. Per-field read/write access control. Rate limiting with APCu, Redis, or Memcached backends.                       |
+| **MCP Server**            | Exposes the full data model to LLM agents as JSON-RPC 2.0 tools — fetch, count, aggregate, group-by, create, update, delete, and batch operations — auto-derived from the Core Data schema. |
+| **Server-Side Rendering** | `ViewController` manages a template lifecycle (`viewWillLoad` / `viewDidLoad`) with `#[Outlet]` properties reflected into the rendering context. Pluggable renderer engine.                 |
+| **Event Streaming**       | First-class Server-Sent Events support via `EventStreamResponder`.                                                                                                                          |
 
-**Service** is the application runtime of this stack, designed for both headless APIs and rich server-rendered apps. It provides the responder pipeline, security, persistence integration, and view rendering infrastructure needed to build complex software without boilerplate, without manual routing, and without CLI-driven scaffolding.
+---
 
-## Quick Start
+## How the framework handles data
 
-### Defining Endpoints and Actions
-The framework uses a declarative approach to map requests to logic. An `#[Endpoint]` defines a class-level route for read access (GET), while `#[Action]` methods represent explicit state changes (mutations) such as PATCH/POST/DELETE. If a class is not an endpoint, it does not serve GET. If it defines no actions, it does not mutate state.
+This is the design that most often needs explaining, because it inverts the typical PHP approach.
+
+A responder does not build and return a response object. Instead, it provides **data** — and the framework builds the response from it. `$data` is the body. The transformers declared on `#[Endpoint]` or `#[Action]` determine how that body is serialised (as JSON, as HTML, as a file attachment) and what headers accompany it. The responder never needs to know about HTTP directly.
+
+**For read requests (GET)**, override `$data`. The framework reads it once, lazily, and passes the result through the transformer chain:
+
 ```php
-#[Endpoint("/preferences", transformers: [JSONTransformer::class])]
-final class Preferences extends Responder {
-    #[Override]
+#[Endpoint("Preferences", transformers: [JSONTransformer::class, NoCacheHeaderTransformer::class])]
+final class Preferences extends Responder
+{
     protected mixed $data {
         get => $this->data ??= UserDefaults::standard()->dictionaryRepresentation();
     }
-
-    #[Action(method: HTTPRequestMethod::patch, transformers: [JSONTransformer::class])]
-    public function update(): void {
-        foreach ($this->request->parsedBody as $key => $value) {
-            UserDefaults::standard()->setObject($value, $key);
-        }
-    }
+    // ...
 }
 ```
 
-### ViewController + Outlets
-`ViewController` renders server-side templates and exposes data via `#[Outlet]` properties. Outlets are reflected into the view context automatically, so templates receive the values without manual wiring.
+**For mutating requests (POST, PATCH, DELETE)**, define `#[Action]` methods. An action runs as a side effect — it does its work and assigns `$this->data` before returning. The framework then passes `$data` through the action's own transformer chain:
+
 ```php
-#[Endpoint("/", transformers: [HTMLTransformer::class])]
-final class HomeController extends ViewController {
-    protected string $name = "Home";
-
-    #[Outlet]
-    public ?string $title {
-        get => Bundle::main()->object(kCFBundleNameKey);
-    }
+#[Action(transformers: [JSONTransformer::class, NoCacheHeaderTransformer::class])]
+public function login(): void
+{
+    $user = $this->authentication->authenticatedUser ?? throw new UnauthorizedException();
+    // ...
+    $this->data = $data; // becomes the JSON response body
 }
 ```
 
-## Infrastructure Configuration
+**For Core Data entities**, no responder is needed at all. `PersistentSpace` intercepts any URL whose last path component matches a registered entity name and handles `GET`, `POST`, `PATCH`, and `DELETE` automatically, including field-level security and ownership enforcement. A `User` entity in the model is immediately available as a REST endpoint at `/User` with no additional code.
 
-The framework automatically adjusts its behavior based on your environment, ensuring the best balance between security and performance:
+Custom responders are discovered automatically from `src/Responders/` and `src/ViewControllers/` and take priority over built-in responders in the chain.
 
-- **JWT Mode**: Activated when `JWTPrivateKey` is present in your environment. The system operates in a stateless manner, ignoring session infrastructure to maximize scalability for PWAs and mobile clients.
-- **Session Fallback**: Automatically engaged for stateful interactions or when JWT is not configured. This ensures a "secure by default" experience for traditional web applications and browsers.
+---
+
+## Quick orientation
+
+A minimal application needs one entry point that boots the singleton and calls `run()`:
+
+```php
+Application::shared()->run();
+```
+
+---
 
 ## Requirements
 
-- **PHP** (see `composer.json` for supported versions).
-- **Sabatier Foundation & CoreData** libraries.
-- **OpenSSL** (for JWT operations).
+- PHP 8.5+ with extensions: `openssl`, `apcu`, `pdo`, `mbstring`, `intl`, `redis`, `memcached`
+- [`sabatier/foundation`](../Foundation)
+- [`sabatier/coredata`](../CoreData)
+
+---
 
 ## License
 
-This project is licensed under the MIT License. See the `LICENSE.md` file for details.
-
+MIT. See `LICENSE.md`.

@@ -1,0 +1,323 @@
+# Sabatier Service — Client API Reference
+
+This document describes how clients interact with a Sabatier Service application over HTTP. It covers authentication, reading and mutating Core Data entities, calling custom endpoints, file operations, and the full request-header reference.
+
+---
+
+## Authentication
+
+Authentication is handled by the built-in `AuthenticationManager` at the paths below. The framework auto-selects its mode at startup: **JWT mode** when the `JWT_PRIVATE_KEY` environment variable is set, **session mode** otherwise.
+
+### Login
+
+```
+POST /login
+Authorization: Basic <base64(username:password)>
+```
+
+On success the response is `200 OK` with a JSON body:
+
+```json
+{
+  "user": { "username": "Alice", "roles": ["admin"]},
+  "token": "<jwt>"
+}
+```
+
+In session mode the `token` field is absent and a `Set-Cookie` header establishes the session instead.
+
+The JWT contains two scopes: `access` (short-lived, for regular requests) and `refresh` (for token rotation). The default validity window is 1800 seconds; override it with `JWT_VALIDITY_TIME_INTERVAL`.
+
+### Authenticated requests (JWT)
+
+Pass the access token as a Bearer credential on every subsequent request:
+
+```
+Authorization: Bearer <jwt>
+```
+
+### Token refresh
+
+When the access token expires, exchange the refresh token for a new one:
+
+```
+POST /refresh
+Authorization: Bearer <refresh-jwt>
+```
+
+The response shape is identical to `/login`: a new `user` object and a fresh `token`. The refresh token is rotated server-side; the previous one is invalidated.
+
+### Logout
+
+```
+POST /logout
+Authorization: Bearer <access-jwt>
+```
+
+In JWT mode, `logout` increments the user's `refreshTokenVersion`, invalidating all previously issued tokens. The response is `204 No Content`.
+
+In session mode, the session is invalidated and the response is `204 No Content` with no body.
+
+---
+
+## Reading entities
+
+Every Core Data entity is automatically available as a REST endpoint at `/<EntityName>`. No controller or route registration is required.
+
+### Fetch all
+
+```
+GET /Article
+Authorization: Bearer <jwt>
+```
+
+Returns a JSON array of all records the authenticated user is allowed to see. Field-level security (`#[Readable]`) filters the response automatically; ownership scoping limits results to records owned by the current user when applicable.
+
+### Simple equality filters
+
+Pass key-value pairs as query parameters. Multiple parameters are combined with AND:
+
+```
+GET /Article?status=published
+GET /Article?status=published&authorId=42
+```
+
+Each parameter is treated as an exact-equality predicate on the named attribute.
+
+### Advanced queries with `fetchRequest`
+
+For sorting, pagination, aggregate queries, or complex predicates, encode a `FetchRequest` representation as JSON, base64-encode it, and pass it as the `fetchRequest` query parameter:
+
+```
+GET /Article?fetchRequest=<base64-json>
+```
+
+The JSON object supports the following fields:
+
+| Field                    | Type                             | Description                                                    |
+|--------------------------|----------------------------------|----------------------------------------------------------------|
+| `predicate`              | `{format, arguments?}`           | NSPredicate-style format string with positional `%@` arguments |
+| `sortDescriptors`        | `[{key, ascending}]`             | Ordered list of sort keys                                      |
+| `fetchLimit`             | integer                          | Maximum number of results (0 = unlimited)                      |
+| `fetchOffset`            | integer                          | Number of results to skip (for pagination)                     |
+| `fetchBatchSize`         | integer                          | Stream results in chunks of this size (0 = all at once)        |
+| `resultType`             | integer                          | `0` objects, `1` object IDs, `2` dictionaries, `3` count       |
+| `propertiesToFetch`      | `string[]` or expression objects | Projection: which attributes to include                        |
+| `propertiesToGroupBy`    | `string[]` or expression objects | GROUP BY attributes (dictionary result type)                   |
+| `havingPredicate`        | `{format, arguments?}`           | HAVING clause for grouped queries                              |
+| `returnsDistinctResults` | boolean                          | Deduplicate results                                            |
+| `includesSubentities`    | boolean                          | Whether to include subentity records (default `true`)          |
+
+**Example — paginated fetch, newest first:**
+
+```json
+{
+  "predicate": { "format": "status == %@", "arguments": ["published"] },
+  "sortDescriptors": [{ "key": "createdAt", "ascending": false }],
+  "fetchLimit": 20,
+  "fetchOffset": 0
+}
+```
+
+Base64-encode and URL-encode this JSON before appending it to the URL.
+
+**Example — count query:**
+
+```json
+{
+  "predicate": { "format": "authorId == %@", "arguments": [42] },
+  "resultType": 3
+}
+```
+
+A count response returns `{"count": 7}` rather than an array.
+
+**Example — aggregate (average price by category):**
+
+```json
+{
+  "resultType": 2,
+  "propertiesToFetch": [
+    "category",
+    {
+      "name": "avgPrice",
+      "expression": { "format": "avg:(price)" },
+      "resultType": 3
+    }
+  ],
+  "propertiesToGroupBy": ["category"]
+}
+```
+
+### Streaming large result sets
+
+Set `fetchBatchSize` to a positive integer to receive results as a streaming HTTP response. The framework sends records in chunks of that size rather than buffering the entire result set.
+
+---
+
+## Mutating entities
+
+All mutations go to the same `/<EntityName>` path. Use `POST` to create, `PATCH` to update, and `DELETE` to delete. Each operation applies field-level write security (`#[Writable]`) and, for updates and deletes, enforces ownership before making any change.
+
+### Create
+
+```
+POST /Article
+Authorization: Bearer <jwt>
+Content-Type: application/json
+
+{
+  "title": "Hello world",
+  "status": "draft",
+  "authorId": 42
+}
+```
+
+Response: `201 Created` with the created object as JSON (after a re-fetch, so computed fields and defaults are included).
+
+The body may be JSON or `application/x-www-form-urlencoded`.
+
+### Update
+
+```
+PATCH /Article
+Authorization: Bearer <jwt>
+Content-Type: application/json
+
+{
+  "objectID": 7,
+  "title": "Updated title",
+  "status": "published"
+}
+```
+
+`objectID` is required and identifies the record to update. Only the fields present in the request body are written; omitted fields are left unchanged. Response: `200 OK` with the updated object.
+
+### Delete
+
+```
+DELETE /Article
+Authorization: Bearer <jwt>
+Content-Type: application/json
+
+{
+  "objectID": 7
+}
+```
+
+Response: `204 No Content`.
+
+---
+
+## Custom endpoints
+
+Application-specific responders live in `src/Responders/` and are discovered automatically. They take priority over built-in responders in the chain.
+
+### GET endpoint
+
+A class annotated with `#[Endpoint]` handles GET requests for a given path. The URL is the last path component of the class's declared route:
+
+```
+GET /preferences
+Authorization: Bearer <jwt>
+```
+
+The responder returns whatever `$data` provides; `JSONTransformer` (or another transformer declared on `#[Endpoint]`) serializes it.
+
+### Action endpoints (POST / PATCH / DELETE)
+
+Methods annotated with `#[Action]` handle mutating requests. The URL path is derived from the method name:
+
+```
+POST /login        →  AuthenticationManager::login()
+POST /logout       →  AuthenticationManager::logout()
+POST /refresh      →  AuthenticationManager::refresh()
+```
+
+For custom actions the convention is the same: a method named `publish()` on a responder with `#[Endpoint("/article")]` is reachable at `POST /article/publish`.
+
+The request body may be JSON or form-encoded. The action sets `$this->data` before returning; the framework serializes it through the transformer chain declared on `#[Action]`.
+
+---
+
+## File operations
+
+### Upload
+
+```
+POST /upload?directory=<name>
+Authorization: Bearer <jwt>
+Content-Type: multipart/form-data
+
+<file fields>
+```
+
+`directory` must be an alphanumeric slug (`[A-Za-z0-9_-]`). Files are written under `<document-root>/<directory>/`. Response: `200 OK` with a JSON array of uploaded file names:
+
+```json
+[{ "name": "photo.jpg" }, { "name": "resume.pdf" }]
+```
+
+### Download
+
+```
+POST /download
+Authorization: Bearer <jwt>
+Content-Type: application/json
+
+{
+  "url": "/uploads/documents/report.pdf"
+}
+```
+
+Response: the raw file content with the appropriate `Content-Type` and `Content-Disposition: attachment` headers set by `DownloadResponseTransformer`.
+
+---
+
+## Headers reference
+
+### Request headers
+
+| Header                   | Usage                                                                                                                                                                                                       |
+|--------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Authorization`          | `Bearer <jwt>` for JWT auth; `Basic <base64>` for Basic; `Digest …` for Digest                                                                                                                              |
+| `Idempotency-Key`        | Client-generated unique key (max 255 chars) for POST/PATCH. The framework stores the response for 24 hours (default) and replays it on retry. Concurrent requests with the same key receive `409 Conflict`. |
+| `Serialization`          | JSON object controlling which attributes and relationships are included in entity responses. Keys are attribute names; values are `true` (include) or a nested serialization object for relationships.      |
+| `If-None-Match`          | ETag value from a previous response. Returns `304 Not Modified` when the resource has not changed.                                                                                                          |
+| `X-Http-Method-Override` | Overrides the HTTP method (`PATCH`, `DELETE`) for clients that only support GET/POST.                                                                                                                       |
+
+### Response headers
+
+| Header                  | Meaning                                                                                      |
+|-------------------------|----------------------------------------------------------------------------------------------|
+| `ETag`                  | Opaque hash of the response body; use with `If-None-Match` on subsequent requests.           |
+| `Cache-Control`         | Defaults to `private, max-age=0, must-revalidate`; configurable via `HTTP_CACHE_*` env vars. |
+| `X-RateLimit-Limit`     | Request quota per window.                                                                    |
+| `X-RateLimit-Remaining` | Requests remaining in the current window.                                                    |
+| `X-RateLimit-Reset`     | Unix timestamp when the window resets.                                                       |
+
+---
+
+## Error responses
+
+All errors are returned as JSON with a consistent envelope:
+
+```json
+{
+  "error": {
+    "code": 404,
+    "message": "Not Found"
+  }
+}
+```
+
+| Status                      | Condition                                                                       |
+|-----------------------------|---------------------------------------------------------------------------------|
+| `400 Bad Request`           | Missing required parameter or malformed input                                   |
+| `401 Unauthorized`          | Missing or invalid credentials                                                  |
+| `403 Forbidden`             | Authenticated but not authorized for the requested resource                     |
+| `404 Not Found`             | Entity or record does not exist                                                 |
+| `405 Method Not Allowed`    | HTTP method not supported by this endpoint                                      |
+| `409 Conflict`              | Duplicate creation attempt, or concurrent request with the same idempotency key |
+| `429 Too Many Requests`     | Rate limit exceeded                                                             |
+| `500 Internal Server Error` | Unexpected server-side failure                                                  |

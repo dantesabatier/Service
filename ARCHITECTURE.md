@@ -1,0 +1,516 @@
+# Service Framework — Architecture Guide
+
+This document describes the internal architecture of the Service framework: how requests are received, routed, secured, and answered; how persistence integrates into that pipeline; and how the built-in subsystems — REST automation, MCP, event streaming, and server-side rendering — fit together.
+
+---
+
+## Table of Contents
+
+1. [Design Philosophy](#1-design-philosophy)
+2. [Application Lifecycle](#2-application-lifecycle)
+3. [Request Pipeline](#3-request-pipeline)
+4. [The Responder Chain](#4-the-responder-chain)
+5. [Routing: Endpoints and Actions](#5-routing-endpoints-and-actions)
+6. [Built-in Responders](#6-built-in-responders)
+7. [PersistentSpace — Automatic REST](#7-persistentspace--automatic-rest)
+8. [The Response Pipeline](#8-the-response-pipeline)
+9. [Security Architecture](#9-security-architecture)
+10. [Rate Limiting and Idempotency](#10-rate-limiting-and-idempotency)
+11. [CORS and Security Headers](#11-cors-and-security-headers)
+12. [MCP Server](#12-mcp-server)
+13. [Event Streaming](#13-event-streaming)
+14. [Server-Side Rendering](#14-server-side-rendering)
+15. [Application Delegate](#15-application-delegate)
+16. [Environment Configuration Reference](#16-environment-configuration-reference)
+
+---
+
+## 1. Design Philosophy
+
+Service is built on three convictions that shape every design decision.
+
+**Convention over configuration, but configuration over magic.** The framework makes strong choices — request routing without tables, REST APIs without controllers, security without decorators — but every default is an explicit, named class that you can replace. There is no runtime reflection that hides what is happening.
+
+**The model is the source of truth.** The Core Data schema drives everything: it generates the REST surface, the authorization query, the MCP tool catalogue, and the field-level access rules. You define the domain once; the framework derives the infrastructure from it.
+
+**Security is structural.** Authentication, authorization, field-level access control, rate limiting, and idempotency are not middleware stacks you assemble. They live in the pipeline, run unconditionally on every request, and require an explicit decision to relax — not to enable.
+
+---
+
+## 2. Application Lifecycle
+
+`Application` is a singleton (`Application::shared()`) that serves as both the root of the responder chain and the container for all shared services: the Core Data stack, authentication, authorization, policies, and session.
+
+When `run()` is called, the application executes a fixed sequence of steps before any user code runs:
+
+1. **Bootstrap** — discovers and initializes the application delegate; registers authentication strategies and JWT signing algorithms.
+2. **Preflight** — if the request is a CORS preflight (`OPTIONS` with an `Origin` header), it is answered immediately and the pipeline exits.
+3. **Application initialization** — notifies the delegate (`applicationWillFinishLaunching`), loads the Core Data persistent store, and registers a shutdown handler that catches fatal PHP errors and converts them to structured error responses.
+4. **Rate limiting** — increments the request counter for the current client (by authenticated username or IP address) and rejects the request with `429 Too Many Requests` if the quota is exceeded.
+5. **Access enforcement** — resolves the first responder for the request and evaluates the full access evaluator chain. If the chain rejects the request, a `401 Unauthorized` or `403 Forbidden` response is emitted immediately.
+6. **Transaction author** — wires the authenticated user's identity into the Core Data context so that persistent history records who performed every write.
+7. **Response** — asks the first responder to produce its response and sends it.
+
+Any uncaught `Throwable` at any step is caught and forwarded to `ErrorResponder`, which produces a structured JSON error response with the appropriate status code and, in development mode, the exception message.
+
+---
+
+## 3. Request Pipeline
+
+```
+Incoming HTTP request
+        │
+        ▼
+   Preflight?  ──yes──▶  CORS response (exit)
+        │ no
+        ▼
+   initializeApplication()
+        │
+        ▼
+   enforceRateLimitIfNeeded()
+        │
+        ▼
+   checkAccessPermissions()  ◀── resolves firstResponder (lazy)
+        │
+        ▼
+   setTransactionAuthor()
+        │
+        ▼
+   firstResponder→response
+        │
+        ├── user pipeline (transformers from #[Endpoint]/#[Action])
+        └── infrastructure pipeline (cache, security headers, CORS, rate-limit headers)
+        │
+        ▼
+   response→send()
+```
+
+The distinction between the user pipeline and the infrastructure pipeline is important: user transformers (JSON serialization, HTML rendering, download formatting) are declared per-endpoint and can vary; infrastructure transformers (`SecurityHeadersTransformer`, `CORSResponseTransformer`, `RateLimitHeaderTransformer`, `CacheHeaderTransformer`, `ConditionalGetTransformer`) run on every response regardless of the endpoint and cannot be removed.
+
+---
+
+## 4. The Responder Chain
+
+The responder chain is an ordered linked list of `Responder` objects. The framework builds it once per request by concatenating the custom responders discovered from the application's source tree with a fixed sequence of built-in responders:
+
+```
+[custom responders from src/Responders/ and src/ViewControllers/]
+    → Application
+    → PersistentSpace
+    → ResourceManager
+    → Preferences
+    → Uploader
+    → Downloader
+    → MCPResponder
+    → HomeController
+```
+
+The framework walks this chain and calls `isFirstResponder` on each node. The first node that returns `true` for the current request URL becomes the active responder. If no node matches, a `NotFoundException` is thrown.
+
+Each responder holds a reference to the next one via `$nextResponder`. This structure mirrors AppKit's responder chain: a responder that does not handle a request can forward it down the chain, and the chain itself is a first-class object that can be inspected.
+
+`Responder` is the base class. It exposes:
+- The current `Request` and `Session` as shared, lazily-initialised properties.
+- The `ManagedObjectContext` (Core Data's view context) for data access.
+- All active policies (`corsPolicy`, `cachePolicy`, `rateLimitPolicy`, etc.) inherited from `Application` via property hooks.
+- The `$response` property, which executes the full response lifecycle: method validation, session management, idempotency, action dispatch, and pipeline execution.
+
+---
+
+## 5. Routing: Endpoints and Actions
+
+Routing is entirely attribute-driven. There are no routing tables, route registrars, or configuration files.
+
+**`#[Endpoint(path, transformers)]`** marks a class as a GET handler. The `path` is matched against the incoming URL. If omitted, the class name is used as the path. `transformers` is the ordered list of response transformer classes applied to every response from this endpoint.
+
+**`#[Action(method, path, transformers)]`** marks a method as handling a mutating request (POST, PATCH, DELETE, PUT). The `path` defaults to `/{methodName}`. When a mutating request arrives, the framework calls the matching action method, which sets `$this->data` and `$this->statusCode` as side effects, then passes the response through the action's own transformer chain.
+
+`ResponderResolution` handles the matching: it reads the `#[Endpoint]` and `#[Action]` attributes on the class at construction time, compares the URL path against the configured routes, and returns whether the responder claims the request and, if so, which action method to call.
+
+The effect is that routing is co-located with the handler code. Every `Responder` subclass is self-describing: its route, the HTTP methods it accepts, and the transformers it applies are all visible in the class declaration.
+
+---
+
+## 6. Built-in Responders
+
+These responders are always present in the chain, in this order of priority after custom responders:
+
+**`ResourceManager`** serves static files. It delegates the decision to `StaticResourcePolicy`, which determines whether the URL maps to a physical file in a public directory. Cacheable resources (public directories, optional browser files like `favicon.ico` and `robots.txt`) get standard cache headers; everything else gets `no-cache`. Only `GET` and `HEAD` are accepted.
+
+**`Preferences`** exposes the application's `UserDefaults` store at `/Preferences`. `GET` returns the full key-value dictionary as JSON; `PATCH` merges the request body into the store. This is always no-cache.
+
+**`Uploader`** receives `multipart/form-data` uploads at `/upload`. It validates that the target directory name contains only safe characters (`[A-Za-z0-9_-]`), creates it if absent (with permissions 0777), moves each uploaded file from the PHP temporary location into the destination, and returns an array of the saved filenames. Existing files at the target path are silently replaced.
+
+**`Downloader`** responds to `POST /download` with a file attachment. The request body contains the URL of the file to serve; the framework resolves it against the document root, reads it, detects its MIME type and character encoding, and delivers it with a `Content-Disposition: attachment` header. The POST method is used deliberately — the URL of the file to download is a parameter, not a path segment, which avoids exposing arbitrary file paths in GET URLs.
+
+**`MCPResponder`** exposes the full Core Data model as an MCP tool server at `/mcp`. See [Section 12](#12-mcp-server).
+
+**`HomeController`** is the chain's final fallback: it answers `GET /` with an HTML page rendered from a template, populated with the application name, version, and copyright from the main bundle's `Info.plist`.
+
+---
+
+## 7. PersistentSpace — Automatic REST
+
+`PersistentSpace` is the framework's most powerful built-in responder. It activates whenever the last path component of the URL matches the name of a Core Data entity in the managed object model. No registration, no controller, no serializer — the entity's name in the schema is its URL.
+
+For a model containing `User`, `Post`, and `Comment` entities, the framework automatically exposes:
+
+```
+GET    /User
+POST   /User
+PATCH  /User
+DELETE /User
+GET    /Post
+...
+```
+
+Every endpoint is immediately functional, secured, and consistent.
+
+### Read (GET)
+
+Queries are expressed as URL parameters. There are two modes:
+
+- **Simple filters**: each query parameter becomes a `field = value` predicate. Multiple parameters are AND-combined. Example: `GET /Post?status=published&authorID=42`.
+- **Full fetch request**: a single `fetchRequest` parameter containing a base64-encoded JSON object that encodes the complete `FetchRequest` — including predicates, sort descriptors, pagination, result type, and serialization shape. This is the mode used by rich clients and by the MCP tools.
+
+When a user's authorization scope is `own`, the framework automatically appends an ownership predicate to the query, so users only see records they own — at the database level, not by post-filtering in PHP.
+
+When `fetchBatchSize` is set on the fetch request, the response is streamed: records are serialised and flushed incrementally rather than accumulated in memory, which is important for large result sets.
+
+### Mutations (POST, PATCH, DELETE)
+
+- **POST** inserts a new object. If the body includes an `objectID`, a uniqueness check runs first; a conflict throws `409`. The framework calls `applySecureUpdate` on the new object before saving, which hashes passwords for `Authorizable` entities and strips fields the user is not allowed to write.
+- **PATCH** fetches the object by `objectID`, enforces ownership if applicable, applies the secure write filter, and saves only if the context has actual changes (avoiding unnecessary writes).
+- **DELETE** fetches by `objectID`, enforces ownership, deletes, and returns `204 No Content`.
+
+Every mutating operation re-fetches the object after saving and applies `applySecureRead` before returning it, so the response always reflects the committed state with fields filtered for the current user.
+
+### Field-Level Security
+
+Field-level security is declared on the managed object class with two PHP attributes:
+
+- **`#[Readable(by: ['admin'], scope: AuthorizationScope::all)]`** — controls which roles can see a field in API responses.
+- **`#[Writable(by: ['admin', 'owner'], scope: AuthorizationScope::own)]`** — controls which roles can write a field.
+
+`FieldSecurityFilter` reads these attributes by reflection (cached statically per class after the first access) and removes restricted fields from the payload. If a field's scope is `own`, the user must also be the record's owner to access it.
+
+### Ownership
+
+A single `#[Owner]` attribute on a managed object property designates it as the owner field. `OwnerResolver` discovers it by reflection (also cached), and `OwnershipService` checks equality between the current user and the field value. Ownership enforcement is applied on both reads (predicate injection) and writes (`enforceOwnership` throws `403` if the check fails).
+
+---
+
+## 8. The Response Pipeline
+
+Every response passes through two sequential transformer pipelines managed by `ResponsePipeline`.
+
+**User pipeline** — transformers declared in `#[Endpoint]` and `#[Action]` attributes. These shape the content of the response: `JSONTransformer` serialises the body to JSON and sets `Content-Type: application/json`; `HTMLTransformer` renders the body as an HTML string; `DownloadResponseTransformer` sets attachment headers; `NoCacheHeaderTransformer` disables client caching for volatile responses.
+
+**Infrastructure pipeline** — five transformers that run unconditionally after the user pipeline on every response:
+
+| Transformer | Responsibility |
+|---|---|
+| `CacheHeaderTransformer` | Writes `ETag` and `Cache-Control` headers from `HTTPCachePolicy` |
+| `ConditionalGetTransformer` | Evaluates `If-None-Match` / `If-Modified-Since` and returns `304` when appropriate |
+| `RateLimitHeaderTransformer` | Appends `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` |
+| `SecurityHeadersTransformer` | Writes all security-related headers (CSP, HSTS, X-Frame-Options, etc.) |
+| `CORSResponseTransformer` | Writes `Access-Control-*` headers if the request origin is permitted |
+
+`ResponseTransformerContext` is the shared object that carries the current request, all active policies, and the rate-limit state into every transformer. Transformers receive it at construction and read what they need from it.
+
+`ErrorResponder` uses its own fixed pipeline — `JSONTransformer → ResponseHeaderSanitizerTransformer → RateLimitHeaderTransformer → SecurityHeadersTransformer → CORSResponseTransformer` — to ensure that error responses are always well-formed JSON with the same security headers as successful ones.
+
+---
+
+## 9. Security Architecture
+
+Security is composed of several independent layers that each enforce a distinct concern. They are not middleware stacks — they are integrated into the framework's pipeline and run automatically.
+
+### 9.1 Authentication
+
+The framework detects the authentication scheme from the `Authorization` header and delegates to the matching strategy:
+
+- **Basic** — decodes the `base64(username:password)` credential and verifies the password with `password_verify()` against the stored hash.
+- **Bearer (JWT)** — decodes the JWT using the configured signing key, extracts the `sub` claim as the username, and trusts the token's validity (signature, expiry, and version are checked separately in the evaluator chain).
+- **Digest** — implements RFC 7616 hash-response verification. Supports SHA-256, SHA-512-256, and MD5 algorithms.
+
+All three strategies share a base class, `Authentication`, that lazily resolves the authenticated user entity from the database via `AuthenticationService`. The service scans the managed object model on first use to locate the entity class that implements the `Authorizable` interface, then fetches it by username with the minimum set of attributes needed for authentication.
+
+Custom authentication strategies can be registered with `AuthenticationResolver::registerClass()`.
+
+### 9.2 JWT
+
+The JWT subsystem is a full implementation of the standard: header, payload, and signature are each typed objects. The signing algorithm is selected at runtime from the `JWTSignatureAlgorithmKey` environment variable (default: HS256).
+
+A token issued at login contains:
+
+- Standard claims: `iss` (host), `sub` (username), `exp`, `nbf`, `iat`, `jti` (random 16-byte ID)
+- **`enb`** — the user's `isEnabled` flag, embedded in the token so the evaluator chain can check it without a database round-trip
+- **`ver`** — the user's `refreshTokenVersion` counter, used to invalidate all outstanding tokens when the user logs out or changes credentials
+- **`scp`** — technical scopes: `access` and/or `refresh`, which govern which endpoints the token can be used with
+- **`authz`** — authorization scopes, strings of the form `resource:action:scope` (e.g., `posts:read:all`, `comments:create:own`), pre-computed at login from the user's roles so that most authorization decisions can be made without a database query
+
+JWT coder strategies follow the same plugin pattern as authentication strategies: `JSONWebTokenCoderStrategyFactory` maintains separate registries for encoders and decoders, and the correct strategy is selected by matching the algorithm.
+
+### 9.3 Access Evaluator Chain
+
+`AuthenticationManager::$isProtectedContentAvailable` evaluates a chain of `AccessEvaluator` implementations in AND-short-circuit order. The chain differs depending on the endpoint:
+
+For normal requests, the chain is:
+
+1. **`SessionAuthenticationEvaluator`** — if JWT is not configured, confirms the PHP session is active and marked as authenticated.
+2. **`AuthenticationEvaluator`** — verifies the credential is valid (password match or valid JWT structure).
+3. **`JSONWebTokenScopeEvaluator(access)`** — verifies the token carries the `access` technical scope.
+4. **`JSONWebTokenAccessTimeEvaluator`** — verifies `nbf ≤ now ≤ exp`.
+5. **`JSONWebTokenEnabledEvaluator`** — verifies the `enb` claim is `true`.
+6. **`JSONWebTokenVersionEvaluator`** — verifies the token's `ver` matches the user's current `refreshTokenVersion`. If the user has logged out or the token has been invalidated, this check fails.
+7. **`AuthorizationEvaluator`** — verifies the user has the required permission for the requested resource and HTTP method.
+
+For refresh requests, the chain replaces the scope check with `JSONWebTokenScopeEvaluator(refresh)`, adds `JSONWebTokenRefreshTimeEvaluator`, and omits the `AuthorizationEvaluator` — a token refresh does not require a resource permission.
+
+`DefaultAccessPolicy` inspects which evaluator failed to decide between `401 Unauthorized` (authentication failure) and `403 Forbidden` (authorization failure). Any evaluator tagged as `AuthorizationAccessEvaluator` produces a 403; everything else produces a 401.
+
+### 9.4 Role-Based Authorization
+
+The authorization model has three dimensions:
+
+- **Resource** — the name of the entity or endpoint being accessed (matched case-insensitively).
+- **Action** — `read`, `create`, `update`, `delete`, or the wildcard `any`.
+- **Scope** — `all` (access to every record) or `own` (access only to records owned by the user).
+
+`AuthorizationService::isAuthorized()` resolves permissions in three layers, from fastest to slowest:
+
+1. **Token scopes** — if the JWT's `authz` array already contains `resource:action` or `resource:any`, access is granted immediately.
+2. **In-request cache** — the resolved authorization set for this user is stored in memory for the duration of the current request.
+3. **Database** — `AuthorizationResolver` fetches `Authorization` objects whose `name` matches the resource, whose `type` matches the action or `any`, and whose `roles` overlap with the user's roles. Results populate both cache layers.
+
+This layering means that a warm-cache user with a valid JWT authorizing the requested scope never touches the database for authorization. The database is only consulted on the first request of a session or on a cold cache miss.
+
+### 9.5 Authentication Endpoints
+
+`AuthenticationManager` is itself a responder in the chain that exposes three actions:
+
+- **`POST /login`** — validates credentials, then either issues a JWT (if `JWTPrivateKey` is set) or starts a session with a regenerated ID (to prevent session fixation). Returns the user object and, in JWT mode, the token.
+- **`POST /logout`** — in session mode, destroys the session. In JWT mode, increments the user's `refreshTokenVersion`, which immediately invalidates all outstanding tokens for that user.
+- **`POST /refresh`** — issues a new JWT from a valid refresh-scoped token. The issued token carries fresh expiry and scope information.
+
+---
+
+## 10. Rate Limiting and Idempotency
+
+### Rate Limiting
+
+Rate limiting is enforced before the first responder is consulted. The framework keys the counter on the authenticated username when a user is known, or on the client IP address for anonymous requests. The counter and TTL are stored in a configurable backend.
+
+Available backends: APCu (default, shared memory within a single server), Redis, Memcached, and InMemory (process-scoped, for testing). The backend is configured by replacing `Application::$rateLimitStore`.
+
+When the limit is exceeded, the framework throws `429 Too Many Requests` with a `Retry-After` header set to the remaining TTL of the current window. The `RateLimitHeaderTransformer` appends `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset` to every response so clients can track their quota without waiting for a rejection.
+
+### Idempotency
+
+For `POST` and `PATCH` requests, the framework supports the `Idempotency-Key` header. The key is combined with the HTTP method, URL path, and user identity to form a composite cache key.
+
+If the same key arrives while the first request is still processing, the framework returns `409 Conflict`. If the first request has completed, the cached response is replayed directly through the infrastructure transformer pipeline (so it still gets up-to-date security and rate-limit headers) without re-executing the action.
+
+The same four backends (APCu, Redis, Memcached, InMemory) are available for idempotency storage.
+
+---
+
+## 11. CORS and Security Headers
+
+### CORS
+
+`CORSPolicy` is a value object built from environment variables at startup. It carries allowed origins, methods, headers, the `allowCredentials` flag, and the set of exposed headers.
+
+Each responder narrows the global policy to its own capabilities: the effective allowed methods and headers are the intersection of the application-wide policy and the responder's declared `$allowedMethods` and `$allowedHeaders`. This means the `Access-Control-Allow-Methods` header on `/login` only lists the methods `AuthenticationManager` actually handles, not everything the application supports.
+
+`CORSResponseTransformer` writes the `Access-Control-*` headers on every response for which the request's `Origin` is in the allowed set. Preflight (`OPTIONS`) requests are handled before the main pipeline even starts, by `PreflightResponder`.
+
+### Security Headers
+
+`SecurityHeadersPolicy` is another environment-driven value object. It holds values for six headers. Four have non-null defaults:
+
+| Header | Default |
+|---|---|
+| `X-Content-Type-Options` | `nosniff` |
+| `X-Frame-Options` | `DENY` |
+| `Referrer-Policy` | configurable default |
+| `Permissions-Policy` | configurable default |
+
+`Content-Security-Policy` and `Strict-Transport-Security` are `null` by default and must be configured explicitly — their values are application-specific. `SecurityHeadersTransformer` omits any header whose policy value is null, so partial configurations are valid.
+
+The policy can be replaced programmatically in the application delegate:
+
+```php
+Application::shared()->securityHeadersPolicy = new SecurityHeadersPolicy(
+    contentSecurityPolicy: "default-src 'self'",
+    strictTransportSecurity: "max-age=31536000; includeSubDomains"
+);
+```
+
+---
+
+## 12. MCP Server
+
+The MCP (Model Context Protocol) server exposes the application's data model as a JSON-RPC 2.0 tool catalogue that LLM agents can discover and invoke. It is available at `/mcp` and accepts both `GET` and `POST`.
+
+### Protocol
+
+Every request is parsed as a JSON-RPC 2.0 message. Notifications (messages without an `id` field) are silently ignored. The response is always wrapped in the standard envelope `{"jsonrpc":"2.0","id":...,"result":...,"error":...}`. Any uncaught exception inside the handler is converted to a `JSONRPCError` with code `−32603 Internal Error`; the MCP server never leaks an HTTP 500.
+
+Five methods are dispatched:
+
+| Method | Handler | Purpose |
+|---|---|---|
+| `initialize` | `InitializeHandler` | Returns server name, version, protocol version, capabilities, and instructions |
+| `tools/list` | `ToolsListHandler` | Returns the catalogue of available tools with their input schemas |
+| `tools/call` | `ToolsCallHandler` | Invokes a tool by name with supplied arguments |
+| `ping` | — | No-op; acknowledged without a result |
+| `notifications/initialized` | — | No-op |
+
+### Schema
+
+On first access, `ModelDescriptor` builds a `ModelSchema` from the Core Data model:
+
+- **Entities** — every entity in the model is described with its PHP class name, a human-readable label, optional aliases, its attributes (name, type, nullability, enum cases where applicable), and its relationships (target entity, to-one or to-many, optional or required).
+- **Predicate syntax guide** — a reference section embedded in the schema that teaches the LLM the format string syntax (`%K` for key paths, `%s`/`%d`/`%f` for values), the available operators, and localised examples.
+
+Two files enrich the raw schema:
+
+- **`vocabulary.json`** (localised) — adds human-readable descriptions and aliases to entities and attributes. Attribute descriptions use the key `Entity.attributeName`.
+- **`predicate_examples.json`** (localised) — a list of example predicate strings included verbatim in the schema to guide the LLM.
+
+**Enum detection** deserves special mention: `AttributeSchemaFactory` inspects the managed object class for a method named `validate{AttributeName}`. If such a method exists and its parameter type is a `BackedEnum`, the factory extracts all case names and values and includes them in the attribute schema. This lets the LLM know the valid values for enum fields without a database query.
+
+### Built-in Tools
+
+The framework registers eleven tools automatically, all backed by the managed object context:
+
+| Tool | Operation | Notes |
+|---|---|---|
+| `describe_model` | Schema introspection | Should be called first; returns the full model schema |
+| `fetch` | Query with filters, sort, pagination, projection | Supports field and relationship projection; default limit 100 |
+| `count` | Count matching records | |
+| `aggregate` | Compute sum, average, min, max, count, median, mode, stddev | `median`, `mode`, `stddev` are computed in-memory; others push to the database |
+| `group_by` | GROUP BY with aggregates, HAVING, sort, pagination | Fully database-side |
+| `create` | Insert a single record | Returns the created object |
+| `update` | Update a single record by `objectID` | Saves only if there are actual changes |
+| `delete` | Delete a single record by `objectID` | |
+| `batch_insert` | Insert multiple records in one operation | Uses Core Data's `BatchInsertRequest`; returns inserted count |
+| `batch_update` | Update matching records without loading them | Uses `BatchUpdateRequest`; predicate is optional |
+| `batch_delete` | Delete matching records without loading them | Uses `BatchDeleteRequest`; **predicate is required** |
+
+Every tool validates all key paths and predicate placeholders against the in-memory schema before touching the database, so invalid field names produce a clear error message rather than a SQL error.
+
+### Custom Tools
+
+Place a class that extends `AbstractTool` in `src/MCPTools/`. The framework discovers it automatically at startup. The class receives the `ManagedObjectContext` and `ModelDescriptor` in its constructor and has access to all helper methods from `AbstractTool`: `fetchRequest`, `buildPredicate`, `validateKeyPath`, `jsonResult`, and `textResult`.
+
+---
+
+## 13. Event Streaming
+
+`EventStreamResponder` handles long-lived connections using the Server-Sent Events protocol. It is used for pushing real-time updates to browser clients without WebSockets.
+
+Responses are produced by `EventStreamResponse`, which streams `ServerSentEvent` objects through an `EventStreamEmitter`. Each event carries a type, optional ID, retry interval, and data payload.
+
+The `StreamResponse` class provides a more general incremental streaming mechanism: it wraps any iterable result set and serialises records in configurable chunks, applying an optional transform function to each chunk. `PersistentSpace` uses this automatically when a fetch request specifies a `fetchBatchSize`.
+
+---
+
+## 14. Server-Side Rendering
+
+`ViewController` extends `Responder` with a view lifecycle for server-side HTML rendering.
+
+The lifecycle proceeds as follows:
+
+1. `viewWillLoad()` is called — override to set data before the template context is assembled.
+2. The framework collects every public property annotated with `#[Outlet]` and builds the template context from their current values.
+3. A `View` object is instantiated with the template name, the context dictionary, and the configured `Renderer`.
+4. `viewDidLoad()` is called — override for any post-render setup.
+5. `View::render()` produces the HTML string, which becomes `$this->data`.
+
+The renderer class is a static property on `ViewController` and can be replaced globally:
+
+```php
+ViewController::$rendererClass = LatteRenderer::class;
+```
+
+The default renderer uses PHP's native `include` mechanism. Any renderer that implements the `Renderer` interface can be substituted.
+
+Templates are resolved from the `Renderer`'s associated `Bundle`. `HomeController` uses the framework's own bundle; custom `ViewController` subclasses use `Bundle::main()` by default, or a custom bundle if `$bundle` is overridden.
+
+---
+
+## 15. Application Delegate
+
+`ApplicationDelegate` is the primary customization point. The framework discovers the delegate by reading the `NSPrincipalClass` key from the main bundle's `Info.plist` and verifying that the class implements `ApplicationDelegate`.
+
+The delegate receives four lifecycle callbacks:
+
+- **`applicationWillFinishLaunching`** — called after the Core Data stack is loaded but before any request processing begins. The right place to configure policies, override `$rendererClass`, or perform one-time setup.
+- **`applicationDidFinishLaunching`** — called just before the response is sent. Useful for post-response hooks.
+- **`applicationWillTerminate`** — called by the PHP shutdown handler on a clean exit.
+- **`applicationDidCrash`** — called when a fatal PHP error is caught by the shutdown handler, before the error response is emitted.
+
+Application-wide policies — `$corsPolicy`, `$accessPolicy`, `$securityHeadersPolicy`, `$cachePolicy`, `$rateLimitPolicy`, `$idempotencyPolicy`, `$rateLimitStore`, `$idempotencyStore`, `$authorizationCache` — are public properties on `Application` and can be reassigned in `applicationWillFinishLaunching` to replace any default.
+
+---
+
+## 16. Environment Configuration Reference
+
+All environment keys are PHP constants defined in the framework's constants files. Notable groups:
+
+### Authentication and JWT
+
+| Key | Default | Description |
+|---|---|---|
+| `JWTPrivateKey` | — | Enables JWT mode when set. Value is the signing key (HMAC secret or RSA private key PEM). |
+| `JWTSignatureAlgorithmKey` | `hs256` | Signing algorithm. Values: `hs256`, `rs256`. |
+| `JWTValidityTimeIntervalKey` | 3600 | Token lifetime in seconds. |
+
+### CORS
+
+| Key | Description |
+|---|---|
+| `CORSAllowedOriginsKey` | Comma-separated list of allowed origins, or `*`. |
+| `CORSAllowedMethodsKey` | Comma-separated list of allowed HTTP methods. |
+| `CORSAllowedHeadersKey` | Comma-separated list of allowed request headers. |
+| `CORSAllowCredentialsKey` | `true` / `false`. |
+| `CORSExposedHeadersKey` | Comma-separated list of headers the browser may read. |
+
+### Security Headers
+
+| Key | Default | Description |
+|---|---|---|
+| `SECURITY_X_CONTENT_TYPE_OPTIONS` | `nosniff` | |
+| `SECURITY_X_FRAME_OPTIONS` | `DENY` | |
+| `SECURITY_REFERRER_POLICY` | framework default | |
+| `SECURITY_PERMISSIONS_POLICY` | framework default | |
+| `SECURITY_CONTENT_SECURITY_POLICY` | — | Not set by default; must be configured. |
+| `SECURITY_STRICT_TRANSPORT_SECURITY` | — | Not set by default; must be configured. |
+
+### Rate Limiting
+
+| Key | Description |
+|---|---|
+| `RateLimitEnabledKey` | Enable or disable rate limiting. |
+| `RateLimitMaxRequestsIPKey` | Request quota for anonymous (IP-keyed) clients per window. |
+| `RateLimitMaxRequestsUserKey` | Request quota for authenticated users per window. |
+| `RateLimitWindowSecondsKey` | Window duration in seconds. |
+
+### MCP
+
+| Key | Default | Description |
+|---|---|---|
+| `MCPServerNameKey` | bundle name | Server name reported in `initialize`. |
+| `MCPServerVersionKey` | bundle version | Server version reported in `initialize`. |
+| `MCPInstructionsFilenameKey` | `mcp_instructions.txt` | Localised instructions file for the LLM. |
+| `MCPVocabularyFilenameKey` | `vocabulary.json` | Localised schema vocabulary file. |
+| `MCPPredicateExamplesFilenameKey` | `predicate_examples.json` | Localised predicate examples file. |
+
+### Application
+
+| Key | Description |
+|---|---|
+| `ApplicationEnvironmentKey` | Set to `development` to enable verbose error responses. |

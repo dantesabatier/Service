@@ -15,6 +15,7 @@ use Sabatier\Service\MCP\Schema\EntitySchema;
 use Sabatier\Service\MCP\Schema\ModelDescriptor;
 use Sabatier\Service\MCP\Schema\RelationshipSchema;
 use function Sabatier\Foundation\fatal_error;
+use const Sabatier\CoreData\ManagedObjectObjectIDKey;
 
 /**
  * Base class for all MCP tools, both built-in and custom.
@@ -95,6 +96,18 @@ abstract class AbstractTool
     protected function buildPredicate(string $format, ArrayClass $arguments): Predicate
     {
         return Predicate::format($format, $arguments) ?? fatal_error("Invalid predicate format");
+    }
+
+    protected function normalizeRelationships(string $entityName, Dictionary $values): Dictionary
+    {
+        $schema = $this->entity($entityName);
+        $normalized = clone $values;
+        foreach ($values as $key => $value) {
+            if ($schema->relationships[$key] && is_numeric($value)) {
+                $normalized[$key] = new Dictionary([ManagedObjectObjectIDKey => $value]);
+            }
+        }
+        return $normalized;
     }
 
     /** @return ArrayClass<ContentItem> */

@@ -45,7 +45,7 @@ final class CreateTool extends AbstractTool
         $entity = $arguments["entity"] ?? fatal_error("entity is required");
         $values = $arguments["values"] ?? fatal_error("values is required");
         $object = EntityDescription::insertNewObject($entity, $this->context);
-        $object->updateFromSnapshot($values);
+        $object->updateFromSnapshot($this->normalizeRelationships($entity, $values));
         $this->context->save();
         return $this->jsonResult($object->jsonSerialize());
     }

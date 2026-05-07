@@ -76,10 +76,14 @@ final class FetchTool extends AbstractTool
 
     private function validateProjection(string $entity, Dictionary $arguments): void
     {
-        foreach (($arguments["properties"] ?? []) as $key) {
+        foreach ($arguments["properties"] ?? [] as $key) {
             $this->validateKeyPath($entity, (string)$key);
         }
+        /** @var Dictionary<Dictionary<mixed>> $relationships */
         $relationships = $arguments["relationships"] ?? new Dictionary();
+        if ($relationships->isEmpty) {
+            return;
+        }
         foreach ($relationships as $name => $props) {
             $relation = $this->entity($entity)->relationships[$name] ?? throw new InvalidArgumentException("Unknown relationship \"$name\"");
             foreach ($props as $key) {
@@ -91,7 +95,11 @@ final class FetchTool extends AbstractTool
     private function validateSort(string $entity, mixed $sort): void
     {
         foreach (($sort ?? []) as $item) {
-            $this->validateKeyPath($entity, $item["key"]);
+            $key = (string)$item["key"];
+            if ($key === "") {
+                continue;
+            }
+            $this->validateKeyPath($entity, $key);
         }
     }
 
@@ -100,7 +108,7 @@ final class FetchTool extends AbstractTool
         if (!$sort) {
             return;
         }
-        $request->sortDescriptors = $sort->map(fn(Dictionary $item) => new SortDescriptor($item["key"], $item["ascending"] ?? true));
+        $request->sortDescriptors = $sort->filter(fn(Dictionary $item): bool => (string)$item["key"] !== "")->map(fn(Dictionary $item) => new SortDescriptor($item["key"], $item["ascending"] ?? true));
     }
 
     private function serializeResults(ArrayClass $results, mixed $properties, mixed $relationships): array

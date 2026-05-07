@@ -1,7 +1,6 @@
 {
   "name": "sabatier/service",
   "description": "The Service framework allows you to create fully functional web services in minutes.",
-  "version": "0.3.0",
   "keywords": [
     "sabatier",
     "service"

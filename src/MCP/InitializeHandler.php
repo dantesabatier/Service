@@ -38,13 +38,6 @@ final class InitializeHandler
     public function handle(/** @noinspection PhpUnusedParameterInspection */ RPCMessage $message): InitializeResult
     {
         $environment = ProcessInfo::processInfo()->environment;
-        return new InitializeResult(
-            new ServerCapabilities(new ToolsCapability(false)),
-            $this->instructions,
-            new ServerInfo(
-                $environment[MCPServerNameKey] ?? MCPServerNameDefault,
-                $environment[MCPServerVersionKey] ?? MCPServerVersionDefault
-            )
-        );
+        return new InitializeResult(new ServerCapabilities(new ToolsCapability(false)), $this->instructions, new ServerInfo($environment[MCPServerNameKey] ?? MCPServerNameDefault, $environment[MCPServerVersionKey] ?? MCPServerVersionDefault));
     }
 }

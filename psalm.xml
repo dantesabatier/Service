@@ -28,6 +28,7 @@
         <PossiblyNullArgument>
             <errorLevel type="suppress">
                 <file name="src/AuthenticationManager.php"/>
+                <file name="src/MCP/InitializeHandler.php"/>
             </errorLevel>
         </PossiblyNullArgument>
         <NullableReturnStatement>

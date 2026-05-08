@@ -53,6 +53,7 @@
       "src/IdempotencyConstants.php",
       "src/JSONWebTokenConstants.php",
       "src/JSONWebTokenErrorCodes.php",
+      "src/LLMConstants.php",
       "src/MCPConstants.php",
       "src/MCP/JSONRPCConstants.php",
       "src/MCP/JSONRPCErrorCodes.php",

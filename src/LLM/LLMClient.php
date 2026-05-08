@@ -1,0 +1,75 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Sabatier\Service\LLM;
+
+use Sabatier\Foundation\ArrayClass;
+use Sabatier\Foundation\Dictionary;
+use Sabatier\Foundation\Error;
+use Sabatier\Foundation\InternalInconsistencyException;
+use Sabatier\Foundation\Networking\URLRequest;
+use Sabatier\Foundation\Networking\URLResponse;
+use Sabatier\Foundation\Networking\URLSession;
+use Sabatier\Service\InternalServerErrorException;
+use Sabatier\Service\MCP\Response\ToolDescriptor;
+
+/**
+ * Abstract base for LLM provider integrations.
+ *
+ * Handles transport via URLSession. Subclasses own request serialization (`buildRequest`) and
+ * response deserialization (`parse`), covering provider-specific wire formats (headers, message
+ * structure, tool schemas, token fields). The public surface is `complete`, which executes one
+ * request–response cycle and returns an `LLMTurn`.
+ */
+abstract class LLMClient
+{
+    /** API version header value sent with every request. */
+    abstract public string $version {
+        get;
+    }
+    /** Maximum output tokens to request from the model. */
+    abstract public int $maxTokens {
+        get;
+    }
+
+    /**
+     * @param ArrayClass<LLMMessage> $messages
+     * @param ArrayClass<ToolDescriptor> $tools
+     */
+    abstract protected function buildRequest(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): URLRequest;
+
+    /**
+     * @param Dictionary<mixed> $body
+     * @return LLMTurn
+     */
+    abstract protected function parse(Dictionary $body): LLMTurn;
+
+    /**
+     * Sends one request to the LLM and returns the resulting turn.
+     *
+     * @param ArrayClass<LLMMessage> $messages
+     * @param ArrayClass<ToolDescriptor> $tools
+     */
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    {
+        $request = $this->buildRequest($messages, $tools, $systemPrompt);
+        $body = $this->send($request);
+        return $this->parse($body);
+    }
+
+    /**
+     * @throws InternalServerErrorException
+     */
+    protected function send(URLRequest $request): Dictionary
+    {
+        $data = null;
+        $error = null;
+        URLSession::shared()->dataTaskWithRequest($request, function (?string $responseData, ?URLResponse $response, ?Error $err) use (&$data, &$error): void {
+            $data = $responseData;
+            $error = $err;
+        })->resume();
+        !$error instanceof Error ?: throw new InternalInconsistencyException(error: $error);
+        return Dictionary::dictionaryWithArray(json_decode($data ?? "[]", true) ?? [], false);
+    }
+}

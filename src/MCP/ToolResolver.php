@@ -60,10 +60,7 @@ final readonly class ToolResolver
     /** @return ArrayClass<AbstractTool> */
     public function resolve(): ArrayClass
     {
-        /** @var ArrayClass<AbstractTool> $builtIn */
-        $builtIn = new ArrayClass(self::builtInToolClasses)->map(fn(string $class): AbstractTool => new $class($this->context, $this->descriptor));
-        $builtIn->appendContentsOf($this->discover());
-        return $builtIn;
+        return new ArrayClass(self::builtInToolClasses)->map(fn(string $class): AbstractTool => new $class($this->context, $this->descriptor))->appendingContentsOf($this->discover());
     }
 
     /** @return ArrayClass<AbstractTool> */

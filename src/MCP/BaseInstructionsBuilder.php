@@ -15,11 +15,14 @@ final class BaseInstructionsBuilder
 {
     public function build(?string $appInstructions): string
     {
+        if ($appInstructions) {
+            $appInstructions = $appInstructions |> trim(...);
+        }
         $base = $this->baseInstructions();
-        if (!$appInstructions || trim($appInstructions) === "") {
+        if (!$appInstructions) {
             return $base;
         }
-        return trim($appInstructions) . "\n\n" . $base;
+        return "$appInstructions\n\n$base";
     }
 
     private function baseInstructions(): string

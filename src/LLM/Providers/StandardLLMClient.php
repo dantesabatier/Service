@@ -24,7 +24,7 @@ use function Sabatier\Foundation\fatal_error;
  *
  * Formats messages and tools according to the OpenAI Chat Completions spec. The system prompt
  * is prepended as a `system` role message. Tool calls are expressed as `tool_calls` on the
- * assistant message and results as `tool` role messages. JSON schemas for tools are normalised
+ * assistant message and results as `tool` role messages. JSON schemas for tools are normalized
  * to satisfy OpenAI's requirement that array-typed properties declare an `items` field.
  * Auth is passed via the `Authorization: Bearer` header.
  */
@@ -58,7 +58,7 @@ final class StandardLLMClient extends LLMClient
         }
         $body = [
             "model" => $this->model,
-            "max_tokens" => $this->maxTokens,
+            "max_completion_tokens" => $this->maxTokens,
             "messages" => $formattedMessages,
         ];
         if (!$tools->isEmpty) {
@@ -105,7 +105,6 @@ final class StandardLLMClient extends LLMClient
                 if ($message->reasoningContent !== null) {
                     $entry["reasoning_content"] = $message->reasoningContent;
                 }
-                $result[] = $entry;
             } else {
                 $entry = [
                     "role" => $message->role,
@@ -114,8 +113,8 @@ final class StandardLLMClient extends LLMClient
                 if ($message->reasoningContent !== null && $message->role === LLMMessageRole::assistant) {
                     $entry["reasoning_content"] = $message->reasoningContent;
                 }
-                $result[] = $entry;
             }
+            $result[] = $entry;
         }
         return $result;
     }

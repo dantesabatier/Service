@@ -27,7 +27,6 @@ final class LLMProvider
             "name" => $this->name,
             "identifier" => $this->identifier,
             "url" => $this->url,
-            "apiKey" => $this->apiKey,
             "models" => $this->models->map(fn(LLMModel $model): Dictionary => $model->dictionaryRepresentation),
         ]);
     }

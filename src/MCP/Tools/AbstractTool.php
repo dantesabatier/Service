@@ -15,6 +15,7 @@ use Sabatier\Service\MCP\Schema\EntitySchema;
 use Sabatier\Service\MCP\Schema\ModelDescriptor;
 use Sabatier\Service\MCP\Schema\RelationshipSchema;
 use function Sabatier\Foundation\fatal_error;
+use function Sabatier\Foundation\human_readable_value;
 use const Sabatier\CoreData\ManagedObjectObjectIDKey;
 
 /**
@@ -75,8 +76,13 @@ abstract class AbstractTool
      */
     protected function validatePredicateKeyPaths(string $entityName, string $format, ArrayClass $arguments): void
     {
-        preg_match_all("/%[Ksdf]/", $format, $matches);
-        foreach ($matches[0] as $index => $placeholder) {
+        preg_match_all("/%[K@sdf]/", $format, $matches);
+        $placeholders = new ArrayClass($matches[0]);
+        $arguments->count === $placeholders->count ?: $arguments
+                |> human_readable_value(...)
+                |> (fn(string $x): string => sprintf("Invalid predicate: %d argument(s) provided but %d placeholder(s) found in \"%s\". Each placeholder (%s) requires exactly one argument in the same position.\n%s", $arguments->count, $placeholders->count, $format, $placeholders->join(", "), $x))
+                |> fatal_error(...);
+        foreach ($placeholders as $index => $placeholder) {
             if ($placeholder !== "%K") {
                 continue;
             }

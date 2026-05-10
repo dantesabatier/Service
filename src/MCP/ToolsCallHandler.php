@@ -7,6 +7,7 @@ namespace Sabatier\Service\MCP;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\MCP\Response\ToolCallResult;
 use Sabatier\Service\MCP\Tools\ToolRegistry;
+use Throwable;
 use const Sabatier\Foundation\LocalizedFailureReasonErrorKey;
 
 /** @internal */
@@ -18,11 +19,15 @@ final readonly class ToolsCallHandler
 
     public function handle(RPCMessage $message): ToolCallResult|JSONRPCError
     {
-        if (!($name = $message->params["name"])) {
-            return new JSONRPCError(JSONRPCErrorDomain, JSONRPCErrorCodeInvalidParams, new Dictionary([LocalizedFailureReasonErrorKey => "Name is required"]));
+        try {
+            if (!($name = $message->params["name"])) {
+                return new JSONRPCError(JSONRPCErrorDomain, JSONRPCErrorCodeInvalidParams, new Dictionary([LocalizedFailureReasonErrorKey => "Name is required"]));
+            }
+            /** @var Dictionary<mixed> $arguments */
+            $arguments = $message->params["arguments"] ?? new Dictionary();
+            return new ToolCallResult($this->registry->call($name, $arguments));
+        } catch (Throwable $throwable) {
+            return new JSONRPCError(JSONRPCErrorDomain, JSONRPCErrorCodeInternalError, new Dictionary([LocalizedFailureReasonErrorKey => $throwable->getMessage()]));
         }
-        /** @var Dictionary<mixed> $arguments */
-        $arguments = $message->params["arguments"] ?? new Dictionary();
-        return new ToolCallResult($this->registry->call($name, $arguments));
     }
 }

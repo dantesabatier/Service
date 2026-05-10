@@ -39,7 +39,7 @@ final class AggregateTool extends AbstractTool
         get => [
             "type" => "object",
             "properties" => [
-                "entity" => ["type" => "string"],
+                "entity" => ["type" => "string", "description" => "Always required. Entity name from the data model — call describe_model first if unsure."],
                 "function" => ["type" => "string", "enum" => self::allowedFunctions],
                 "property" => ["type" => "string"],
                 "predicate" => ["type" => "string"],
@@ -66,8 +66,8 @@ final class AggregateTool extends AbstractTool
         in_array($function, self::allowedFunctions, true) ?: fatal_error("Invalid function");
         $this->validateKeyPath($entity, $property);
         $attribute = $this->entity($entity)->attributes[$property] ?? null;
-        if ($attribute instanceof AttributeSchema) {
-            in_array($attribute->type, ["integer", "float", "enum"], true) ?: fatal_error("Property must be numeric");
+        if ($attribute instanceof AttributeSchema && in_array($function, ["sum", "average"], true)) {
+            in_array($attribute->type, ["integer", "float", "enum"], true) ?: fatal_error("Property must be numeric type \"$attribute->type\" given");
         }
         $request = $this->fetchRequest($entity);
         $predicate = $arguments["predicate"];

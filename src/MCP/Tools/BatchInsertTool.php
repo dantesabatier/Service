@@ -30,7 +30,7 @@ final class BatchInsertTool extends AbstractTool
     public array $inputSchema {
         get => [
             "type" => "object",
-            "properties" => ["entity" => ["type" => "string"], "objects" => ["type" => "array"]],
+            "properties" => ["entity" => ["type" => "string", "description" => "Always required. Entity name from the data model — call describe_model first if unsure."], "objects" => ["type" => "array"]],
             "required" => ["entity", "objects"],
         ];
     }

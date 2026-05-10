@@ -7,6 +7,7 @@ namespace Sabatier\Service\MCP\Tools;
 use Exception;
 use InvalidArgumentException;
 use Override;
+use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
@@ -30,7 +31,7 @@ final class FetchTool extends AbstractTool
         get => [
             "type" => "object",
             "properties" => [
-                "entity" => ["type" => "string"],
+                "entity" => ["type" => "string", "description" => "Always required. Entity name from the data model — call describe_model first if unsure."],
                 "predicate" => ["type" => "string"],
                 "arguments" => ["type" => "array"],
                 "properties" => ["type" => "array"],
@@ -92,7 +93,7 @@ final class FetchTool extends AbstractTool
         }
     }
 
-    private function validateSort(string $entity, mixed $sort): void
+    private function validateSort(string $entity, ?ArrayClass $sort): void
     {
         foreach (($sort ?? []) as $item) {
             $key = (string)$item["key"];
@@ -103,12 +104,16 @@ final class FetchTool extends AbstractTool
         }
     }
 
-    private function applySort(mixed $request, mixed $sort): void
+    /**
+     * @param FetchRequest $request
+     * @param ArrayClass<Dictionary<mixed>>|null $sort
+     */
+    private function applySort(FetchRequest $request, ?ArrayClass $sort): void
     {
         if (!$sort) {
             return;
         }
-        $request->sortDescriptors = $sort->filter(fn(Dictionary $item): bool => (string)$item["key"] !== "")->map(fn(Dictionary $item) => new SortDescriptor($item["key"], $item["ascending"] ?? true));
+        $request->sortDescriptors = $sort->compactMap(fn(Dictionary $item): ?SortDescriptor => ($key = $item["key"]) ? new SortDescriptor($key, (bool)($item["ascending"] ?? true)) : null);
     }
 
     private function serializeResults(ArrayClass $results, mixed $properties, mixed $relationships): array

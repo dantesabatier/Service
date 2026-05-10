@@ -27,7 +27,7 @@ final class CountTool extends AbstractTool
         get => [
             "type" => "object",
             "properties" => [
-                "entity" => ["type" => "string"],
+                "entity" => ["type" => "string", "description" => "Always required. Entity name from the data model — call describe_model first if unsure."],
                 "predicate" => ["type" => "string"],
                 "arguments" => ["type" => "array"],
             ],

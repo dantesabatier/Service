@@ -28,7 +28,7 @@ final class UpdateTool extends AbstractTool
     public array $inputSchema {
         get => [
             "type" => "object",
-            "properties" => ["entity" => ["type" => "string"], "objectID" => ["type" => "integer"], "values" => ["type" => "object"]],
+            "properties" => ["entity" => ["type" => "string", "description" => "Always required. Entity name from the data model — call describe_model first if unsure."], "objectID" => ["type" => "integer"], "values" => ["type" => "object"]],
             "required" => ["entity", "objectID", "values"],
         ];
     }

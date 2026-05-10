@@ -40,9 +40,9 @@ final class GroupByTool extends AbstractTool
         get => [
             "type" => "object",
             "properties" => [
-                "entity" => ["type" => "string"],
-                "group_by" => ["type" => "array"],
-                "aggregates" => ["type" => "array"],
+                "entity" => ["type" => "string", "description" => "Always required. Entity name from the data model — call describe_model first if unsure."],
+                "group_by" => ["type" => "array", "description" => "Property key paths to group by. Only plain property names or dot-notation key paths (e.g. \"status\", \"customer.name\"). No transforms or expressions."],
+                "aggregates" => ["type" => "array", "description" => "Aggregate functions to compute per group. Each item: {\"function\": \"sum|average|min|max|count\", \"property\": \"keyPath\", \"as\": \"resultName\"}."],
                 "predicate" => ["type" => "string"],
                 "arguments" => ["type" => "array"],
                 "having_predicate" => ["type" => "string"],
@@ -77,8 +77,10 @@ final class GroupByTool extends AbstractTool
         if ($having = $arguments["having_predicate"]) {
             $request->havingPredicate = $this->buildPredicate($having, $arguments["having_arguments"] ?? new ArrayClass());
         }
-        if ($sort = $arguments["sort"]) {
-            $request->sortDescriptors = $sort->map(fn(Dictionary $item) => new SortDescriptor($item["key"], $item["ascending"] ?? true));
+        /** @var ArrayClass<Dictionary<mixed>>|null $sort */
+        $sort = $arguments["sort"];
+        if ($sort instanceof ArrayClass) {
+            $request->sortDescriptors = $sort->compactMap(fn(Dictionary $item): ?SortDescriptor => ($key = $item["key"]) ? new SortDescriptor($key, (bool)($item["ascending"] ?? true)) : null);
         }
         $request->fetchLimit = (int)($arguments["limit"] ?? 100);
         $request->fetchOffset = (int)($arguments["offset"] ?? 0);

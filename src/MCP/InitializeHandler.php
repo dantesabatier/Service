@@ -28,10 +28,11 @@ final class InitializeHandler
                 return $this->instructions;
             }
             $filename = ProcessInfo::processInfo()->environment[MCPInstructionsFilenameKey] ?? MCPInstructionsFilenameDefault;
-            if (!($url = Bundle::main()->url($filename, localization: Locale::getPrimaryLanguage(Locale::getDefault())))) {
-                return $this->instructions = "";
+            $appInstructions = null;
+            if ($url = Bundle::main()->url($filename, localization: Locale::getPrimaryLanguage(Locale::getDefault()))) {
+                $appInstructions = FileManager::default()->contents($url->path);
             }
-            return $this->instructions = FileManager::default()->contents($url->path) ?? "";
+            return $this->instructions = (new BaseInstructionsBuilder())->build($appInstructions);
         }
     }
 

@@ -11,6 +11,7 @@ use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Foundation\Networking\URLResponse;
 use Sabatier\Foundation\Networking\URLSession;
+use Sabatier\Foundation\Networking\URLSessionConfiguration;
 use Sabatier\Service\InternalServerErrorException;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
 

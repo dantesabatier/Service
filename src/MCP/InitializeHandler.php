@@ -32,7 +32,7 @@ final class InitializeHandler
             if ($url = Bundle::main()->url($filename, localization: Locale::getPrimaryLanguage(Locale::getDefault()))) {
                 $appInstructions = FileManager::default()->contents($url->path);
             }
-            return $this->instructions = (new BaseInstructionsBuilder())->build($appInstructions);
+            return $this->instructions = new BaseInstructionsBuilder()->build($appInstructions);
         }
     }
 

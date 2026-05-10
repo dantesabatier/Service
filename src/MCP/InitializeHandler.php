@@ -27,8 +27,8 @@ final class InitializeHandler
             if (isset($this->instructions)) {
                 return $this->instructions;
             }
-            $filename = ProcessInfo::processInfo()->environment[MCPInstructionsFilenameKey] ?? MCPInstructionsFilenameDefault;
             $appInstructions = null;
+            $filename = ProcessInfo::processInfo()->environment[MCPInstructionsFilenameKey] ?? MCPInstructionsFilenameDefault;
             if ($url = Bundle::main()->url($filename, localization: Locale::getPrimaryLanguage(Locale::getDefault()))) {
                 $appInstructions = FileManager::default()->contents($url->path);
             }

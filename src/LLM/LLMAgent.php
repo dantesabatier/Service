@@ -48,10 +48,10 @@ final readonly class LLMAgent
             if ($turn->isDone) {
                 break;
             }
-            foreach ($turn->toolCalls as $call) {
-                $result = $this->toolRegistry->call($call->name, $call->arguments);
+            foreach ($turn->toolCalls as $toolCall) {
+                $result = $this->toolRegistry->call($toolCall->name, $toolCall->arguments);
                 $text = $result->map(fn(ContentItem $item): string => $item->text)->join("\n");
-                $toolMsg = new LLMMessage(LLMMessageRole::tool, $text, toolCallId: $call->id);
+                $toolMsg = new LLMMessage(LLMMessageRole::tool, $text, toolCallId: $toolCall->id);
                 $history->append($toolMsg);
                 $newMessages->append($toolMsg);
             }

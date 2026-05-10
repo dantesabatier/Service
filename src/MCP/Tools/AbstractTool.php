@@ -48,7 +48,7 @@ abstract class AbstractTool
 
     protected function entity(string $name): EntitySchema
     {
-        return $this->descriptor->describe()->entities[$name] ?? fatal_error("Unknown entity: \"$name\"");
+        return $this->descriptor->schema->entities[$name] ?? fatal_error("Unknown entity: \"$name\"");
     }
 
     protected function validateKeyPath(string $entityName, string $keyPath): void

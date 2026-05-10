@@ -89,6 +89,11 @@ final class AnthropicClient extends LLMClient
             $toolCalls = $message->toolCalls;
             if ($toolCalls && !$toolCalls->isEmpty && $message->role === LLMMessageRole::assistant) {
                 $content = [];
+                if ($message->thinkingBlocks && !$message->thinkingBlocks->isEmpty) {
+                    foreach ($message->thinkingBlocks as $tb) {
+                        $content[] = $tb;
+                    }
+                }
                 if ($message->content !== null && $message->content !== "") {
                     $content[] = ["type" => "text", "text" => $message->content];
                 }
@@ -117,6 +122,15 @@ final class AnthropicClient extends LLMClient
                     $content[] = ["type" => "text", "text" => $message->content];
                 }
                 $result[] = ["role" => $message->role, "content" => $content];
+            } elseif ($message->thinkingBlocks && !$message->thinkingBlocks->isEmpty && $message->role === LLMMessageRole::assistant) {
+                $content = [];
+                foreach ($message->thinkingBlocks as $tb) {
+                    $content[] = $tb;
+                }
+                if ($message->content !== null && $message->content !== "") {
+                    $content[] = ["type" => "text", "text" => $message->content];
+                }
+                $result[] = ["role" => "assistant", "content" => $content];
             } else {
                 $result[] = ["role" => $message->role, "content" => $message->content ?? ""];
             }
@@ -155,12 +169,15 @@ final class AnthropicClient extends LLMClient
         $text = null;
         /** @var ArrayClass<LLMToolCall> $toolCalls */
         $toolCalls = new ArrayClass();
+        /** @var ArrayClass<array{type: string, thinking: string, signature: string}> $thinkingBlocks */
+        $thinkingBlocks = new ArrayClass();
         /** @var ArrayClass<Dictionary<mixed>> $content */
         $content = $body["content"] ?? new ArrayClass();
         foreach ($content as $block) {
             match ($block["type"]) {
                 "text" => $text = $block["text"],
                 "tool_use" => $toolCalls->append(new LLMToolCall($block["id"] ?? "", $block["name"] ?? "", $block["input"] ?? new Dictionary())),
+                "thinking" => $thinkingBlocks->append(["type" => "thinking", "thinking" => (string)($block["thinking"] ?? ""), "signature" => (string)($block["signature"] ?? "")]),
                 default => null,
             };
         }
@@ -170,6 +187,6 @@ final class AnthropicClient extends LLMClient
         $inputTokens = (int)($usage["input_tokens"] ?? 0);
         /** @var int<0, max> $outputTokens */
         $outputTokens = (int)($usage["output_tokens"] ?? 0);
-        return new LLMTurn($text, $toolCalls, $inputTokens, $outputTokens);
+        return new LLMTurn($text, $toolCalls, $inputTokens, $outputTokens, $thinkingBlocks->isEmpty ? null : $thinkingBlocks);
     }
 }

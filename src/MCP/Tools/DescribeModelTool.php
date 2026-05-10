@@ -34,6 +34,6 @@ final class DescribeModelTool extends AbstractTool
     #[Override]
     public function execute(Dictionary $arguments): ArrayClass
     {
-        return $this->jsonResult($this->descriptor->describe());
+        return $this->jsonResult($this->descriptor->schema);
     }
 }

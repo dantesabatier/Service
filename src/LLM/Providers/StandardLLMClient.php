@@ -97,16 +97,24 @@ final class StandardLLMClient extends LLMClient
                         ],
                     ];
                 }
-                $result[] = [
+                $entry = [
                     "role" => "assistant",
                     "content" => $message->content,
                     "tool_calls" => $calls,
                 ];
+                if ($message->reasoningContent !== null) {
+                    $entry["reasoning_content"] = $message->reasoningContent;
+                }
+                $result[] = $entry;
             } else {
-                $result[] = [
+                $entry = [
                     "role" => $message->role,
                     "content" => $message->content ?? "",
                 ];
+                if ($message->reasoningContent !== null && $message->role === LLMMessageRole::assistant) {
+                    $entry["reasoning_content"] = $message->reasoningContent;
+                }
+                $result[] = $entry;
             }
         }
         return $result;
@@ -161,6 +169,7 @@ final class StandardLLMClient extends LLMClient
         $error = $body["error"];
         !$error instanceof Dictionary ?: fatal_error($error["message"] ?? "Unknown API error");
         $text = null;
+        $reasoningContent = null;
         /** @var ArrayClass<LLMToolCall> $toolCalls */
         $toolCalls = new ArrayClass();
         /** @var ArrayClass<Dictionary<mixed>> $choices */
@@ -169,6 +178,8 @@ final class StandardLLMClient extends LLMClient
             /** @var Dictionary<mixed> $message */
             $message = $choice["message"] ?? new Dictionary();
             $text = $message["content"];
+            /** @var string|null $reasoningContent */
+            $reasoningContent = $message["reasoning_content"];
             /** @var ArrayClass<Dictionary<mixed>> $calls */
             $calls = $message["tool_calls"] ?? new ArrayClass();
             foreach ($calls as $tc) {
@@ -187,6 +198,6 @@ final class StandardLLMClient extends LLMClient
         $inputTokens = (int)($usage["input_tokens"] ?? 0);
         /** @var int<0, max> $outputTokens */
         $outputTokens = (int)($usage["output_tokens"] ?? 0);
-        return new LLMTurn($text, $toolCalls, $inputTokens, $outputTokens);
+        return new LLMTurn($text, $toolCalls, $inputTokens, $outputTokens, reasoningContent: $reasoningContent);
     }
 }

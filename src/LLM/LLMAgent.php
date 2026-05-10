@@ -42,7 +42,7 @@ final readonly class LLMAgent
             $turn = $this->client->complete($history, $this->toolRegistry->list, $systemPrompt);
             $totalInputTokens += $turn->inputTokens;
             $totalOutputTokens += $turn->outputTokens;
-            $assistantMsg = new LLMMessage(LLMMessageRole::assistant, $turn->text, $turn->toolCalls, outputTokens: $turn->outputTokens);
+            $assistantMsg = new LLMMessage(LLMMessageRole::assistant, $turn->text, $turn->toolCalls, outputTokens: $turn->outputTokens, thinkingBlocks: $turn->thinkingBlocks, reasoningContent: $turn->reasoningContent);
             $history->append($assistantMsg);
             $newMessages->append($assistantMsg);
             if ($turn->isDone) {

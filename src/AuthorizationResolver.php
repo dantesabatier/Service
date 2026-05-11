@@ -43,7 +43,7 @@ final class AuthorizationResolver
      * @throws Exception
      */
     #[NoDiscard]
-    public function resolveAll(Authorizable $authorizable, ManagedObjectContext $context): ArrayClass
+    public function resolve(Authorizable $authorizable, ManagedObjectContext $context): ArrayClass
     {
         /** @var FetchRequest<Authorization> $fetchRequest */
         $fetchRequest = $this->authorizationClass::fetchRequest();

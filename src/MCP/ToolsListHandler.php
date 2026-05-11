@@ -14,7 +14,7 @@ final readonly class ToolsListHandler
     {
     }
 
-    public function handle(): ToolsListResult
+    public function handle(/** @noinspection PhpUnusedParameterInspection */ RPCMessage $message): ToolsListResult
     {
         return new ToolsListResult($this->registry->list);
     }

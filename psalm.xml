@@ -39,8 +39,19 @@
         <InvalidReturnType>
             <errorLevel type="suppress">
                 <file name="src/InterfaceImplementorResolver.php"/>
+                <file name="src/MCP/ToolResolver.php"/>
             </errorLevel>
         </InvalidReturnType>
+        <InvalidReturnStatement>
+            <errorLevel type="suppress">
+                <file name="src/MCP/ToolResolver.php"/>
+            </errorLevel>
+        </InvalidReturnStatement>
+        <ArgumentTypeCoercion>
+            <errorLevel type="suppress">
+                <file name="src/MCP/ToolResolver.php"/>
+            </errorLevel>
+        </ArgumentTypeCoercion>
         <RedundantCondition>
             <errorLevel type="suppress">
                 <file name="src/AuthorizationService.php"/>

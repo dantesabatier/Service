@@ -36,7 +36,7 @@ final class InitializeHandler
         }
     }
 
-    public function handle(): InitializeResult
+    public function handle(/** @noinspection PhpUnusedParameterInspection */ RPCMessage $message): InitializeResult
     {
         $environment = ProcessInfo::processInfo()->environment;
         return new InitializeResult(new ServerCapabilities(new ToolsCapability(false)), $this->instructions, new ServerInfo($environment[MCPServerNameKey] ?? MCPServerNameDefault, $environment[MCPServerVersionKey] ?? MCPServerVersionDefault));

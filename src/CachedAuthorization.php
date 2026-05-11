@@ -11,8 +11,8 @@ namespace Sabatier\Service;
  * as the serialized form. Stores only the three scalars needed to evaluate authorization,
  * decoupling the cache from the `ManagedObject` that originally provided the data.
  *
- * @see AuthorizationCache
  * @see Authorization
+ * @see AuthorizationService
  */
 final readonly class CachedAuthorization implements Authorization
 {

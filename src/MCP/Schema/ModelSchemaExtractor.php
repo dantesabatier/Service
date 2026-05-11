@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Sabatier\Service\MCP\Schema;
 
 use Sabatier\CoreData\ManagedObjectContext;
-use Sabatier\CoreData\ManagedObjectModel;
 use Sabatier\Foundation\Dictionary;
 use function Sabatier\Foundation\fatal_error;
 use const Sabatier\CoreData\ManagedObjectEntityNameKey;

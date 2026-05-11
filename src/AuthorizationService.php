@@ -71,7 +71,7 @@ final readonly class AuthorizationService
             $this->inRequestCache->setAuthorizableAuthorizations($entity, $authorizations);
         }
         if (!$authorizations) {
-            $authorizations = $this->resolver->resolve($entity, $resource, $action, $context);
+            $authorizations = $this->resolver->resolveAll($entity, $context)->map(fn(Authorization $authorization): CachedAuthorization => new CachedAuthorization($authorization->name, $authorization->type, $authorization->scope));
             $this->inRequestCache->setAuthorizableAuthorizations($entity, $authorizations);
             $this->persistentCache?->setAuthorizableAuthorizations($entity, $authorizations);
         }

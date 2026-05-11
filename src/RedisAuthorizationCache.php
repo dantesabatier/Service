@@ -49,7 +49,7 @@ final readonly class RedisAuthorizationCache implements AuthorizationCache
     #[Override]
     public function setAuthorizableAuthorizations(Authorizable $authorizable, ArrayClass $authorizations): void
     {
-        $this->redis->setex("auth:u:$authorizable->username", $this->ttl, serialize($authorizations));
+        $this->redis->setex("auth:u:$authorizable->username", $this->ttl, serialize($authorizations->map(fn(Authorization $authorization): CachedAuthorization => new CachedAuthorization($authorization->name, $authorization->type, $authorization->scope))));
     }
 
     #[Override]

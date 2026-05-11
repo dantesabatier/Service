@@ -45,7 +45,7 @@ final readonly class APCuAuthorizationCache implements AuthorizationCache
     #[Override]
     public function setAuthorizableAuthorizations(Authorizable $authorizable, ArrayClass $authorizations): void
     {
-        apcu_store("auth:u:$authorizable->username", serialize($authorizations), $this->ttl);
+        apcu_store("auth:u:$authorizable->username", serialize($authorizations->map(fn(Authorization $authorization): CachedAuthorization => new CachedAuthorization($authorization->name, $authorization->type, $authorization->scope))), $this->ttl);
     }
 
     #[Override]

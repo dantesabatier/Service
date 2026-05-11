@@ -10,13 +10,13 @@
 ## Code quality commands
 
 ```bash
-vendor/bin/phpstan analyse
-vendor/bin/psalm
-vendor/bin/php-cs-fixer fix --dry-run   # check
-vendor/bin/php-cs-fixer fix             # apply
-vendor/bin/rector --dry-run             # check
-vendor/bin/rector                       # apply
-vendor/bin/phpcs src/
+phpstan analyse
+psalm
+php-cs-fixer fix --dry-run   # check
+php-cs-fixer fix             # apply
+rector --dry-run             # check
+rector                       # apply
+phpcs src/
 ```
 
 ## Rector constraints

@@ -25,8 +25,7 @@ final readonly class ModelSchemaExtractor
 
     public function extract(): Dictionary
     {
-        /** @var ManagedObjectModel $model */
-        $model = $this->context->persistentStoreCoordinator?->managedObjectModel ?? fatal_error('ManagedObjectContext does not have a persistent store coordinator or model');
+        $model = $this->context->persistentStoreCoordinator?->managedObjectModel ?? fatal_error("ManagedObjectContext does not have a persistent store coordinator or model");
         /** @var Dictionary<EntitySchema> $entities */
         $entities = new Dictionary();
         foreach ($model->entitiesByName as $name => $entity) {

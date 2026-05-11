@@ -79,14 +79,16 @@ class Application extends Responder
     private AuthorizationResolver $authorizationResolver {
         get => $this->authorizationResolver ??= new AuthorizationResolver($this->persistentContainer->managedObjectModel);
     }
-    /** @var AuthorizationCache The authorization cache for storing authorization data. */
+    /** @var AuthorizationCache The in-request authorization cache for storing authorization data. */
     public AuthorizationCache $authorizationCache {
         get => $this->authorizationCache ??= new InMemoryAuthorizationCache();
     }
+    /** @var AuthorizationCache|null An optional cross-request authorization cache (e.g., Redis, APCu, or Memcached). Null disables persistent caching. Set this in the application delegate to reduce database round-trips for repeat requests by the same user. */
+    public ?AuthorizationCache $authorizationPersistentCache = null;
     /** @var AuthorizationService The authorization service for managing user authorization. */
     #[Override]
     public AuthorizationService $authorizationService {
-        get => $this->authorizationService ??= new AuthorizationService($this->authorizationResolver, $this->authorizationCache);
+        get => $this->authorizationService ??= new AuthorizationService($this->authorizationResolver, $this->authorizationCache, $this->authorizationPersistentCache);
     }
     /** @var AuthenticationManager The authentication manager for handling authentication processes. */
     private(set) AuthenticationManager $authenticationManager {

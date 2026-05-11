@@ -38,6 +38,17 @@ final readonly class AuthorizationService
     }
 
     /**
+     * Invalidates the cached authorizations for a given authorizable entity across all cache layers.
+     *
+     * @param Authorizable $authorizable The authorizable entity whose cached authorizations are to be invalidated.
+     */
+    public function invalidateAuthorizable(Authorizable $authorizable): void
+    {
+        $this->inRequestCache->invalidateAuthorizable($authorizable);
+        $this->persistentCache?->invalidateAuthorizable($authorizable);
+    }
+
+    /**
      * Determines if the given entity is authorized to perform a specific action on a resource within the provided context.
      *
      * @param Authorizable $entity The entity requesting authorization.

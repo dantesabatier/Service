@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Sabatier\Service;
 
 use Memcached;
@@ -40,11 +42,16 @@ final readonly class MemcachedRateLimitStore implements RateLimitStore
     public function increment(string $key, int $windowSeconds): int
     {
         if ($this->memcached->add($key, 1, $windowSeconds)) {
-            $this->memcached->add("$key:reset", time() + $windowSeconds, $windowSeconds);
+            $this->memcached->set("$key:reset", time() + $windowSeconds, $windowSeconds);
             return 1;
         }
         $count = $this->memcached->increment($key);
-        return $count !== false ? $count : 1;
+        if ($count === false) {
+            $this->memcached->set($key, 1, $windowSeconds);
+            $this->memcached->set("$key:reset", time() + $windowSeconds, $windowSeconds);
+            return 1;
+        }
+        return $count;
     }
 
     #[Override]

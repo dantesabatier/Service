@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Sabatier\Service;
 
 use Override;
@@ -21,12 +23,12 @@ final class APCuRateLimitStore implements RateLimitStore
     #[Override]
     public function increment(string $key, int $windowSeconds): int
     {
-        if (apcu_add($key, 1, $windowSeconds)) {
-            return 1;
-        }
-        /** @var int $count */
         $count = apcu_inc($key);
-        return $count;
+        if (is_int($count)) {
+            return $count;
+        }
+        apcu_add($key, 1, $windowSeconds);
+        return 1;
     }
 
     #[Override]

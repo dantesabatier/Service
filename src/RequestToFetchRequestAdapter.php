@@ -2,7 +2,6 @@
 
 namespace Sabatier\Service;
 
-use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\CompareOptions;
@@ -39,8 +38,8 @@ final class RequestToFetchRequestAdapter
             if ($serialization = $request->serialization) {
                 $fetchRequest->serialization = $serialization;
             }
-            if ($fetchRequest->entityName) {
-                $fetchRequest->entity = EntityDescription::entity($fetchRequest->entityName, $this->context);
+            if ($entityName = $fetchRequest->entityName) {
+                $fetchRequest->entity = $this->context->persistentStoreCoordinator?->managedObjectModel?->entitiesByName?->valueForKey($entityName);
             }
             return $fetchRequest;
         }

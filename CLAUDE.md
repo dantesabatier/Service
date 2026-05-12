@@ -75,6 +75,7 @@ Returns a JSON body with the history result. The result set is scoped by one of 
 | `afterTransaction` | int         | Transactions after this transaction number |
 | `afterToken`       | base64 JSON | Transactions after the given token         |
 | `resultType`       | int         | `PersistentHistoryResultType` raw value    |
+| `fetchRequest`     | base64 JSON | Filter by `PersistentHistoryTransaction` properties (e.g. `author`, `contextName`, `bundleID`) |
 
 #### DELETE — purge history
 
@@ -85,6 +86,7 @@ Removes history from the store. Responds with `204 No Content`. Scoped by one op
 | `beforeDate`        | date string | Purge transactions before this date        |
 | `beforeTransaction` | int         | Purge transactions before this number      |
 | `beforeToken`       | base64 JSON | Purge transactions before the given token  |
+| `fetchRequest`      | base64 JSON | Scope which transactions to purge by `PersistentHistoryTransaction` properties (e.g. `author`, `contextName`, `bundleID`) |
 
 Tokens are passed as base64-encoded JSON, decoded via `PersistentHistoryToken`. The adapter (`PersistentHistoryChangeRequestAdapter`) is `@internal` and translates request parameters into a `PersistentHistoryChangeRequest` before execution.
 

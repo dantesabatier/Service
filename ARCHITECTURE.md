@@ -97,6 +97,7 @@ The responder chain is an ordered linked list of `Responder` objects. The framew
 [custom responders from src/Responders/ and src/ViewControllers/]
     → Application
     → PersistentSpace
+    → PersistentHistoryResponder
     → ResourceManager
     → Preferences
     → Uploader
@@ -134,6 +135,8 @@ The effect is that routing is co-located with the handler code. Every `Responder
 ## 6. Built-in Responders
 
 These responders are always present in the chain, in this order of priority after custom responders:
+
+**`PersistentHistoryResponder`** exposes the Core Data persistent history log at `/history`. It accepts `GET` (fetch transactions) and `DELETE` (purge transactions). Both verbs accept an optional scoping parameter: fetch uses `afterDate`, `afterTransaction`, or `afterToken`; delete uses `beforeDate`, `beforeTransaction`, or `beforeToken`. Omitting the parameter targets the full history. `GET` returns a JSON payload; `DELETE` returns `204 No Content`. Tokens are passed as base64-encoded JSON. This responder requires persistent history tracking to be enabled via `PersistentHistoryTrackingKey` in `UserDefaults`; `Application` sets that option automatically when configured. It overrides `$response` directly because `GET` and `DELETE` produce fundamentally different response shapes (body vs. bodyless) that cannot be unified through the `$data` hook.
 
 **`ResourceManager`** serves static files. It delegates the decision to `StaticResourcePolicy`, which determines whether the URL maps to a physical file in a public directory. Cacheable resources (public directories, optional browser files like `favicon.ico` and `robots.txt`) get standard cache headers; everything else gets `no-cache`. Only `GET` and `HEAD` are accepted.
 
@@ -208,13 +211,13 @@ Every response passes through two sequential transformer pipelines managed by `R
 
 **Infrastructure pipeline** — five transformers that run unconditionally after the user pipeline on every response:
 
-| Transformer | Responsibility |
-|---|---|
-| `CacheHeaderTransformer` | Writes `ETag` and `Cache-Control` headers from `HTTPCachePolicy` |
-| `ConditionalGetTransformer` | Evaluates `If-None-Match` / `If-Modified-Since` and returns `304` when appropriate |
-| `RateLimitHeaderTransformer` | Appends `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` |
-| `SecurityHeadersTransformer` | Writes all security-related headers (CSP, HSTS, X-Frame-Options, etc.) |
-| `CORSResponseTransformer` | Writes `Access-Control-*` headers if the request origin is permitted |
+| Transformer                  | Responsibility                                                                     |
+|------------------------------|------------------------------------------------------------------------------------|
+| `CacheHeaderTransformer`     | Writes `ETag` and `Cache-Control` headers from `HTTPCachePolicy`                   |
+| `ConditionalGetTransformer`  | Evaluates `If-None-Match` / `If-Modified-Since` and returns `304` when appropriate |
+| `RateLimitHeaderTransformer` | Appends `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`          |
+| `SecurityHeadersTransformer` | Writes all security-related headers (CSP, HSTS, X-Frame-Options, etc.)             |
+| `CORSResponseTransformer`    | Writes `Access-Control-*` headers if the request origin is permitted               |
 
 `ResponseTransformerContext` is the shared object that carries the current request, all active policies, and the rate-limit state into every transformer. Transformers receive it at construction and read what they need from it.
 
@@ -330,12 +333,12 @@ Each responder narrows the global policy to its own capabilities: the effective 
 
 `SecurityHeadersPolicy` is another environment-driven value object. It holds values for six headers. Four have non-null defaults:
 
-| Header | Default |
-|---|---|
-| `X-Content-Type-Options` | `nosniff` |
-| `X-Frame-Options` | `DENY` |
-| `Referrer-Policy` | configurable default |
-| `Permissions-Policy` | configurable default |
+| Header                   | Default              |
+|--------------------------|----------------------|
+| `X-Content-Type-Options` | `nosniff`            |
+| `X-Frame-Options`        | `DENY`               |
+| `Referrer-Policy`        | configurable default |
+| `Permissions-Policy`     | configurable default |
 
 `Content-Security-Policy` and `Strict-Transport-Security` are `null` by default and must be configured explicitly — their values are application-specific. `SecurityHeadersTransformer` omits any header whose policy value is null, so partial configurations are valid.
 
@@ -360,13 +363,13 @@ Every request is parsed as a JSON-RPC 2.0 message. Notifications (messages witho
 
 Five methods are dispatched:
 
-| Method | Handler | Purpose |
-|---|---|---|
-| `initialize` | `InitializeHandler` | Returns server name, version, protocol version, capabilities, and instructions |
-| `tools/list` | `ToolsListHandler` | Returns the catalogue of available tools with their input schemas |
-| `tools/call` | `ToolsCallHandler` | Invokes a tool by name with supplied arguments |
-| `ping` | — | No-op; acknowledged without a result |
-| `notifications/initialized` | — | No-op |
+| Method                      | Handler             | Purpose                                                                        |
+|-----------------------------|---------------------|--------------------------------------------------------------------------------|
+| `initialize`                | `InitializeHandler` | Returns server name, version, protocol version, capabilities, and instructions |
+| `tools/list`                | `ToolsListHandler`  | Returns the catalogue of available tools with their input schemas              |
+| `tools/call`                | `ToolsCallHandler`  | Invokes a tool by name with supplied arguments                                 |
+| `ping`                      | —                   | No-op; acknowledged without a result                                           |
+| `notifications/initialized` | —                   | No-op                                                                          |
 
 ### Schema
 
@@ -386,19 +389,19 @@ Two files enrich the raw schema:
 
 The framework registers eleven tools automatically, all backed by the managed object context:
 
-| Tool | Operation | Notes |
-|---|---|---|
-| `describe_model` | Schema introspection | Should be called first; returns the full model schema |
-| `fetch` | Query with filters, sort, pagination, projection | Supports field and relationship projection; default limit 100 |
-| `count` | Count matching records | |
-| `aggregate` | Compute sum, average, min, max, count, median, mode, stddev | `median`, `mode`, `stddev` are computed in-memory; others push to the database |
-| `group_by` | GROUP BY with aggregates, HAVING, sort, pagination | Fully database-side |
-| `create` | Insert a single record | Returns the created object |
-| `update` | Update a single record by `objectID` | Saves only if there are actual changes |
-| `delete` | Delete a single record by `objectID` | |
-| `batch_insert` | Insert multiple records in one operation | Uses Core Data's `BatchInsertRequest`; returns inserted count |
-| `batch_update` | Update matching records without loading them | Uses `BatchUpdateRequest`; predicate is optional |
-| `batch_delete` | Delete matching records without loading them | Uses `BatchDeleteRequest`; **predicate is required** |
+| Tool             | Operation                                                   | Notes                                                                          |
+|------------------|-------------------------------------------------------------|--------------------------------------------------------------------------------|
+| `describe_model` | Schema introspection                                        | Should be called first; returns the full model schema                          |
+| `fetch`          | Query with filters, sort, pagination, projection            | Supports field and relationship projection; default limit 100                  |
+| `count`          | Count matching records                                      |                                                                                |
+| `aggregate`      | Compute sum, average, min, max, count, median, mode, stddev | `median`, `mode`, `stddev` are computed in-memory; others push to the database |
+| `group_by`       | GROUP BY with aggregates, HAVING, sort, pagination          | Fully database-side                                                            |
+| `create`         | Insert a single record                                      | Returns the created object                                                     |
+| `update`         | Update a single record by `objectID`                        | Saves only if there are actual changes                                         |
+| `delete`         | Delete a single record by `objectID`                        |                                                                                |
+| `batch_insert`   | Insert multiple records in one operation                    | Uses Core Data's `BatchInsertRequest`; returns inserted count                  |
+| `batch_update`   | Update matching records without loading them                | Uses `BatchUpdateRequest`; predicate is optional                               |
+| `batch_delete`   | Delete matching records without loading them                | Uses `BatchDeleteRequest`; **predicate is required**                           |
 
 Every tool validates all key paths and predicate placeholders against the in-memory schema before touching the database, so invalid field names produce a clear error message rather than a SQL error.
 
@@ -463,54 +466,54 @@ All environment keys are PHP constants defined in the framework's constants file
 
 ### Authentication and JWT
 
-| Key | Default | Description |
-|---|---|---|
-| `JWTPrivateKey` | — | Enables JWT mode when set. Value is the signing key (HMAC secret or RSA private key PEM). |
-| `JWTSignatureAlgorithmKey` | `hs256` | Signing algorithm. Values: `hs256`, `rs256`. |
-| `JWTValidityTimeIntervalKey` | 3600 | Token lifetime in seconds. |
+| Key                          | Default | Description                                                                               |
+|------------------------------|---------|-------------------------------------------------------------------------------------------|
+| `JWTPrivateKey`              | —       | Enables JWT mode when set. Value is the signing key (HMAC secret or RSA private key PEM). |
+| `JWTSignatureAlgorithmKey`   | `hs256` | Signing algorithm. Values: `hs256`, `rs256`.                                              |
+| `JWTValidityTimeIntervalKey` | 3600    | Token lifetime in seconds.                                                                |
 
 ### CORS
 
-| Key | Description |
-|---|---|
-| `CORSAllowedOriginsKey` | Comma-separated list of allowed origins, or `*`. |
-| `CORSAllowedMethodsKey` | Comma-separated list of allowed HTTP methods. |
-| `CORSAllowedHeadersKey` | Comma-separated list of allowed request headers. |
-| `CORSAllowCredentialsKey` | `true` / `false`. |
-| `CORSExposedHeadersKey` | Comma-separated list of headers the browser may read. |
+| Key                       | Description                                           |
+|---------------------------|-------------------------------------------------------|
+| `CORSAllowedOriginsKey`   | Comma-separated list of allowed origins, or `*`.      |
+| `CORSAllowedMethodsKey`   | Comma-separated list of allowed HTTP methods.         |
+| `CORSAllowedHeadersKey`   | Comma-separated list of allowed request headers.      |
+| `CORSAllowCredentialsKey` | `true` / `false`.                                     |
+| `CORSExposedHeadersKey`   | Comma-separated list of headers the browser may read. |
 
 ### Security Headers
 
-| Key | Default | Description |
-|---|---|---|
-| `SECURITY_X_CONTENT_TYPE_OPTIONS` | `nosniff` | |
-| `SECURITY_X_FRAME_OPTIONS` | `DENY` | |
-| `SECURITY_REFERRER_POLICY` | framework default | |
-| `SECURITY_PERMISSIONS_POLICY` | framework default | |
-| `SECURITY_CONTENT_SECURITY_POLICY` | — | Not set by default; must be configured. |
-| `SECURITY_STRICT_TRANSPORT_SECURITY` | — | Not set by default; must be configured. |
+| Key                                  | Default           | Description                             |
+|--------------------------------------|-------------------|-----------------------------------------|
+| `SECURITY_X_CONTENT_TYPE_OPTIONS`    | `nosniff`         |                                         |
+| `SECURITY_X_FRAME_OPTIONS`           | `DENY`            |                                         |
+| `SECURITY_REFERRER_POLICY`           | framework default |                                         |
+| `SECURITY_PERMISSIONS_POLICY`        | framework default |                                         |
+| `SECURITY_CONTENT_SECURITY_POLICY`   | —                 | Not set by default; must be configured. |
+| `SECURITY_STRICT_TRANSPORT_SECURITY` | —                 | Not set by default; must be configured. |
 
 ### Rate Limiting
 
-| Key | Description |
-|---|---|
-| `RateLimitEnabledKey` | Enable or disable rate limiting. |
-| `RateLimitMaxRequestsIPKey` | Request quota for anonymous (IP-keyed) clients per window. |
-| `RateLimitMaxRequestsUserKey` | Request quota for authenticated users per window. |
-| `RateLimitWindowSecondsKey` | Window duration in seconds. |
+| Key                           | Description                                                |
+|-------------------------------|------------------------------------------------------------|
+| `RateLimitEnabledKey`         | Enable or disable rate limiting.                           |
+| `RateLimitMaxRequestsIPKey`   | Request quota for anonymous (IP-keyed) clients per window. |
+| `RateLimitMaxRequestsUserKey` | Request quota for authenticated users per window.          |
+| `RateLimitWindowSecondsKey`   | Window duration in seconds.                                |
 
 ### MCP
 
-| Key | Default | Description |
-|---|---|---|
-| `MCPServerNameKey` | bundle name | Server name reported in `initialize`. |
-| `MCPServerVersionKey` | bundle version | Server version reported in `initialize`. |
-| `MCPInstructionsFilenameKey` | `mcp_instructions.txt` | Localised instructions file for the LLM. |
-| `MCPVocabularyFilenameKey` | `vocabulary.json` | Localised schema vocabulary file. |
-| `MCPPredicateExamplesFilenameKey` | `predicate_examples.json` | Localised predicate examples file. |
+| Key                               | Default                   | Description                              |
+|-----------------------------------|---------------------------|------------------------------------------|
+| `MCPServerNameKey`                | bundle name               | Server name reported in `initialize`.    |
+| `MCPServerVersionKey`             | bundle version            | Server version reported in `initialize`. |
+| `MCPInstructionsFilenameKey`      | `mcp_instructions.txt`    | Localised instructions file for the LLM. |
+| `MCPVocabularyFilenameKey`        | `vocabulary.json`         | Localised schema vocabulary file.        |
+| `MCPPredicateExamplesFilenameKey` | `predicate_examples.json` | Localised predicate examples file.       |
 
 ### Application
 
-| Key | Description |
-|---|---|
+| Key                         | Description                                             |
+|-----------------------------|---------------------------------------------------------|
 | `ApplicationEnvironmentKey` | Set to `development` to enable verbose error responses. |

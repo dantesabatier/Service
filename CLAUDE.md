@@ -57,6 +57,37 @@ Do **not** create a custom responder for an entity just to expose basic CRUD —
 
 For `PATCH` and `DELETE`, the request body must include `objectID` (the `ManagedObjectObjectIDKey` constant). For `GET`, query parameters become equality predicates; or pass a full `FetchRequest` as a base64-encoded JSON via `?fetchRequest=`.
 
+### PersistentHistoryResponder
+
+`PersistentHistoryResponder` is a built-in responder registered at `/history`. It exposes the Core Data persistent history API over HTTP and is always active — no custom responder needed.
+
+It is only meaningful when persistent history tracking is enabled for the store. That option is controlled by `PersistentHistoryTrackingKey` in `UserDefaults` and applied automatically by `Application` when configuring `PersistentStoreDescriptions`.
+
+**Allowed methods:** `GET` and `DELETE`.
+
+#### GET — fetch history
+
+Returns a JSON body with the history result. The result set is scoped by one of three optional query parameters; if none is provided, all history is returned.
+
+| Parameter          | Type        | Description                                |
+|--------------------|-------------|--------------------------------------------|
+| `afterDate`        | date string | Transactions after this date               |
+| `afterTransaction` | int         | Transactions after this transaction number |
+| `afterToken`       | base64 JSON | Transactions after the given token         |
+| `resultType`       | int         | `PersistentHistoryResultType` raw value    |
+
+#### DELETE — purge history
+
+Removes history from the store. Responds with `204 No Content`. Scoped by one optional parameter; if none is provided, all history is purged.
+
+| Parameter           | Type        | Description                                |
+|---------------------|-------------|--------------------------------------------|
+| `beforeDate`        | date string | Purge transactions before this date        |
+| `beforeTransaction` | int         | Purge transactions before this number      |
+| `beforeToken`       | base64 JSON | Purge transactions before the given token  |
+
+Tokens are passed as base64-encoded JSON, decoded via `PersistentHistoryToken`. The adapter (`PersistentHistoryChangeRequestAdapter`) is `@internal` and translates request parameters into a `PersistentHistoryChangeRequest` before execution.
+
 ### Response Pipeline
 
 Every response goes through two pipelines in sequence:

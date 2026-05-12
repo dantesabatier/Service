@@ -12,7 +12,17 @@ use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 
-/** @internal */
+/**
+ * Translates HTTP request parameters into a {@code PersistentHistoryChangeRequest}.
+ *
+ * GET scoping parameters: {@code afterDate} (date string), {@code afterTransaction}
+ * (int), {@code afterToken} (base64-encoded JSON), {@code resultType} (int raw value
+ * of {@code PersistentHistoryResultType}). DELETE scoping parameters:
+ * {@code beforeDate}, {@code beforeTransaction}, {@code beforeToken}. All parameters
+ * are optional; omitting them targets the full history.
+ *
+ * @internal
+ */
 final class PersistentHistoryChangeRequestAdapter
 {
     public PersistentHistoryChangeRequest $changeRequest {

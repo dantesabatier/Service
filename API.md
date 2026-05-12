@@ -274,6 +274,66 @@ Response: the raw file content with the appropriate `Content-Type` and `Content-
 
 ---
 
+## Persistent History
+
+`PersistentHistoryResponder` is available at `/history` when the application has persistent history tracking enabled (`PersistentHistoryTrackingKey` set in `UserDefaults`). It lets clients fetch or purge the Core Data change log.
+
+### Fetch history (GET)
+
+```
+GET /history
+Authorization: Bearer <jwt>
+```
+
+Returns a JSON payload of history transactions. Without query parameters, all history is returned. Scope the result with one of:
+
+| Parameter          | Type        | Description                                           |
+|--------------------|-------------|-------------------------------------------------------|
+| `afterDate`        | date string | Transactions recorded after this date                 |
+| `afterTransaction` | int         | Transactions after this transaction number            |
+| `afterToken`       | base64 JSON | Transactions after the given persistent history token |
+| `resultType`       | int         | Raw value of `PersistentHistoryResultType`            |
+
+**Example — fetch history since a date:**
+
+```
+GET /history?afterDate=2025-01-01T00:00:00Z
+Authorization: Bearer <jwt>
+```
+
+**Example — fetch history after a token:**
+
+```
+GET /history?afterToken=<base64-encoded-token-json>
+Authorization: Bearer <jwt>
+```
+
+Tokens are base64-encoded JSON representations of a `PersistentHistoryToken`. Encode the token object as JSON, then base64-encode the result before appending it to the URL.
+
+### Purge history (DELETE)
+
+```
+DELETE /history
+Authorization: Bearer <jwt>
+```
+
+Removes history records from the store. Returns `204 No Content`. Without query parameters, all history is purged. Scope the deletion with one of:
+
+| Parameter           | Type        | Description                                        |
+|---------------------|-------------|----------------------------------------------------|
+| `beforeDate`        | date string | Purge transactions recorded before this date       |
+| `beforeTransaction` | int         | Purge transactions before this transaction number  |
+| `beforeToken`       | base64 JSON | Purge transactions before the given token          |
+
+**Example — purge all history before a specific transaction:**
+
+```
+DELETE /history?beforeTransaction=42
+Authorization: Bearer <jwt>
+```
+
+---
+
 ## Headers reference
 
 ### Request headers

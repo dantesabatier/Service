@@ -14,6 +14,20 @@ use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Set;
 
+/**
+ * Built-in responder for the Core Data persistent history API at {@code /history}.
+ *
+ * Handles GET (fetch history transactions) and DELETE (purge history). Overrides
+ * {@code $response} directly because the two verbs produce incompatible response
+ * shapes: GET returns a JSON body while DELETE returns 204 No Content with no body —
+ * too divergent to route through the standard {@code $data} + transformer chain.
+ *
+ * Requires persistent history tracking to be enabled via
+ * {@code PersistentHistoryTrackingKey} in UserDefaults; Application sets this option
+ * automatically on the store description when configured.
+ *
+ * @internal
+ */
 #[Endpoint("/history", [JSONTransformer::class])]
 final class PersistentHistoryResponder extends Responder
 {

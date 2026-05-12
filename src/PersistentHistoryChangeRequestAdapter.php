@@ -11,6 +11,7 @@ use Sabatier\CoreData\PersistentHistoryTransaction;
 use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
+use Sabatier\Foundation\Number;
 
 /**
  * Translates HTTP request parameters into a {@code PersistentHistoryChangeRequest}.
@@ -62,6 +63,6 @@ final class PersistentHistoryChangeRequestAdapter
 
     private function tokenFromParameter(string $raw): PersistentHistoryToken
     {
-        return new PersistentHistoryToken(Dictionary::dictionaryWithArray(json_decode(base64_decode($raw), true) ?? []));
+        return new PersistentHistoryToken(Dictionary::dictionaryWithArray(json_decode(base64_decode($raw), true) ?? [])->mapValues(fn(int|string $value): Number => new Number($value)));
     }
 }

@@ -13,7 +13,7 @@ final class JSONWebTokenEnabledEvaluator implements AuthenticationAccessEvaluato
     public function evaluate(AccessEvaluationContext $context): bool
     {
         $authentication = $context->authentication;
-        if ($authentication instanceof BearerAuthentication && ($payload = $authentication->token?->payload) && ($payload->isEnabled === true)) {
+        if ($authentication instanceof BearerAuthentication && ($authentication->token?->payload?->isEnabled === true)) {
             return true;
         }
         if (!($user = $authentication->authenticatedUser)) {

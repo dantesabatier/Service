@@ -129,7 +129,7 @@ final class FirstResponderResolver
 
     private function initialResponder(): ?Responder
     {
-        return $this->mergeResponderChains($this->customResponder(), $this->buildResponderChain(new ArrayClass([$this->defaultResponder, new PersistentSpace(), new ResourceManager(), new Preferences(), new Uploader(), new Downloader(), new MCPResponder(), new HomeController()])));
+        return $this->mergeResponderChains($this->customResponder(), $this->buildResponderChain(new ArrayClass([$this->defaultResponder, new PersistentSpace(), new PersistentHistoryResponder(), new ResourceManager(), new Preferences(), new Uploader(), new Downloader(), new MCPResponder(), new HomeController()])));
     }
 
     private function findFirstResponder(): Responder

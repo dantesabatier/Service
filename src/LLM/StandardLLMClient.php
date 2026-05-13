@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Sabatier\Service\LLM\Providers;
+namespace Sabatier\Service\LLM;
 
 use Override;
 use Sabatier\Foundation\ArrayClass;
@@ -10,11 +10,6 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Foundation\URL;
-use Sabatier\Service\LLM\LLMClient;
-use Sabatier\Service\LLM\LLMMessage;
-use Sabatier\Service\LLM\LLMMessageRole;
-use Sabatier\Service\LLM\LLMToolCall;
-use Sabatier\Service\LLM\LLMTurn;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
 use stdClass;
 use function Sabatier\Foundation\fatal_error;

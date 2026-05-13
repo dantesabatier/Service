@@ -18,3 +18,19 @@ const ApplicationEnvironmentTesting = "testing";
 const ServiceResponseCountKey = "count";
 /** @var string The URL query item name used to provide a base64-encoded JSON representation of a FetchRequest. */
 const ServiceFetchRequestKey = "fetchRequest";
+/** @var string The URL query parameter name used to scope persistent history requests to transactions after a given date. */
+const PersistentHistoryAfterDateKey = "afterDate";
+/** @var string The URL query parameter name used to scope persistent history requests to transactions after a given transaction number. */
+const PersistentHistoryAfterTransactionKey = "afterTransaction";
+/** @var string The URL query parameter name used to scope persistent history requests to transactions after a given token. */
+const PersistentHistoryAfterTokenKey = "afterToken";
+/** @var string The URL query parameter name used to specify the result type for a persistent history fetch request. */
+const PersistentHistoryResultTypeKey = "resultType";
+/** @var string The URL query parameter name used to scope persistent history delete requests to transactions before a given date. */
+const PersistentHistoryBeforeDateKey = "beforeDate";
+/** @var string The URL query parameter name used to scope persistent history delete requests to transactions before a given transaction number. */
+const PersistentHistoryBeforeTransactionKey = "beforeTransaction";
+/** @var string The URL query parameter name used to scope persistent history delete requests to transactions before a given token. */
+const PersistentHistoryBeforeTokenKey = "beforeToken";
+/** @var string The dictionary key used to identify a transaction number within a persistent history transaction. */
+const PersistentHistoryTransactionNumberKey = "transactionNumber";

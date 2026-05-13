@@ -18,7 +18,6 @@ final class PersistentHistoryResponder extends Responder
     protected ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::get, HTTPRequestMethod::delete]);
     }
-
     #[Override]
     public Response $response {
         get {

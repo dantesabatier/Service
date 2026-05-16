@@ -12,6 +12,9 @@ use Attribute;
  * Usage example:
  *
  * <code>
+ *  #[Readable]                                                    // any role
+ *  public string $name;
+ *
  *  #[Readable(["Admin", "Manager"], AuthorizationScope::all)]
  *  public float $discount;
  *

@@ -8,6 +8,7 @@ use JsonException;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
+use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Predicates\Predicate;
 use Sabatier\Service\MCP\Response\ContentItem;
@@ -162,16 +163,13 @@ abstract class AbstractTool
      */
     protected function resolveVariables(ArrayClass $params): ArrayClass
     {
-        $now = new \DateTime();
-        $isoYear = (int)$now->format('o');
-        $isoWeek = (int)$now->format('W');
-        $vars = new Dictionary([
-            '$WEEK_START' => (new \DateTime())->setISODate($isoYear, $isoWeek)->format('Y-m-d'),
-            '$WEEK_END' => (new \DateTime())->setISODate($isoYear, $isoWeek, 7)->format('Y-m-d'),
-            '$MONTH_START' => $now->format('Y-m-01'),
-            '$MONTH_END' => $now->format('Y-m-t'),
+        $dateMappings = new Dictionary([
+            "\$WEEK_START" => new Date(strtotime("monday this week")),
+            "\$WEEK_END" => new Date(strtotime("sunday this week")),
+            "\$MONTH_START" => new Date(strtotime("first day of this month")),
+            "\$MONTH_END" => new Date(strtotime("last day of this month")),
         ]);
-        $resolve = fn(mixed $v): mixed => is_string($v) && $vars[$v] !== null ? $vars[$v] : $v;
+        $resolve = fn(mixed $v): mixed => is_string($v) && $dateMappings[$v] !== null ? $dateMappings[$v] : $v;
         return $params->map(fn(mixed $value): mixed => $value instanceof ArrayClass ? $value->map($resolve) : $resolve($value));
     }
 

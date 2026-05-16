@@ -25,6 +25,6 @@ final readonly class FieldRule
      */
     public function allowsRoles(Set $userRoles): bool
     {
-        return !$this->roles->isDisjoint($userRoles);
+        return $this->roles->isEmpty || !$this->roles->isDisjoint($userRoles);
     }
 }

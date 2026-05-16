@@ -13,6 +13,7 @@ use Sabatier\CoreData\FetchRequestResultType;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Predicates\Expression;
+use Sabatier\Foundation\Set;
 use Sabatier\Foundation\SortDescriptor;
 use Sabatier\Service\MCP\Response\ContentItem;
 use function Sabatier\Foundation\fatal_error;
@@ -33,7 +34,7 @@ final class GroupByTool extends AbstractTool
     }
     #[Override]
     public string $description {
-        get => "Group rows and compute aggregates.";
+        get => "Group rows and compute aggregates. Call once per query — if rowCount is 0, data is absent; do not retry with different arguments or aliases.";
     }
     #[Override]
     public array $inputSchema {
@@ -70,12 +71,12 @@ final class GroupByTool extends AbstractTool
         $request->propertiesToGroupBy = $groupBy;
         $request->resultType = FetchRequestResultType::dictionaryResultType;
         if ($predicate = $arguments["predicate"]) {
-            $params = $arguments["arguments"] ?? new ArrayClass();
+            $params = $this->resolveVariables($arguments["arguments"] ?? new ArrayClass());
             $this->validatePredicateKeyPaths($entity, $predicate, $params);
             $request->predicate = $this->buildPredicate($predicate, $params);
         }
         if ($having = $arguments["having_predicate"]) {
-            $request->havingPredicate = $this->buildPredicate($having, $arguments["having_arguments"] ?? new ArrayClass());
+            $request->havingPredicate = $this->buildPredicate($having, $this->resolveVariables($arguments["having_arguments"] ?? new ArrayClass()));
         }
         /** @var ArrayClass<Dictionary<mixed>>|null $sort */
         $sort = $arguments["sort"];
@@ -86,7 +87,54 @@ final class GroupByTool extends AbstractTool
         $request->fetchOffset = (int)($arguments["offset"] ?? 0);
         /** @var ArrayClass<Dictionary> $rows */
         $rows = $this->context->fetch($request);
-        return $this->jsonResult(["count" => count($rows), "results" => $rows->map(fn(Dictionary $row): array => $row->jsonSerialize())->array]);
+        $groupByPaths = $arguments["group_by"];
+        $normalized = $rows->map(fn(Dictionary $row): Dictionary => $this->normalizeRow($row, $groupByPaths));
+        return $this->jsonResult(["rowCount" => count($rows), "summary" => $this->buildSummary((string)$entity, $arguments, count($rows)), "results" => $normalized]);
+    }
+
+    private function buildSummary(string $entityName, Dictionary $arguments, int $rowCount): string
+    {
+        /** @var ArrayClass<string> $groupByPaths */
+        $groupByPaths = $arguments["group_by"];
+        /** @var ArrayClass<Dictionary<mixed>> $aggregates */
+        $aggregates = $arguments["aggregates"];
+        $aggregateStr = $aggregates->map(fn(Dictionary $a): string => "{$a['function']}({$a['property']}) as {$a['as']}")->join(", ");
+        $parts = new ArrayClass(["Grouped $entityName by [{$groupByPaths->join(', ')}] computing [$aggregateStr]"]);
+        if ($predicate = $arguments["predicate"]) {
+            $parts->append("filter: $predicate");
+        }
+        $parts->append("$rowCount row(s) returned — result is final, do not retry");
+        return $parts->join(". ");
+    }
+
+    private function normalizeRow(Dictionary $row, ArrayClass $groupByPaths): Dictionary
+    {
+        // Exclude nested root segments (e.g. "seller") and literal dot-path keys (e.g. "seller.name")
+        // that CoreData may include, then re-add each path using its leaf segment as the key.
+        $pathSet = new Set($groupByPaths);
+        $rootSet = new Set($groupByPaths->map(fn(string $path): string => new ArrayClass(explode(".", $path))->first ?? $path));
+        $result = $row->filter(fn(mixed $value, string $key): bool => !$rootSet->containsElement($key) && !$pathSet->containsElement($key));
+        foreach ($groupByPaths as $path) {
+            $parts = new ArrayClass(explode(".", $path));
+            // CoreData may return nested objects, a literal dot-key, or already-flat keys.
+            $value = $this->resolveNestedValue($row, $parts) ?? $row[$path];
+            if ($value !== null) {
+                $result[(string)$parts->last] = $value;
+            }
+        }
+        return $result;
+    }
+
+    private function resolveNestedValue(Dictionary $data, ArrayClass $parts): mixed
+    {
+        $current = $data;
+        foreach ($parts as $part) {
+            if (!($current instanceof Dictionary)) {
+                return null;
+            }
+            $current = $current[$part] ?? $current[strtolower($part)];
+        }
+        return $current;
     }
 
     private function groupKeys(string $entity, iterable $keys): ArrayClass

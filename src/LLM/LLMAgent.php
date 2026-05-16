@@ -18,7 +18,7 @@ use Sabatier\Service\MCP\Tools\ToolRegistry;
  */
 final readonly class LLMAgent
 {
-    public function __construct(private LLMClient $client, private ToolRegistry $toolRegistry)
+    public function __construct(private LLMClient $client, private ToolRegistry $toolRegistry, private int $maxIterations = 25)
     {
     }
 
@@ -38,7 +38,10 @@ final readonly class LLMAgent
         $totalInputTokens = 0;
         /** @var int<0, max> $totalOutputTokens */
         $totalOutputTokens = 0;
-        while (true) {
+        /** @var array<string, string> $toolCallCache */
+        $toolCallCache = [];
+        $iterations = 0;
+        while ($iterations++ < $this->maxIterations) {
             $turn = $this->client->complete($history, $this->toolRegistry->list, $systemPrompt);
             $totalInputTokens += $turn->inputTokens;
             $totalOutputTokens += $turn->outputTokens;
@@ -49,8 +52,14 @@ final readonly class LLMAgent
                 break;
             }
             foreach ($turn->toolCalls as $toolCall) {
-                $result = $this->toolRegistry->call($toolCall->name, $toolCall->arguments);
-                $text = $result->map(fn(ContentItem $item): string => $item->text)->join("\n");
+                $cacheKey = md5($toolCall->name . json_encode($toolCall->arguments));
+                if (isset($toolCallCache[$cacheKey])) {
+                    $text = "You already called this tool with these exact arguments. Result: " . $toolCallCache[$cacheKey] . " Do not call it again.";
+                } else {
+                    $result = $this->toolRegistry->call($toolCall->name, $toolCall->arguments);
+                    $text = $result->map(fn(ContentItem $item): string => $item->text)->join("\n");
+                    $toolCallCache[$cacheKey] = $text;
+                }
                 $toolMsg = new LLMMessage(LLMMessageRole::tool, $text, toolCallId: $toolCall->id);
                 $history->append($toolMsg);
                 $newMessages->append($toolMsg);

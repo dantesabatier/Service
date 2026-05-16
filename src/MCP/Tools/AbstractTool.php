@@ -153,6 +153,28 @@ abstract class AbstractTool
         return $normalized;
     }
 
+    /**
+     * Resolves $WEEK_START, $WEEK_END, $MONTH_START, $MONTH_END in a predicate arguments array.
+     * Handles one level of nesting (e.g. BETWEEN ["$WEEK_START","$WEEK_END"]).
+     *
+     * @param ArrayClass<mixed> $params
+     * @return ArrayClass<mixed>
+     */
+    protected function resolveVariables(ArrayClass $params): ArrayClass
+    {
+        $now = new \DateTime();
+        $isoYear = (int)$now->format('o');
+        $isoWeek = (int)$now->format('W');
+        $vars = new Dictionary([
+            '$WEEK_START' => (new \DateTime())->setISODate($isoYear, $isoWeek)->format('Y-m-d'),
+            '$WEEK_END' => (new \DateTime())->setISODate($isoYear, $isoWeek, 7)->format('Y-m-d'),
+            '$MONTH_START' => $now->format('Y-m-01'),
+            '$MONTH_END' => $now->format('Y-m-t'),
+        ]);
+        $resolve = fn(mixed $v): mixed => is_string($v) && $vars[$v] !== null ? $vars[$v] : $v;
+        return $params->map(fn(mixed $value): mixed => $value instanceof ArrayClass ? $value->map($resolve) : $resolve($value));
+    }
+
     /** @return ArrayClass<ContentItem> */
     protected function textResult(string $text): ArrayClass
     {

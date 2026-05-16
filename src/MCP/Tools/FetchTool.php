@@ -24,7 +24,7 @@ final class FetchTool extends AbstractTool
     }
     #[Override]
     public string $description {
-        get => "Fetch entities with filtering, sorting and pagination.";
+        get => "Fetch entity rows with optional filtering, sorting and pagination. Call once per query — trust the result even if count is 0; do not retry with rephrased predicates.";
     }
     #[Override]
     public array $inputSchema {
@@ -61,16 +61,33 @@ final class FetchTool extends AbstractTool
         $request->fetchLimit = (int)($arguments["limit"] ?? 100);
         $request->fetchOffset = (int)($arguments["offset"] ?? 0);
         $results = $this->context->fetch($request);
-        return $this->jsonResult(["count" => $results->count, "results" => $this->serializeResults($results, $arguments["properties"], $arguments["relationships"])]);
+        $serialized = $this->serializeResults($results, $arguments["properties"], $arguments["relationships"]);
+        return $this->jsonResult(["rowCount" => $results->count, "summary" => $this->buildSummary($entity, $arguments, $results->count), "results" => $serialized]);
+    }
+
+    private function buildSummary(string $entityName, Dictionary $arguments, int $rowCount): string
+    {
+        $parts = new ArrayClass(["Fetched $entityName"]);
+        if ($predicate = $arguments["predicate"]) {
+            $parts->append("filter: $predicate");
+        }
+        /** @var ArrayClass<Dictionary<mixed>>|null $sort */
+        $sort = $arguments["sort"];
+        if ($sort instanceof ArrayClass && !$sort->isEmpty) {
+            $sortStr = $sort->map(fn(Dictionary $s): string => ($s["key"] ?? "") . " " . (($s["ascending"] ?? true) ? "ASC" : "DESC"))->join(", ");
+            $parts->append("sort: $sortStr");
+        }
+        $parts->append("$rowCount row(s) returned — result is final, do not retry");
+        return $parts->join(". ");
     }
 
     private function applyPredicate(mixed $request, string $entity, Dictionary $arguments): void
     {
         $predicate = $arguments["predicate"];
-        $params = $arguments["arguments"] ?? new ArrayClass();
         if (!$predicate) {
             return;
         }
+        $params = $this->resolveVariables($arguments["arguments"] ?? new ArrayClass());
         $this->validatePredicateKeyPaths($entity, $predicate, $params);
         $request->predicate = $this->buildPredicate($predicate, $params);
     }

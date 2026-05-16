@@ -77,14 +77,14 @@ Key user-pipeline transformers: `JSONTransformer`, `HTMLTransformer`, `NoCacheHe
 
 Configured on `Application`, inherited via lazy property hooks:
 
-| Property | Type | Purpose |
-|---|---|---|
-| `$corsPolicy` | `CORSPolicy` | Allowed origins, methods, headers |
-| `$accessPolicy` | `AccessPolicy` | Override with `DefaultAccessPolicy` / `PublicAccessPolicy` |
-| `$securityHeadersPolicy` | `SecurityHeadersPolicy` | Security response headers |
-| `$cachePolicy` | `HTTPCachePolicy` | ETag, Cache-Control defaults |
-| `$rateLimitPolicy` | `RateLimitPolicy` | Backends: APCu, Redis, Memcached, InMemory |
-| `$idempotencyPolicy` | `IdempotencyPolicy` | Replay protection for POST/PATCH |
+| Property                 | Type                    | Purpose                                                    |
+|--------------------------|-------------------------|------------------------------------------------------------|
+| `$corsPolicy`            | `CORSPolicy`            | Allowed origins, methods, headers                          |
+| `$accessPolicy`          | `AccessPolicy`          | Override with `DefaultAccessPolicy` / `PublicAccessPolicy` |
+| `$securityHeadersPolicy` | `SecurityHeadersPolicy` | Security response headers                                  |
+| `$cachePolicy`           | `HTTPCachePolicy`       | ETag, Cache-Control defaults                               |
+| `$rateLimitPolicy`       | `RateLimitPolicy`       | Backends: APCu, Redis, Memcached, InMemory                 |
+| `$idempotencyPolicy`     | `IdempotencyPolicy`     | Replay protection for POST/PATCH                           |
 
 ## Auth mode
 

@@ -61,12 +61,12 @@ abstract class AbstractTool
         foreach ($parts as $index => $part) {
             if ($index === $last) {
                 if (!$current->attributes[$part] && !$current->relationships[$part]) {
-                    fatal_error("Unknown property \"$part\" on $current->name. Attributes: [" . $current->attributes->keys->join(", ") . "]. Relationships: [" . $current->relationships->keys->join(", ") . "].");
+                    fatal_error("Unknown property \"$part\" on $current->name. Attributes: {$current->attributes->keys}. Relationships: {$current->relationships->keys}.");
                 }
                 return;
             }
             /** @var RelationshipSchema $relationship */
-            $relationship = $current->relationships[$part] ?? fatal_error("\"$part\" is not a relationship on $current->name. Relationships: [" . $current->relationships->keys->join(", ") . "].");
+            $relationship = $current->relationships[$part] ?? fatal_error("\"$part\" is not a relationship on $current->name. Relationships: {$current->relationships->keys}.");
             $current = $this->entity($relationship->target);
         }
     }

@@ -63,6 +63,7 @@ final class GroupByTool extends AbstractTool
     #[Override]
     public function execute(Dictionary $arguments): ArrayClass
     {
+        /** @var string $entity */
         $entity = $arguments["entity"] ?? throw new InvalidArgumentException("entity is required");
         $groupBy = $this->groupKeys($entity, $arguments["group_by"] ?? throw new InvalidArgumentException("group_by is required"));
         $request = $this->fetchRequest($entity);
@@ -89,7 +90,7 @@ final class GroupByTool extends AbstractTool
         $rows = $this->context->fetch($request);
         $groupByPaths = $arguments["group_by"];
         $normalized = $rows->map(fn(Dictionary $row): Dictionary => $this->normalizeRow($row, $groupByPaths));
-        return $this->jsonResult(["rowCount" => count($rows), "summary" => $this->buildSummary((string)$entity, $arguments, count($rows)), "results" => $normalized]);
+        return $this->jsonResult(["rowCount" => count($rows), "summary" => $this->buildSummary($entity, $arguments, count($rows)), "results" => $normalized]);
     }
 
     private function buildSummary(string $entityName, Dictionary $arguments, int $rowCount): string
@@ -112,7 +113,7 @@ final class GroupByTool extends AbstractTool
         // Exclude nested root segments (e.g. "seller") and literal dot-path keys (e.g. "seller.name")
         // that CoreData may include, then re-add each path using its leaf segment as the key.
         $pathSet = new Set($groupByPaths);
-        $rootSet = new Set($groupByPaths->map(fn(string $path): string => new ArrayClass(explode(".", $path))->first ?? $path));
+        $rootSet = new Set($groupByPaths->map(fn(string $path): string => /** @var string */ new ArrayClass(explode(".", $path))->first ?? $path));
         $result = $row->filter(fn(mixed $value, string $key): bool => !$rootSet->containsElement($key) && !$pathSet->containsElement($key));
         foreach ($groupByPaths as $path) {
             $parts = new ArrayClass(explode(".", $path));

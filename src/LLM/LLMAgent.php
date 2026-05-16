@@ -52,7 +52,7 @@ final readonly class LLMAgent
                 break;
             }
             foreach ($turn->toolCalls as $toolCall) {
-                $cacheKey = md5($toolCall->name . json_encode($toolCall->arguments));
+                $cacheKey = md5($toolCall->name . $toolCall->arguments->description);
                 if (isset($toolCallCache[$cacheKey])) {
                     $text = "You already called this tool with these exact arguments. Result: " . $toolCallCache[$cacheKey] . " Do not call it again.";
                 } else {

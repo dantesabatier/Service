@@ -51,6 +51,7 @@ final class AttributeSchemaFactory
             if ($candidate instanceof ReflectionNamedType && enum_exists($candidate->getName())) {
                 /** @var class-string<BackedEnum> $enum */
                 $enum = $candidate->getName();
+                /** @var Dictionary<string|int> $cases */
                 $cases = new Dictionary();
                 foreach ($enum::cases() as $case) {
                     $cases[$case->name] = $case->value;

@@ -99,12 +99,13 @@ abstract class AbstractTool
                 continue;
             }
             $value = $arguments[$index + 1];
-            $cases = $attribute->enum->cases;
+            /** @var ArrayClass<string|int> $cases */
+            $cases = $attribute?->enum->cases ?? new Dictionary();
             $invalid = $value instanceof ArrayClass ? $value->filter(fn(mixed $v): bool => !$cases->containsElement($v)) : (!$cases->containsElement($value) ? new ArrayClass([$value]) : new ArrayClass());
             if ($invalid->isEmpty) {
                 continue;
             }
-            $map = $cases->map(fn(string|int $v, string $k): string => "\"$k\" → $v")->join(", ");
+            $map = $cases->map(fn(string|int $v, int $k): string => "\"$k\" → $v")->join(", ");
             fatal_error(sprintf("Invalid enum value for \"%s\": %s. Pass the mapped value, not the case name. Cases: %s", $keyPath, $invalid->description, $map));
         }
     }
@@ -163,12 +164,17 @@ abstract class AbstractTool
      */
     protected function resolveVariables(ArrayClass $params): ArrayClass
     {
+        $now = Date::now();
         $weekStart = strtotime("monday this week");
         $dateMappings = new Dictionary([
-            "\$WEEK_START" => new Date($weekStart)->format("Y-m-d"),
-            "\$WEEK_END" => new Date(strtotime("+6 days", $weekStart))->format("Y-m-d"),
-            "\$MONTH_START" => new Date(strtotime("first day of this month"))->format("Y-m-d"),
-            "\$MONTH_END" => new Date(strtotime("last day of this month"))->format("Y-m-d"),
+            "\$TODAY" => $now->format("Y-m-d"),
+            "\$NOW" => $now->format("Y-m-d\TH:i:s"),
+            "\$WEEK_START" => new Date((float)$weekStart)->format("Y-m-d"),
+            "\$WEEK_END" => new Date((float)strtotime("+6 days", (int)$weekStart))->format("Y-m-d"),
+            "\$MONTH_START" => new Date((float)strtotime("first day of this month"))->format("Y-m-d"),
+            "\$MONTH_END" => new Date((float)strtotime("last day of this month"))->format("Y-m-d"),
+            "\$YEAR_START" => new Date((float)strtotime("first day of January this year"))->format("Y-m-d"),
+            "\$YEAR_END" => new Date((float)strtotime("last day of December this year"))->format("Y-m-d"),
         ]);
         $resolve = fn(mixed $v): mixed => is_string($v) && $dateMappings[$v] !== null ? $dateMappings[$v] : $v;
         return $params->map(fn(mixed $value): mixed => $value instanceof ArrayClass ? $value->map($resolve) : $resolve($value));

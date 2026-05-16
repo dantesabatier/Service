@@ -59,7 +59,19 @@ final class BaseInstructionsBuilder
 
         6. For date attributes, pass ISO 8601 strings (e.g. "2025-01-01").
 
-        7. For sort descriptors, each item must have a non-null, non-empty "key" string and an optional "ascending" boolean (default true). Example: [{"key": "creationDate", "ascending": false}].
+         7. For sort descriptors, each item must have a non-null, non-empty "key" string and an optional "ascending" boolean (default true). Example: [{"key": "creationDate", "ascending": false}].
+
+         8. Dynamic date variables available in the arguments array — these are resolved server-side before building the predicate:
+          - $TODAY → today's date (Y-m-d)
+          - $NOW → current datetime (Y-m-d\TH:i:s)
+          - $WEEK_START → monday of the current week (Y-m-d)
+          - $WEEK_END → sunday of the current week (Y-m-d)
+          - $MONTH_START → first day of the current month (Y-m-d)
+          - $MONTH_END → last day of the current month (Y-m-d)
+          - $YEAR_START → january 1st of the current year (Y-m-d)
+          - $YEAR_END → december 31st of the current year (Y-m-d)
+
+          Use them as regular arguments — they are replaced with their string value before %-placeholders are evaluated. Example: ["%K BETWEEN %s", ["creationDate", "$WEEK_START", "$WEEK_END"]]
         INSTRUCTIONS;
     }
 }

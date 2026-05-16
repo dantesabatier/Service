@@ -163,11 +163,12 @@ abstract class AbstractTool
      */
     protected function resolveVariables(ArrayClass $params): ArrayClass
     {
+        $weekStart = strtotime("monday this week");
         $dateMappings = new Dictionary([
-            "\$WEEK_START" => new Date(strtotime("monday this week")),
-            "\$WEEK_END" => new Date(strtotime("sunday this week")),
-            "\$MONTH_START" => new Date(strtotime("first day of this month")),
-            "\$MONTH_END" => new Date(strtotime("last day of this month")),
+            "\$WEEK_START" => new Date($weekStart)->format("Y-m-d"),
+            "\$WEEK_END" => new Date(strtotime("+6 days", $weekStart))->format("Y-m-d"),
+            "\$MONTH_START" => new Date(strtotime("first day of this month"))->format("Y-m-d"),
+            "\$MONTH_END" => new Date(strtotime("last day of this month"))->format("Y-m-d"),
         ]);
         $resolve = fn(mixed $v): mixed => is_string($v) && $dateMappings[$v] !== null ? $dateMappings[$v] : $v;
         return $params->map(fn(mixed $value): mixed => $value instanceof ArrayClass ? $value->map($resolve) : $resolve($value));

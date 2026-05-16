@@ -40,16 +40,18 @@ final class BaseInstructionsBuilder
 
         3. If a tool returns an error, read the message carefully and fix the exact reported issue before retrying. Retry at most once per approach — if the same error occurs again, switch to a completely different strategy (e.g. remove the predicate and filter manually from the results). Never retry more than twice with the same predicate.
 
-        4. For enum-type attributes, check the "cases" map in the schema to find the integer backing value for each case and pass it as an argument.
+        4. For enum-type attributes, the schema includes a "cases" map (case name → value). Always pass the mapped value as the argument — never the case name. The value can be an integer or a string. Use %d if the value is an integer, %s if it is a string. For example, if the map is {"completed": 2}, pass 2 with %d, not "completed" with %s.
 
         5. Match the placeholder to the attribute type:
-         - string / mixed / array (for IN and BETWEEN) → %s
-         - integer (including objectID and enum backing values) → %d
+         - string / boolean / mixed / array (for IN and BETWEEN) / string enum value → %s
+         - integer / objectID / integer enum value → %d
          - float → %f
 
          Use dot paths to filter across relationships (e.g. "customer.name"). Examples:
-         - "%K = %s", ["status", 1]
-         - "%K IN %s", ["status", [0, 1, 2]]
+         - "%K = %d", ["status", 2]  (integer enum)
+         - "%K = %s", ["status", "active"]  (string enum)
+         - "%K IN %s", ["status", [0, 1, 2]]  (integer enum IN)
+         - "%K IN %s", ["status", ["active", "pending"]]  (string enum IN)
          - "%K BETWEEN %s", ["creationDate", ["2025-01-01", "2025-01-31"]]
          - "%K = %s AND %K = %s", ["isEnabled", true, "area.name", "embroidery"]
 

@@ -11,6 +11,7 @@ use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Predicates\Predicate;
 use Sabatier\Service\MCP\Response\ContentItem;
+use Sabatier\Service\MCP\Schema\AttributeSchema;
 use Sabatier\Service\MCP\Schema\EntitySchema;
 use Sabatier\Service\MCP\Schema\ModelDescriptor;
 use Sabatier\Service\MCP\Schema\RelationshipSchema;
@@ -87,8 +88,43 @@ abstract class AbstractTool
             if ($placeholder !== "%K") {
                 continue;
             }
-            $this->validateKeyPath($entityName, $arguments[$index]);
+            $keyPath = $arguments[$index];
+            $this->validateKeyPath($entityName, $keyPath);
+            $attribute = $this->resolveAttribute($entityName, $keyPath);
+            if (!$attribute?->enum) {
+                continue;
+            }
+            if ($arguments->count <= $index + 1) {
+                continue;
+            }
+            $value = $arguments[$index + 1];
+            $cases = $attribute->enum->cases;
+            $invalid = $value instanceof ArrayClass ? $value->filter(fn(mixed $v): bool => !$cases->containsElement($v)) : (!$cases->containsElement($value) ? new ArrayClass([$value]) : new ArrayClass());
+            if ($invalid->isEmpty) {
+                continue;
+            }
+            $map = $cases->map(fn(string|int $v, string $k): string => "\"$k\" → $v")->join(", ");
+            fatal_error(sprintf("Invalid enum value for \"%s\": %s. Pass the mapped value, not the case name. Cases: %s", $keyPath, $invalid->description, $map));
         }
+    }
+
+    private function resolveAttribute(string $entityName, string $keyPath): ?AttributeSchema
+    {
+        $parts = explode(".", $keyPath);
+        $current = $this->entity($entityName);
+        $last = count($parts) - 1;
+        foreach ($parts as $index => $part) {
+            if ($index === $last) {
+                return $current->attributes[$part] ?? null;
+            }
+            /** @var RelationshipSchema|null $relationship */
+            $relationship = $current->relationships[$part] ?? null;
+            if (!$relationship) {
+                return null;
+            }
+            $current = $this->entity($relationship->target);
+        }
+        return null;
     }
 
     protected function fetchRequest(string $entityName): FetchRequest

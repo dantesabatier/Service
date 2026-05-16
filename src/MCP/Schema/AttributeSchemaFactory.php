@@ -10,6 +10,7 @@ use ReflectionNamedType;
 use ReflectionUnionType;
 use Sabatier\CoreData\AttributeDescription;
 use Sabatier\CoreData\AttributeType;
+use Sabatier\Foundation\Dictionary;
 
 final class AttributeSchemaFactory
 {
@@ -50,14 +51,11 @@ final class AttributeSchemaFactory
             if ($candidate instanceof ReflectionNamedType && enum_exists($candidate->getName())) {
                 /** @var class-string<BackedEnum> $enum */
                 $enum = $candidate->getName();
-                return new EnumSchema($enum, array_reduce(
-                    $enum::cases(),
-                    function (array $carry, BackedEnum $case): array {
-                        $carry[$case->name] = $case->value;
-                        return $carry;
-                    },
-                    []
-                ));
+                $cases = new Dictionary();
+                foreach ($enum::cases() as $case) {
+                    $cases[$case->name] = $case->value;
+                }
+                return new EnumSchema($enum, $cases);
             }
         }
         return null;

@@ -28,6 +28,7 @@ final readonly class MCPRequestHandler
             }
             return $this->dispatcher->dispatch($message);
         } catch (Throwable $throwable) {
+            error_log((string)$throwable);
             return new JSONRPCError(JSONRPCErrorDomain, JSONRPCErrorCodeInternalError, new Dictionary([LocalizedFailureReasonErrorKey => $throwable->getMessage()]));
         }
     }

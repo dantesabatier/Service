@@ -10,6 +10,7 @@ use Rector\CodeQuality\Rector\If_\ExplicitBoolCompareRector;
 use Rector\Config\RectorConfig;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedConstructorParamRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPrivateMethodParameterRector;
+use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPublicMethodParameterRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessParamTagRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessReturnTagRector;
 use Rector\DeadCode\Rector\Node\RemoveNonExistingVarAnnotationRector;
@@ -42,7 +43,8 @@ try {
                 __DIR__ . "/src/Application.php"
             ],
             RemoveNonExistingVarAnnotationRector::class => [
-                __DIR__ . "/src/FirstResponderResolver.php"
+                __DIR__ . "/src/FirstResponderResolver.php",
+                __DIR__ . "/src/MCP/Tools/AbstractTool.php",
             ],
             NullToStrictStringFuncCallArgRector::class => [
                 __DIR__ . "/src/JSONWebTokenRS256EncoderStrategy.php"
@@ -55,6 +57,10 @@ try {
             ],
             RemoveUnusedConstructorParamRector::class => [
                 __DIR__ . "/src/ResponseTransformer.php"
+            ],
+            RemoveUnusedPublicMethodParameterRector::class => [
+                __DIR__ . "/src/MCP/InitializeHandler.php",
+                __DIR__ . "/src/MCP/ToolsListHandler.php",
             ],
         ])->withPreparedSets(deadCode: true, codeQuality: true, earlyReturn: true);
 } catch (InvalidConfigurationException $e) {

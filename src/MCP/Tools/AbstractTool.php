@@ -101,7 +101,7 @@ abstract class AbstractTool
             $value = $arguments[$index + 1];
             /** @var ArrayClass<string|int> $cases */
             $cases = $attribute?->enum->cases ?? new Dictionary();
-            $invalid = $value instanceof ArrayClass ? $value->filter(fn(mixed $v): bool => !$cases->containsElement($v)) : (!$cases->containsElement($value) ? new ArrayClass([$value]) : new ArrayClass());
+            $invalid = $value instanceof ArrayClass ? $value->filter(fn(mixed $v): bool => !$cases->containsElement($v)) : ($cases->containsElement($value) ? new ArrayClass() : new ArrayClass([$value]));
             if ($invalid->isEmpty) {
                 continue;
             }

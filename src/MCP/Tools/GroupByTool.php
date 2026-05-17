@@ -116,7 +116,7 @@ final class GroupByTool extends AbstractTool
         $rootSet = new Set($groupByPaths->map(fn(string $path): string => /** @var string */ new ArrayClass(explode(".", $path))->first ?? $path));
         $result = $row->filter(fn(mixed $value, string $key): bool => !$rootSet->containsElement($key) && !$pathSet->containsElement($key));
         foreach ($groupByPaths as $path) {
-            $parts = new ArrayClass(explode(".", $path));
+            $parts = new ArrayClass(explode(".", (string)$path));
             // CoreData may return nested objects, a literal dot-key, or already-flat keys.
             $value = $this->resolveNestedValue($row, $parts) ?? $row[$path];
             if ($value !== null) {
@@ -133,7 +133,7 @@ final class GroupByTool extends AbstractTool
             if (!($current instanceof Dictionary)) {
                 return null;
             }
-            $current = $current[$part] ?? $current[strtolower($part)];
+            $current = $current[$part] ?? $current[strtolower((string)$part)];
         }
         return $current;
     }

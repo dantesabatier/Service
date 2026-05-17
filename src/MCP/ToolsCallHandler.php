@@ -27,6 +27,7 @@ final readonly class ToolsCallHandler
             $arguments = $message->params["arguments"] ?? new Dictionary();
             return new ToolCallResult($this->registry->call($name, $arguments));
         } catch (Throwable $throwable) {
+            error_log((string)$throwable);
             return new JSONRPCError(JSONRPCErrorDomain, JSONRPCErrorCodeInternalError, new Dictionary([LocalizedFailureReasonErrorKey => $throwable->getMessage()]));
         }
     }

@@ -8,6 +8,8 @@ use Locale;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\ProcessInfo;
+use Sabatier\Service\Application;
+use Sabatier\Service\LLMContextProvider;
 use Sabatier\Service\MCP\Response\InitializeResult;
 use Sabatier\Service\MCP\Response\ServerCapabilities;
 use Sabatier\Service\MCP\Response\ServerInfo;
@@ -39,6 +41,11 @@ final class InitializeHandler
     public function handle(/** @noinspection PhpUnusedParameterInspection */ RPCMessage $message): InitializeResult
     {
         $environment = ProcessInfo::processInfo()->environment;
-        return new InitializeResult(new ServerCapabilities(new ToolsCapability(false)), $this->instructions, new ServerInfo($environment[MCPServerNameKey] ?? MCPServerNameDefault, $environment[MCPServerVersionKey] ?? MCPServerVersionDefault));
+        $instructions = $this->instructions;
+        $user = Application::shared()->authenticationManager->authentication->authenticatedUser;
+        if ($user instanceof LLMContextProvider) {
+            $instructions .= "\n\n$user->llmContext";
+        }
+        return new InitializeResult(new ServerCapabilities(new ToolsCapability(false)), $instructions, new ServerInfo($environment[MCPServerNameKey] ?? MCPServerNameDefault, $environment[MCPServerVersionKey] ?? MCPServerVersionDefault));
     }
 }

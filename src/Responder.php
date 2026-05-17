@@ -34,7 +34,7 @@ abstract class Responder extends ObjectClass
     }
     /** @var CORSPolicy The CORS policy applied to the response produced by this responder. */
     protected CORSPolicy $corsPolicy {
-        get => $this->corsPolicy = new CORSPolicy(Application::shared()->corsPolicy->allowedOrigins, Application::shared()->corsPolicy->allowedMethods->intersection(new Set($this->allowedMethods)), Application::shared()->corsPolicy->allowedHeaders->intersection(new Set($this->allowedHeaders)), Application::shared()->corsPolicy->allowCredentials);
+        get => $this->corsPolicy = new CORSPolicy(Application::shared()->corsPolicy->allowedOrigins, Application::shared()->corsPolicy->allowedMethods->intersection(new Set($this->allowedMethods)), Application::shared()->corsPolicy->allowedHeaders->intersection(new Set($this->allowedHeaders)), Application::shared()->corsPolicy->allowCredentials, Application::shared()->corsPolicy->exposedHeaders);
     }
     protected AccessPolicy $accessPolicy {
         get => Application::shared()->accessPolicy;

@@ -17,7 +17,7 @@ final class JSONWebTokenRS256DecoderStrategy extends JSONWebTokenDecoderStrategy
     #[Override]
     protected function verify(string $unsigned, string $signature, string $header, string $payload): void
     {
-        $signature = base64_decode($signature);
+        $signature = base64_decode(strtr($signature, '-_', '+/'));
         $publicKey = openssl_pkey_get_public($this->key);
         assert($publicKey instanceof OpenSSLAsymmetricKey);
         if (!openssl_verify($unsigned, $signature, $publicKey, OPENSSL_ALGO_SHA256)) {

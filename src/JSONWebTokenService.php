@@ -34,7 +34,7 @@ final class JSONWebTokenService
                 return $this->decoderStrategy;
             }
             $strategyClass = JSONWebTokenCoderStrategyFactory::shared()->getStrategyClass(JSONWebTokenCoderStrategyFactory::shared()->decoderStrategies, $this->algorithm);
-            return $this->decoderStrategy = new $strategyClass($this->key, $this->issuer);
+            return $this->decoderStrategy = new $strategyClass($this->key, $this->issuer ?? '');
         }
     }
 

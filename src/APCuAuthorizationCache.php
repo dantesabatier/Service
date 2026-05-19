@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service;
 
+use APCUIterator;
 use Override;
 use Sabatier\Foundation\ArrayClass;
 
@@ -52,5 +53,11 @@ final readonly class APCuAuthorizationCache implements AuthorizationCache
     public function invalidateAuthorizable(Authorizable $authorizable): void
     {
         apcu_delete("auth:u:$authorizable->username");
+    }
+
+    #[Override]
+    public function invalidateAll(): void
+    {
+        apcu_delete(new APCUIterator("/^auth:u:/"));
     }
 }

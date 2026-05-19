@@ -57,4 +57,17 @@ final readonly class RedisAuthorizationCache implements AuthorizationCache
     {
         $this->redis->del("auth:u:$authorizable->username");
     }
+
+    #[Override]
+    public function invalidateAll(): void
+    {
+        $keys = [];
+        $iterator = null;
+        while ($batch = $this->redis->scan($iterator, "auth:u:*", 100)) {
+            $keys = [...$keys, ...$batch];
+        }
+        if ($keys) {
+            $this->redis->del($keys);
+        }
+    }
 }

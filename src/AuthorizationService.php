@@ -49,6 +49,18 @@ final readonly class AuthorizationService
     }
 
     /**
+     * Invalidates all cached authorization sets across all cache layers.
+     *
+     * Called automatically by `Application` when any `Authorization` or `AuthorizableRole`
+     * entity is saved, ensuring no stale permission data is served after a role or permission change.
+     */
+    public function invalidateAll(): void
+    {
+        $this->inRequestCache->invalidateAll();
+        $this->persistentCache?->invalidateAll();
+    }
+
+    /**
      * Determines if the given entity is authorized to perform a specific action on a resource within the provided context.
      *
      * @param Authorizable $entity The entity requesting authorization.

@@ -16,9 +16,13 @@ use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Foundation\UserDefaults;
 use Throwable;
+use const Sabatier\CoreData\DeletedObjectsKey;
+use const Sabatier\CoreData\InsertedObjectsKey;
+use const Sabatier\CoreData\ManagedObjectContextDidSave;
 use const Sabatier\CoreData\PersistentHistoryTrackingKey;
 use const Sabatier\CoreData\PersistentStoreRemoteChange;
 use const Sabatier\CoreData\PersistentStoreRemoteChangeNotificationPostOptionKey;
+use const Sabatier\CoreData\UpdatedObjectsKey;
 use const Sabatier\Foundation\kCFBundleNameKey;
 
 /**
@@ -206,6 +210,30 @@ class Application extends Responder
         NotificationCenter::default()->addObserverForName(PersistentStoreRemoteChange, $persistentContainer->persistentStoreCoordinator, function (Notification $notification): void {
             $this->handlePersistentStoreRemoteChange($notification);
         });
+        NotificationCenter::default()->addObserverForName(ManagedObjectContextDidSave, null, function (Notification $notification): void {
+            $this->handleAuthorizationEntitiesDidSave($notification);
+        });
+    }
+
+    private function handleAuthorizationEntitiesDidSave(Notification $notification): void
+    {
+        $userInfo = $notification->userInfo;
+        if (!$userInfo) {
+            return;
+        }
+        foreach ([InsertedObjectsKey, UpdatedObjectsKey, DeletedObjectsKey] as $key) {
+            /** @var iterable<object>|null $objects */
+            $objects = $userInfo[$key];
+            if (!$objects) {
+                continue;
+            }
+            foreach ($objects as $object) {
+                if ($object instanceof Authorization || $object instanceof AuthorizableRole) {
+                    $this->authorizationService->invalidateAll();
+                    return;
+                }
+            }
+        }
     }
 
     /**
@@ -271,7 +299,7 @@ class Application extends Responder
         $reset = time() + $ttl;
         $remaining = max(0, $limit - $count);
         $this->rateLimitInfo = new RateLimitInfo($limit, $remaining, $reset);
-        $count <= $limit ?:  throw new TooManyRequestsException(max(1, $ttl));
+        $count <= $limit ?: throw new TooManyRequestsException(max(1, $ttl));
     }
 
     private function checkAccessPermissions(): void

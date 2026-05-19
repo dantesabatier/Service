@@ -52,4 +52,13 @@ interface AuthorizationCache
      * @param Authorizable $authorizable The authorizable entity whose cached authorizations are to be invalidated.
      */
     public function invalidateAuthorizable(Authorizable $authorizable): void;
+
+    /**
+     * Invalidates all cached authorization sets across all users.
+     *
+     * Called automatically when any `Authorization` or `AuthorizableRole` entity is inserted,
+     * updated, or deleted, ensuring the cache never serves stale permission data after a
+     * role or permission change.
+     */
+    public function invalidateAll(): void;
 }

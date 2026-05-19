@@ -25,4 +25,10 @@ final class InMemoryAuthorizationCache extends ObjectClass implements Authorizat
     {
         InMemoryAuthorizationCache::setStaticAssociatedValueForKey(null, "u:$authorizable->username");
     }
+
+    #[Override]
+    public function invalidateAll(): void
+    {
+        InMemoryAuthorizationCache::$staticAssociatedValues[InMemoryAuthorizationCache::class] = [];
+    }
 }

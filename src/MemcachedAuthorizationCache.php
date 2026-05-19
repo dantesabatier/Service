@@ -58,4 +58,10 @@ final readonly class MemcachedAuthorizationCache implements AuthorizationCache
     {
         $this->memcached->delete("auth:u:$authorizable->username");
     }
+
+    #[Override]
+    public function invalidateAll(): void
+    {
+        $this->memcached->flush();
+    }
 }

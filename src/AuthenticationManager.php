@@ -57,7 +57,7 @@ final class AuthenticationManager extends Responder
         $data[AuthenticationUserKey] = $user;
         $environment = $this->environment;
         if ($privateKey = $environment[JWTPrivateKey]) {
-            $data[AuthenticationTokenKey] = new JSONWebTokenIssuer(new JSONWebTokenService($privateKey, $this->request->url->host), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? JWTValidityDefaultTimeInterval)->floatValue)->issue($user, $this->authentication->context, new ArrayClass([AuthenticationScopeAccess, AuthenticationScopeRefresh]));
+            $data[AuthenticationTokenKey] = new JSONWebTokenIssuer(new JSONWebTokenService($privateKey, $this->request->url->host), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number((string)$environment[JWTValidityTimeIntervalKey] ?: JWTValidityDefaultTimeInterval)->floatValue)->issue($user, $this->authentication->context, new ArrayClass([AuthenticationScopeAccess, AuthenticationScopeRefresh]));
         } else {
             $session = $this->session;
             $session->regenerateID();
@@ -101,7 +101,7 @@ final class AuthenticationManager extends Responder
         /** @var Dictionary<mixed> $data */
         $data = new Dictionary();
         $data[AuthenticationUserKey] = $user;
-        $data[AuthenticationTokenKey] = new JSONWebTokenIssuer(new JSONWebTokenService($privateKey, $this->request->url->host), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number($environment[JWTValidityTimeIntervalKey] ?? JWTValidityDefaultTimeInterval)->floatValue)->issue($user, $authentication->context, new ArrayClass([AuthenticationScopeAccess, AuthenticationScopeRefresh]));
+        $data[AuthenticationTokenKey] = new JSONWebTokenIssuer(new JSONWebTokenService($privateKey, $this->request->url->host), new AuthorizationScopeBuilder($this->managedObjectContext->persistentStoreCoordinator?->managedObjectModel ?? fatal_error()), $this->managedObjectContext, new Number((string)$environment[JWTValidityTimeIntervalKey] ?: JWTValidityDefaultTimeInterval)->floatValue)->issue($user, $authentication->context, new ArrayClass([AuthenticationScopeAccess, AuthenticationScopeRefresh]));
         $this->data = $data;
     }
 }

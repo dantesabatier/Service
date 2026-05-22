@@ -16,7 +16,7 @@ final class AuthorizationEvaluator implements AuthorizationAccessEvaluator
         if (!($user = $context->authentication->authenticatedUser)) {
             return false;
         }
-        return $context->authorizationService->isAuthorized($user, ($pathComponents = $context->request->url->pathComponents)->count > 1 ? (string)$pathComponents[1] : $context->request->url->lastPathComponent, match ($context->request->httpMethod) {
+        return $context->authorizationService->isAuthorized($user, ($pathComponents = $context->request->url->pathComponents)->count > 1 ? $pathComponents[1] : $context->request->url->lastPathComponent, match ($context->request->httpMethod) {
             HTTPRequestMethod::head, HTTPRequestMethod::get => AuthorizationType::read,
             HTTPRequestMethod::post => AuthorizationType::create,
             HTTPRequestMethod::put, HTTPRequestMethod::patch => AuthorizationType::update,

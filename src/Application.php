@@ -6,6 +6,7 @@ use ErrorException;
 use Exception;
 use Override;
 use Sabatier\CoreData\FetchRequest;
+use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\PersistentContainer;
 use Sabatier\CoreData\PersistentStoreDescription;
 use Sabatier\Foundation\Bundle;
@@ -15,6 +16,7 @@ use Sabatier\Foundation\Notification;
 use Sabatier\Foundation\NotificationCenter;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\ProcessInfo;
+use Sabatier\Foundation\Set;
 use Sabatier\Foundation\UserDefaults;
 use Throwable;
 use const Sabatier\CoreData\DeletedObjectsKey;
@@ -226,17 +228,12 @@ class Application extends Responder
             return;
         }
         foreach ([InsertedObjectsKey, UpdatedObjectsKey, DeletedObjectsKey] as $key) {
-            /** @var iterable<object>|null $objects */
+            /** @var Set<ManagedObject>|null $objects */
             $objects = $userInfo[$key];
-            if (!$objects) {
-                continue;
-            }
-            foreach ($objects as $object) {
-                if ($object instanceof Authorization || $object instanceof AuthorizableRole) {
-                    $this->authorizationService->invalidateAll();
-                    $this->invalidateAuthorizableTokens();
-                    return;
-                }
+            if ($objects?->contains(fn(ManagedObject $object): bool => $object instanceof Authorization || $object instanceof AuthorizableRole)) {
+                $this->authorizationService->invalidateAll();
+                $this->invalidateAuthorizableTokens();
+                break;
             }
         }
     }
@@ -247,7 +244,7 @@ class Application extends Responder
     private function invalidateAuthorizableTokens(): void
     {
         $context = $this->persistentContainer->viewContext;
-        /** @var class-string<Authorizable> $authorizableClass */
+        /** @var class-string<ManagedObject> $authorizableClass */
         $authorizableClass = new InterfaceImplementorResolver($this->persistentContainer->managedObjectModel)->resolve(Authorizable::class);
         /** @var FetchRequest<Authorizable> $fetchRequest */
         $fetchRequest = $authorizableClass::fetchRequest();

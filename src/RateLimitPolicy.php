@@ -25,6 +25,7 @@ use Sabatier\Foundation\ProcessInfo;
  * - `RATE_LIMIT_MAX_REQUESTS_USER` (default: `120`)
  * - `RATE_LIMIT_MAX_REQUESTS_IP` (default: `30`)
  * - `RATE_LIMIT_WINDOW_SECONDS` (default: `60`)
+ * - `RATE_LIMIT_TRUSTED_PROXIES` (default: `""`) — comma-separated list of trusted reverse proxy IPs or CIDRs (e.g. `10.0.0.1,192.168.1.0/24`). When set, the real client IP is resolved from `X-Forwarded-For` by walking the chain right-to-left and discarding known proxy addresses.
  *
  * Override in the application delegate for programmatic control:
  *
@@ -38,13 +39,15 @@ use Sabatier\Foundation\ProcessInfo;
  */
 final readonly class RateLimitPolicy
 {
-    public function __construct(public bool $enabled = RateLimitEnabledDefault, public int $maxRequestsUser = RateLimitMaxRequestsUserDefault, public int $maxRequestsIP = RateLimitMaxRequestsIPDefault, public int $windowSeconds = RateLimitWindowSecondsDefault)
+    /** @param string[] $trustedProxies */
+    public function __construct(public bool $enabled = RateLimitEnabledDefault, public int $maxRequestsUser = RateLimitMaxRequestsUserDefault, public int $maxRequestsIP = RateLimitMaxRequestsIPDefault, public int $windowSeconds = RateLimitWindowSecondsDefault, public array $trustedProxies = [])
     {
     }
 
     public static function policy(): RateLimitPolicy
     {
         $environment = ProcessInfo::processInfo()->environment;
-        return new RateLimitPolicy(filter_var($environment[RateLimitEnabledKey] ?? RateLimitEnabledDefault, FILTER_VALIDATE_BOOL), (int)($environment[RateLimitMaxRequestsUserKey] ?? RateLimitMaxRequestsUserDefault), (int)($environment[RateLimitMaxRequestsIPKey] ?? RateLimitMaxRequestsIPDefault), (int)($environment[RateLimitWindowSecondsKey] ?? RateLimitWindowSecondsDefault));
+        $proxies = array_values(array_filter(array_map('trim', explode(',', (string)$environment[RateLimitTrustedProxiesKey]))));
+        return new RateLimitPolicy(filter_var($environment[RateLimitEnabledKey] ?? RateLimitEnabledDefault, FILTER_VALIDATE_BOOL), (int)($environment[RateLimitMaxRequestsUserKey] ?? RateLimitMaxRequestsUserDefault), (int)($environment[RateLimitMaxRequestsIPKey] ?? RateLimitMaxRequestsIPDefault), (int)($environment[RateLimitWindowSecondsKey] ?? RateLimitWindowSecondsDefault), $proxies);
     }
 }

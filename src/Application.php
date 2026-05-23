@@ -10,6 +10,7 @@ use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\PersistentContainer;
 use Sabatier\CoreData\PersistentStoreDescription;
 use Sabatier\Foundation\Bundle;
+use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Error;
 use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Foundation\Notification;
@@ -19,6 +20,7 @@ use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Foundation\Set;
 use Sabatier\Foundation\UserDefaults;
 use Throwable;
+use function Sabatier\Foundation\fatal_error;
 use const Sabatier\CoreData\DeletedObjectsKey;
 use const Sabatier\CoreData\InsertedObjectsKey;
 use const Sabatier\CoreData\ManagedObjectContextDidSave;
@@ -223,14 +225,10 @@ class Application extends Responder
      */
     private function handleAuthorizationEntitiesDidSave(Notification $notification): void
     {
-        $userInfo = $notification->userInfo;
-        if (!$userInfo) {
-            return;
-        }
+        /** @var Dictionary<Set<ManagedObject>> $userInfo */
+        $userInfo = $notification->userInfo ?? fatal_error("Missing userInfo in notification: $notification");
         foreach ([InsertedObjectsKey, UpdatedObjectsKey, DeletedObjectsKey] as $key) {
-            /** @var Set<ManagedObject>|null $objects */
-            $objects = $userInfo[$key];
-            if ($objects?->contains(fn(ManagedObject $object): bool => $object instanceof Authorization || $object instanceof AuthorizableRole)) {
+            if ($userInfo->valueForKey($key)?->contains(fn(ManagedObject $object): bool => $object instanceof Authorization || $object instanceof AuthorizableRole)) {
                 $this->authorizationService->invalidateAll();
                 $this->invalidateAuthorizableTokens();
                 break;

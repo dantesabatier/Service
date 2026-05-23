@@ -63,7 +63,7 @@ final readonly class RedisAuthorizationCache implements AuthorizationCache
     {
         $keys = [];
         $iterator = null;
-        while ($batch = $this->redis->scan($iterator, "auth:u:*", 100)) {
+        while (($batch = $this->redis->scan($iterator, "auth:u:*", 100)) !== false) {
             $keys = [...$keys, ...$batch];
         }
         if ($keys) {

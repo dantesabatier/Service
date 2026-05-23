@@ -5,6 +5,7 @@ namespace Sabatier\Service;
 use ErrorException;
 use Exception;
 use Override;
+use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\PersistentContainer;
 use Sabatier\CoreData\PersistentStoreDescription;
 use Sabatier\Foundation\Bundle;
@@ -215,6 +216,9 @@ class Application extends Responder
         });
     }
 
+    /**
+     * @throws Exception
+     */
     private function handleAuthorizationEntitiesDidSave(Notification $notification): void
     {
         $userInfo = $notification->userInfo;
@@ -230,10 +234,27 @@ class Application extends Responder
             foreach ($objects as $object) {
                 if ($object instanceof Authorization || $object instanceof AuthorizableRole) {
                     $this->authorizationService->invalidateAll();
+                    $this->invalidateAuthorizableTokens();
                     return;
                 }
             }
         }
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function invalidateAuthorizableTokens(): void
+    {
+        $context = $this->persistentContainer->viewContext;
+        /** @var class-string<Authorizable> $authorizableClass */
+        $authorizableClass = new InterfaceImplementorResolver($this->persistentContainer->managedObjectModel)->resolve(Authorizable::class);
+        /** @var FetchRequest<Authorizable> $fetchRequest */
+        $fetchRequest = $authorizableClass::fetchRequest();
+        foreach ($context->fetch($fetchRequest) as $user) {
+            $user->refreshTokenVersion++;
+        }
+        $context->save();
     }
 
     /**

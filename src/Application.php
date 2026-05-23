@@ -9,6 +9,7 @@ use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\PersistentContainer;
 use Sabatier\CoreData\PersistentStoreDescription;
+use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Error;
@@ -227,12 +228,9 @@ class Application extends Responder
     {
         /** @var Dictionary<Set<ManagedObject>> $userInfo */
         $userInfo = $notification->userInfo ?? fatal_error("Missing userInfo in notification: $notification");
-        foreach ([InsertedObjectsKey, UpdatedObjectsKey, DeletedObjectsKey] as $key) {
-            if ($userInfo->valueForKey($key)?->contains(fn(ManagedObject $object): bool => $object instanceof Authorization || $object instanceof AuthorizableRole)) {
-                $this->authorizationService->invalidateAll();
-                $this->invalidateAuthorizableTokens();
-                break;
-            }
+        if (new ArrayClass([InsertedObjectsKey, UpdatedObjectsKey, DeletedObjectsKey])->contains(fn(string $key): bool => (bool)$userInfo[$key]?->contains(fn(ManagedObject $object): bool => $object instanceof Authorization || $object instanceof AuthorizableRole))) {
+            $this->authorizationService->invalidateAll();
+            $this->invalidateAuthorizableTokens();
         }
     }
 

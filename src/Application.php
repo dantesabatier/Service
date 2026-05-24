@@ -5,7 +5,6 @@ namespace Sabatier\Service;
 use ErrorException;
 use Exception;
 use Override;
-use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\PersistentContainer;
 use Sabatier\CoreData\PersistentStoreDescription;
@@ -88,6 +87,9 @@ class Application extends Responder
     }
     private AuthorizationResolver $authorizationResolver {
         get => $this->authorizationResolver ??= new AuthorizationResolver($this->persistentContainer->managedObjectModel);
+    }
+    private AuthorizableTokenInvalidator $authorizableTokenInvalidator {
+        get => $this->authorizableTokenInvalidator ??= new AuthorizableTokenInvalidator($this->persistentContainer->managedObjectModel);
     }
     /** @var AuthorizationCache The in-request authorization cache for storing authorization data. */
     public AuthorizationCache $authorizationCache {
@@ -239,15 +241,7 @@ class Application extends Responder
      */
     private function invalidateAuthorizableTokens(): void
     {
-        $context = $this->persistentContainer->viewContext;
-        /** @var class-string<ManagedObject> $authorizableClass */
-        $authorizableClass = new InterfaceImplementorResolver($this->persistentContainer->managedObjectModel)->resolve(Authorizable::class);
-        /** @var FetchRequest<Authorizable> $fetchRequest */
-        $fetchRequest = $authorizableClass::fetchRequest();
-        foreach ($context->fetch($fetchRequest) as $user) {
-            $user->refreshTokenVersion++;
-        }
-        $context->save();
+        $this->authorizableTokenInvalidator->invalidate($this->persistentContainer->viewContext);
     }
 
     /**

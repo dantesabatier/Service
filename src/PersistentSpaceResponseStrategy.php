@@ -24,11 +24,13 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
     protected ?Authorizable $user {
         get => $this->fieldSecurityPolicy->user;
     }
-    protected bool $hasOwnScope {
-        get => $this->fieldSecurityPolicy->hasOwnScope;
-    }
     protected bool $isSecurityEnabled {
         get => $this->fieldSecurityPolicy->isSecurityEnabled;
+    }
+
+    protected function hasOwnScopeFor(string $entityName): bool
+    {
+        return $this->fieldSecurityPolicy->hasOwnScopeFor($entityName);
     }
 
     public function __construct(Request $request, EntityDescription $entity, ManagedObjectContext $managedObjectContext, FieldSecurityPolicy $fieldSecurityPolicy)

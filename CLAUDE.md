@@ -167,3 +167,4 @@ Abstract classes used as polymporphic bases (`ResponseTransformer`, etc.) must c
 - **Transformer chains** — compact style, minimal line breaks; match the surrounding code.
 - **No constructor property promotion** — skipped in Rector config by design.
 - **No `readonly` property conversion** — also skipped in Rector.
+- **Double quotes** — always use `"string"`, never `'string'`. Prefer interpolation over concatenation: `"$var:"` instead of `$var . ":"`. Use curly braces only when necessary (e.g. `"{$obj->prop}"`, `"{$arr['key']}"`)

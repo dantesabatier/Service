@@ -4,6 +4,7 @@ namespace Sabatier\Service;
 
 use Exception;
 use Sabatier\CoreData\ManagedObject;
+use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use function Sabatier\Foundation\fatal_error;
 
@@ -17,10 +18,10 @@ abstract readonly class FieldSecurityPolicy
 {
     /** @var Authorizable|null The authenticated user for policy evaluation. */
     public ?Authorizable $user;
-    /** @var bool Whether the current authorization scopes include `own`. */
-    public bool $hasOwnScope;
     /** @var bool Whether security enforcement is enabled for this request. */
     public bool $isSecurityEnabled;
+    /** @var ArrayClass<string> The authorization scopes for the current request. */
+    private ArrayClass $scopes;
 
     /**
      * @param AuthorizationContext $authorizationContext The authorization context for the current request.
@@ -28,17 +29,27 @@ abstract readonly class FieldSecurityPolicy
     public function __construct(AuthorizationContext $authorizationContext)
     {
         $this->user = $authorizationContext->user;
-        $this->hasOwnScope = $authorizationContext->scopes->contains(fn(string $scope): bool => str_ends_with($scope, AuthorizationScope::own->name));
+        $this->scopes = $authorizationContext->scopes;
         $this->isSecurityEnabled = $authorizationContext->isSecurityEnabled;
     }
 
     /**
-     * Enforces ownership rules for an object when `own` scope is present.
+     * Returns whether the current authorization scopes include `own` for the given entity.
+     * @param string $entityName The entity name to check ownership scope for.
+     */
+    public function hasOwnScopeFor(string $entityName): bool
+    {
+        $ownSuffix = ":" . AuthorizationScope::own->name;
+        return $this->scopes->contains(fn(string $scope): bool => str_starts_with($scope, "$entityName:") && str_ends_with($scope, $ownSuffix));
+    }
+
+    /**
+     * Enforces ownership rules for an object when `own` scope is present for its entity.
      * @param ManagedObject $object The managed object to check for ownership.
      */
     public function enforceOwnership(ManagedObject $object): void
     {
-        if ($this->hasOwnScope && $this->isSecurityEnabled) {
+        if ($this->isSecurityEnabled && $this->hasOwnScopeFor($object->entity->name)) {
             $service = new OwnershipService(new OwnerResolver($object), $this->user ?? fatal_error());
             $service->isOwner ?: throw new ForbiddenException();
         }

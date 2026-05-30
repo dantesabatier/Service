@@ -11,6 +11,7 @@ final readonly class OwnershipService
 
     public function __construct(private OwnerResolver $resolver, private Authorizable $user)
     {
-        $this->isOwner = $this->user->isEqual($this->resolver->owner);
+        $owner = $this->resolver->owner;
+        $this->isOwner = $owner === null || $this->user->isEqual($owner);
     }
 }

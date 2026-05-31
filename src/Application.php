@@ -199,8 +199,7 @@ class Application extends Responder
 
     private function configurePersistentStoreDescriptions(PersistentContainer $persistentContainer): void
     {
-        $description = $persistentContainer->persistentStoreDescriptions->first;
-        if ($description) {
+        if ($description = $persistentContainer->persistentStoreDescriptions->first) {
             $description->setOptionForKey(UserDefaults::standard()->bool(PersistentHistoryTrackingKey), PersistentHistoryTrackingKey);
             $description->setOptionForKey(UserDefaults::standard()->bool(PersistentStoreRemoteChangeNotificationPostOptionKey), PersistentStoreRemoteChangeNotificationPostOptionKey);
         }

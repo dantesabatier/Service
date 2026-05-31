@@ -48,7 +48,7 @@ final readonly class RateLimitPolicy
     public static function policy(): RateLimitPolicy
     {
         $environment = ProcessInfo::processInfo()->environment;
-        $proxies = string_split_trimmed((string)$environment[RateLimitTrustedProxiesKey] ?? "");
+        $proxies = string_split_trimmed((string)$environment[RateLimitTrustedProxiesKey]);
         return new RateLimitPolicy(filter_var($environment[RateLimitEnabledKey] ?? RateLimitEnabledDefault, FILTER_VALIDATE_BOOL), (int)($environment[RateLimitMaxRequestsUserKey] ?? RateLimitMaxRequestsUserDefault), (int)($environment[RateLimitMaxRequestsIPKey] ?? RateLimitMaxRequestsIPDefault), (int)($environment[RateLimitWindowSecondsKey] ?? RateLimitWindowSecondsDefault), $proxies);
     }
 }

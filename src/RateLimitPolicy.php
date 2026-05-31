@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sabatier\Service;
 
 use Sabatier\Foundation\ProcessInfo;
+use function Sabatier\Foundation\string_split_trimmed;
 
 /**
  * An immutable value object that describes the rate limiting behavior for all incoming requests.
@@ -47,7 +48,7 @@ final readonly class RateLimitPolicy
     public static function policy(): RateLimitPolicy
     {
         $environment = ProcessInfo::processInfo()->environment;
-        $proxies = array_values(array_filter(array_map('trim', explode(',', (string)$environment[RateLimitTrustedProxiesKey]))));
+        $proxies = string_split_trimmed((string)$environment[RateLimitTrustedProxiesKey] ?? "");
         return new RateLimitPolicy(filter_var($environment[RateLimitEnabledKey] ?? RateLimitEnabledDefault, FILTER_VALIDATE_BOOL), (int)($environment[RateLimitMaxRequestsUserKey] ?? RateLimitMaxRequestsUserDefault), (int)($environment[RateLimitMaxRequestsIPKey] ?? RateLimitMaxRequestsIPDefault), (int)($environment[RateLimitWindowSecondsKey] ?? RateLimitWindowSecondsDefault), $proxies);
     }
 }

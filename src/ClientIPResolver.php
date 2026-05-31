@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sabatier\Service;
 
 use Sabatier\Foundation\ArrayClass;
+use function Sabatier\Foundation\string_split_trimmed;
 
 /** @internal */
 final readonly class ClientIPResolver
@@ -21,7 +22,7 @@ final readonly class ClientIPResolver
             return $remoteAddr;
         }
         $proxies = new ArrayClass($this->trustedProxies);
-        $chain = new ArrayClass(array_map("trim", explode(",", $_SERVER["HTTP_X_FORWARDED_FOR"])));
+        $chain = new ArrayClass(string_split_trimmed((string)$_SERVER["HTTP_X_FORWARDED_FOR"]));
         $chain->append($remoteAddr);
         return $chain->last(fn(string $ip): bool => !$proxies->contains(fn(string $proxy): bool => str_contains($proxy, "/") ? $this->ipInCIDR($ip, $proxy) : $ip === $proxy)) ?? $remoteAddr;
     }

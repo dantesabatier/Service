@@ -11,6 +11,7 @@ use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObjectID;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Number;
+use function Sabatier\Foundation\localized_string;
 use const Sabatier\CoreData\ManagedObjectObjectIDKey;
 
 /** @internal */
@@ -30,7 +31,7 @@ final class CreatePersistentSpaceResponseStrategy extends PersistentSpaceRespons
             $object = EntityDescription::insertNewObject($entity->name, $context);
             $this->applySecureUpdate($object, $parameters);
             $context->save();
-            $refreshed = $this->fetchBy($object->objectID) ?? throw new InternalServerErrorException();
+            $refreshed = $this->fetchBy($object->objectID) ?? throw new InternalServerErrorException(localized_string("failed to fetch refreshed object after creation"));
             $body = $this->applySecureRead($refreshed, $refreshed->jsonSerialize());
             return new Response($request->url, HTTPStatusCode::created, body: $body);
         }

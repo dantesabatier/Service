@@ -26,22 +26,19 @@ final class ErrorResponder extends Responder
                 if ($this->isSessionEnabled) {
                     $this->session->start();
                 }
+                $userInfo = null;
                 $request = $this->request;
                 $throwable = $this->throwable;
                 $statusCode = HTTPStatusCode::internalServerError;
                 $localizedDescription = HTTPURLResponse::localizedString($statusCode);
                 $localizedFailureReason = $this->isDevelopmentMode ? $throwable->getMessage() : "";
-                $userInfo = null;
                 if ($throwable instanceof InternalInconsistencyException) {
                     if ($throwable instanceof InvalidRequestException) {
                         $statusCode = $throwable->getCode();
-                        $localizedDescription = HTTPURLResponse::localizedString($statusCode);
                     }
-                    if ($this->isDevelopmentMode) {
-                        $localizedDescription = $throwable->error->localizedDescription;
-                        $localizedFailureReason = $throwable->error->localizedFailureReason;
-                        $userInfo = $throwable->error->userInfo;
-                    }
+                    $localizedDescription = $throwable->error->localizedDescription;
+                    $localizedFailureReason = $throwable->error->localizedFailureReason;
+                    $userInfo = $throwable->error->userInfo;
                 }
                 $body = new Dictionary(["error" => new Error(URLErrorDomain, URLErrorBadServerResponse, new Dictionary([LocalizedDescriptionKey => $localizedDescription, LocalizedFailureReasonErrorKey => $localizedFailureReason])->merging($userInfo ?? []))]);
                 $headerFields = new Dictionary();

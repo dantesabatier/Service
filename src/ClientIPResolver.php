@@ -22,7 +22,7 @@ final readonly class ClientIPResolver
             return $remoteAddr;
         }
         $proxies = new ArrayClass($this->trustedProxies);
-        $chain = new ArrayClass(string_split_trimmed((string)$_SERVER["HTTP_X_FORWARDED_FOR"]));
+        $chain = new ArrayClass(string_split_trimmed($_SERVER["HTTP_X_FORWARDED_FOR"]));
         $chain->append($remoteAddr);
         return $chain->last(fn(string $ip): bool => !$proxies->contains(fn(string $proxy): bool => str_contains($proxy, "/") ? $this->ipInCIDR($ip, $proxy) : $ip === $proxy)) ?? $remoteAddr;
     }

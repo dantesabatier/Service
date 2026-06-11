@@ -13,6 +13,7 @@ use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\SortDescriptor;
 use Sabatier\Service\MCP\Response\ContentItem;
+use Sabatier\Service\MCP\Schema\RelationshipSchema;
 use function Sabatier\Foundation\fatal_error;
 
 /** @internal */
@@ -34,10 +35,11 @@ final class FetchTool extends AbstractTool
                 "entity" => ["type" => "string", "description" => "Always required. Entity name from the data model — call describe_model first if unsure."],
                 "predicate" => ["type" => "string", "description" => "NSPredicate format string, e.g. \"%K == %@\". Use %K for key paths, %@ for strings/objects, %d for integers, %f for floats."],
                 "arguments" => ["type" => "array", "items" => ["type" => ["string", "number", "boolean", "array"]], "description" => "Positional arguments for the predicate placeholders, one per placeholder in order."],
-                "properties" => ["type" => "array", "items" => ["type" => "string"], "description" => "Attribute names to return. Must be a JSON array of strings, e.g. [\"objectID\", \"name\", \"sku\"]. Never pass a single bracketed string."],
-                "relationships" => ["type" => "object", "description" => "Relationships to include. Keys are relationship names; values are arrays of attribute names to return from the related object, e.g. {\"customer\": [\"name\", \"email\"]}."],
+                "properties" => ["type" => "array", "items" => ["type" => "string"], "description" => "Attribute names to return. Must be a JSON array of strings, e.g. [\"objectID\", \"name\", \"sku\"]. Never pass a single bracketed string. For nested relationship traversal use \"serialization\" instead."],
+                "relationships" => ["type" => "object", "description" => "Shallow relationship include (one level deep). Keys are relationship names; values are arrays of attribute names from the related object, e.g. {\"customer\": [\"name\", \"email\"]}. For nested traversal (a relationship of a relationship) use \"serialization\" instead."],
+                "serialization" => ["type" => "object", "description" => "Declarative projection shape for traversing relationships to ANY depth — use this when a row needs related objects, or related objects of related objects. Recursive object: map an attribute name to true to include it, and map a relationship name to a nested object describing the related entity's shape. objectID and the entity name are always included automatically at every level. Example — orders with their customer and the customer's area: {\"orderNumber\": true, \"total\": true, \"customer\": {\"name\": true, \"area\": {\"name\": true}}}. Takes precedence over \"properties\" and \"relationships\" when present."],
                 "sort" => ["type" => "array", "items" => ["type" => "object", "properties" => ["key" => ["type" => "string"], "ascending" => ["type" => "boolean"]], "required" => ["key"]], "description" => "Sort descriptors, e.g. [{\"key\": \"creationDate\", \"ascending\": false}]."],
-                "limit" => ["type" => "integer"],
+                "limit" => ["type" => "integer", "description" => "Maximum rows to return. Omit to return all matching rows."],
                 "offset" => ["type" => "integer"],
             ],
             "required" => ["entity"],
@@ -58,10 +60,14 @@ final class FetchTool extends AbstractTool
         $request = $this->fetchRequest($entity);
         $this->applyPredicate($request, $entity, $arguments);
         $this->applySort($request, $arguments["sort"]);
-        $request->fetchLimit = (int)($arguments["limit"] ?? 100);
-        $request->fetchOffset = (int)($arguments["offset"] ?? 0);
+        $request->fetchLimit = (int)$arguments["limit"];
+        $request->fetchOffset = (int)$arguments["offset"];
+        $shape = $this->resolveShape($arguments);
+        if ($shape !== null) {
+            $request->serialization = $shape;
+        }
         $results = $this->context->fetch($request);
-        $serialized = $this->serializeResults($results, $arguments["properties"], $arguments["relationships"]);
+        $serialized = $this->serializeResults($results, $shape);
         return $this->jsonResult(["rowCount" => $results->count, "summary" => $this->buildSummary($entity, $arguments, $results->count), "results" => $serialized]);
     }
 
@@ -94,6 +100,12 @@ final class FetchTool extends AbstractTool
 
     private function validateProjection(string $entity, Dictionary $arguments): void
     {
+        /** @var Dictionary<mixed>|null $serialization */
+        $serialization = $arguments["serialization"];
+        if ($serialization instanceof Dictionary && !$serialization->isEmpty) {
+            $this->validateShape($entity, $serialization);
+            return;
+        }
         foreach ($arguments["properties"] ?? [] as $key) {
             $this->validateKeyPath($entity, (string)$key);
         }
@@ -108,6 +120,68 @@ final class FetchTool extends AbstractTool
                 $this->validateKeyPath($relation->target, (string)$key);
             }
         }
+    }
+
+    /**
+     * Validates a nested serialization shape against the schema: every key must be an attribute or
+     * a relationship of the current entity; nested objects are only valid on relationships and are
+     * validated recursively against the relationship target.
+     *
+     * @param Dictionary<mixed> $shape
+     */
+    private function validateShape(string $entity, Dictionary $shape): void
+    {
+        $schema = $this->entity($entity);
+        foreach ($shape as $key => $value) {
+            if ($value instanceof Dictionary) {
+                /** @var RelationshipSchema $relationship */
+                $relationship = $schema->relationships[$key] ?? fatal_error("\"$key\" is not a relationship on $schema->name. Relationships: {$schema->relationships->keys}.");
+                $this->validateShape($relationship->target, $value);
+                continue;
+            }
+            if (!$schema->attributes[$key] && !$schema->relationships[$key]) {
+                fatal_error("Unknown property \"$key\" on $schema->name. Attributes: {$schema->attributes->keys}. Relationships: {$schema->relationships->keys}.");
+            }
+        }
+    }
+
+    /**
+     * Resolves the serialization shape for this request. Prefers an explicit "serialization" shape;
+     * otherwise builds one from the legacy "properties" / "relationships" arguments. Returns null
+     * when no projection was requested, so the full default representation is serialized.
+     *
+     * @return Dictionary<mixed>|null
+     */
+    private function resolveShape(Dictionary $arguments): ?Dictionary
+    {
+        /** @var Dictionary<mixed>|null $serialization */
+        $serialization = $arguments["serialization"];
+        if ($serialization instanceof Dictionary && !$serialization->isEmpty) {
+            return $this->normalizeShape($serialization);
+        }
+        $properties = $arguments["properties"];
+        $relationships = $arguments["relationships"];
+        if ($properties === null && $relationships === null) {
+            return null;
+        }
+        return $this->buildShape($properties ?? new ArrayClass(), $relationships ?? new Dictionary());
+    }
+
+    /**
+     * Normalizes an incoming shape so attribute leaves are stored as `true` and relationship
+     * subtrees stay nested dictionaries, matching what FetchRequest->serialization expects.
+     *
+     * @param Dictionary<mixed> $shape
+     * @return Dictionary<mixed>
+     */
+    private function normalizeShape(Dictionary $shape): Dictionary
+    {
+        /** @var Dictionary<mixed> $normalized */
+        $normalized = new Dictionary();
+        foreach ($shape as $key => $value) {
+            $normalized[$key] = $value instanceof Dictionary ? $this->normalizeShape($value) : true;
+        }
+        return $normalized;
     }
 
     private function validateSort(string $entity, ?ArrayClass $sort): void
@@ -133,18 +207,21 @@ final class FetchTool extends AbstractTool
         $request->sortDescriptors = $sort->compactMap(fn(Dictionary $item): ?SortDescriptor => ($key = $item["key"]) ? new SortDescriptor($key, (bool)($item["ascending"] ?? true)) : null);
     }
 
-    private function serializeResults(ArrayClass $results, mixed $properties, mixed $relationships): array
+    /**
+     * @param ArrayClass<ManagedObject> $results
+     * @param Dictionary<mixed>|null $shape
+     */
+    private function serializeResults(ArrayClass $results, ?Dictionary $shape): array
     {
-        if ($properties === null && $relationships === null) {
+        if ($shape === null) {
             return $results->map(fn(ManagedObject $object) => $object->jsonSerialize())->array;
         }
-        $shape = $this->buildShape($properties ?? new ArrayClass(), $relationships ?? new Dictionary());
         return $results->map(fn(ManagedObject $object) => $object->serialized($shape)->jsonSerialize())->array;
     }
 
     private function buildShape(ArrayClass $properties, Dictionary $relationships): Dictionary
     {
-        /** @var Dictionary<bool> $shape */
+        /** @var Dictionary<mixed> $shape */
         $shape = new Dictionary();
         foreach ($properties as $property) {
             $shape[$property] = true;

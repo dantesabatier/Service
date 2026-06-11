@@ -49,7 +49,7 @@ final class GroupByTool extends AbstractTool
                 "having_predicate" => ["type" => "string"],
                 "having_arguments" => ["type" => "array"],
                 "sort" => ["type" => "array"],
-                "limit" => ["type" => "integer"],
+                "limit" => ["type" => "integer", "description" => "Maximum rows to return. Omit to return all matching rows."],
                 "offset" => ["type" => "integer"],
             ],
             "required" => ["entity", "group_by", "aggregates"],
@@ -84,8 +84,8 @@ final class GroupByTool extends AbstractTool
         if ($sort instanceof ArrayClass) {
             $request->sortDescriptors = $sort->compactMap(fn(Dictionary $item): ?SortDescriptor => ($key = $item["key"]) ? new SortDescriptor($key, (bool)($item["ascending"] ?? true)) : null);
         }
-        $request->fetchLimit = (int)($arguments["limit"] ?? 100);
-        $request->fetchOffset = (int)($arguments["offset"] ?? 0);
+        $request->fetchLimit = (int)$arguments["limit"];
+        $request->fetchOffset = (int)$arguments["offset"];
         /** @var ArrayClass<Dictionary> $rows */
         $rows = $this->context->fetch($request);
         $groupByPaths = $arguments["group_by"];

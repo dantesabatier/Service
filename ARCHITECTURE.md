@@ -392,7 +392,7 @@ The framework registers eleven tools automatically, all backed by the managed ob
 | Tool             | Operation                                                   | Notes                                                                          |
 |------------------|-------------------------------------------------------------|--------------------------------------------------------------------------------|
 | `describe_model` | Schema introspection                                        | Should be called first; returns the full model schema                          |
-| `fetch`          | Query with filters, sort, pagination, projection            | Supports field and relationship projection; default limit 100                  |
+| `fetch`          | Query with filters, sort, pagination, projection            | Field/relationship projection; `serialization` shape traverses relationships to any depth; default limit 100 |
 | `count`          | Count matching records                                      |                                                                                |
 | `aggregate`      | Compute sum, average, min, max, count, median, mode, stddev | `median`, `mode`, `stddev` are computed in-memory; others push to the database |
 | `group_by`       | GROUP BY with aggregates, HAVING, sort, pagination          | Fully database-side                                                            |

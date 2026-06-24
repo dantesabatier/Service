@@ -72,7 +72,8 @@ final class ErrorResponder extends Responder
 
     public function handle(Throwable $throwable): never
     {
-        error_log("$this->debugDescription $this->request $throwable");
+        $currentUsername = $this->currentUsername ?? "anonymous";
+        error_log("$this->debugDescription $currentUsername $this->request $throwable");
         $this->throwable = $throwable;
         $this->response->send();
     }

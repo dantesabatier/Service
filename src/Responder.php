@@ -12,6 +12,7 @@ use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Foundation\Set;
+use Throwable;
 use function Sabatier\Foundation\human_readable_value;
 
 /**
@@ -72,6 +73,16 @@ abstract class Responder extends ObjectClass
     /** @var AuthorizationContext Authorization context derived from the current authentication. */
     protected AuthorizationContext $authorizationContext {
         get => $this->authorizationContext ??= new AuthorizationContext(Application::shared()->authenticationManager->authentication->authenticatedUser, Application::shared()->authenticationManager->authentication->authorizationScopes, $this->isSecurityEnabled);
+    }
+    /** @var string|null The username from the current request credential, if any. Resolved from the credential header only — it does not load the user entity, so it is safe and cheap to read on the error path. */
+    protected ?string $currentUsername {
+        get {
+            try {
+                return Application::shared()->authenticationManager->authentication->credential?->user;
+            } catch (Throwable) {
+                return null;
+            }
+        }
     }
     /** @var FieldSecurityPolicy Security policy used for field-level read/write enforcement. */
     protected FieldSecurityPolicy $fieldSecurityPolicy {
@@ -188,7 +199,7 @@ abstract class Responder extends ObjectClass
             return null;
         }
         strlen($raw) <= IdempotencyKeyMaxLength ?: throw new BadRequestException();
-        $userIdentity = Application::shared()->authenticationManager->authentication->credential?->user ?? "anonymous";
+        $userIdentity = $this->currentUsername ?? "anonymous";
         return "$raw:$request->httpMethod:{$request->url->path}:$userIdentity";
     }
 

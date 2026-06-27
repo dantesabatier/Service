@@ -38,11 +38,15 @@ final class BaseInstructionsBuilder
 
         2. Only use entity names, attributes, relationships, and enum cases that appear literally in the schema returned by describe_model. Never invent identifiers.
 
-        3. If a tool returns an error, read the message carefully and fix the exact reported issue before retrying. Retry at most once per approach — if the same error occurs again, switch to a completely different strategy (e.g. remove the predicate and filter manually from the results). Never retry more than twice with the same predicate.
+        3. Transient attributes are not written to the persistent store. A SQL store has no column for them, so it cannot evaluate a predicate or sort descriptor that references a transient attribute — such a query fails or is ignored against a SQL store. Atomic stores (XML, binary, in-memory) keep the whole graph in memory and can filter and sort by transient attributes normally. When the store is SQL, do not query by a transient attribute; instead fetch candidate rows with a persistent predicate and filter the transient value from the results in memory.
 
-        4. For enum-type attributes, the schema includes a "cases" map (case name → value). Always pass the mapped value as the argument — never the case name. The value can be an integer or a string. Use %d if the value is an integer, %s if it is a string. For example, if the map is {"completed": 2}, pass 2 with %d, not "completed" with %s.
+        4. Abstract entities have no table of their own and cannot be instantiated. Never create a row for an abstract entity — create a concrete sub-entity instead. To query across an inheritance hierarchy, fetch on the abstract (super) entity, which transparently includes rows of all its concrete sub-entities.
 
-        5. Match the placeholder to the attribute type:
+        5. If a tool returns an error, read the message carefully and fix the exact reported issue before retrying. Retry at most once per approach — if the same error occurs again, switch to a completely different strategy (e.g. remove the predicate and filter manually from the results). Never retry more than twice with the same predicate.
+
+        6. For enum-type attributes, the schema includes a "cases" map (case name → value). Always pass the mapped value as the argument — never the case name. The value can be an integer or a string. Use %d if the value is an integer, %s if it is a string. For example, if the map is {"completed": 2}, pass 2 with %d, not "completed" with %s.
+
+        7. Match the placeholder to the attribute type:
          - string / boolean / mixed / array (for IN and BETWEEN) / string enum value → %s
          - integer / objectID / integer enum value → %d
          - float → %f
@@ -57,11 +61,11 @@ final class BaseInstructionsBuilder
 
          For partial text search always use CONTAINS[cd], never LIKE[cd] with wildcards.
 
-        6. For date attributes, pass ISO 8601 strings (e.g. "2025-01-01").
+        8. For date attributes, pass ISO 8601 strings (e.g. "2025-01-01").
 
-         7. For sort descriptors, each item must have a non-null, non-empty "key" string and an optional "ascending" boolean (default true). Example: [{"key": "creationDate", "ascending": false}].
+         9. For sort descriptors, each item must have a non-null, non-empty "key" string and an optional "ascending" boolean (default true). Example: [{"key": "creationDate", "ascending": false}].
 
-         8. Dynamic date variables available in the arguments array — these are resolved server-side before building the predicate:
+         10. Dynamic date variables available in the arguments array — these are resolved server-side before building the predicate:
           - $TODAY → today's date (Y-m-d)
           - $NOW → current datetime (Y-m-d\TH:i:s)
           - $WEEK_START → monday of the current week (Y-m-d)

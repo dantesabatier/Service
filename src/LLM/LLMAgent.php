@@ -7,6 +7,7 @@ namespace Sabatier\Service\LLM;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\Tools\ToolRegistry;
+use Throwable;
 
 /**
  * Drives the agentic loop for a single run.
@@ -53,14 +54,23 @@ final readonly class LLMAgent
             }
             foreach ($turn->toolCalls as $toolCall) {
                 $cacheKey = md5($toolCall->name . $toolCall->arguments->description);
+                $isError = false;
                 if (isset($toolCallCache[$cacheKey])) {
                     $text = "You already called this tool with these exact arguments. Result: " . $toolCallCache[$cacheKey] . " Do not call it again.";
                 } else {
-                    $result = $this->toolRegistry->call($toolCall->name, $toolCall->arguments);
-                    $text = $result->map(fn(ContentItem $item): string => $item->text)->join("\n");
-                    $toolCallCache[$cacheKey] = $text;
+                    try {
+                        $result = $this->toolRegistry->call($toolCall->name, $toolCall->arguments);
+                        $text = $result->map(fn(ContentItem $item): string => $item->text)->join("\n");
+                        $toolCallCache[$cacheKey] = $text;
+                    } catch (Throwable $throwable) {
+                        // A tool that throws must not abort the run — feed the error back to the
+                        // model as the tool result, flagged as an error so the model knows the call
+                        // failed. Not cached: the same call may succeed once the model fixes it.
+                        $text = "Error: {$throwable->getMessage()}";
+                        $isError = true;
+                    }
                 }
-                $toolMsg = new LLMMessage(LLMMessageRole::tool, $text, toolCallId: $toolCall->id);
+                $toolMsg = new LLMMessage(LLMMessageRole::tool, $text, toolCallId: $toolCall->id, isError: $isError);
                 $history->append($toolMsg);
                 $newMessages->append($toolMsg);
             }

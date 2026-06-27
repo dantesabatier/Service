@@ -70,11 +70,15 @@ final class AnthropicClient extends LLMClient
         $pendingToolResults = [];
         foreach ($messages as $message) {
             if ($message->role === LLMMessageRole::tool) {
-                $pendingToolResults[] = [
+                $toolResult = [
                     "type" => "tool_result",
                     "tool_use_id" => $message->toolCallId ?? "",
                     "content" => $message->content ?? "",
                 ];
+                if ($message->isError) {
+                    $toolResult["is_error"] = true;
+                }
+                $pendingToolResults[] = $toolResult;
                 continue;
             }
             if ($pendingToolResults !== []) {

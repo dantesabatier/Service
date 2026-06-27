@@ -12,13 +12,17 @@ use Sabatier\Foundation\ArrayClass;
 final readonly class ToolCallResult implements JsonSerializable
 {
     /** @param ArrayClass<ContentItem> $content */
-    public function __construct(public ArrayClass $content)
+    public function __construct(public ArrayClass $content, public bool $isError = false)
     {
     }
 
     #[Override]
     public function jsonSerialize(): array
     {
-        return ["content" => $this->content];
+        $data = ["content" => $this->content];
+        if ($this->isError) {
+            $data["isError"] = true;
+        }
+        return $data;
     }
 }

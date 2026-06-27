@@ -18,8 +18,9 @@ final readonly class LLMMessage
      * @param int $outputTokens
      * @param ArrayClass<array{type: string, thinking: string, signature: string}>|null $thinkingBlocks Raw Anthropic thinking blocks; must be echoed back verbatim on the next turn.
      * @param string|null $reasoningContent OpenAI-compatible reasoning string; must be echoed back on the next turn.
+     * @param bool $isError Marks a tool-result message as a failure so the provider flags it to the model (e.g. Anthropic `is_error`).
      */
-    public function __construct(public LLMMessageRole $role, public ?string $content, public ?ArrayClass $toolCalls = null, public ?string $toolCallId = null, public ?ArrayClass $images = null, public int $outputTokens = 0, public ?ArrayClass $thinkingBlocks = null, public ?string $reasoningContent = null)
+    public function __construct(public LLMMessageRole $role, public ?string $content, public ?ArrayClass $toolCalls = null, public ?string $toolCallId = null, public ?ArrayClass $images = null, public int $outputTokens = 0, public ?ArrayClass $thinkingBlocks = null, public ?string $reasoningContent = null, public bool $isError = false)
     {
     }
 }

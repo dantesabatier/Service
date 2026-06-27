@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sabatier\Service\MCP\Tools;
 
 use JsonException;
+use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
@@ -136,6 +137,22 @@ abstract class AbstractTool
         $request = new FetchRequest();
         $request->entity = $entity;
         return $request;
+    }
+
+    /**
+     * Rejects an attempt to create a row for an abstract entity. Abstract entities have
+     * no table of their own and cannot be instantiated — a concrete sub-entity must be
+     * created instead. Call this before inserting.
+     */
+    protected function assertConcreteEntity(string $entityName): void
+    {
+        $entity = EntityDescription::entity($entityName, $this->context);
+        if (!$entity->isAbstract) {
+            return;
+        }
+        $concrete = $entity->subentities->filter(fn(EntityDescription $subentity): bool => !$subentity->isAbstract)->map(fn(EntityDescription $subentity): string => $subentity->name);
+        $hint = $concrete->isEmpty ? "It has no concrete sub-entities." : "Create one of its concrete sub-entities instead: {$concrete->join(", ")}.";
+        fatal_error("\"$entityName\" is an abstract entity and cannot be instantiated. $hint");
     }
 
     protected function buildPredicate(string $format, ArrayClass $arguments): Predicate

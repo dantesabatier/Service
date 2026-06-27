@@ -45,6 +45,7 @@ final class BatchInsertTool extends AbstractTool
         /** @var string $entity */
         $entity = $arguments["entity"] ?? fatal_error("entity is required");
         $objects = $arguments["objects"] ?? fatal_error("objects is required");
+        $this->assertConcreteEntity($entity);
         $index = 0;
         $total = count($objects);
         $request = new BatchInsertRequest(

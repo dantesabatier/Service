@@ -58,6 +58,7 @@ final class ToolRegistry
     public function call(string $name, Dictionary $arguments): ToolResult
     {
         try {
+            /** @var AbstractTool $tool */
             $tool = $this->tools[$name] ?? throw new ToolNotFoundException("Unknown tool: $name");
             return ToolResult::success($tool->execute($arguments));
         } catch (InternalInconsistencyException $exception) {

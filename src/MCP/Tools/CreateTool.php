@@ -43,6 +43,7 @@ final class CreateTool extends AbstractTool
     {
         /** @var string $entity */
         $entity = $arguments["entity"] ?? fatal_error("entity is required");
+        /** @var Dictionary<mixed> $values */
         $values = $arguments["values"] ?? fatal_error("values is required");
         $this->assertConcreteEntity($entity);
         $object = EntityDescription::insertNewObject($entity, $this->context);

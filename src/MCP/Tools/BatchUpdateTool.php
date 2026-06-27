@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Sabatier\Service\MCP\Tools;
 
 use Exception;
-use InvalidArgumentException;
 use Override;
 use Sabatier\CoreData\BatchUpdateRequest;
 use Sabatier\CoreData\BatchUpdateRequestResultType;
@@ -14,6 +13,7 @@ use Sabatier\CoreData\EntityDescription;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\MCP\Response\ContentItem;
+use function Sabatier\Foundation\fatal_error;
 
 /** @internal */
 final class BatchUpdateTool extends AbstractTool
@@ -51,8 +51,11 @@ final class BatchUpdateTool extends AbstractTool
     #[Override]
     public function execute(Dictionary $arguments): ArrayClass
     {
-        $entityName = $arguments["entity"] ?? throw new InvalidArgumentException("entity is required");
-        $values = $arguments["values"] ?? throw new InvalidArgumentException("values is required");
+        /** @var string $entityName */
+        $entityName = $arguments["entity"] ?? fatal_error("entity is required");
+        /** @var Dictionary<mixed> $values */
+        $values = $arguments["values"] ?? fatal_error("values is required");
+        /** @var ArrayClass<mixed> $params */
         $params = $arguments["arguments"] ?? new ArrayClass();
         $request = new BatchUpdateRequest(EntityDescription::entity($entityName, $this->context));
         $request->resultType = BatchUpdateRequestResultType::count;

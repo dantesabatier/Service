@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Sabatier\Service\MCP\Tools;
 
 use Exception;
-use InvalidArgumentException;
 use Override;
 use Sabatier\CoreData\BatchDeleteRequest;
 use Sabatier\CoreData\BatchDeleteRequestResultType;
@@ -13,6 +12,7 @@ use Sabatier\CoreData\BatchDeleteResult;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\MCP\Response\ContentItem;
+use function Sabatier\Foundation\fatal_error;
 
 /** @internal */
 final class BatchDeleteTool extends AbstractTool
@@ -48,8 +48,8 @@ final class BatchDeleteTool extends AbstractTool
     #[Override]
     public function execute(Dictionary $arguments): ArrayClass
     {
-        $entityName = $arguments["entity"] ?? throw new InvalidArgumentException("entity is required");
-        $predicate = $arguments["predicate"] ?? throw new InvalidArgumentException("predicate is required");
+        $entityName = $arguments["entity"] ?? fatal_error("entity is required");
+        $predicate = $arguments["predicate"] ?? fatal_error("predicate is required");
         $params = $arguments["arguments"] ?? new ArrayClass();
         $this->validatePredicateKeyPaths($entityName, $predicate, $params);
         $fetchRequest = $this->fetchRequest($entityName);

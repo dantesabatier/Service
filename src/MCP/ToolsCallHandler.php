@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\MCP;
 
-use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
-use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\Response\ToolCallResult;
 use Sabatier\Service\MCP\Tools\ToolRegistry;
 use Throwable;
@@ -19,6 +17,19 @@ final readonly class ToolsCallHandler
     {
     }
 
+    /**
+     * Dispatches a `tools/call` request to the registry and shapes the outcome into the MCP envelope.
+     *
+     * A correctable LLM mistake returns from the registry as a failed `ToolResult` and is carried,
+     * per the MCP spec, as a result with `isError` — actionable content the model can fix — not a
+     * JSON-RPC protocol error. A real program fault propagates past the registry and is caught once
+     * in `MCPRequestHandler` as an Internal Error envelope. Only a missing tool name, a malformed
+     * request, is reported here as a JSON-RPC `InvalidParams` error.
+     *
+     * @param RPCMessage $message The parsed `tools/call` request carrying the tool name and arguments in its params.
+     * @return ToolCallResult|JSONRPCError The tool result (success or `isError`), or an `InvalidParams` error if the tool name is missing.
+     * @throws Throwable A fatal program fault raised by the tool, left to propagate to `MCPRequestHandler`.
+     */
     public function handle(RPCMessage $message): ToolCallResult|JSONRPCError
     {
         if (!($name = $message->params["name"])) {
@@ -26,14 +37,7 @@ final readonly class ToolsCallHandler
         }
         /** @var Dictionary<mixed> $arguments */
         $arguments = $message->params["arguments"] ?? new Dictionary();
-        try {
-            return new ToolCallResult($this->registry->call($name, $arguments));
-        } catch (Throwable $throwable) {
-            // A tool that throws is reported back to the model as a tool result with
-            // isError: true (per the MCP spec), not as a JSON-RPC protocol error, so the
-            // model receives the message as actionable content and can correct its call.
-            error_log((string)$throwable);
-            return new ToolCallResult(new ArrayClass([new ContentItem("text", $throwable->getMessage())]), isError: true);
-        }
+        $result = $this->registry->call($name, $arguments);
+        return new ToolCallResult($result->content, $result->isError);
     }
 }

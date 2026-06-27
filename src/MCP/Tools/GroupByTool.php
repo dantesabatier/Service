@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Sabatier\Service\MCP\Tools;
 
 use Exception;
-use InvalidArgumentException;
 use Override;
 use Sabatier\CoreData\AttributeType;
 use Sabatier\CoreData\ExpressionDescription;
@@ -64,10 +63,10 @@ final class GroupByTool extends AbstractTool
     public function execute(Dictionary $arguments): ArrayClass
     {
         /** @var string $entity */
-        $entity = $arguments["entity"] ?? throw new InvalidArgumentException("entity is required");
-        $groupBy = $this->groupKeys($entity, $arguments["group_by"] ?? throw new InvalidArgumentException("group_by is required"));
+        $entity = $arguments["entity"] ?? fatal_error("entity is required");
+        $groupBy = $this->groupKeys($entity, $arguments["group_by"] ?? fatal_error("group_by is required"));
         $request = $this->fetchRequest($entity);
-        $aggregates = $this->aggregateDescriptions($request, $entity, $arguments["aggregates"] ?? throw new InvalidArgumentException("aggregates is required"));
+        $aggregates = $this->aggregateDescriptions($request, $entity, $arguments["aggregates"] ?? fatal_error("aggregates is required"));
         $request->propertiesToFetch = new ArrayClass([...$groupBy, ...$aggregates]);
         $request->propertiesToGroupBy = $groupBy;
         $request->resultType = FetchRequestResultType::dictionaryResultType;
@@ -154,8 +153,8 @@ final class GroupByTool extends AbstractTool
         /** @var ArrayClass<ExpressionDescription> $result */
         $result = new ArrayClass();
         foreach ($items as $item) {
-            $function = (string)($item["function"] ?? throw new InvalidArgumentException("aggregate.function required"));
-            $property = (string)($item["property"] ?? throw new InvalidArgumentException("aggregate.property required"));
+            $function = (string)($item["function"] ?? fatal_error("aggregate.function required"));
+            $property = (string)($item["property"] ?? fatal_error("aggregate.property required"));
             in_array($function, self::allowedFunctions, true) ?: fatal_error("Invalid aggregate function");
             $this->validateKeyPath($entity, $property);
             $description = new ExpressionDescription();

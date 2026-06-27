@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Sabatier\Service\MCP\Tools;
 
 use Exception;
-use InvalidArgumentException;
 use Override;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObject;
@@ -115,7 +114,7 @@ final class FetchTool extends AbstractTool
             return;
         }
         foreach ($relationships as $name => $props) {
-            $relation = $this->entity($entity)->relationships[$name] ?? throw new InvalidArgumentException("Unknown relationship \"$name\"");
+            $relation = $this->entity($entity)->relationships[$name] ?? fatal_error("Unknown relationship \"$name\"");
             foreach ($props as $key) {
                 $this->validateKeyPath($relation->target, (string)$key);
             }

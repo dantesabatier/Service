@@ -12,7 +12,7 @@ namespace Sabatier\Service;
  * constructor contract: __construct(Response $response, ResponseTransformerContext $context).
  *
  * The pipeline always instantiates transformers with the default empty context.
- * Transformers that are wired manually (e.g. ConditionalGetTransformer, CORSResponseTransformer)
+ * Transformers that are wired manually (e.g., ConditionalGetTransformer, CORSResponseTransformer)
  * receive a populated context with the dependencies they need.
  *
  * Adding context to a new transformer type only requires adding a nullable property here;
@@ -20,7 +20,7 @@ namespace Sabatier\Service;
  */
 final readonly class ResponseTransformerContext
 {
-    public function __construct(public ?Request $request = null, public ?HTTPCachePolicy $cachePolicy = null, public ?CORSPolicy $corsPolicy = null, public ?SecurityHeadersPolicy $securityHeadersPolicy = null, public ?RateLimitInfo $rateLimitInfo = null)
+    public function __construct(public ?Request $request = null, public ?HTTPCachePolicy $cachePolicy = null, public ?CORSPolicy $corsPolicy = null, public ?SecurityHeadersPolicy $securityHeadersPolicy = null, public ?RateLimitInfo $rateLimitInfo = null, public ?StaticResourceDisposition $staticResourceDisposition = null)
     {
     }
 }

@@ -46,11 +46,13 @@ final class ResourceManager extends Responder
             }
             /** @var Set<class-string<ResponseTransformer>> $decorators */
             $decorators = new Set([ContentTypeTransformer::class]);
-            if (!$this->staticResourceDisposition->cacheable) {
-                $decorators->insert(NoCacheHeaderTransformer::class);
-            }
+            $decorators->insert($this->staticResourceDisposition->cacheable ? StaticCacheHeaderTransformer::class : NoCacheHeaderTransformer::class);
             return $this->transformers = $decorators;
         }
+    }
+    #[Override]
+    protected ResponseTransformerContext $transformerContext {
+        get => $this->transformerContext ??= new ResponseTransformerContext($this->request, $this->cachePolicy, $this->corsPolicy, $this->securityHeadersPolicy, Application::shared()->rateLimitInfo, $this->staticResourceDisposition);
     }
     private bool $isDataResolved = false;
     #[Override]

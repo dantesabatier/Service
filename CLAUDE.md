@@ -4,24 +4,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Code Quality Commands
 
+The dev tools are installed **globally** (Composer global, on `PATH`) — `vendor/bin` is empty. Invoke them by bare name, not via `vendor/bin/`:
+
 ```bash
+# Tests
+phpunit                       # full suite (config: phpunit.xml)
+
 # Static analysis
-vendor/bin/phpstan analyse
-vendor/bin/psalm
+phpstan analyse
+psalm --show-info=false
 
 # Code style check and fix
-vendor/bin/php-cs-fixer fix --dry-run   # check
-vendor/bin/php-cs-fixer fix             # apply
+php-cs-fixer fix --dry-run    # check
+php-cs-fixer fix              # apply
 
 # Automated refactoring
-vendor/bin/rector --dry-run             # check
-vendor/bin/rector                       # apply
+rector --dry-run              # check
+rector                        # apply
 
 # CodeSniffer
-vendor/bin/phpcs src/
+phpcs src/
 ```
 
-There are no automated tests — this is a framework library with no test suite.
+The framework has a PHPUnit suite under `tests/` (`tests/Unit`, `tests/Integration`). Two tests fail in a clean tree, unrelated to any current work — `AuthorizationServiceTest::tokenScopeExactMatchGrantsAccessWithoutCacheLookup` (a fatal "Premature end of PHP process" that aborts the whole-suite run) and `FieldSecurityFilterTest::filterReadRemovesOwnedFieldWhenNotOwner`. Run suites per directory (`phpunit tests/Integration`) to work around the crash.
 
 ## Architecture
 

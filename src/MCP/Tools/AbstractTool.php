@@ -238,6 +238,6 @@ abstract class AbstractTool
      */
     protected function jsonResult(mixed $data): ArrayClass
     {
-        return $this->textResult(json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+        return $this->textResult(json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
     }
 }

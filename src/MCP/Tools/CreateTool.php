@@ -23,7 +23,7 @@ final class CreateTool extends AbstractTool
     }
     #[Override]
     public string $description {
-        get => "Create a new entity row.";
+        get => "Create one entity row, including any related objects nested under `values` (attributes, to-one and to-many relationships, and deeper graphs) in a single call. Use this whenever a row has relationships or nested objects — even when creating several related rows at once. Not for inserting many independent flat rows of the same entity; use batch_insert for that.";
     }
     #[Override]
     public array $inputSchema {

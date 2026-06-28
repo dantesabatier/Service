@@ -49,6 +49,6 @@ final class CreateTool extends AbstractTool
         $object = EntityDescription::insertNewObject($entity, $this->context);
         $object->updateFromSnapshot($this->normalizeRelationships($entity, $values));
         $this->context->save();
-        return $this->jsonResult($object->jsonSerialize());
+        return $this->jsonResult($object->serialized($this->shapeFromValues($entity, $values))->jsonSerialize());
     }
 }

@@ -173,6 +173,35 @@ abstract class AbstractTool
     }
 
     /**
+     * Derives a serialization shape from the values passed to a create/update, so the response can
+     * echo back exactly the graph that was written — attributes as leaves, related objects (nested
+     * dictionaries, or arrays of them) recursed into — without an extra fetch. The shape is the
+     * structure of what was created, which is already known at write time.
+     *
+     * @param string $entityName
+     * @param Dictionary<mixed> $values
+     * @return Dictionary<mixed>
+     */
+    protected function shapeFromValues(string $entityName, Dictionary $values): Dictionary
+    {
+        $schema = $this->entity($entityName);
+        /** @var Dictionary<mixed> $shape */
+        $shape = new Dictionary();
+        foreach ($values as $key => $value) {
+            $relationship = $schema->relationships[$key] ?? null;
+            if (!$relationship instanceof RelationshipSchema) {
+                $shape[$key] = true;
+                continue;
+            }
+            /** @var ArrayClass<mixed> $children */
+            $children = $value instanceof Dictionary ? new ArrayClass([$value]) : ($value instanceof ArrayClass ? $value : new ArrayClass());
+            $subShape = $children->reduce(new Dictionary(), fn(Dictionary $carry, mixed $child): Dictionary => $child instanceof Dictionary ? $carry->merging($this->shapeFromValues($relationship->target, $child)) : $carry);
+            $shape[$key] = $subShape->isEmpty ? true : $subShape;
+        }
+        return $shape;
+    }
+
+    /**
      * Resolves $WEEK_START, $WEEK_END, $MONTH_START, $MONTH_END in a predicate arguments array.
      * Handles one level of nesting (e.g. BETWEEN ["$WEEK_START","$WEEK_END"]).
      *

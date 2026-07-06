@@ -24,6 +24,7 @@ use Sabatier\Service\MCP\Tools\DeleteTool;
 use Sabatier\Service\MCP\Tools\DescribeModelTool;
 use Sabatier\Service\MCP\Tools\FetchTool;
 use Sabatier\Service\MCP\Tools\GroupByTool;
+use Sabatier\Service\MCP\Tools\PersistentHistoryTool;
 use Sabatier\Service\MCP\Tools\UpdateTool;
 use function Sabatier\Foundation\string_is_equal;
 use const Sabatier\Service\MCPToolsDirectory;
@@ -51,6 +52,7 @@ final readonly class ToolResolver
         BatchInsertTool::class,
         BatchUpdateTool::class,
         BatchDeleteTool::class,
+        PersistentHistoryTool::class,
     ];
 
     public function __construct(private ManagedObjectContext $context, private ModelDescriptor $descriptor)

@@ -19,10 +19,6 @@ final class DescribeModelTool extends AbstractTool
         get => "describe_model";
     }
     #[Override]
-    public string $description {
-        get => "Return the complete schema of all entities, attributes, relationships, and enum cases. Call this before any other tool — attribute names are system-specific and cannot be guessed (e.g. isEnabled, not isActive).";
-    }
-    #[Override]
     public array $inputSchema {
         get => ["type" => "object", "properties" => new stdClass(), "required" => []];
     }

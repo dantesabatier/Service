@@ -23,14 +23,6 @@ final class BatchUpdateTool extends AbstractTool
         get => "batch_update";
     }
     #[Override]
-    public string $description {
-        get => <<<DESC
-        Update multiple entities matching an optional predicate in a single operation without loading objects into memory.
-        Values may be literal values or database expressions.
-        Returns the number of updated records.
-        DESC;
-    }
-    #[Override]
     public array $inputSchema {
         get => [
             "type" => "object",

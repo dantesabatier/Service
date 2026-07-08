@@ -23,10 +23,6 @@ final class FetchTool extends AbstractTool
         get => "fetch";
     }
     #[Override]
-    public string $description {
-        get => "Fetch entity rows with optional filtering, sorting and pagination. Call once per query — trust the result even if count is 0; do not retry with rephrased predicates.";
-    }
-    #[Override]
     public array $inputSchema {
         get => [
             "type" => "object",

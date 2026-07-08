@@ -22,10 +22,6 @@ final class DeleteTool extends AbstractTool
         get => "delete";
     }
     #[Override]
-    public string $description {
-        get => "Delete an existing entity.";
-    }
-    #[Override]
     public array $inputSchema {
         get => [
             "type" => "object",

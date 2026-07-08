@@ -32,7 +32,7 @@ final class ToolRegistry
     }
     /** @var ArrayClass<ToolDescriptor> */
     public ArrayClass $list {
-        get => $this->list ??= $this->tools->map(fn(AbstractTool $tool) => new ToolDescriptor($tool->name, $tool->description, $tool->inputSchema));
+        get => $this->list ??= $this->tools->map(fn(AbstractTool $tool) => new ToolDescriptor($tool->name, $tool->description, $tool->inputSchema, $tool->title));
     }
 
     /** @param ArrayClass<AbstractTool> $toolList */

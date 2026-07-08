@@ -59,17 +59,6 @@ final class PersistentHistoryTool extends AbstractTool
         get => "persistent_history";
     }
     #[Override]
-    public string $description {
-        get => <<<DESC
-        Fetch or purge the Core Data persistent history change log.
-        "operation":"purge" is destructive and permanently removes history transactions.
-        Both operations require exactly one scope parameter — "date", "transaction" or "token" — that marks the boundary: fetch returns history after it, purge removes history before it. When more than one is given, precedence is date > transaction > token.
-        "predicate" further filters the history in scope; it applies to both operations. It runs against "entity" — PersistentHistoryTransaction by default, or PersistentHistoryChange.
-        "resultType" applies to fetch only and is ignored for purge.
-        Only meaningful when persistent history tracking is enabled for the store.
-        DESC;
-    }
-    #[Override]
     public array $inputSchema {
         get => [
             "type" => "object",

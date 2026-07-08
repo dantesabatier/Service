@@ -19,10 +19,6 @@ final class CountTool extends AbstractTool
         get => "count";
     }
     #[Override]
-    public string $description {
-        get => "Count entities matching an optional predicate.";
-    }
-    #[Override]
     public array $inputSchema {
         get => [
             "type" => "object",

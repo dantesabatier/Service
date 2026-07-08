@@ -23,10 +23,6 @@ final class BatchInsertTool extends AbstractTool
         get => "batch_insert";
     }
     #[Override]
-    public string $description {
-        get => "Insert many flat rows of the same entity in one operation. Each object is a plain map of scalar attribute values only — no relationships and no nested objects, which are ignored. If the rows have relationships or nested objects, use create instead (once per row).";
-    }
-    #[Override]
     public array $inputSchema {
         get => [
             "type" => "object",

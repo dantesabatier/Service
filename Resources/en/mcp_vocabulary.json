@@ -1,0 +1,52 @@
+{
+  "tools": {
+    "describe_model": {
+      "title": "Describe Model",
+      "description": "Return the complete schema of all entities, attributes, relationships, and enum cases. Call this before any other tool — attribute names are system-specific and cannot be guessed (e.g. isEnabled, not isActive)."
+    },
+    "fetch": {
+      "title": "Fetch",
+      "description": "Fetch entity rows with optional filtering, sorting and pagination. Call once per query — trust the result even if count is 0; do not retry with rephrased predicates."
+    },
+    "count": {
+      "title": "Count",
+      "description": "Count entities matching an optional predicate."
+    },
+    "aggregate": {
+      "title": "Aggregate",
+      "description": "Compute aggregate values for an entity."
+    },
+    "group_by": {
+      "title": "Group By",
+      "description": "Group rows and compute aggregates. Call once per query — if rowCount is 0, data is absent; do not retry with different arguments or aliases."
+    },
+    "create": {
+      "title": "Create",
+      "description": "Create one entity row, including any related objects nested under `values` (attributes, to-one and to-many relationships, and deeper graphs) in a single call. Use this whenever a row has relationships or nested objects — even when creating several related rows at once. Not for inserting many independent flat rows of the same entity; use batch_insert for that."
+    },
+    "update": {
+      "title": "Update",
+      "description": "Update an existing entity."
+    },
+    "delete": {
+      "title": "Delete",
+      "description": "Delete an existing entity."
+    },
+    "batch_insert": {
+      "title": "Batch Insert",
+      "description": "Insert many flat rows of the same entity in one operation. Each object is a plain map of scalar attribute values only — no relationships and no nested objects, which are ignored. If the rows have relationships or nested objects, use create instead (once per row)."
+    },
+    "batch_update": {
+      "title": "Batch Update",
+      "description": "Update multiple entities matching an optional predicate in a single operation without loading objects into memory.\nValues may be literal values or database expressions.\nReturns the number of updated records."
+    },
+    "batch_delete": {
+      "title": "Batch Delete",
+      "description": "Delete multiple entities matching a required predicate in a single operation.\nReturns the number of deleted records."
+    },
+    "persistent_history": {
+      "title": "Persistent History",
+      "description": "Fetch or purge the Core Data persistent history change log.\n\"operation\":\"purge\" is destructive and permanently removes history transactions.\nBoth operations require exactly one scope parameter — \"date\", \"transaction\" or \"token\" — that marks the boundary: fetch returns history after it, purge removes history before it. When more than one is given, precedence is date > transaction > token.\n\"predicate\" further filters the history in scope; it applies to both operations. It runs against \"entity\" — PersistentHistoryTransaction by default, or PersistentHistoryChange.\n\"resultType\" applies to fetch only and is ignored for purge.\nOnly meaningful when persistent history tracking is enabled for the store."
+    }
+  }
+}

@@ -32,10 +32,6 @@ final class GroupByTool extends AbstractTool
         get => "group_by";
     }
     #[Override]
-    public string $description {
-        get => "Group rows and compute aggregates. Call once per query — if rowCount is 0, data is absent; do not retry with different arguments or aliases.";
-    }
-    #[Override]
     public array $inputSchema {
         get => [
             "type" => "object",

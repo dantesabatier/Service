@@ -31,10 +31,6 @@ final class AggregateTool extends AbstractTool
         get => "aggregate";
     }
     #[Override]
-    public string $description {
-        get => "Compute aggregate values for an entity.";
-    }
-    #[Override]
     public array $inputSchema {
         get => [
             "type" => "object",

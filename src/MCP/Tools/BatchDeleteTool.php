@@ -22,13 +22,6 @@ final class BatchDeleteTool extends AbstractTool
         get => "batch_delete";
     }
     #[Override]
-    public string $description {
-        get => <<<DESC
-        Delete multiple entities matching a required predicate in a single operation.
-        Returns the number of deleted records.
-        DESC;
-    }
-    #[Override]
     public array $inputSchema {
         get => [
             "type" => "object",

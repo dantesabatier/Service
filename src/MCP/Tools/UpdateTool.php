@@ -21,10 +21,6 @@ final class UpdateTool extends AbstractTool
         get => "update";
     }
     #[Override]
-    public string $description {
-        get => "Update an existing entity.";
-    }
-    #[Override]
     public array $inputSchema {
         get => [
             "type" => "object",

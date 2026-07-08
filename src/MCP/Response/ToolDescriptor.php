@@ -12,13 +12,17 @@ use Override;
  */
 final readonly class ToolDescriptor implements JsonSerializable
 {
-    public function __construct(public string $name, public string $description, public array $inputSchema)
+    public function __construct(public string $name, public string $description, public array $inputSchema, public ?string $title = null)
     {
     }
 
     #[Override]
     public function jsonSerialize(): array
     {
-        return ["name" => $this->name, "description" => $this->description, "inputSchema" => $this->inputSchema];
+        $data = ["name" => $this->name, "description" => $this->description, "inputSchema" => $this->inputSchema];
+        if ($this->title !== null) {
+            $data["title"] = $this->title;
+        }
+        return $data;
     }
 }

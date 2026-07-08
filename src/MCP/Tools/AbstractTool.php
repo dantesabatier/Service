@@ -9,6 +9,7 @@ use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
+use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Predicates\Predicate;
@@ -35,11 +36,39 @@ abstract class AbstractTool
     abstract public string $name {
         get;
     }
-    abstract public string $description {
-        get;
+    /**
+     * Human-readable display name shown by MCP clients in place of the technical `name`.
+     *
+     * Defaults to the `title` declared for this tool in its bundle vocabulary (current locale,
+     * falling back to the base `en` entry), or `null` when the vocabulary carries none — in which
+     * case the client falls back to `name`. A subclass normally leaves this as-is and supplies the
+     * text in `en/mcp_vocabulary.json`; override only to force a locale-neutral display name.
+     */
+    public ?string $title {
+        get => $this->vocabulary->localize($this->name, "title");
+    }
+    /**
+     * Description read by the LLM client to decide when to call the tool.
+     *
+     * Defaults to the `description` declared for this tool in its bundle vocabulary (current
+     * locale, falling back to the base `en` entry), or the technical `name` when the vocabulary
+     * carries none. A subclass normally leaves this as-is and supplies the text in
+     * `en/mcp_vocabulary.json`.
+     */
+    public string $description {
+        get => $this->vocabulary->localize($this->name, "description") ?? $this->name;
     }
     abstract public array $inputSchema {
         get;
+    }
+    /**
+     * The tool vocabulary of the bundle that owns this concrete tool class — the framework bundle
+     * for built-in tools, the application bundle for custom ones. Resolving by owner (rather than
+     * `Bundle::main()`) is what keeps a framework tool and an application tool from ever reading,
+     * and therefore overwriting, each other's localizations.
+     */
+    private ToolVocabulary $vocabulary {
+        get => $this->vocabulary ??= ToolVocabulary::forBundle(Bundle::bundleForClass(static::class));
     }
 
     public function __construct(protected readonly ManagedObjectContext $context, protected readonly ModelDescriptor $descriptor)

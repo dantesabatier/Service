@@ -6,6 +6,7 @@ namespace Sabatier\Service\MCP\Tools;
 
 use Exception;
 use Override;
+use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\PersistentHistoryChangeRequest;
 use Sabatier\CoreData\PersistentHistoryResult;
 use Sabatier\CoreData\PersistentHistoryResultType;
@@ -63,6 +64,7 @@ final class PersistentHistoryTool extends AbstractTool
         Fetch or purge the Core Data persistent history change log.
         "operation":"purge" is destructive and permanently removes history transactions.
         Both operations require exactly one scope parameter — "date", "transaction" or "token" — that marks the boundary: fetch returns history after it, purge removes history before it. When more than one is given, precedence is date > transaction > token.
+        "predicate" further filters the history in scope; it applies to both operations. It runs against "entity" — PersistentHistoryTransaction by default, or PersistentHistoryChange.
         "resultType" applies to fetch only and is ignored for purge.
         Only meaningful when persistent history tracking is enabled for the store.
         DESC;
@@ -76,6 +78,9 @@ final class PersistentHistoryTool extends AbstractTool
                 "date" => ["type" => "string", "description" => "ISO 8601 date. fetch: history after this date; purge: history before this date."],
                 "transaction" => ["type" => "integer", "description" => "Transaction number boundary. fetch: history after it; purge: history before it."],
                 "token" => ["type" => "object", "description" => "Persistent history token as a map of store identifier (string) to token number."],
+                "entity" => ["type" => "string", "enum" => ["PersistentHistoryTransaction", "PersistentHistoryChange"], "description" => "History entity the predicate filters on. Defaults to PersistentHistoryTransaction (filter changes via the \"changes\" relationship, e.g. \"ANY changes.changeType = %d\"); use PersistentHistoryChange to filter change rows directly. Ignored when no predicate is given."],
+                "predicate" => ["type" => "string", "description" => "Optional. NSPredicate format string filtering the history in scope by the chosen entity's properties (e.g. \"author\", \"contextName\", \"bundleID\", \"changes.changeType\"). Use %K for key paths, %@ for strings, %d for integers."],
+                "arguments" => ["type" => "array", "items" => ["type" => ["string", "number", "boolean", "array"]], "description" => "Positional arguments for the predicate placeholders, one per placeholder in order."],
                 "resultType" => ["type" => "string", "enum" => $this->resultTypeNames->array, "description" => "fetch only, ignored for purge. Shape of the returned history. Defaults to transactionsAndChanges."],
             ],
             "required" => ["operation"],
@@ -93,6 +98,9 @@ final class PersistentHistoryTool extends AbstractTool
         $operation = $arguments["operation"] ?? fatal_error("operation is required");
         in_array($operation, self::operations, true) ?: fatal_error("Invalid operation \"$operation\". Allowed: " . new ArrayClass(self::operations)->join(", ") . ".");
         $changeRequest = $operation === "purge" ? $this->purgeRequest($arguments) : $this->fetchRequestFor($arguments);
+        if ($fetchRequest = $this->transactionFilter($arguments)) {
+            $changeRequest->fetchRequest = $fetchRequest;
+        }
         /** @var PersistentHistoryResult $result */
         $result = $this->context->execute($changeRequest);
         if ($operation === "purge") {
@@ -138,6 +146,22 @@ final class PersistentHistoryTool extends AbstractTool
             return PersistentHistoryChangeRequest::fetchHistoryAfterToken($this->token($token));
         }
         fatal_error("fetch requires a scope parameter: \"date\", \"transaction\" or \"token\".");
+    }
+
+    private function transactionFilter(Dictionary $arguments): ?FetchRequest
+    {
+        /** @var string|null $predicate */
+        $predicate = $arguments["predicate"];
+        if (!$predicate) {
+            return null;
+        }
+        /** @var ArrayClass<mixed> $params */
+        $params = $arguments["arguments"] ?? new ArrayClass();
+        $entityName = (string)($arguments["entity"] ?? "PersistentHistoryTransaction");
+        $fetchRequest = new FetchRequest();
+        $fetchRequest->entity = $this->context->persistentStoreCoordinator?->managedObjectModel?->entitiesByName[$entityName] ?? fatal_error("Unknown history entity \"$entityName\". Use \"PersistentHistoryTransaction\" or \"PersistentHistoryChange\". History tracking may be disabled for the store.");
+        $fetchRequest->predicate = $this->buildPredicate($predicate, $this->resolveVariables($params));
+        return $fetchRequest;
     }
 
     private function transaction(mixed $transaction): PersistentHistoryTransaction

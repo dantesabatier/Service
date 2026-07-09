@@ -2,7 +2,7 @@
 
 ## Quick facts
 
-- **No test suite** — framework library, no tests to run or discover.
+- **PHPUnit suite** under `tests/` (`tests/Unit`, `tests/Integration`). Two tests fail in a clean tree — `AuthorizationServiceTest::tokenScopeExactMatchGrantsAccessWithoutCacheLookup` (fatal crash) and `FieldSecurityFilterTest::filterReadRemovesOwnedFieldWhenNotOwner`. Run per directory (`phpunit tests/Integration`) to work around the crash.
 - 173 source files live flat in `src/` — exception: `src/MCP/` has subdirectories (`Tools/`, `Response/`, `Schema/`).
 - Requires PHP 8.5+. Property hooks (`private(set) Type $prop { get => ... }`) are used throughout for lazy initialization — never convert to constructor injection or traditional getters.
 - Sibling libraries `sabatier/foundation` and `sabatier/coredata` are loaded via composer path repos (`../Foundation`, `../CoreData`).
@@ -40,6 +40,7 @@ Rector config (`rector.php`) skips:
 - **Short array syntax** — always `[]`, never `array()`.
 - **PSR-12** with `declare(strict_types=1)` in all files.
 - **Transformer chains** — compact style, minimal line breaks.
+- **Double quotes** — always `"string"`, never `'string'`. Prefer interpolation over concatenation (`"$var:"` over `$var . ":"`). Curly braces only when necessary — `"{$obj->prop}"`, `"{$arr['key']}"`.
 
 ## The `$data` pattern
 

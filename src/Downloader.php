@@ -32,9 +32,11 @@ final class Downloader extends Responder
         $urlString = $parsedBody["url"] ?? throw new BadRequestException();
         $attachmentURL = new URL($urlString);
         $fileManager = FileManager::default();
-        $resourceURL = new URL($attachmentURL->path, $fileManager->documentRootDirectory)->absoluteURL;
+        $documentRoot = $fileManager->documentRootDirectory;
+        $resourceURL = new URL($attachmentURL->path, $documentRoot)->absoluteURL;
         $path = $resourceURL->path;
-        $fileManager->fileExists($path) ?: throw new NotFoundException("The requested URL was not found on this server $resourceURL");
+        str_starts_with($path, $documentRoot->path) ?: throw new BadRequestException();
+        $fileManager->fileExists($path) ?: throw new NotFoundException();
         $fileManager->isReadableFile($path) ?: throw new MethodNotAllowedException();
         $body = $fileManager->contents($path) ?? throw new InternalServerErrorException();
         $contentType = URLFileTypeMappings::shared()->mimeType($resourceURL->pathExtension);

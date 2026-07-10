@@ -11,6 +11,7 @@ use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\SortDescriptor;
+use Sabatier\Service\AuthorizationType;
 use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\Schema\RelationshipSchema;
 use function Sabatier\Foundation\fatal_error;
@@ -50,10 +51,12 @@ final class FetchTool extends AbstractTool
     {
         /** @var string $entity */
         $entity = $arguments["entity"] ?? fatal_error("entity is required");
+        $this->enforceEntityAuthorization($entity, AuthorizationType::read);
         $this->validateProjection($entity, $arguments);
         $this->validateSort($entity, $arguments["sort"]);
         $request = $this->fetchRequest($entity);
         $this->applyPredicate($request, $entity, $arguments);
+        $this->applyOwnershipScope($request);
         $this->applySort($request, $arguments["sort"]);
         $request->fetchLimit = (int)$arguments["limit"];
         $request->fetchOffset = (int)$arguments["offset"];
@@ -203,15 +206,22 @@ final class FetchTool extends AbstractTool
     }
 
     /**
+     * Serializes each fetched object, filtering the result through the field security policy when
+     * security is enabled. Filtering applies to top-level fields only — the same behavior as the
+     * PersistentSpace read strategy; nested relationship leaves in a serialization shape are not
+     * filtered.
+     *
      * @param ArrayClass<ManagedObject> $results
      * @param Dictionary<mixed>|null $shape
+     * @throws Exception
      */
     private function serializeResults(ArrayClass $results, ?Dictionary $shape): array
     {
-        if ($shape === null) {
-            return $results->map(fn(ManagedObject $object) => $object->jsonSerialize())->array;
+        $serialize = fn(ManagedObject $object): Dictionary => $shape === null ? $object->jsonSerialize() : $object->serialized($shape)->jsonSerialize();
+        if (!$this->isSecurityEnabled) {
+            return $results->map($serialize)->array;
         }
-        return $results->map(fn(ManagedObject $object) => $object->serialized($shape)->jsonSerialize())->array;
+        return $results->map(fn(ManagedObject $object): Dictionary => $this->applySecureRead($object, $serialize($object)))->array;
     }
 
     private function buildShape(ArrayClass $properties, Dictionary $relationships): Dictionary

@@ -22,7 +22,7 @@
     },
     "create": {
       "title": "Create",
-      "description": "Create one entity row, including any related objects nested under `values` (attributes, to-one and to-many relationships, and deeper graphs) in a single call. Use this whenever a row has relationships or nested objects — even when creating several related rows at once. Not for inserting many independent flat rows of the same entity; use batch_insert for that."
+      "description": "Create one entity row, including any related objects nested under `values` (attributes, to-one and to-many relationships, and deeper graphs) in a single call. Use this whenever a row has relationships or nested objects — even when creating several related rows at once. To insert many independent flat rows of the same entity, call it once per row."
     },
     "update": {
       "title": "Update",
@@ -31,18 +31,6 @@
     "delete": {
       "title": "Delete",
       "description": "Delete an existing entity."
-    },
-    "batch_insert": {
-      "title": "Batch Insert",
-      "description": "Insert many flat rows of the same entity in one operation. Each object is a plain map of scalar attribute values only — no relationships and no nested objects, which are ignored. If the rows have relationships or nested objects, use create instead (once per row)."
-    },
-    "batch_update": {
-      "title": "Batch Update",
-      "description": "Update multiple entities matching an optional predicate in a single operation without loading objects into memory.\nValues may be literal values or database expressions.\nReturns the number of updated records."
-    },
-    "batch_delete": {
-      "title": "Batch Delete",
-      "description": "Delete multiple entities matching a required predicate in a single operation.\nReturns the number of deleted records."
     },
     "persistent_history": {
       "title": "Persistent History",

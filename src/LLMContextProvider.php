@@ -16,12 +16,7 @@ namespace Sabatier\Service;
  */
 interface LLMContextProvider
 {
-    /**
-     * A plain-text description of the current user for injection into the LLM
-     * system prompt. Keep it concise — one or two lines at most.
-     *
-     * Example: "User: Jane Doe, objectID: 42"
-     */
+    /** @var string Plain-text description of the current user for injection into the LLM system prompt. */
     public string $llmContext {
         get;
     }

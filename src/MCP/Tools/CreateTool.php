@@ -11,6 +11,7 @@ use Override;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
+use Sabatier\Service\AuthorizationType;
 use Sabatier\Service\MCP\Response\ContentItem;
 use function Sabatier\Foundation\fatal_error;
 
@@ -41,10 +42,11 @@ final class CreateTool extends AbstractTool
         $entity = $arguments["entity"] ?? fatal_error("entity is required");
         /** @var Dictionary<mixed> $values */
         $values = $arguments["values"] ?? fatal_error("values is required");
+        $this->enforceEntityAuthorization($entity, AuthorizationType::create);
         $this->assertConcreteEntity($entity);
         $object = EntityDescription::insertNewObject($entity, $this->context);
-        $object->updateFromSnapshot($this->normalizeRelationships($entity, $values));
+        $this->applySecureUpdate($object, $this->normalizeRelationships($entity, $values));
         $this->context->save();
-        return $this->jsonResult($object->serialized($this->shapeFromValues($entity, $values))->jsonSerialize());
+        return $this->jsonResult($this->applySecureRead($object, $object->serialized($this->shapeFromValues($entity, $values))->jsonSerialize()));
     }
 }

@@ -1,23 +1,39 @@
 <?php
 
+/** @noinspection PhpInternalEntityUsedInspection */
+
 declare(strict_types=1);
 
 namespace Sabatier\Service\MCP\Tools;
 
+use Exception;
 use JsonException;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
+use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
+use Sabatier\Foundation\Predicates\ComparisonPredicate;
+use Sabatier\Foundation\Predicates\CompoundPredicate;
+use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Foundation\Predicates\Predicate;
+use Sabatier\Service\Application;
+use Sabatier\Service\Authorizable;
+use Sabatier\Service\AuthorizationContext;
+use Sabatier\Service\AuthorizationType;
+use Sabatier\Service\DefaultAccessPolicy;
+use Sabatier\Service\FieldLevelSecurityPolicy;
+use Sabatier\Service\FieldSecurityPolicy;
+use Sabatier\Service\ForbiddenException;
 use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\Schema\AttributeSchema;
 use Sabatier\Service\MCP\Schema\EntitySchema;
 use Sabatier\Service\MCP\Schema\ModelDescriptor;
 use Sabatier\Service\MCP\Schema\RelationshipSchema;
+use Sabatier\Service\OwnerResolver;
 use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\human_readable_value;
 use const Sabatier\CoreData\ManagedObjectObjectIDKey;
@@ -36,39 +52,36 @@ abstract class AbstractTool
     abstract public string $name {
         get;
     }
-    /**
-     * Human-readable display name shown by MCP clients in place of the technical `name`.
-     *
-     * Defaults to the `title` declared for this tool in its bundle vocabulary (current locale,
-     * falling back to the base `en` entry), or `null` when the vocabulary carries none — in which
-     * case the client falls back to `name`. A subclass normally leaves this as-is and supplies the
-     * text in `en/mcp_vocabulary.json`; override only to force a locale-neutral display name.
-     */
+    /** @var string|null Human-readable display name; defaults to vocabulary `title` or falls back to `name`. */
     public ?string $title {
         get => $this->vocabulary->localize($this->name, "title");
     }
-    /**
-     * Description read by the LLM client to decide when to call the tool.
-     *
-     * Defaults to the `description` declared for this tool in its bundle vocabulary (current
-     * locale, falling back to the base `en` entry), or the technical `name` when the vocabulary
-     * carries none. A subclass normally leaves this as-is and supplies the text in
-     * `en/mcp_vocabulary.json`.
-     */
+    /** @var string Description read by the LLM client; defaults to vocabulary `description` or falls back to `name`. */
     public string $description {
         get => $this->vocabulary->localize($this->name, "description") ?? $this->name;
     }
     abstract public array $inputSchema {
         get;
     }
-    /**
-     * The tool vocabulary of the bundle that owns this concrete tool class — the framework bundle
-     * for built-in tools, the application bundle for custom ones. Resolving by owner (rather than
-     * `Bundle::main()`) is what keeps a framework tool and an application tool from ever reading,
-     * and therefore overwriting, each other's localizations.
-     */
+    /** @var ToolVocabulary The vocabulary of the bundle that owns this concrete tool class. */
     private ToolVocabulary $vocabulary {
         get => $this->vocabulary ??= ToolVocabulary::forBundle(Bundle::bundleForClass(static::class));
+    }
+    /** @var bool Whether security enforcement is enabled for this request. */
+    protected bool $isSecurityEnabled {
+        get => Application::shared()->accessPolicy instanceof DefaultAccessPolicy;
+    }
+    /** @var AuthorizationContext Authorization context derived from the current authentication. */
+    protected AuthorizationContext $authorizationContext {
+        get => $this->authorizationContext ??= new AuthorizationContext(Application::shared()->authenticationManager->authentication->authenticatedUser, Application::shared()->authenticationManager->authentication->authorizationScopes, $this->isSecurityEnabled);
+    }
+    /** @var FieldSecurityPolicy Security policy used for field-level read/write enforcement. */
+    protected FieldSecurityPolicy $fieldSecurityPolicy {
+        get => $this->fieldSecurityPolicy ??= new FieldLevelSecurityPolicy($this->authorizationContext);
+    }
+    /** @var Authorizable|null The authenticated user for policy evaluation. */
+    protected ?Authorizable $user {
+        get => $this->fieldSecurityPolicy->user;
     }
 
     public function __construct(protected readonly ManagedObjectContext $context, protected readonly ModelDescriptor $descriptor)
@@ -77,6 +90,79 @@ abstract class AbstractTool
 
     /** @return ArrayClass<ContentItem> */
     abstract public function execute(Dictionary $arguments): ArrayClass;
+
+    /**
+     * Builds the ownership predicate for an entity when the caller's `own` scope applies —
+     * the same guard `ReadPersistentSpaceResponseStrategy` uses to scope GET fetches. Returns
+     * `null` when security is disabled, the scope is absent, or the entity declares no
+     * `#[Owner]` field.
+     * @throws Exception
+     */
+    protected function ownershipPredicate(EntityDescription $entity): ?Predicate
+    {
+        $entityClassName = $entity->managedObjectClassName ?? $entity->name;
+        if ($this->isSecurityEnabled && $this->fieldSecurityPolicy->hasOwnScopeFor($entity->name) && class_exists($entityClassName) && ($ownerKey = OwnerResolver::getOwnerFieldName($entityClassName))) {
+            return new ComparisonPredicate(Expression::expressionForKeyPath($ownerKey), Expression::expressionForConstantValue($this->user));
+        }
+        return null;
+    }
+
+    /**
+     * Scopes a fetch request to rows owned by the current user when the `own` scope applies,
+     * AND-combining with any predicate already on the request.
+     * @throws Exception
+     */
+    protected function applyOwnershipScope(FetchRequest $request): void
+    {
+        $entity = $request->entity;
+        if (!$entity instanceof EntityDescription || !($ownershipPredicate = $this->ownershipPredicate($entity))) {
+            return;
+        }
+        $request->predicate = $request->predicate ? CompoundPredicate::andPredicateWithSubpredicates(new ArrayClass([$request->predicate, $ownershipPredicate])) : $ownershipPredicate;
+    }
+
+    /**
+     * @throws ForbiddenException
+     */
+    protected function enforceOwnership(ManagedObject $object): void
+    {
+        $this->fieldSecurityPolicy->enforceOwnership($object);
+    }
+
+    /**
+     * @param Dictionary<mixed> $body
+     * @throws Exception
+     */
+    protected function applySecureUpdate(ManagedObject $object, Dictionary $body): void
+    {
+        $this->fieldSecurityPolicy->applySecureUpdate($object, $body);
+    }
+
+    /**
+     * @param Dictionary<mixed> $data
+     * @return Dictionary<mixed>
+     * @throws Exception
+     */
+    protected function applySecureRead(ManagedObject $object, Dictionary $data): Dictionary
+    {
+        return $this->fieldSecurityPolicy->applySecureRead($object, $data);
+    }
+
+    /**
+     * Enforces per-entity RBAC for the resource this tool call targets — the check
+     * `AuthorizationEvaluator` performs by URL for regular endpoints, which never sees the
+     * entity an MCP tool operates on because the request URL is always `/mcp`. Consults the
+     * token scopes, the authorization caches and the database, in that order.
+     * @throws Exception
+     */
+    protected function enforceEntityAuthorization(string $resource, AuthorizationType $action): void
+    {
+        if (!$this->isSecurityEnabled) {
+            return;
+        }
+        $user = $this->user ?? throw new ForbiddenException();
+        Application::shared()->authorizationService->isAuthorized($user, $resource, $action, $this->fieldSecurityPolicy->scopes, $this->context) ?: throw new ForbiddenException();
+    }
 
     protected function entity(string $name): EntitySchema
     {

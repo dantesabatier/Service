@@ -15,9 +15,6 @@ use Sabatier\Foundation\URL;
 use Sabatier\Service\MCP\Schema\ModelDescriptor;
 use Sabatier\Service\MCP\Tools\AbstractTool;
 use Sabatier\Service\MCP\Tools\AggregateTool;
-use Sabatier\Service\MCP\Tools\BatchDeleteTool;
-use Sabatier\Service\MCP\Tools\BatchInsertTool;
-use Sabatier\Service\MCP\Tools\BatchUpdateTool;
 use Sabatier\Service\MCP\Tools\CountTool;
 use Sabatier\Service\MCP\Tools\CreateTool;
 use Sabatier\Service\MCP\Tools\DeleteTool;
@@ -49,9 +46,6 @@ final readonly class ToolResolver
         CreateTool::class,
         UpdateTool::class,
         DeleteTool::class,
-        BatchInsertTool::class,
-        BatchUpdateTool::class,
-        BatchDeleteTool::class,
         PersistentHistoryTool::class,
     ];
 

@@ -14,6 +14,7 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Foundation\Set;
 use Sabatier\Foundation\SortDescriptor;
+use Sabatier\Service\AuthorizationType;
 use Sabatier\Service\MCP\Response\ContentItem;
 use function Sabatier\Foundation\fatal_error;
 
@@ -60,6 +61,7 @@ final class GroupByTool extends AbstractTool
     {
         /** @var string $entity */
         $entity = $arguments["entity"] ?? fatal_error("entity is required");
+        $this->enforceEntityAuthorization($entity, AuthorizationType::read);
         $groupBy = $this->groupKeys($entity, $arguments["group_by"] ?? fatal_error("group_by is required"));
         $request = $this->fetchRequest($entity);
         $aggregates = $this->aggregateDescriptions($request, $entity, $arguments["aggregates"] ?? fatal_error("aggregates is required"));
@@ -71,6 +73,7 @@ final class GroupByTool extends AbstractTool
             $this->validatePredicateKeyPaths($entity, $predicate, $params);
             $request->predicate = $this->buildPredicate($predicate, $params);
         }
+        $this->applyOwnershipScope($request);
         if ($having = $arguments["having_predicate"]) {
             $request->havingPredicate = $this->buildPredicate($having, $this->resolveVariables($arguments["having_arguments"] ?? new ArrayClass()));
         }

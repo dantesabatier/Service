@@ -16,6 +16,7 @@ use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Number;
+use Sabatier\Service\AuthorizationType;
 use Sabatier\Service\MCP\Response\ContentItem;
 use function Sabatier\Foundation\fatal_error;
 use const Sabatier\Service\PersistentHistoryTransactionNumberKey;
@@ -28,9 +29,12 @@ use const Sabatier\Service\ServiceResponseStatusKey;
  * This tool is the MCP-facing interface over the same abstraction the HTTP
  * `/history` endpoint exposes: it translates the tool arguments into the exact
  * factory calls `PersistentHistoryChangeRequestAdapter` performs, executes the
- * resulting `PersistentHistoryChangeRequest`, and serializes the outcome. It
- * introduces no behavior of its own — scope requirements, argument precedence,
- * and result shaping mirror the adapter and the fetch/delete response strategies.
+ * resulting `PersistentHistoryChangeRequest`, and serializes the outcome.
+ * Argument precedence and result shaping mirror the adapter and the
+ * fetch/delete response strategies. Authorization over the `history` resource
+ * — the gate `AuthorizationEvaluator` applies to the `/history` route by URL —
+ * is enforced here per call, since the MCP request URL never names the
+ * resource: `read` for fetch, `delete` for purge.
  *
  * @internal
  */
@@ -86,6 +90,7 @@ final class PersistentHistoryTool extends AbstractTool
         /** @var string $operation */
         $operation = $arguments["operation"] ?? fatal_error("operation is required");
         in_array($operation, self::operations, true) ?: fatal_error("Invalid operation \"$operation\". Allowed: " . new ArrayClass(self::operations)->join(", ") . ".");
+        $this->enforceEntityAuthorization("history", $operation === "purge" ? AuthorizationType::delete : AuthorizationType::read);
         $changeRequest = $operation === "purge" ? $this->purgeRequest($arguments) : $this->fetchRequestFor($arguments);
         if ($fetchRequest = $this->transactionFilter($arguments)) {
             $changeRequest->fetchRequest = $fetchRequest;

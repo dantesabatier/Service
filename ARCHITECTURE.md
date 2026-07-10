@@ -387,7 +387,7 @@ Two files enrich the raw schema:
 
 ### Built-in Tools
 
-The framework registers eleven tools automatically, all backed by the managed object context:
+The framework registers nine tools automatically, all backed by the managed object context:
 
 | Tool             | Operation                                                   | Notes                                                                          |
 |------------------|-------------------------------------------------------------|--------------------------------------------------------------------------------|
@@ -399,9 +399,7 @@ The framework registers eleven tools automatically, all backed by the managed ob
 | `create`         | Insert a single record                                      | Returns the created object                                                     |
 | `update`         | Update a single record by `objectID`                        | Saves only if there are actual changes                                         |
 | `delete`         | Delete a single record by `objectID`                        |                                                                                |
-| `batch_insert`   | Insert multiple records in one operation                    | Uses Core Data's `BatchInsertRequest`; returns inserted count                  |
-| `batch_update`   | Update matching records without loading them                | Uses `BatchUpdateRequest`; predicate is optional                               |
-| `batch_delete`   | Delete matching records without loading them                | Uses `BatchDeleteRequest`; **predicate is required**                           |
+| `persistent_history` | Fetch or purge the persistent history change log        | Mirrors the `/history` endpoint; purge is destructive                          |
 
 Every tool validates all key paths and predicate placeholders against the in-memory schema before touching the database, so invalid field names produce a clear error message rather than a SQL error.
 

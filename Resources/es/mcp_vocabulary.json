@@ -22,7 +22,7 @@
     },
     "create": {
       "title": "Crear",
-      "description": "Crea una fila de entidad, incluyendo cualquier objeto relacionado anidado bajo `values` (atributos, relaciones a-uno y a-muchos, y grafos más profundos) en una sola llamada. Úsala siempre que una fila tenga relaciones u objetos anidados, incluso al crear varias filas relacionadas a la vez. No sirve para insertar muchas filas planas independientes de la misma entidad; para eso usa batch_insert."
+      "description": "Crea una fila de entidad, incluyendo cualquier objeto relacionado anidado bajo `values` (atributos, relaciones a-uno y a-muchos, y grafos más profundos) en una sola llamada. Úsala siempre que una fila tenga relaciones u objetos anidados, incluso al crear varias filas relacionadas a la vez. Para insertar muchas filas planas independientes de la misma entidad, llámala una vez por fila."
     },
     "update": {
       "title": "Actualizar",
@@ -31,18 +31,6 @@
     "delete": {
       "title": "Eliminar",
       "description": "Elimina una entidad existente."
-    },
-    "batch_insert": {
-      "title": "Inserción por lotes",
-      "description": "Inserta muchas filas planas de la misma entidad en una sola operación. Cada objeto es un mapa simple de valores de atributos escalares únicamente: sin relaciones ni objetos anidados, que se ignoran. Si las filas tienen relaciones u objetos anidados, usa create (una vez por fila)."
-    },
-    "batch_update": {
-      "title": "Actualización por lotes",
-      "description": "Actualiza múltiples entidades que cumplen un predicado opcional en una sola operación sin cargar los objetos en memoria.\nLos valores pueden ser literales o expresiones de base de datos.\nDevuelve el número de registros actualizados."
-    },
-    "batch_delete": {
-      "title": "Eliminación por lotes",
-      "description": "Elimina múltiples entidades que cumplen un predicado requerido en una sola operación.\nDevuelve el número de registros eliminados."
     },
     "persistent_history": {
       "title": "Historial persistente",

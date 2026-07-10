@@ -9,6 +9,7 @@ use Override;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
+use Sabatier\Service\AuthorizationType;
 use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\NotFoundException;
 use function Sabatier\Foundation\fatal_error;
@@ -40,10 +41,12 @@ final class DeleteTool extends AbstractTool
         /** @var string $entity */
         $entity = $arguments["entity"] ?? fatal_error("entity is required");
         $objectID = $arguments["objectID"] ?? fatal_error("objectID is required");
+        $this->enforceEntityAuthorization($entity, AuthorizationType::delete);
         $request = $this->fetchRequest($entity);
         $request->predicate = $this->buildPredicate("%K = %d", new ArrayClass([ManagedObjectObjectIDKey, $objectID]));
         /** @var ManagedObject $object */
         $object = $this->context->fetch($request)->first ?? throw new NotFoundException();
+        $this->enforceOwnership($object);
         $this->context->delete($object);
         $this->context->save();
         return $this->jsonResult(["deleted" => $objectID]);

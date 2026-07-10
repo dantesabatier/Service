@@ -23,7 +23,7 @@ abstract readonly class FieldSecurityPolicy
     /** @var bool Whether security enforcement is enabled for this request. */
     public bool $isSecurityEnabled;
     /** @var ArrayClass<string> The authorization scopes for the current request. */
-    private ArrayClass $scopes;
+    public ArrayClass $scopes;
 
     /**
      * @param AuthorizationContext $authorizationContext The authorization context for the current request.

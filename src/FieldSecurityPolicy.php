@@ -9,6 +9,7 @@ use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use function Sabatier\Foundation\fatal_error;
+use function Sabatier\Foundation\localized_string;
 
 /**
  * Base policy for field-level security on managed object reads and writes.
@@ -53,7 +54,7 @@ abstract readonly class FieldSecurityPolicy
     {
         if ($this->isSecurityEnabled && $this->hasOwnScopeFor($object->entity->name)) {
             $service = new OwnershipService(new OwnerResolver($object), $this->user ?? fatal_error());
-            $service->isOwner ?: throw new ForbiddenException();
+            $service->isOwner ?: throw new ForbiddenException(sprintf(localized_string("You don't have permission to modify this \"%s\" row: it belongs to another user. Do not retry this call."), $object->entity->name));
         }
     }
 

@@ -262,6 +262,7 @@ final class MCPToolSecurityTest extends TestCase
         $user = $this->makeUser("User");
         $tool = $this->makeTool($user, new ArrayClass(["Ownable:update:own"]));
         $this->expectException(ForbiddenException::class);
+        $this->expectExceptionMessage("belongs to another user");
         $tool->exposedEnforceOwnership($this->makeOwnedResource($this->makeUser("Other"), "Ownable"));
     }
 
@@ -297,6 +298,7 @@ final class MCPToolSecurityTest extends TestCase
     {
         $tool = $this->makeTool(null, new ArrayClass(["Ownable:read"]));
         $this->expectException(ForbiddenException::class);
+        $this->expectExceptionMessage("must be authenticated");
         $tool->exposedEnforceEntityAuthorization("Ownable", AuthorizationType::read);
     }
 }

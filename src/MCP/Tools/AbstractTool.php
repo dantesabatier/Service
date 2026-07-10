@@ -36,6 +36,7 @@ use Sabatier\Service\MCP\Schema\RelationshipSchema;
 use Sabatier\Service\OwnerResolver;
 use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\human_readable_value;
+use function Sabatier\Foundation\localized_string;
 use const Sabatier\CoreData\ManagedObjectObjectIDKey;
 
 /**
@@ -160,8 +161,8 @@ abstract class AbstractTool
         if (!$this->isSecurityEnabled) {
             return;
         }
-        $user = $this->user ?? throw new ForbiddenException();
-        Application::shared()->authorizationService->isAuthorized($user, $resource, $action, $this->fieldSecurityPolicy->scopes, $this->context) ?: throw new ForbiddenException();
+        $user = $this->user ?? throw new ForbiddenException(localized_string("You must be authenticated to perform this action."));
+        Application::shared()->authorizationService->isAuthorized($user, $resource, $action, $this->fieldSecurityPolicy->scopes, $this->context) ?: throw new ForbiddenException(sprintf(localized_string("You don't have permission to %s \"%s\". Do not retry this call."), $action->name, $resource));
     }
 
     protected function entity(string $name): EntitySchema

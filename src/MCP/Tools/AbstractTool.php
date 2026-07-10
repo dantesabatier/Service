@@ -162,7 +162,7 @@ abstract class AbstractTool
             return;
         }
         $user = $this->user ?? throw new ForbiddenException(localized_string("You must be authenticated to perform this action."));
-        Application::shared()->authorizationService->isAuthorized($user, $resource, $action, $this->fieldSecurityPolicy->scopes, $this->context) ?: throw new ForbiddenException(sprintf(localized_string("You don't have permission to %s \"%s\". Do not retry this call."), $action->name, $resource));
+        Application::shared()->authorizationService->isAuthorized($user, $resource, $action, $this->fieldSecurityPolicy->scopes, $this->context) ?: throw new ForbiddenException(sprintf(localized_string("You don't have permission to %s \"%s\"."), $action->name, $resource));
     }
 
     protected function entity(string $name): EntitySchema

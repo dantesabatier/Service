@@ -27,6 +27,7 @@ use Sabatier\Service\FieldSecurityPolicy;
 use Sabatier\Service\ForbiddenException;
 use Sabatier\Service\MCP\Schema\ModelDescriptor;
 use Sabatier\Service\MCP\Tools\AbstractTool;
+use Sabatier\Service\MCP\Tools\ToolRegistry;
 use Sabatier\Service\Owner;
 
 // --- Fixtures ---
@@ -300,5 +301,33 @@ final class MCPToolSecurityTest extends TestCase
         $this->expectException(ForbiddenException::class);
         $this->expectExceptionMessage("must be authenticated");
         $tool->exposedEnforceEntityAuthorization("Ownable", AuthorizationType::read);
+    }
+
+    // --- ToolRegistry denial funnel ---
+
+    #[Test]
+    public function toolRegistryAppendsRetryStopperToAuthorizationDenials(): void
+    {
+        $context = new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor();
+        $descriptor = new ReflectionClass(ModelDescriptor::class)->newInstanceWithoutConstructor();
+        $tool = new class($context, $descriptor) extends AbstractTool {
+            #[Override]
+            public string $name {
+                get => "denying_tool";
+            }
+            #[Override]
+            public array $inputSchema {
+                get => ["type" => "object"];
+            }
+
+            #[Override]
+            public function execute(Dictionary $arguments): ArrayClass
+            {
+                throw new ForbiddenException("You don't have permission to delete \"Order\".");
+            }
+        };
+        $result = new ToolRegistry(new ArrayClass([$tool]))->call("denying_tool", new Dictionary());
+        $this->assertTrue($result->isError);
+        $this->assertSame("You don't have permission to delete \"Order\". Do not retry this call.", $result->text);
     }
 }

@@ -7,8 +7,10 @@ namespace Sabatier\Service\MCP\Tools;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\InternalInconsistencyException;
+use Sabatier\Service\ForbiddenException;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
 use Throwable;
+use function Sabatier\Foundation\localized_string;
 
 /**
  * Holds the resolved MCP tools and dispatches calls by name.
@@ -47,8 +49,10 @@ final class ToolRegistry
      * mis-fires on the LLM's bad input throws an `InternalInconsistencyException` (via `fatal_error`)
      * carrying a message written for the model; that is captured and returned as a failed
      * `ToolResult` so the caller can feed it back for correction, and logged once here so the
-     * programmer also learns the LLM is misbehaving. Any other `Throwable` is a real program fault,
-     * not something the model can fix, and propagates to the caller.
+     * programmer also learns the LLM is misbehaving. Authorization denials (`ForbiddenException`)
+     * get a retry-stopper appended here — the guidance is for the model, so it belongs to this
+     * funnel, not to the security layer that raised the denial. Any other `Throwable` is a real
+     * program fault, not something the model can fix, and propagates to the caller.
      *
      * @param string $name The name of the tool to invoke.
      * @param Dictionary<mixed> $arguments The arguments supplied by the model for the call.
@@ -63,7 +67,7 @@ final class ToolRegistry
             return ToolResult::success($tool->execute($arguments));
         } catch (InternalInconsistencyException $exception) {
             error_log((string)$exception);
-            return ToolResult::failure($exception->getMessage());
+            return ToolResult::failure($exception instanceof ForbiddenException ? trim($exception->getMessage() . " " . localized_string("Do not retry this call.")) : $exception->getMessage());
         }
     }
 }

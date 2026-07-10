@@ -54,7 +54,7 @@ abstract readonly class FieldSecurityPolicy
     {
         if ($this->isSecurityEnabled && $this->hasOwnScopeFor($object->entity->name)) {
             $service = new OwnershipService(new OwnerResolver($object), $this->user ?? fatal_error());
-            $service->isOwner ?: throw new ForbiddenException(sprintf(localized_string("You don't have permission to modify this \"%s\" row: it belongs to another user. Do not retry this call."), $object->entity->name));
+            $service->isOwner ?: throw new ForbiddenException(sprintf(localized_string("You don't have permission to modify this \"%s\" row: it belongs to another user."), $object->entity->name));
         }
     }
 

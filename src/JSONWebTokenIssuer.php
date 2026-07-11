@@ -23,6 +23,6 @@ final readonly class JSONWebTokenIssuer implements TokenIssuer
     public function issue(Authorizable $subject, AuthenticationContext $context, ArrayClass $technicalScopes): string
     {
         $date = new Date();
-        return $this->service->encode([JWTIssuerKey => $context->tokenIssuer, JWTSubjectKey => $subject->username, JWTEnabledKey => $subject->isEnabled, JWTExpirationTimeKey => $date->addingTimeInterval($this->validityTimeInterval)->timeIntervalSinceReferenceDate, JWTNotBeforeTimeKey => $date->timeIntervalSinceReferenceDate, JWTIssuedAtTimeKey => $date->timeIntervalSinceReferenceDate, JWTIdKey => base64_encode(read_random(16)), JWTVersionKey => $subject->refreshTokenVersion, JWTScopesKey => $technicalScopes->array, JWTAuthorizationScopesKey => $this->scopeBuilder->build($subject, $this->managedObjectContext)->array]);
+        return $this->service->encode([JWTIssuerKey => $this->service->issuer, JWTSubjectKey => $subject->username, JWTEnabledKey => $subject->isEnabled, JWTExpirationTimeKey => $date->addingTimeInterval($this->validityTimeInterval)->timeIntervalSinceReferenceDate, JWTNotBeforeTimeKey => $date->timeIntervalSinceReferenceDate, JWTIssuedAtTimeKey => $date->timeIntervalSinceReferenceDate, JWTIdKey => base64_encode(read_random(16)), JWTVersionKey => $subject->refreshTokenVersion, JWTScopesKey => $technicalScopes->array, JWTAuthorizationScopesKey => $this->scopeBuilder->build($subject, $this->managedObjectContext)->array]);
     }
 }

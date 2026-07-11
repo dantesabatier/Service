@@ -17,10 +17,10 @@ final class JSONWebTokenRS256DecoderStrategy extends JSONWebTokenDecoderStrategy
     #[Override]
     protected function verify(string $unsigned, string $signature, string $header, string $payload): void
     {
-        $signature = base64_decode(strtr($signature, '-_', '+/'));
+        $signature = base64_decode(strtr($signature, "-_", "+/"));
         $publicKey = openssl_pkey_get_public($this->key);
         assert($publicKey instanceof OpenSSLAsymmetricKey);
-        if (!openssl_verify($unsigned, $signature, $publicKey, OPENSSL_ALGO_SHA256)) {
+        if (openssl_verify($unsigned, $signature, $publicKey, OPENSSL_ALGO_SHA256) !== 1) {
             throw new JSONWebTokenException(openssl_error_string() ?: localized_string("Access token is not valid."));
         }
     }

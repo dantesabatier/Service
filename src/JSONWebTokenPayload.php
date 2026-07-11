@@ -82,14 +82,30 @@ final class JSONWebTokenPayload implements JsonSerializable
     }
 
     /**
-     * Factory from raw value
+     * Factory from raw value.
      *
-     * @param JSONWebTokenPayloadRawValue $rawValue
+     * Coerces the type-sensitive claims to their declared types so that a token carrying, for example, a string `exp` or `ver` cannot bypass the loose comparisons performed by the access evaluators. Absent claims are left absent so that the evaluators continue to treat a missing claim as an unset condition.
+     *
+     * The input is the untrusted, freshly decoded token payload, so it is typed as a raw associative array rather than the narrowed claim shape; this method is what produces a value conforming to that shape.
+     *
+     * @param array<string, mixed> $rawValue
      * @return JSONWebTokenPayload
      */
     public static function payload(array $rawValue): JSONWebTokenPayload
     {
+        foreach ([JWTExpirationTimeKey, JWTNotBeforeTimeKey, JWTIssuedAtTimeKey] as $key) {
+            if (isset($rawValue[$key]) && is_scalar($rawValue[$key])) {
+                $rawValue[$key] = (float)$rawValue[$key];
+            }
+        }
+        if (isset($rawValue[JWTVersionKey]) && is_scalar($rawValue[JWTVersionKey])) {
+            $rawValue[JWTVersionKey] = (int)$rawValue[JWTVersionKey];
+        }
+        if (isset($rawValue[JWTEnabledKey])) {
+            $rawValue[JWTEnabledKey] = (bool)$rawValue[JWTEnabledKey];
+        }
         $payload = new self();
+        /** @var JSONWebTokenPayloadRawValue $rawValue */
         $payload->rawValue = $rawValue;
         return $payload;
     }

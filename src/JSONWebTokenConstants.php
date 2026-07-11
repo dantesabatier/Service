@@ -10,6 +10,8 @@ const JWTPrivateKey = "JWT_PRIVATE_KEY";
 const JWTValidityTimeIntervalKey = "JWT_VALIDITY_TIME_INTERVAL";
 /** @var string Environment key specifying the algorithm used to sign JWTs (e.g., RS256, HS512) */
 const JWTSignatureAlgorithmKey = "JWT_SIGNATURE_ALGORITHM";
+/** @var string Environment key defining the canonical issuer ("iss") for JWTs issued and validated by this service */
+const JWTIssuerEnvironmentKey = "JWT_ISSUER";
 /** @var string Header claim key representing the signing algorithm used to secure the token (RFC 7519 §5.1) */
 const JWTAlgorithmKey = "alg";
 /** @var string Header claim key defining the token type; for JWT this is typically "JWT" (RFC 7519 §5.1) */

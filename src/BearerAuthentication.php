@@ -45,7 +45,7 @@ final class BearerAuthentication extends Authentication
             if (!($jwtKey = $this->environment[JWTPrivateKey])) {
                 return $this->token = null;
             }
-            return $this->token = new JSONWebTokenService($jwtKey, $this->context->tokenIssuer)->decode($this->context->authorizationHeader->value);
+            return $this->token = new JSONWebTokenService($jwtKey)->decode($this->context->authorizationHeader->value);
         }
     }
     /** @var ArrayClass<string> */

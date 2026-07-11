@@ -15,12 +15,33 @@ use Sabatier\Service\JSONWebTokenRS256DecoderStrategy;
 use Sabatier\Service\JSONWebTokenRS256EncoderStrategy;
 use Sabatier\Service\JSONWebTokenService;
 use Sabatier\Service\JSONWebTokenSigningAlgorithm;
+use Sabatier\Foundation\ProcessInfo;
+use const Sabatier\Service\JWTIssuerEnvironmentKey;
 use const Sabatier\Service\JWTIssuerKey;
 use const Sabatier\Service\JWTSubjectKey;
 
 final class JSONWebTokenServiceTest extends TestCase
 {
     private const KEY = 'test-hs256-secret';
+
+    private ?string $originalIssuer = null;
+
+    protected function setUp(): void
+    {
+        $env = ProcessInfo::processInfo()->environment;
+        $this->originalIssuer = $env[JWTIssuerEnvironmentKey];
+        unset($env[JWTIssuerEnvironmentKey]);
+    }
+
+    protected function tearDown(): void
+    {
+        $env = ProcessInfo::processInfo()->environment;
+        if ($this->originalIssuer !== null) {
+            $env[JWTIssuerEnvironmentKey] = $this->originalIssuer;
+        } else {
+            unset($env[JWTIssuerEnvironmentKey]);
+        }
+    }
 
     private const RSA_PRIVATE_KEY = <<<PEM
     -----BEGIN RSA PRIVATE KEY-----
@@ -155,6 +176,45 @@ final class JSONWebTokenServiceTest extends TestCase
         $svc = $this->hs256('my-svc');
         $decoded = $svc->decode($svc->encode([JWTSubjectKey => 'u']));
         $this->assertNull($decoded->payload->issuer);
+    }
+
+    // --- Issuer resolved from environment (JWT_ISSUER) ---
+
+    #[Test]
+    public function environmentIssuerIsUsedWhenNoExplicitIssuer(): void
+    {
+        ProcessInfo::processInfo()->environment[JWTIssuerEnvironmentKey] = "env-issuer";
+        $svc = $this->hs256();
+        $decoded = $svc->decode($svc->encode([JWTSubjectKey => "u", JWTIssuerKey => "env-issuer"]));
+        $this->assertSame("env-issuer", $decoded->payload->issuer);
+    }
+
+    #[Test]
+    public function environmentIssuerMismatchThrowsException(): void
+    {
+        ProcessInfo::processInfo()->environment[JWTIssuerEnvironmentKey] = "env-issuer";
+        $svc = $this->hs256();
+        $token = $svc->encode([JWTSubjectKey => "u", JWTIssuerKey => "wrong"]);
+        $this->expectException(JSONWebTokenException::class);
+        $svc->decode($token);
+    }
+
+    #[Test]
+    public function explicitIssuerTakesPrecedenceOverEnvironment(): void
+    {
+        ProcessInfo::processInfo()->environment[JWTIssuerEnvironmentKey] = "env-issuer";
+        $svc = $this->hs256("explicit-issuer");
+        $token = $svc->encode([JWTSubjectKey => "u", JWTIssuerKey => "env-issuer"]);
+        $this->expectException(JSONWebTokenException::class);
+        $svc->decode($token);
+    }
+
+    #[Test]
+    public function withoutEnvironmentIssuerValidationIsSkipped(): void
+    {
+        $svc = $this->hs256();
+        $decoded = $svc->decode($svc->encode([JWTSubjectKey => "u", JWTIssuerKey => "any-issuer"]));
+        $this->assertSame("any-issuer", $decoded->payload->issuer);
     }
 
     // --- RS256 ---

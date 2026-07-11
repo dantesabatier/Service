@@ -17,6 +17,10 @@ final class JSONWebTokenService
     private JSONWebTokenSigningAlgorithm $algorithm {
         get => $this->algorithm ??= JSONWebTokenSigningAlgorithm::tryFrom(ProcessInfo::processInfo()->environment[JWTSignatureAlgorithmKey] ?? "") ?? JSONWebTokenSigningAlgorithm::hs256;
     }
+    /** @var string The canonical issuer used both to stamp and to validate the "iss" claim. Resolved from the explicit constructor value when provided, otherwise from the JWT_ISSUER environment variable, otherwise the empty string (which disables issuer validation). Never derived from the client-controlled request host. */
+    public string $issuer {
+        get => $this->issuer ??= $this->explicitIssuer ?? (string)(ProcessInfo::processInfo()->environment[JWTIssuerEnvironmentKey] ?? "");
+    }
     /** @var JSONWebTokenEncoderStrategy The encoder strategy instance based on the algorithm and key. */
     private JSONWebTokenEncoderStrategy $encoderStrategy {
         get {
@@ -34,11 +38,11 @@ final class JSONWebTokenService
                 return $this->decoderStrategy;
             }
             $strategyClass = JSONWebTokenCoderStrategyFactory::shared()->getStrategyClass(JSONWebTokenCoderStrategyFactory::shared()->decoderStrategies, $this->algorithm);
-            return $this->decoderStrategy = new $strategyClass($this->key, $this->issuer ?? '');
+            return $this->decoderStrategy = new $strategyClass($this->key, $this->issuer);
         }
     }
 
-    public function __construct(private readonly OpenSSLAsymmetricKey|string $key, private readonly ?string $issuer = null)
+    public function __construct(private readonly OpenSSLAsymmetricKey|string $key, private readonly ?string $explicitIssuer = null)
     {
     }
 

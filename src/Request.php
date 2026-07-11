@@ -40,9 +40,9 @@ final class Request extends URLRequest
                 return $result;
             }) ?? new Dictionary();
     }
-    /** @var Dictionary<mixed> Request input parameters merged from the parsed body and query string. */
+    /** @var Dictionary<mixed> Request input parameters, taking the parsed body as authoritative and drawing on the query string only for keys the body does not provide. */
     private(set) Dictionary $parameters {
-        get => $this->parameters ??= Dictionary::dictionaryWithArray($this->getParsedBody())->merging($this->queryParameters);
+        get => $this->parameters ??= $this->queryParameters->merging(Dictionary::dictionaryWithArray($this->getParsedBody()));
     }
     private bool $isSerializationResolved = false;
     /** @var Dictionary<mixed>|null Describes which attributes/relationships to include when serializing objects for this request. */

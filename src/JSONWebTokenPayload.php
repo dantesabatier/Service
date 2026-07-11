@@ -101,7 +101,7 @@ final class JSONWebTokenPayload implements JsonSerializable
         if (isset($rawValue[JWTVersionKey]) && is_scalar($rawValue[JWTVersionKey])) {
             $rawValue[JWTVersionKey] = (int)$rawValue[JWTVersionKey];
         }
-        if (isset($rawValue[JWTEnabledKey])) {
+        if (isset($rawValue[JWTEnabledKey]) && is_scalar($rawValue[JWTEnabledKey])) {
             $rawValue[JWTEnabledKey] = (bool)$rawValue[JWTEnabledKey];
         }
         $payload = new self();

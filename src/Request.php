@@ -71,7 +71,12 @@ final class Request extends URLRequest
     {
         parent::__construct(new URL(request_url()));
         $this->allHTTPHeaderFields = new Dictionary(getallheaders());
-        $this->httpMethod = $this->valueForHttpHeaderField("X-Http-Method-Override") ?? $_SERVER["REQUEST_METHOD"] ?? HTTPRequestMethod::get;
+        $requestMethod = $_SERVER["REQUEST_METHOD"] ?? HTTPRequestMethod::get;
+        $override = strtoupper((string)$this->valueForHttpHeaderField("X-Http-Method-Override"));
+        $this->httpMethod = $requestMethod === HTTPRequestMethod::post && match ($override) {
+            HTTPRequestMethod::put, HTTPRequestMethod::patch, HTTPRequestMethod::delete => true,
+            default => false,
+        } ? $override : $requestMethod;
         $this->httpBody = match ($this->httpMethod) {
             HTTPRequestMethod::post, HTTPRequestMethod::put, HTTPRequestMethod::delete, HTTPRequestMethod::patch => (function (): ?string {
                 $contentType = $this->valueForHttpHeaderField("Content-Type") ?? "text/plain";

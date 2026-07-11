@@ -12,8 +12,6 @@ const RateLimitMaxRequestsUserKey = "RATE_LIMIT_MAX_REQUESTS_USER";
 const RateLimitMaxRequestsIPKey = "RATE_LIMIT_MAX_REQUESTS_IP";
 /** @var string Environment variable key for the rate limit window duration in seconds. */
 const RateLimitWindowSecondsKey = "RATE_LIMIT_WINDOW_SECONDS";
-/** @var string Environment variable key for a comma-separated list of trusted reverse proxy IPs/CIDRs. */
-const RateLimitTrustedProxiesKey = "RATE_LIMIT_TRUSTED_PROXIES";
 /** @var bool Default rate limiting state. */
 const RateLimitEnabledDefault = true;
 /** @var int Default maximum requests per window for authenticated users. */

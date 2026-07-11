@@ -26,7 +26,7 @@ On success the response is `200 OK` with a JSON body:
 
 In session mode the `token` field is absent and a `Set-Cookie` header establishes the session instead.
 
-The JWT contains two scopes: `access` (short-lived, for regular requests) and `refresh` (for token rotation). The default validity window is 1800 seconds; override it with `JWT_VALIDITY_TIME_INTERVAL`.
+The JWT contains two scopes: `access` (short-lived, for regular requests) and `refresh` (for token rotation). The default validity window is 1800 seconds; override it with `JWT_VALIDITY_TIME_INTERVAL`. Set `JWT_ISSUER` to stamp and validate the `iss` claim; when unset, the issuer is not validated.
 
 ### Authenticated requests (JWT)
 
@@ -344,7 +344,7 @@ Authorization: Bearer <jwt>
 | `Idempotency-Key`        | Client-generated unique key (max 255 chars) for POST/PATCH. The framework stores the response for 24 hours (default) and replays it on retry. Concurrent requests with the same key receive `409 Conflict`. |
 | `Serialization`          | JSON object controlling which attributes and relationships are included in entity responses. Keys are attribute names; values are `true` (include) or a nested serialization object for relationships.      |
 | `If-None-Match`          | ETag value from a previous response. Returns `304 Not Modified` when the resource has not changed.                                                                                                          |
-| `X-Http-Method-Override` | Overrides the HTTP method (`PATCH`, `DELETE`) for clients that only support GET/POST.                                                                                                                       |
+| `X-Http-Method-Override` | Overrides the HTTP method for clients that cannot send `PUT`/`PATCH`/`DELETE`. Honored only on a real `POST`, and only to `PUT`, `PATCH`, or `DELETE`; ignored otherwise.                                     |
 
 ### Response headers
 

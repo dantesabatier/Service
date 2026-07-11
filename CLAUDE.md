@@ -60,7 +60,7 @@ Custom responders are **auto-discovered** from `src/Responders/` and `src/ViewCo
 
 Do **not** create a custom responder for an entity just to expose basic CRUD — PersistentSpace already does it.
 
-For `PATCH` and `DELETE`, the request body must include `objectID` (the `ManagedObjectObjectIDKey` constant). For `GET`, query parameters become equality predicates; or pass a full `FetchRequest` as a base64-encoded JSON via `?fetchRequest=`.
+For `PATCH` and `DELETE`, the request must provide `objectID` (the `ManagedObjectObjectIDKey` constant) — in the body, or in the query string for keys the body omits (the body is authoritative on collision). For `GET`, query parameters become equality predicates; or pass a full `FetchRequest` as a base64-encoded JSON via `?fetchRequest=`.
 
 ### PersistentHistoryResponder
 

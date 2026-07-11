@@ -64,7 +64,7 @@ Custom responders auto-discover from `src/Responders/` and `src/ViewControllers/
 
 Handles standard CRUD for Core Data entities with no custom responder. Activates (`$isFirstResponder = true`) when the URL's last path component matches a registered entity name. Handles GET/POST/PATCH/DELETE with field-level security and ownership scoping.
 
-For PATCH/DELETE, body must include `objectID`. For GET, query params become equality predicates; pass `FetchRequest` as base64 JSON via `?fetchRequest=`.
+For PATCH/DELETE, provide `objectID` in the body, or in the query for keys the body omits (body wins on collision). For GET, query params become equality predicates; pass `FetchRequest` as base64 JSON via `?fetchRequest=`.
 
 ## Response pipeline
 

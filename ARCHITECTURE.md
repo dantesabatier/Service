@@ -303,7 +303,7 @@ This layering means that a warm-cache user with a valid JWT authorizing the requ
 
 ### Rate Limiting
 
-Rate limiting is enforced before the first responder is consulted. The framework keys the counter on the authenticated username when a user is known, or on the client IP address for anonymous requests. The counter and TTL are stored in a configurable backend.
+Rate limiting is enforced before the first responder is consulted. The framework keys the counter on the authenticated username when a user is known, or on `REMOTE_ADDR` — the real TCP peer, which cannot be forged by request headers — for anonymous requests. Clients sharing an egress address (behind a NAT or forward proxy) therefore share the anonymous quota; authenticated requests are keyed per user and are unaffected. The counter and TTL are stored in a configurable backend.
 
 Available backends: APCu (default, shared memory within a single server), Redis, Memcached, and InMemory (process-scoped, for testing). The backend is configured by replacing `Application::$rateLimitStore`.
 
@@ -469,6 +469,7 @@ All environment keys are PHP constants defined in the framework's constants file
 | `JWTPrivateKey`              | —       | Enables JWT mode when set. Value is the signing key (HMAC secret or RSA private key PEM). |
 | `JWTSignatureAlgorithmKey`   | `hs256` | Signing algorithm. Values: `hs256`, `rs256`.                                              |
 | `JWTValidityTimeIntervalKey` | 3600    | Token lifetime in seconds.                                                                |
+| `JWTIssuerEnvironmentKey`    | —       | Canonical `iss` claim, used for both issuance and validation. When unset, issuer validation is skipped. Never derived from the request host. |
 
 ### CORS
 
@@ -496,7 +497,7 @@ All environment keys are PHP constants defined in the framework's constants file
 | Key                           | Description                                                |
 |-------------------------------|------------------------------------------------------------|
 | `RateLimitEnabledKey`         | Enable or disable rate limiting.                           |
-| `RateLimitMaxRequestsIPKey`   | Request quota for anonymous (IP-keyed) clients per window. |
+| `RateLimitMaxRequestsIPKey`   | Request quota for anonymous clients per window, keyed on `REMOTE_ADDR`. |
 | `RateLimitMaxRequestsUserKey` | Request quota for authenticated users per window.          |
 | `RateLimitWindowSecondsKey`   | Window duration in seconds.                                |
 

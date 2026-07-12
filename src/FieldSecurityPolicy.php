@@ -29,11 +29,7 @@ abstract readonly class FieldSecurityPolicy
     public bool $isSecurityEnabled;
     /** @var ArrayClass<string> The authorization scopes for the current request. */
     public ArrayClass $scopes;
-    /** @var Dictionary<mixed> The request environment bound to `$ENVIRONMENT` in attribute-based conditions. */
-    public Dictionary $environment;
-    /** @var Dictionary<mixed> The request context (`ip`, `host`, `country`) bound to `$REQUEST` in attribute-based conditions. */
-    public Dictionary $request;
-    /** @var AccessConditionResolver Resolves `where` conditions into predicates with `$SUBJECT`/`$ENVIRONMENT`/`$REQUEST` substituted. */
+    /** @var AccessConditionResolver Resolves `where` conditions into predicates with temporal substitution variables. */
     public AccessConditionResolver $conditionResolver;
     /** @var Set<string> The authenticated subject's role names, empty when unauthenticated. */
     protected Set $userRoles;
@@ -46,14 +42,12 @@ abstract readonly class FieldSecurityPolicy
         $this->user = $authorizationContext->user;
         $this->scopes = $authorizationContext->scopes;
         $this->isSecurityEnabled = $authorizationContext->isSecurityEnabled;
-        $this->environment = $authorizationContext->environment;
-        $this->request = $authorizationContext->request;
         $this->conditionResolver = new AccessConditionResolver();
         $this->userRoles = $this->user ? $this->user->roles->map(fn(AuthorizableRole $role): string => $role->name) : new Set();
     }
 
     /**
-     * Evaluates an attribute-based condition against a managed object, supplying `$SUBJECT`/`$ENVIRONMENT` as the substitution context.
+     * Evaluates an attribute-based condition against a managed object, supplying the temporal substitution variables as the substitution context.
      *
      * @param string $where The predicate format string.
      * @param list<mixed> $arguments Positional arguments for the format placeholders.
@@ -81,7 +75,7 @@ abstract readonly class FieldSecurityPolicy
             return null;
         }
         $rule = ResourceRule::resolve($className, Readable::class);
-        return $rule?->where !== null ? $this->conditionResolver->predicate($rule->where, $rule->arguments) : null;
+        return $rule && $rule->where !== null ? $this->conditionResolver->predicate($rule->where, $rule->arguments) : null;
     }
 
     /**
@@ -89,6 +83,7 @@ abstract readonly class FieldSecurityPolicy
      *
      * @param ManagedObject $object The managed object being created, updated, or deleted.
      * @throws ForbiddenException When the subject may not write the resource.
+     * @throws Exception
      */
     public function enforceResourceAccess(ManagedObject $object): void
     {

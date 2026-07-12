@@ -29,10 +29,10 @@ use Attribute;
  *  #[Readable(where: "status == %@", arguments: ["published"])] // attribute-based
  *  public string $body;
  *
- *  #[Readable(where: "department == $SUBJECT.department")]      // resource vs subject
- *  public float $salary;
+ *  #[Readable(where: "publishedAt <= $TODAY")]                  // temporal condition
+ *  public string $article;
  *
- *  #[Readable(["Finance"], where: "createdAt BETWEEN $ENVIRONMENT.range")] // resource-level
+ *  #[Readable(["Finance"], where: "createdAt >= $MONTH_START")] // resource-level
  *  final class Invoice extends ManagedObject { }
  * </code>
  */

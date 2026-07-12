@@ -18,25 +18,27 @@ use function Sabatier\Foundation\fatal_error;
  *
  * @internal
  */
-final readonly class AccessConditionResolver
+final class AccessConditionResolver
 {
-    /** @var Dictionary<mixed> The substitution context. */
-    private Dictionary $variables;
-
-    public function __construct()
-    {
-        $now = Date::now();
-        $weekStart = strtotime("monday this week");
-        $this->variables = new Dictionary([
-            "\$TODAY" => $now->format("Y-m-d"),
-            "\$NOW" => $now->format("Y-m-d\TH:i:s"),
-            "\$WEEK_START" => new Date((float)$weekStart)->format("Y-m-d"),
-            "\$WEEK_END" => new Date((float)strtotime("+6 days", (int)$weekStart))->format("Y-m-d"),
-            "\$MONTH_START" => new Date((float)strtotime("first day of this month"))->format("Y-m-d"),
-            "\$MONTH_END" => new Date((float)strtotime("last day of this month"))->format("Y-m-d"),
-            "\$YEAR_START" => new Date((float)strtotime("first day of January this year"))->format("Y-m-d"),
-            "\$YEAR_END" => new Date((float)strtotime("last day of December this year"))->format("Y-m-d"),
-        ]);
+    /** @var Dictionary<string> The temporal substitution variables (`$TODAY`, `$NOW`, `$WEEK_START`, …) bound as the substitution context at evaluation time. */
+    public Dictionary $variables {
+        get {
+            if (isset($this->variables)) {
+                return $this->variables;
+            }
+            $now = Date::now();
+            $weekStart = strtotime("monday this week");
+            return $this->variables = new Dictionary([
+                "\$TODAY" => $now->format("Y-m-d"),
+                "\$NOW" => $now->format("Y-m-d\TH:i:s"),
+                "\$WEEK_START" => new Date((float)$weekStart)->format("Y-m-d"),
+                "\$WEEK_END" => new Date((float)strtotime("+6 days", (int)$weekStart))->format("Y-m-d"),
+                "\$MONTH_START" => new Date((float)strtotime("first day of this month"))->format("Y-m-d"),
+                "\$MONTH_END" => new Date((float)strtotime("last day of this month"))->format("Y-m-d"),
+                "\$YEAR_START" => new Date((float)strtotime("first day of January this year"))->format("Y-m-d"),
+                "\$YEAR_END" => new Date((float)strtotime("last day of December this year"))->format("Y-m-d"),
+            ]);
+        }
     }
 
     /**
@@ -51,7 +53,7 @@ final readonly class AccessConditionResolver
     }
 
     /**
-     * Evaluates a condition against a managed object, supplying `$SUBJECT`/`$ENVIRONMENT` as the substitution context.
+     * Evaluates a condition against a managed object, supplying the temporal substitution variables as the substitution context.
      *
      * @param string $where The predicate format string.
      * @param list<mixed> $arguments Positional arguments for the format placeholders.

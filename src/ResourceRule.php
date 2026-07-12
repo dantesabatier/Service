@@ -28,7 +28,7 @@ final class ResourceRule
     /**
      * @param Set<string> $roles Role names allowed to access the resource. Empty means any role.
      * @param AuthorizationScope $scope Scope of the permission.
-     * @param string|null $where Predicate format string gating the resource, resolved against the row with `$SUBJECT`/`$ENVIRONMENT`. Null means no attribute-based condition.
+     * @param string|null $where Predicate format string gating the resource, resolved against the row with temporal substitution variables. Null means no attribute-based condition.
      * @param list<mixed> $arguments Positional arguments for the `$where` placeholders.
      */
     public function __construct(public readonly Set $roles, public readonly AuthorizationScope $scope, public readonly ?string $where = null, public readonly array $arguments = [])

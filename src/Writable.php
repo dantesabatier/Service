@@ -28,8 +28,8 @@ use Attribute;
  *  #[Writable(where: "status == %@", arguments: ["draft"])]     // attribute-based
  *  public string $body;
  *
- *  #[Writable(where: "department == $SUBJECT.department")]      // resource vs subject
- *  public float $salary;
+ *  #[Writable(where: "dueDate >= $TODAY")]                      // temporal condition
+ *  public float $amount;
  *
  *  #[Writable(["Admin"], where: "status != %@", arguments: ["locked"])] // resource-level
  *  final class Invoice extends ManagedObject { }

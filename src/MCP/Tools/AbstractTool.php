@@ -14,13 +14,12 @@ use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
-use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
-use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\CompoundPredicate;
 use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Foundation\Predicates\Predicate;
+use Sabatier\Service\AccessConditionResolver;
 use Sabatier\Service\Application;
 use Sabatier\Service\Authorizable;
 use Sabatier\Service\AuthorizationContext;
@@ -75,7 +74,7 @@ abstract class AbstractTool
     }
     /** @var AuthorizationContext Authorization context derived from the current authentication. */
     protected AuthorizationContext $authorizationContext {
-        get => $this->authorizationContext ??= new AuthorizationContext(Application::shared()->authenticationManager->authentication->authenticatedUser, Application::shared()->authenticationManager->authentication->authorizationScopes, $this->isSecurityEnabled, ProcessInfo::processInfo()->environment);
+        get => $this->authorizationContext ??= new AuthorizationContext(Application::shared()->authenticationManager->authentication->authenticatedUser, Application::shared()->authenticationManager->authentication->authorizationScopes, $this->isSecurityEnabled);
     }
     /** @var FieldSecurityPolicy Security policy used for field-level read/write enforcement. */
     protected FieldSecurityPolicy $fieldSecurityPolicy {
@@ -319,7 +318,7 @@ abstract class AbstractTool
     }
 
     /**
-     * Resolves $WEEK_START, $WEEK_END, $MONTH_START, $MONTH_END in a predicate arguments array.
+     * Resolves the temporal substitution tokens in a predicate arguments array to literal date strings.
      * Handles one level of nesting (e.g. BETWEEN ["$WEEK_START","$WEEK_END"]).
      *
      * @param ArrayClass<mixed> $params
@@ -327,18 +326,7 @@ abstract class AbstractTool
      */
     protected function resolveVariables(ArrayClass $params): ArrayClass
     {
-        $now = Date::now();
-        $weekStart = strtotime("monday this week");
-        $dateMappings = new Dictionary([
-            "\$TODAY" => $now->format("Y-m-d"),
-            "\$NOW" => $now->format("Y-m-d\TH:i:s"),
-            "\$WEEK_START" => new Date((float)$weekStart)->format("Y-m-d"),
-            "\$WEEK_END" => new Date((float)strtotime("+6 days", (int)$weekStart))->format("Y-m-d"),
-            "\$MONTH_START" => new Date((float)strtotime("first day of this month"))->format("Y-m-d"),
-            "\$MONTH_END" => new Date((float)strtotime("last day of this month"))->format("Y-m-d"),
-            "\$YEAR_START" => new Date((float)strtotime("first day of January this year"))->format("Y-m-d"),
-            "\$YEAR_END" => new Date((float)strtotime("last day of December this year"))->format("Y-m-d"),
-        ]);
+        $dateMappings = new AccessConditionResolver()->variables;
         $resolve = fn(mixed $v): mixed => is_string($v) && $dateMappings[$v] !== null ? $dateMappings[$v] : $v;
         return $params->map(fn(mixed $value): mixed => $value instanceof ArrayClass ? $value->map($resolve) : $resolve($value));
     }

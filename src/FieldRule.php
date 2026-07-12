@@ -14,7 +14,7 @@ final readonly class FieldRule
     /**
      * @param Set<string> $roles
      * @param AuthorizationScope $scope
-     * @param string|null $where Raw predicate format string gating the field, resolved against the resource with `$SUBJECT`/`$ENVIRONMENT` at evaluation time. Null means no attribute-based condition.
+     * @param string|null $where Raw predicate format string gating the field, resolved against the resource with temporal substitution variables at evaluation time. Null means no attribute-based condition.
      * @param list<mixed> $arguments Positional arguments for the `$where` placeholders.
      */
     public function __construct(public Set $roles, public AuthorizationScope $scope, public ?string $where = null, public array $arguments = [])

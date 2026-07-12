@@ -84,6 +84,7 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
      * Resolves the attribute-based read predicate for the backing class, or null when there is nothing to narrow.
      *
      * @param class-string<ManagedObject> $className
+     * @throws Exception
      */
     protected function resourceReadPredicate(string $className): ?Predicate
     {

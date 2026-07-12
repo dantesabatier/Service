@@ -15,6 +15,7 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\CompoundPredicate;
 use Sabatier\Foundation\Predicates\Expression;
+use Sabatier\Foundation\Predicates\Predicate;
 
 /** @internal */
 final class ReadPersistentSpaceResponseStrategy extends PersistentSpaceResponseStrategy
@@ -28,14 +29,28 @@ final class ReadPersistentSpaceResponseStrategy extends PersistentSpaceResponseS
             $fetchRequest->entity = $this->entity;
             $entityClassName = $this->entity->managedObjectClassName ?? $this->entity->name;
             if ($this->isSecurityEnabled && $this->hasOwnScopeFor($this->entity->name) && ($ownerKey = OwnerResolver::getOwnerFieldName($entityClassName))) {
-                $ownershipPredicate = new ComparisonPredicate(Expression::expressionForKeyPath($ownerKey), Expression::expressionForConstantValue($this->user));
-                if ($fetchRequest->predicate) {
-                    $fetchRequest->predicate = CompoundPredicate::andPredicateWithSubpredicates(new ArrayClass([$fetchRequest->predicate, $ownershipPredicate]));
-                } else {
-                    $fetchRequest->predicate = $ownershipPredicate;
-                }
+                $this->narrow($fetchRequest, new ComparisonPredicate(Expression::expressionForKeyPath($ownerKey), Expression::expressionForConstantValue($this->user)));
+            }
+            $constraint = $this->resourceReadConstraint($entityClassName);
+            if ($constraint instanceof Predicate) {
+                $this->narrow($fetchRequest, $constraint);
             }
             return $fetchRequest;
+        }
+    }
+
+    private function narrow(FetchRequest $fetchRequest, Predicate $predicate): void
+    {
+        $fetchRequest->predicate = $fetchRequest->predicate ? CompoundPredicate::andPredicateWithSubpredicates(new ArrayClass([$fetchRequest->predicate, $predicate])) : $predicate;
+    }
+
+    public Response $deniedResponse {
+        /**
+         * @throws Exception
+         */
+        get {
+            $body = $this->fetchRequest->resultType === FetchRequestResultType::countResultType ? new Dictionary([ServiceResponseCountKey => 0]) : new ArrayClass();
+            return new Response($this->request->url, body: $body);
         }
     }
     #[Override]
@@ -45,6 +60,10 @@ final class ReadPersistentSpaceResponseStrategy extends PersistentSpaceResponseS
          */
         get {
             $context = $this->managedObjectContext;
+            $entityClassName = $this->entity->managedObjectClassName ?? $this->entity->name;
+            if ($this->resourceReadConstraint($entityClassName) === false) {
+                return $this->deniedResponse;
+            }
             $fetchRequest = $this->fetchRequest;
             $fetchRequestResult = match ($fetchRequest->resultType) {
                 FetchRequestResultType::managedObjectResultType, FetchRequestResultType::managedObjectIDResultType, FetchRequestResultType::dictionaryResultType => $context->fetch($fetchRequest),

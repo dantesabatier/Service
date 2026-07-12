@@ -30,6 +30,7 @@ final class CreatePersistentSpaceResponseStrategy extends PersistentSpaceRespons
             $this->assertUniqueness($parameters[ManagedObjectObjectIDKey] ?? 0);
             $object = EntityDescription::insertNewObject($entity->name, $context);
             $this->applySecureUpdate($object, $parameters);
+            $this->enforceResourceAccess($object);
             $context->save();
             $refreshed = $this->fetchBy($object->objectID) ?? throw new InternalServerErrorException(localized_string("failed to fetch refreshed object after creation"));
             $body = $this->applySecureRead($refreshed, $refreshed->jsonSerialize());

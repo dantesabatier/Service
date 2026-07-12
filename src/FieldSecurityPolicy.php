@@ -8,6 +8,8 @@ use Exception;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
+use Sabatier\Foundation\Predicates\Predicate;
+use Sabatier\Foundation\Set;
 use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\localized_string;
 
@@ -31,6 +33,8 @@ abstract readonly class FieldSecurityPolicy
     public Dictionary $environment;
     /** @var AccessConditionResolver Resolves `where` conditions into predicates with `$SUBJECT`/`$ENVIRONMENT` substituted. */
     public AccessConditionResolver $conditionResolver;
+    /** @var Set<string> The authenticated subject's role names, empty when unauthenticated. */
+    protected Set $userRoles;
 
     /**
      * @param AuthorizationContext $authorizationContext The authorization context for the current request.
@@ -42,6 +46,7 @@ abstract readonly class FieldSecurityPolicy
         $this->isSecurityEnabled = $authorizationContext->isSecurityEnabled;
         $this->environment = $authorizationContext->environment;
         $this->conditionResolver = new AccessConditionResolver($this->user, $this->environment);
+        $this->userRoles = $this->user ? $this->user->roles->map(fn(AuthorizableRole $role): string => $role->name) : new Set();
     }
 
     /**
@@ -54,6 +59,49 @@ abstract readonly class FieldSecurityPolicy
     public function evaluateCondition(string $where, array $arguments, ManagedObject $object): bool
     {
         return $this->conditionResolver->evaluate($where, $arguments, $object);
+    }
+
+    /**
+     * Resolves the resource-level read constraint declared by a `#[Readable]` attribute on a managed object class.
+     *
+     * The return value drives fetch-time filtering the same way {@see enforceOwnership} drives ownership:
+     * `true` grants unrestricted read, `false` denies the resource outright (the caller returns nothing),
+     * and a {@see Predicate} narrows the fetch to the rows the subject may read.
+     *
+     * @param class-string<ManagedObject> $className The managed object class backing the resource.
+     */
+    public function resourceReadConstraint(string $className): Predicate|bool
+    {
+        if (!$this->isSecurityEnabled) {
+            return true;
+        }
+        $rule = ResourceRule::resolve($className, Readable::class);
+        if (!$rule) {
+            return true;
+        }
+        if (!$rule->allowsRoles($this->userRoles)) {
+            return false;
+        }
+        return $rule->where !== null ? $this->conditionResolver->predicate($rule->where, $rule->arguments) : true;
+    }
+
+    /**
+     * Enforces the resource-level write rule declared by a `#[Writable]` attribute on the object's class.
+     *
+     * @param ManagedObject $object The managed object being created, updated, or deleted.
+     * @throws ForbiddenException When the subject may not write the resource.
+     */
+    public function enforceResourceAccess(ManagedObject $object): void
+    {
+        if (!$this->isSecurityEnabled) {
+            return;
+        }
+        $rule = ResourceRule::resolve($object::class, Writable::class);
+        if (!$rule) {
+            return;
+        }
+        $allowed = $rule->allowsRoles($this->userRoles) && ($rule->where === null || $this->evaluateCondition($rule->where, $rule->arguments, $object));
+        $allowed ?: throw new ForbiddenException(sprintf(localized_string("You don't have permission to modify this \"%s\" resource."), $object->entity->name));
     }
 
     /**

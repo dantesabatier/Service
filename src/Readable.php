@@ -7,7 +7,12 @@ namespace Sabatier\Service;
 use Attribute;
 
 /**
- * Marks a property as readable by specific roles under a defined scope.
+ * Marks a property — or an entire resource — as readable by specific roles under a defined scope.
+ *
+ * On a property, the rule gates that single field within an already-readable row.
+ * On a class, the rule gates the resource as a whole: rows the subject cannot read are
+ * excluded at fetch time (the condition is folded into the query predicate), so a listing
+ * omits them and a read by id yields nothing.
  *
  * Usage example:
  *
@@ -26,9 +31,12 @@ use Attribute;
  *
  *  #[Readable(where: "department == $SUBJECT.department")]      // resource vs subject
  *  public float $salary;
+ *
+ *  #[Readable(["Finance"], where: "createdAt BETWEEN $ENVIRONMENT.range")] // resource-level
+ *  final class Invoice extends ManagedObject { }
  * </code>
  */
-#[Attribute(Attribute::TARGET_PROPERTY)]
+#[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_CLASS)]
 final readonly class Readable extends FieldAttribute
 {
 }

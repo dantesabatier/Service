@@ -7,7 +7,11 @@ namespace Sabatier\Service;
 use Attribute;
 
 /**
- * Marks a property as writable by specific roles under a defined scope.
+ * Marks a property — or an entire resource — as writable by specific roles under a defined scope.
+ *
+ * On a property, the rule gates writes to that single field. On a class, the rule gates the
+ * resource as a whole: a create, update, or delete of a row the subject cannot write is
+ * rejected with `403 Forbidden`.
  *
  * Usage example:
  *
@@ -26,9 +30,12 @@ use Attribute;
  *
  *  #[Writable(where: "department == $SUBJECT.department")]      // resource vs subject
  *  public float $salary;
+ *
+ *  #[Writable(["Admin"], where: "status != %@", arguments: ["locked"])] // resource-level
+ *  final class Invoice extends ManagedObject { }
  * </code>
  */
-#[Attribute(Attribute::TARGET_PROPERTY)]
+#[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_CLASS)]
 final readonly class Writable extends FieldAttribute
 {
 }

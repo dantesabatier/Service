@@ -13,6 +13,7 @@ use Sabatier\CoreData\ManagedObjectID;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
+use Sabatier\Foundation\Predicates\Predicate;
 use const Sabatier\CoreData\ManagedObjectObjectIDKey;
 
 /** @internal */
@@ -69,6 +70,24 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
     protected function enforceOwnership(ManagedObject $object): void
     {
         $this->fieldSecurityPolicy->enforceOwnership($object);
+    }
+
+    /**
+     * @throws Exception
+     */
+    protected function enforceResourceAccess(ManagedObject $object): void
+    {
+        $this->fieldSecurityPolicy->enforceResourceAccess($object);
+    }
+
+    /**
+     * Resolves the resource-level read constraint for the backing class: `true` (unrestricted), `false` (denied), or a narrowing {@see Predicate}.
+     *
+     * @param class-string<ManagedObject> $className
+     */
+    protected function resourceReadConstraint(string $className): Predicate|bool
+    {
+        return $this->fieldSecurityPolicy->resourceReadConstraint($className);
     }
 
     /**

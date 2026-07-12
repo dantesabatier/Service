@@ -25,13 +25,15 @@ final readonly class AccessConditionResolver
     /**
      * @param Authorizable|null $subject The authenticated subject bound to `$SUBJECT`. Null when unauthenticated.
      * @param Dictionary<mixed> $environment The request environment bound to `$ENVIRONMENT`.
+     * @param Dictionary<mixed> $request The request context (`ip`, `host`, `country`) bound to `$REQUEST`.
      */
-    public function __construct(?Authorizable $subject, Dictionary $environment)
+    public function __construct(?Authorizable $subject, Dictionary $environment, Dictionary $request = new Dictionary())
     {
         /** @var Dictionary<mixed> $variables */
         $variables = new Dictionary();
         $variables["\$SUBJECT"] = $subject;
         $variables["\$ENVIRONMENT"] = $environment;
+        $variables["\$REQUEST"] = $request;
         $this->variables = $variables;
     }
 

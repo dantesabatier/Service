@@ -70,9 +70,24 @@ abstract class Responder extends ObjectClass
     protected AuthorizationService $authorizationService {
         get => Application::shared()->authorizationService;
     }
+    /** @var Dictionary<mixed> The request context (`ip`, `host`, `country`) bound to `$REQUEST` in attribute-based access conditions. `country` is populated only when a GeoIPResolver is configured. */
+    protected Dictionary $requestContext {
+        get {
+            if (isset($this->requestContext)) {
+                return $this->requestContext;
+            }
+            $ip = new ClientAddressResolver(Application::shared()->trustedProxies)->resolve($this->request);
+            /** @var Dictionary<mixed> $context */
+            $context = new Dictionary();
+            $context["ip"] = $ip;
+            $context["host"] = $this->request->valueForHttpHeaderField("Host");
+            $context["country"] = $ip !== null ? Application::shared()->geoIPResolver?->resolve($ip) : null;
+            return $this->requestContext = $context;
+        }
+    }
     /** @var AuthorizationContext Authorization context derived from the current authentication. */
     protected AuthorizationContext $authorizationContext {
-        get => $this->authorizationContext ??= new AuthorizationContext(Application::shared()->authenticationManager->authentication->authenticatedUser, Application::shared()->authenticationManager->authentication->authorizationScopes, $this->isSecurityEnabled, $this->environment);
+        get => $this->authorizationContext ??= new AuthorizationContext(Application::shared()->authenticationManager->authentication->authenticatedUser, Application::shared()->authenticationManager->authentication->authorizationScopes, $this->isSecurityEnabled, $this->environment, $this->requestContext);
     }
     /** @var string|null The username from the current request credential, if any. Resolved from the credential header only — it does not load the user entity, so it is safe and cheap to read on the error path. */
     protected ?string $currentUsername {

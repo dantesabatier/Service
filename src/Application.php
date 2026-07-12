@@ -147,6 +147,14 @@ class Application extends Responder
     public IdempotencyStore $idempotencyStore {
         get => $this->idempotencyStore ??= new APCuIdempotencyStore();
     }
+    /** @var Set<string> Trusted proxy IP addresses whose `X-Forwarded-For` header may be believed when resolving the client address. Empty (the default) means the client address is always `REMOTE_ADDR`. Declare your load balancer / CDN egress IPs here in the delegate. */
+    public Set $trustedProxies {
+        get => $this->trustedProxies ??= new Set();
+    }
+    /** @var GeoIPResolver|null Optional resolver mapping the client IP to a country code, exposed as `$REQUEST.country` in attribute-based access conditions. Null (the default) leaves `$REQUEST.country` unresolved, so country-based rules fail closed. Set in the delegate to enable geolocation. */
+    public ?GeoIPResolver $geoIPResolver {
+        get => $this->geoIPResolver ?? null;
+    }
     /** @var RateLimitInfo|null The rate limit state produced for the current request. Populated by enforceRateLimitIfNeeded() and consumed by RateLimitHeaderTransformer via the transformer context. */
     private(set) ?RateLimitInfo $rateLimitInfo = null;
     private bool $isTerminated = false;

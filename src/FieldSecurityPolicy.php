@@ -31,7 +31,9 @@ abstract readonly class FieldSecurityPolicy
     public ArrayClass $scopes;
     /** @var Dictionary<mixed> The request environment bound to `$ENVIRONMENT` in attribute-based conditions. */
     public Dictionary $environment;
-    /** @var AccessConditionResolver Resolves `where` conditions into predicates with `$SUBJECT`/`$ENVIRONMENT` substituted. */
+    /** @var Dictionary<mixed> The request context (`ip`, `host`, `country`) bound to `$REQUEST` in attribute-based conditions. */
+    public Dictionary $request;
+    /** @var AccessConditionResolver Resolves `where` conditions into predicates with `$SUBJECT`/`$ENVIRONMENT`/`$REQUEST` substituted. */
     public AccessConditionResolver $conditionResolver;
     /** @var Set<string> The authenticated subject's role names, empty when unauthenticated. */
     protected Set $userRoles;
@@ -45,7 +47,8 @@ abstract readonly class FieldSecurityPolicy
         $this->scopes = $authorizationContext->scopes;
         $this->isSecurityEnabled = $authorizationContext->isSecurityEnabled;
         $this->environment = $authorizationContext->environment;
-        $this->conditionResolver = new AccessConditionResolver($this->user, $this->environment);
+        $this->request = $authorizationContext->request;
+        $this->conditionResolver = new AccessConditionResolver($this->user, $this->environment, $this->request);
         $this->userRoles = $this->user ? $this->user->roles->map(fn(AuthorizableRole $role): string => $role->name) : new Set();
     }
 

@@ -6,6 +6,7 @@ namespace Sabatier\Service;
 
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
+use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Predicates\Predicate;
 use function Sabatier\Foundation\fatal_error;
@@ -13,28 +14,29 @@ use function Sabatier\Foundation\fatal_error;
 /**
  * Single point that evaluates an attribute-based access condition (`where` format string plus positional arguments) against a managed object.
  *
- * The condition may reference the resource by key path and the request-scoped variables `$SUBJECT` (the authenticated managed object) and `$ENVIRONMENT` (the request environment). Variables are supplied as the substitution context at evaluation time, so that a key path traversing a variable — e.g. `$SUBJECT.department` — resolves correctly (pre-substitution does not descend into a key path's operand). Centralizing the translation here guarantees that a given condition means the same thing in every consumer.
+ * The condition may reference the resource by key path. Centralizing the translation here guarantees that a given condition means the same thing in every consumer.
  *
  * @internal
  */
 final readonly class AccessConditionResolver
 {
-    /** @var Dictionary<mixed> The substitution context binding `$SUBJECT` and `$ENVIRONMENT`. */
+    /** @var Dictionary<mixed> The substitution context. */
     private Dictionary $variables;
 
-    /**
-     * @param Authorizable|null $subject The authenticated subject bound to `$SUBJECT`. Null when unauthenticated.
-     * @param Dictionary<mixed> $environment The request environment bound to `$ENVIRONMENT`.
-     * @param Dictionary<mixed> $request The request context (`ip`, `host`, `country`) bound to `$REQUEST`.
-     */
-    public function __construct(?Authorizable $subject, Dictionary $environment, Dictionary $request = new Dictionary())
+    public function __construct()
     {
-        /** @var Dictionary<mixed> $variables */
-        $variables = new Dictionary();
-        $variables["\$SUBJECT"] = $subject;
-        $variables["\$ENVIRONMENT"] = $environment;
-        $variables["\$REQUEST"] = $request;
-        $this->variables = $variables;
+        $now = Date::now();
+        $weekStart = strtotime("monday this week");
+        $this->variables = new Dictionary([
+            "\$TODAY" => $now->format("Y-m-d"),
+            "\$NOW" => $now->format("Y-m-d\TH:i:s"),
+            "\$WEEK_START" => new Date((float)$weekStart)->format("Y-m-d"),
+            "\$WEEK_END" => new Date((float)strtotime("+6 days", (int)$weekStart))->format("Y-m-d"),
+            "\$MONTH_START" => new Date((float)strtotime("first day of this month"))->format("Y-m-d"),
+            "\$MONTH_END" => new Date((float)strtotime("last day of this month"))->format("Y-m-d"),
+            "\$YEAR_START" => new Date((float)strtotime("first day of January this year"))->format("Y-m-d"),
+            "\$YEAR_END" => new Date((float)strtotime("last day of December this year"))->format("Y-m-d"),
+        ]);
     }
 
     /**

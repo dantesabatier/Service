@@ -81,13 +81,13 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
     }
 
     /**
-     * Resolves the resource-level read constraint for the backing class: `true` (unrestricted), `false` (denied), or a narrowing {@see Predicate}.
+     * Resolves the attribute-based read predicate for the backing class, or null when there is nothing to narrow.
      *
      * @param class-string<ManagedObject> $className
      */
-    protected function resourceReadConstraint(string $className): Predicate|bool
+    protected function resourceReadPredicate(string $className): ?Predicate
     {
-        return $this->fieldSecurityPolicy->resourceReadConstraint($className);
+        return $this->fieldSecurityPolicy->resourceReadPredicate($className);
     }
 
     /**

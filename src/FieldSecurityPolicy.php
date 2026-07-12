@@ -48,7 +48,7 @@ abstract readonly class FieldSecurityPolicy
         $this->isSecurityEnabled = $authorizationContext->isSecurityEnabled;
         $this->environment = $authorizationContext->environment;
         $this->request = $authorizationContext->request;
-        $this->conditionResolver = new AccessConditionResolver($this->user, $this->environment, $this->request);
+        $this->conditionResolver = new AccessConditionResolver();
         $this->userRoles = $this->user ? $this->user->roles->map(fn(AuthorizableRole $role): string => $role->name) : new Set();
     }
 
@@ -65,27 +65,23 @@ abstract readonly class FieldSecurityPolicy
     }
 
     /**
-     * Resolves the resource-level read constraint declared by a `#[Readable]` attribute on a managed object class.
+     * Resolves the attribute-based read predicate declared by a `#[Readable]` attribute on a managed
+     * object class, to be AND-folded into the fetch the same way `#[Owner]` narrows a read by owner.
      *
-     * The return value drives fetch-time filtering the same way {@see enforceOwnership} drives ownership:
-     * `true` grants unrestricted read, `false` denies the resource outright (the caller returns nothing),
-     * and a {@see Predicate} narrows the fetch to the rows the subject may read.
+     * Only the `where` condition is translated here; roles and scope are enforced programmatically
+     * elsewhere. Returns null when security is disabled, the class carries no `#[Readable]`, or the
+     * rule declares no `where` — in every such case there is nothing to narrow.
      *
      * @param class-string<ManagedObject> $className The managed object class backing the resource.
+     * @throws Exception
      */
-    public function resourceReadConstraint(string $className): Predicate|bool
+    public function resourceReadPredicate(string $className): ?Predicate
     {
         if (!$this->isSecurityEnabled) {
-            return true;
+            return null;
         }
         $rule = ResourceRule::resolve($className, Readable::class);
-        if (!$rule) {
-            return true;
-        }
-        if (!$rule->allowsRoles($this->userRoles)) {
-            return false;
-        }
-        return $rule->where !== null ? $this->conditionResolver->predicate($rule->where, $rule->arguments) : true;
+        return $rule?->where !== null ? $this->conditionResolver->predicate($rule->where, $rule->arguments) : null;
     }
 
     /**

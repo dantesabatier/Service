@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service;
 
+use Exception;
 use ReflectionClass;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\Set;
@@ -17,12 +18,12 @@ use Sabatier\Foundation\Set;
  *
  * @internal
  */
-final readonly class ResourceRule
+final class ResourceRule
 {
     /** @var array<class-string, array<class-string, RuleCache>> */
     private static array $cache = [];
 
-    public bool $requiresOwner;
+    public readonly bool $requiresOwner;
 
     /**
      * @param Set<string> $roles Role names allowed to access the resource. Empty means any role.
@@ -30,7 +31,7 @@ final readonly class ResourceRule
      * @param string|null $where Predicate format string gating the resource, resolved against the row with `$SUBJECT`/`$ENVIRONMENT`. Null means no attribute-based condition.
      * @param list<mixed> $arguments Positional arguments for the `$where` placeholders.
      */
-    public function __construct(public Set $roles, public AuthorizationScope $scope, public ?string $where = null, public array $arguments = [])
+    public function __construct(public readonly Set $roles, public readonly AuthorizationScope $scope, public readonly ?string $where = null, public readonly array $arguments = [])
     {
         $this->requiresOwner = $this->scope === AuthorizationScope::own;
     }
@@ -48,6 +49,7 @@ final readonly class ResourceRule
      *
      * @param class-string<ManagedObject> $className
      * @param class-string<Writable|Readable> $attributeClass
+     * @throws Exception
      */
     public static function resolve(string $className, string $attributeClass): ?ResourceRule
     {

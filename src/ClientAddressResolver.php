@@ -9,7 +9,7 @@ use Sabatier\Foundation\Set;
 /**
  * Resolves the client IP address for an incoming request.
  *
- * By default the client address is `REMOTE_ADDR` — the peer that actually opened the TCP
+ * By default, the client address is `REMOTE_ADDR` — the peer that actually opened the TCP
  * connection, which a client cannot forge. When the application runs behind a reverse proxy or
  * load balancer, the real client address arrives in `X-Forwarded-For`, but that header is
  * attacker-controlled unless the immediate peer is a proxy the application trusts. Trust is

@@ -88,7 +88,7 @@ final class GroupByTool extends AbstractTool
         $rows = $this->context->fetch($request);
         $groupByPaths = $arguments["group_by"];
         $normalized = $rows->map(fn(Dictionary $row): Dictionary => $this->normalizeRow($row, $groupByPaths));
-        return $this->jsonResult(["rowCount" => count($rows), "summary" => $this->buildSummary($entity, $arguments, count($rows)), "results" => $normalized]);
+        return $this->jsonResult(["rowCount" => $rows->count, "summary" => $this->buildSummary($entity, $arguments, $rows->count), "results" => $normalized]);
     }
 
     private function buildSummary(string $entityName, Dictionary $arguments, int $rowCount): string

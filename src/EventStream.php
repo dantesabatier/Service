@@ -2,6 +2,8 @@
 
 /** @noinspection PhpInternalEntityUsedInspection */
 
+declare(strict_types=1);
+
 namespace Sabatier\Service;
 
 use Exception;

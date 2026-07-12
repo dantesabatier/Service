@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Sabatier\Service;
 /**
  * @psalm-type DownloadResponseTransformerData array{body: string, filename: string, contentType: string}

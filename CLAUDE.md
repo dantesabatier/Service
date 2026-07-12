@@ -26,7 +26,7 @@ rector                        # apply
 phpcs src/
 ```
 
-The framework has a PHPUnit suite under `tests/` (`tests/Unit`, `tests/Integration`). Two tests fail in a clean tree, unrelated to any current work — `AuthorizationServiceTest::tokenScopeExactMatchGrantsAccessWithoutCacheLookup` (a fatal "Premature end of PHP process" that aborts the whole-suite run) and `FieldSecurityFilterTest::filterReadRemovesOwnedFieldWhenNotOwner`. Run suites per directory (`phpunit tests/Integration`) to work around the crash.
+The framework has a PHPUnit suite under `tests/` (`tests/Unit`, `tests/Integration`). Both directories pass in full (`phpunit tests/Unit`, `phpunit tests/Integration`).
 
 ## Architecture
 

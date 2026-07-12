@@ -259,14 +259,24 @@ final class FieldSecurityFilterTest extends TestCase
     // --- Own scope ---
 
     #[Test]
-    public function filterReadRemovesOwnedFieldWhenNotOwner(): void
+    public function filterReadRemovesOwnedFieldWhenOwnedByAnotherUser(): void
+    {
+        $result = (new FieldSecurityFilter(
+            $this->makeOwnedResource($this->makeUser('User')),
+            $this->makeUser('User')
+        ))->filterRead(new Dictionary(['secret' => 'classified']));
+        $this->assertNull($result['secret']);
+    }
+
+    #[Test]
+    public function filterReadKeepsOwnedFieldWhenResourceHasNoOwner(): void
     {
         $user = $this->makeUser('User');
         $result = (new FieldSecurityFilter(
             $this->makeOwnedResource(null),
             $user
         ))->filterRead(new Dictionary(['secret' => 'classified']));
-        $this->assertNull($result['secret']);
+        $this->assertSame('classified', $result['secret']);
     }
 
     #[Test]

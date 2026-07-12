@@ -67,6 +67,10 @@ final class AuthorizationServiceTest extends TestCase
             public function invalidateAuthorizable(Authorizable $authorizable): void {
                 $this->invalidated = true;
             }
+
+            public function invalidateAll(): void {
+                $this->invalidated = true;
+            }
         };
     }
 

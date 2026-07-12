@@ -12,6 +12,7 @@ use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Set;
+use Sabatier\Service\AccessConditionResolver;
 use Sabatier\Service\AuthorizableRole;
 use Sabatier\Service\AuthorizationScope;
 use Sabatier\Service\Authorizable;
@@ -58,6 +59,18 @@ class OwnedEntityFixture extends ManagedObject
 
     #[Readable(['Admin'], AuthorizationScope::own)]
     public string $secret = '';
+}
+
+class ConditionEntityFixture extends ManagedObject
+{
+    public string $status = '';
+    public string $department = '';
+
+    #[Readable(where: 'status == %@', arguments: ['published'])]
+    public string $body = '';
+
+    #[Readable(where: 'department == $SUBJECT.department')]
+    public float $salary = 0.0;
 }
 
 // --- Tests ---
@@ -265,5 +278,87 @@ final class FieldSecurityFilterTest extends TestCase
             $user
         ))->filterRead(new Dictionary(['secret' => 'classified']));
         $this->assertSame('classified', $result['secret']);
+    }
+
+    // --- Attribute-based condition (where) ---
+
+    private function makeConditionResource(string $status, string $department): ConditionEntityFixture
+    {
+        /** @var ConditionEntityFixture $resource */
+        $resource = (new ReflectionClass(ConditionEntityFixture::class))->newInstanceWithoutConstructor();
+        $entity = (new ReflectionClass(EntityDescription::class))->newInstanceWithoutConstructor();
+        $context = (new ReflectionClass(ManagedObjectContext::class))->newInstanceWithoutConstructor();
+        (new ReflectionClass(ManagedObject::class))->getProperty('entity')->setValue($resource, $entity);
+        (new ReflectionClass(ManagedObject::class))->getProperty('managedObjectContext')->setValue($resource, $context);
+        $resource->status = $status;
+        $resource->department = $department;
+        return $resource;
+    }
+
+    private function makeUserWithDepartment(string $department): Authorizable
+    {
+        return new class($department) implements Authorizable {
+            public function __construct(public readonly string $department) {}
+            public string $username { get => 'user'; }
+            public ?string $password { get => null; }
+            public bool $isEnabled { get => true; }
+            public int $refreshTokenVersion { get => 1; set {} }
+            public Set $roles { get => new Set(); }
+            public function isEqual(mixed $other): bool { return $this === $other; }
+            public static function defaultRepresentation(): Dictionary { return new Dictionary(); }
+            public function valueForKeyPath(string $keyPath): mixed { return $keyPath === 'department' ? $this->department : null; }
+        };
+    }
+
+    #[Test]
+    public function filterReadKeepsFieldWhenResourceConditionHolds(): void
+    {
+        $user = $this->makeUser();
+        $resolver = new AccessConditionResolver($user, new Dictionary());
+        $result = (new FieldSecurityFilter(
+            $this->makeConditionResource('published', ''),
+            $user,
+            $resolver
+        ))->filterRead(new Dictionary(['body' => 'visible']));
+        $this->assertSame('visible', $result['body']);
+    }
+
+    #[Test]
+    public function filterReadRemovesFieldWhenResourceConditionFails(): void
+    {
+        $user = $this->makeUser();
+        $resolver = new AccessConditionResolver($user, new Dictionary());
+        $result = (new FieldSecurityFilter(
+            $this->makeConditionResource('draft', ''),
+            $user,
+            $resolver
+        ))->filterRead(new Dictionary(['body' => 'hidden']));
+        $this->assertNull($result['body']);
+    }
+
+    #[Test]
+    public function filterReadKeepsFieldWhenSubjectAttributeMatchesResource(): void
+    {
+        $user = $this->makeUserWithDepartment('Bordado');
+        $resolver = new AccessConditionResolver($user, new Dictionary());
+        $result = (new FieldSecurityFilter(
+            $this->makeConditionResource('', 'Bordado'),
+            $user,
+            $resolver
+        ))->filterRead(new Dictionary(['salary' => 1000.0]));
+        $this->assertSame(1000.0, $result['salary']);
+    }
+
+    #[Test]
+    public function filterReadRemovesFieldWhenSubjectAttributeDiffersFromResource(): void
+    {
+        $user = $this->makeUserWithDepartment('Ventas');
+        $resolver = new AccessConditionResolver($user, new Dictionary());
+        $result = (new FieldSecurityFilter(
+            $this->makeConditionResource('', 'Bordado'),
+            $user,
+            $resolver
+        ))->filterRead(new Dictionary(['salary' => 1000.0]));
+        $this->assertNull($result['salary']);
     }
 }

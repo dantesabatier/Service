@@ -15,7 +15,9 @@ use function Sabatier\Foundation\localized_string;
  * Base policy for field-level security on managed object reads and writes.
  *
  * Provides shared authorization context and ownership enforcement,
- * while delegating read/write filtering to subclasses.
+ * while delegating read/write filtering to subclasses. It is also the single
+ * point that resolves attribute-based conditions (`where`) into predicates,
+ * so query-time, row-level, and field-level consumers agree on their meaning.
  */
 abstract readonly class FieldSecurityPolicy
 {
@@ -25,6 +27,10 @@ abstract readonly class FieldSecurityPolicy
     public bool $isSecurityEnabled;
     /** @var ArrayClass<string> The authorization scopes for the current request. */
     public ArrayClass $scopes;
+    /** @var Dictionary<mixed> The request environment bound to `$ENVIRONMENT` in attribute-based conditions. */
+    public Dictionary $environment;
+    /** @var AccessConditionResolver Resolves `where` conditions into predicates with `$SUBJECT`/`$ENVIRONMENT` substituted. */
+    public AccessConditionResolver $conditionResolver;
 
     /**
      * @param AuthorizationContext $authorizationContext The authorization context for the current request.
@@ -34,6 +40,20 @@ abstract readonly class FieldSecurityPolicy
         $this->user = $authorizationContext->user;
         $this->scopes = $authorizationContext->scopes;
         $this->isSecurityEnabled = $authorizationContext->isSecurityEnabled;
+        $this->environment = $authorizationContext->environment;
+        $this->conditionResolver = new AccessConditionResolver($this->user, $this->environment);
+    }
+
+    /**
+     * Evaluates an attribute-based condition against a managed object, supplying `$SUBJECT`/`$ENVIRONMENT` as the substitution context.
+     *
+     * @param string $where The predicate format string.
+     * @param list<mixed> $arguments Positional arguments for the format placeholders.
+     * @param ManagedObject $object The managed object to evaluate the condition against.
+     */
+    public function evaluateCondition(string $where, array $arguments, ManagedObject $object): bool
+    {
+        return $this->conditionResolver->evaluate($where, $arguments, $object);
     }
 
     /**

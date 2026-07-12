@@ -72,7 +72,7 @@ abstract class Responder extends ObjectClass
     }
     /** @var AuthorizationContext Authorization context derived from the current authentication. */
     protected AuthorizationContext $authorizationContext {
-        get => $this->authorizationContext ??= new AuthorizationContext(Application::shared()->authenticationManager->authentication->authenticatedUser, Application::shared()->authenticationManager->authentication->authorizationScopes, $this->isSecurityEnabled);
+        get => $this->authorizationContext ??= new AuthorizationContext(Application::shared()->authenticationManager->authentication->authenticatedUser, Application::shared()->authenticationManager->authentication->authorizationScopes, $this->isSecurityEnabled, $this->environment);
     }
     /** @var string|null The username from the current request credential, if any. Resolved from the credential header only — it does not load the user entity, so it is safe and cheap to read on the error path. */
     protected ?string $currentUsername {

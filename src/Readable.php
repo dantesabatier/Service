@@ -20,6 +20,12 @@ use Attribute;
  *
  *  #[Readable(["Admin"], AuthorizationScope::own)]
  *  public ?string $note;
+ *
+ *  #[Readable(where: "status == %@", arguments: ["published"])] // attribute-based
+ *  public string $body;
+ *
+ *  #[Readable(where: "department == $SUBJECT.department")]      // resource vs subject
+ *  public float $salary;
  * </code>
  */
 #[Attribute(Attribute::TARGET_PROPERTY)]

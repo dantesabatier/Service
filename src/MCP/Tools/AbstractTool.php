@@ -16,6 +16,7 @@ use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
+use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\CompoundPredicate;
 use Sabatier\Foundation\Predicates\Expression;
@@ -74,7 +75,7 @@ abstract class AbstractTool
     }
     /** @var AuthorizationContext Authorization context derived from the current authentication. */
     protected AuthorizationContext $authorizationContext {
-        get => $this->authorizationContext ??= new AuthorizationContext(Application::shared()->authenticationManager->authentication->authenticatedUser, Application::shared()->authenticationManager->authentication->authorizationScopes, $this->isSecurityEnabled);
+        get => $this->authorizationContext ??= new AuthorizationContext(Application::shared()->authenticationManager->authentication->authenticatedUser, Application::shared()->authenticationManager->authentication->authorizationScopes, $this->isSecurityEnabled, ProcessInfo::processInfo()->environment);
     }
     /** @var FieldSecurityPolicy Security policy used for field-level read/write enforcement. */
     protected FieldSecurityPolicy $fieldSecurityPolicy {

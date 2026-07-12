@@ -25,7 +25,7 @@ final readonly class FieldLevelSecurityPolicy extends FieldSecurityPolicy
     #[Override]
     public function applySecureRead(ManagedObject $object, Dictionary $data): Dictionary
     {
-        return $this->isSecurityEnabled ? new FieldSecurityFilter($object, $this->user ?? fatal_error())->filterRead($data) : $data;
+        return $this->isSecurityEnabled ? new FieldSecurityFilter($object, $this->user ?? fatal_error(), $this->conditionResolver)->filterRead($data) : $data;
     }
 
     /**
@@ -33,7 +33,7 @@ final readonly class FieldLevelSecurityPolicy extends FieldSecurityPolicy
      */
     private function applySecureWrite(ManagedObject $object, Dictionary $body): Dictionary
     {
-        return $this->isSecurityEnabled ? new FieldSecurityFilter($object, $this->user ?? fatal_error())->filterWrite($body) : $body;
+        return $this->isSecurityEnabled ? new FieldSecurityFilter($object, $this->user ?? fatal_error(), $this->conditionResolver)->filterWrite($body) : $body;
     }
 
     private function securePassword(ManagedObject $object, Dictionary $body): void

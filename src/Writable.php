@@ -20,6 +20,12 @@ use Attribute;
  *
  *  #[Writable(["Admin"], AuthorizationScope::own)]
  *  public ?string $note;
+ *
+ *  #[Writable(where: "status == %@", arguments: ["draft"])]     // attribute-based
+ *  public string $body;
+ *
+ *  #[Writable(where: "department == $SUBJECT.department")]      // resource vs subject
+ *  public float $salary;
  * </code>
  */
 #[Attribute(Attribute::TARGET_PROPERTY)]

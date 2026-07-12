@@ -25,7 +25,7 @@ final class FieldSecurityFilter
         get => $this->ownershipService ??= new OwnershipService(new OwnerResolver($this->resource), $this->user);
     }
 
-    public function __construct(private readonly ManagedObject $resource, private readonly Authorizable $user)
+    public function __construct(private readonly ManagedObject $resource, private readonly Authorizable $user, private readonly ?AccessConditionResolver $conditionResolver = null)
     {
         $this->userRoles = $this->user->roles->map(fn(AuthorizableRole $role): string => $role->name);
     }
@@ -47,7 +47,7 @@ final class FieldSecurityFilter
             foreach ($property->getAttributes($attributeClass) as $attribute) {
                 /** @var Writable|Readable $securityAttribute */
                 $securityAttribute = $attribute->newInstance();
-                $rules[$property->getName()] = new FieldRule(new Set($securityAttribute->by), $securityAttribute->scope);
+                $rules[$property->getName()] = new FieldRule(new Set($securityAttribute->by), $securityAttribute->scope, $securityAttribute->where, $securityAttribute->arguments);
             }
         }
         self::$metaCache[$className] ??= [];
@@ -74,19 +74,22 @@ final class FieldSecurityFilter
             if (!$data->offsetExists($fieldName)) {
                 continue;
             }
-            if ($rule->allowsRoles($this->userRoles)) {
+            if (!$rule->allowsRoles($this->userRoles)) {
+                if ($rule->requiresOwner) {
+                    if (!$isOwnerResolved) {
+                        $isOwner = $this->ownershipService->isOwner;
+                        $isOwnerResolved = true;
+                    }
+                    if ($isOwner) {
+                        continue;
+                    }
+                }
+                $restrictedFields->append($fieldName);
                 continue;
             }
-            if ($rule->requiresOwner) {
-                if (!$isOwnerResolved) {
-                    $isOwner = $this->ownershipService->isOwner;
-                    $isOwnerResolved = true;
-                }
-                if ($isOwner) {
-                    continue;
-                }
+            if ($rule->where !== null && !$this->conditionResolver?->evaluate($rule->where, $rule->arguments, $this->resource)) {
+                $restrictedFields->append($fieldName);
             }
-            $restrictedFields->append($fieldName);
         }
         if ($restrictedFields->isEmpty) {
             return $data;

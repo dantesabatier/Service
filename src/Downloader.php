@@ -35,7 +35,7 @@ final class Downloader extends Responder
         $attachmentURL = new URL($urlString);
         $fileManager = FileManager::default();
         $documentRoot = $fileManager->documentRootDirectory;
-        $resourceURL = new URL($attachmentURL->path, $documentRoot)->absoluteURL;
+        $resourceURL = $documentRoot->appendingPathComponent($attachmentURL->path);
         $path = $resourceURL->path;
         str_starts_with($path, $documentRoot->path) ?: throw new BadRequestException();
         $fileManager->fileExists($path) ?: throw new NotFoundException();

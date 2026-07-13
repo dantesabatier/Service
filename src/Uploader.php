@@ -11,7 +11,6 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Set;
-use Sabatier\Foundation\URL;
 use Sabatier\Foundation\URLResourceKey;
 
 /** @internal */
@@ -33,7 +32,7 @@ final class Uploader extends Responder
         /** @var string $directory */
         $directory = $parameters["directory"] ?? throw new BadRequestException();
         preg_match("/^[A-Za-z0-9_-]+\$/", $directory) ?: throw new BadRequestException();
-        $directoryURL = new URL($directory, FileManager::default()->documentRootDirectory)->absoluteURL;
+        $directoryURL = FileManager::default()->documentRootDirectory->appendingPathComponent($directory);
         $keys = new Set([URLResourceKey::nameKey]);
         $enumerator = new UploadsEnumerator($directoryURL, $keys);
         !$enumerator->isEmpty ?: throw new BadRequestException();

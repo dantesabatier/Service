@@ -75,12 +75,12 @@ final class DefaultStaticResourcePolicyTest extends TestCase
 
     private function documentRoot(): string
     {
-        return rtrim(new URL("/", FileManager::default()->documentRootDirectory)->absoluteURL->path, "/") . "/";
+        return rtrim(FileManager::default()->documentRootDirectory->path, "/") . "/";
     }
 
     private function resolve(string $requestPath): URL
     {
-        return new URL($requestPath, FileManager::default()->documentRootDirectory)->absoluteURL;
+        return FileManager::default()->documentRootDirectory->appendingPathComponent($requestPath);
     }
 
     private function writeFile(string $absolutePath): void

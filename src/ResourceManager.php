@@ -26,7 +26,7 @@ final class ResourceManager extends Responder
         get => new ArrayClass(["Content-Type"]);
     }
     private URL $resourceURL {
-        get => $this->resourceURL ??= new URL($this->request->url->path, FileManager::default()->documentRootDirectory)->absoluteURL;
+        get => $this->resourceURL ??= FileManager::default()->documentRootDirectory->appendingPathComponent($this->request->url->path);
     }
     private StaticResourceDisposition $staticResourceDisposition {
         get => $this->staticResourceDisposition ??= Application::shared()->staticResourcePolicy->evaluate($this->resourceURL);

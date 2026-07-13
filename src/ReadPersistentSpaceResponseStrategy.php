@@ -26,6 +26,7 @@ final class ReadPersistentSpaceResponseStrategy extends PersistentSpaceResponseS
         get {
             $fetchRequest = new RequestToFetchRequestAdapter($this->request, $this->managedObjectContext)->fetchRequest;
             $fetchRequest->entity = $this->entity;
+            /** @var class-string<ManagedObject> $entityClassName */
             $entityClassName = $this->entity->managedObjectClassName ?? $this->entity->name;
             if ($this->isSecurityEnabled && $this->hasOwnScopeFor($this->entity->name) && ($ownerKey = OwnerResolver::getOwnerFieldName($entityClassName))) {
                 $ownershipPredicate = new ComparisonPredicate(Expression::expressionForKeyPath($ownerKey), Expression::expressionForConstantValue($this->user));

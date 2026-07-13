@@ -101,6 +101,7 @@ abstract class AbstractTool
      */
     protected function ownershipPredicate(EntityDescription $entity): ?Predicate
     {
+        /** @var class-string<ManagedObject> $entityClassName */
         $entityClassName = $entity->managedObjectClassName ?? $entity->name;
         if ($this->isSecurityEnabled && $this->fieldSecurityPolicy->hasOwnScopeFor($entity->name) && class_exists($entityClassName) && ($ownerKey = OwnerResolver::getOwnerFieldName($entityClassName))) {
             return new ComparisonPredicate(Expression::expressionForKeyPath($ownerKey), Expression::expressionForConstantValue($this->user));

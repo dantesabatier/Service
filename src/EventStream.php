@@ -12,7 +12,7 @@ use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
-use function Sabatier\Foundation\absolute_time_get_current;
+use Sabatier\Foundation\ProcessInfo;
 
 /** @internal */
 final readonly class EventStream
@@ -27,7 +27,7 @@ final readonly class EventStream
     public function generator(): Generator
     {
         $previousHash = null;
-        $time = absolute_time_get_current();
+        $time = ProcessInfo::processInfo()->systemUptime;
         while (true) {
             if (connection_aborted()) {
                 break;
@@ -41,8 +41,8 @@ final readonly class EventStream
                     yield new ServerSentEvent($managedObjects);
                 }
             }
-            if (absolute_time_get_current() - $time > 15) {
-                $time = absolute_time_get_current();
+            if (ProcessInfo::processInfo()->systemUptime - $time > 15) {
+                $time = ProcessInfo::processInfo()->systemUptime;
                 yield new ServerSentEvent("heartbeat", event: "ping");
             }
             usleep($this->interval);

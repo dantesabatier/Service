@@ -106,7 +106,7 @@ final class PersistentHistoryTool extends AbstractTool
     private function purgeRequest(Dictionary $arguments): PersistentHistoryChangeRequest
     {
         if ($date = $arguments["date"]) {
-            return PersistentHistoryChangeRequest::deleteHistoryBeforeDate(new Date((float)strtotime((string)$date)));
+            return PersistentHistoryChangeRequest::deleteHistoryBeforeDate(Date::dateWithTimeIntervalSince1970((float)strtotime((string)$date)));
         }
         if (($transaction = $arguments["transaction"]) !== null) {
             return PersistentHistoryChangeRequest::deleteHistoryBeforeTransaction($this->transaction($transaction));
@@ -131,7 +131,7 @@ final class PersistentHistoryTool extends AbstractTool
     private function fetchScope(Dictionary $arguments): PersistentHistoryChangeRequest
     {
         if ($date = $arguments["date"]) {
-            return PersistentHistoryChangeRequest::fetchHistoryAfterDate(new Date((float)strtotime((string)$date)));
+            return PersistentHistoryChangeRequest::fetchHistoryAfterDate(Date::dateWithTimeIntervalSince1970((float)strtotime((string)$date)));
         }
         if (($transaction = $arguments["transaction"]) !== null) {
             return PersistentHistoryChangeRequest::fetchHistoryAfterTransaction($this->transaction($transaction));

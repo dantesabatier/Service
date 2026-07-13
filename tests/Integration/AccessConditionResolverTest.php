@@ -63,7 +63,7 @@ final class AccessConditionResolverTest extends TestCase
     public function evaluateResolvesWeekStartVariable(): void
     {
         $resolver = new AccessConditionResolver();
-        $weekStart = new Date((float)strtotime('monday this week'))->format('Y-m-d');
+        $weekStart = Date::dateWithTimeIntervalSince1970((float)strtotime('monday this week'))->format('Y-m-d');
         $this->assertTrue($resolver->evaluate('%K == $WEEK_START', ['day'], $this->makeResource($weekStart)));
     }
 

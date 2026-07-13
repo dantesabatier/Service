@@ -35,7 +35,7 @@ final class PersistentHistoryChangeRequestAdapter
                     default => false
                 }) ?: throw new BadRequestException("Missing scoping parameter");
                 if ($date = $parameters[PersistentHistoryBeforeDateKey]) {
-                    return PersistentHistoryChangeRequest::deleteHistoryBeforeDate(new Date((float)strtotime((string)$date)));
+                    return PersistentHistoryChangeRequest::deleteHistoryBeforeDate(Date::dateWithTimeIntervalSince1970((float)strtotime((string)$date)));
                 }
                 if ($transactionNumber = $parameters[PersistentHistoryBeforeTransactionKey]) {
                     return PersistentHistoryChangeRequest::deleteHistoryBeforeTransaction(new PersistentHistoryTransaction(new Dictionary([PersistentHistoryTransactionNumberKey => (int)(string)$transactionNumber])));
@@ -50,7 +50,7 @@ final class PersistentHistoryChangeRequestAdapter
                 default => false
             }) ?: throw new BadRequestException("Missing scoping parameter");
             if ($date = $parameters[PersistentHistoryAfterDateKey]) {
-                $changeRequest = PersistentHistoryChangeRequest::fetchHistoryAfterDate(new Date((float)strtotime((string)$date)));
+                $changeRequest = PersistentHistoryChangeRequest::fetchHistoryAfterDate(Date::dateWithTimeIntervalSince1970((float)strtotime((string)$date)));
             } elseif ($transactionNumber = $parameters[PersistentHistoryAfterTransactionKey]) {
                 $changeRequest = PersistentHistoryChangeRequest::fetchHistoryAfterTransaction(new PersistentHistoryTransaction(new Dictionary([PersistentHistoryTransactionNumberKey => (int)(string)$transactionNumber])));
             } elseif ($historyToken = $parameters[PersistentHistoryAfterTokenKey]) {

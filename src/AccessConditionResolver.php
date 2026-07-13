@@ -31,12 +31,12 @@ final class AccessConditionResolver
             return $this->variables = new Dictionary([
                 "\$TODAY" => $now->format("Y-m-d"),
                 "\$NOW" => $now->format("Y-m-d\TH:i:s"),
-                "\$WEEK_START" => new Date((float)$weekStart)->format("Y-m-d"),
-                "\$WEEK_END" => new Date((float)strtotime("+6 days", (int)$weekStart))->format("Y-m-d"),
-                "\$MONTH_START" => new Date((float)strtotime("first day of this month"))->format("Y-m-d"),
-                "\$MONTH_END" => new Date((float)strtotime("last day of this month"))->format("Y-m-d"),
-                "\$YEAR_START" => new Date((float)strtotime("first day of January this year"))->format("Y-m-d"),
-                "\$YEAR_END" => new Date((float)strtotime("last day of December this year"))->format("Y-m-d"),
+                "\$WEEK_START" => Date::dateWithTimeIntervalSince1970((float)$weekStart)->format("Y-m-d"),
+                "\$WEEK_END" => Date::dateWithTimeIntervalSince1970((float)strtotime("+6 days", (int)$weekStart))->format("Y-m-d"),
+                "\$MONTH_START" => Date::dateWithTimeIntervalSince1970((float)strtotime("first day of this month"))->format("Y-m-d"),
+                "\$MONTH_END" => Date::dateWithTimeIntervalSince1970((float)strtotime("last day of this month"))->format("Y-m-d"),
+                "\$YEAR_START" => Date::dateWithTimeIntervalSince1970((float)strtotime("first day of January this year"))->format("Y-m-d"),
+                "\$YEAR_END" => Date::dateWithTimeIntervalSince1970((float)strtotime("last day of December this year"))->format("Y-m-d"),
             ]);
         }
     }

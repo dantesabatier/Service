@@ -170,4 +170,47 @@ final class DefaultStaticResourcePolicyTest extends TestCase
         $this->assertTrue($disposition->shouldHandle);
         $this->assertFalse($disposition->cacheable);
     }
+
+    #[Test]
+    public function existingHiddenFileIsNotHandled(): void
+    {
+        $this->writeFile("{$this->documentRoot()}.__policy_probe_hidden");
+        $disposition = $this->policy->evaluate($this->resolve("/.__policy_probe_hidden"));
+        $this->assertFalse($disposition->shouldHandle);
+        $this->assertFalse($disposition->cacheable);
+        $this->assertFalse($disposition->allowEmptyResponse);
+    }
+
+    #[Test]
+    public function fileUnderHiddenDirectoryIsNotHandled(): void
+    {
+        $this->writeFile("{$this->documentRoot()}.__policy_probe_dir/HEAD");
+        $disposition = $this->policy->evaluate($this->resolve("/.__policy_probe_dir/HEAD"));
+        $this->assertFalse($disposition->shouldHandle);
+        $this->assertFalse($disposition->cacheable);
+    }
+
+    #[Test]
+    public function nestedHiddenFileIsNotHandled(): void
+    {
+        $this->writeFile("{$this->documentRoot()}__PolicyProbeNest/.__policy_probe_secret");
+        $disposition = $this->policy->evaluate($this->resolve("/__PolicyProbeNest/.__policy_probe_secret"));
+        $this->assertFalse($disposition->shouldHandle);
+    }
+
+    #[Test]
+    public function parentTraversalIsNotHandled(): void
+    {
+        $disposition = $this->policy->evaluate($this->resolve("/../../etc/passwd"));
+        $this->assertFalse($disposition->shouldHandle);
+        $this->assertFalse($disposition->cacheable);
+    }
+
+    #[Test]
+    public function visibleFileNextToHiddenSiblingIsHandled(): void
+    {
+        $this->writeFile("{$this->documentRoot()}__PolicyProbeVisible/app.css");
+        $disposition = $this->policy->evaluate($this->resolve("/__PolicyProbeVisible/app.css"));
+        $this->assertTrue($disposition->shouldHandle);
+    }
 }

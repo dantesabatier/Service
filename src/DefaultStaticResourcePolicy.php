@@ -63,6 +63,9 @@ final class DefaultStaticResourcePolicy implements StaticResourcePolicy
     #[Override]
     public function evaluate(URL $resourceURL): StaticResourceDisposition
     {
+        if ($resourceURL->pathComponents->contains(fn(string $component): bool => str_starts_with($component, "."))) {
+            return new StaticResourceDisposition(false, false, false, false, false);
+        }
         $resourceName = $resourceURL->lastPathComponent;
         if ($this->optionalResourceNames->containsElement($resourceName)) {
             return new StaticResourceDisposition(true, true, true, true, true, StaticResourceOptionalMaxAgeDefault);

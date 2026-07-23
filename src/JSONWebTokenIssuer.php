@@ -11,18 +11,42 @@ use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Date;
 use function Sabatier\Foundation\read_random;
 
-/** @internal */
+/**
+ * Issues signed JSON Web Tokens for an authenticated identity.
+ *
+ * The token embeds the subject's username, enabled flag and refresh token version, the
+ * requested technical scopes, and the authorization scopes resolved from the subject's roles
+ * by {@see AuthorizationScopeBuilder}. Validity is bounded by `$validityTimeInterval`, which
+ * defaults to {@see JWTValidityDefaultTimeInterval}.
+ *
+ * All dependencies are supplied through the constructor, so issuance does not require an
+ * incoming HTTP request and can be driven directly from a CLI job or scheduled task.
+ *
+ * @see TokenIssuer
+ * @see JSONWebTokenService
+ * @see AuthorizationScopeBuilder
+ */
 final readonly class JSONWebTokenIssuer implements TokenIssuer
 {
+    /**
+     * Initializes a new instance of the JSONWebTokenIssuer class.
+     *
+     * @param JSONWebTokenService $service The service that encodes and signs the token.
+     * @param AuthorizationScopeBuilder $scopeBuilder The builder that resolves authorization scopes from the subject's roles.
+     * @param ManagedObjectContext $managedObjectContext The context used to resolve the subject's authorization scopes.
+     * @param float $validityTimeInterval The lifetime of the issued token, in seconds.
+     */
     public function __construct(private JSONWebTokenService $service, private AuthorizationScopeBuilder $scopeBuilder, private ManagedObjectContext $managedObjectContext, private float $validityTimeInterval = JWTValidityDefaultTimeInterval)
     {
     }
 
     /**
+     * {@inheritDoc}
+     *
      * @throws Exception
      */
     #[Override]
-    public function issue(Authorizable $subject, AuthenticationContext $context, ArrayClass $technicalScopes): string
+    public function issue(Authorizable $subject, ArrayClass $technicalScopes): string
     {
         $date = new Date();
         return $this->service->encode([JWTIssuerKey => $this->service->issuer, JWTSubjectKey => $subject->username, JWTEnabledKey => $subject->isEnabled, JWTExpirationTimeKey => $date->addingTimeInterval($this->validityTimeInterval)->timeIntervalSinceReferenceDate, JWTNotBeforeTimeKey => $date->timeIntervalSinceReferenceDate, JWTIssuedAtTimeKey => $date->timeIntervalSinceReferenceDate, JWTIdKey => base64_encode(read_random(16)), JWTVersionKey => $subject->refreshTokenVersion, JWTScopesKey => $technicalScopes->array, JWTAuthorizationScopesKey => $this->scopeBuilder->build($subject, $this->managedObjectContext)->array]);

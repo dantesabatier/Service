@@ -6,8 +6,29 @@ namespace Sabatier\Service;
 
 use Sabatier\Foundation\ArrayClass;
 
-/** @internal */
+/**
+ * Contract for services that issue bearer tokens for an authenticated identity.
+ *
+ * Issuance is decoupled from authentication: a `TokenIssuer` receives a subject that has
+ * already been resolved and validated, and mints a token for it. It carries no dependency
+ * on the incoming HTTP request, so a token can be issued outside of a request — for example
+ * from a CLI job or a scheduled task.
+ *
+ * `JSONWebTokenIssuer` is the built-in implementation, backing the `/login` and `/refresh`
+ * actions of `AuthenticationManager`.
+ *
+ * @see JSONWebTokenIssuer
+ * @see Authorizable
+ * @see AuthenticationManager
+ */
 interface TokenIssuer
 {
-    public function issue(Authorizable $subject, AuthenticationContext $context, ArrayClass $technicalScopes): string;
+    /**
+     * Issues a token for the given already-authenticated subject.
+     *
+     * @param Authorizable $subject The authenticated identity the token is issued for.
+     * @param ArrayClass<string> $technicalScopes The technical scopes granted to the token (e.g. access and refresh).
+     * @return string The encoded token.
+     */
+    public function issue(Authorizable $subject, ArrayClass $technicalScopes): string;
 }

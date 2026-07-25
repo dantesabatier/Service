@@ -11,7 +11,7 @@ use Sabatier\Foundation\Set;
  *
  * This is the supported entry point for a responder that overrides `public Response $response`
  * and needs to run the transformer chain by hand. Compose the pipeline from the sets already
- * exposed by `Responder`, honouring the two-leg order — user transformers first, infrastructure
+ * exposed by `Responder`, honoring the two-leg order — user transformers first, infrastructure
  * transformers second:
  *
  *     public Response $response {
@@ -20,7 +20,7 @@ use Sabatier\Foundation\Set;
  *     }
  *
  * Prefer the `$data` pattern where it suffices; reach for this only when overriding `$response`
- * for full control (custom status with no body, streaming, PersistentSpace-level behaviour).
+ * for full control (custom status with no body, streaming, PersistentSpace-level behavior).
  */
 final readonly class ResponsePipeline
 {

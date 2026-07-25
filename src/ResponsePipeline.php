@@ -6,7 +6,22 @@ namespace Sabatier\Service;
 
 use Sabatier\Foundation\Set;
 
-/** @internal */
+/**
+ * Applies an ordered set of response transformers to a response.
+ *
+ * This is the supported entry point for a responder that overrides `public Response $response`
+ * and needs to run the transformer chain by hand. Compose the pipeline from the sets already
+ * exposed by `Responder`, honouring the two-leg order — user transformers first, infrastructure
+ * transformers second:
+ *
+ *     public Response $response {
+ *         get => new ResponsePipeline($this->transformers->union($this->infrastructureTransformers), $this->transformerContext)
+ *             ->process($response);
+ *     }
+ *
+ * Prefer the `$data` pattern where it suffices; reach for this only when overriding `$response`
+ * for full control (custom status with no body, streaming, PersistentSpace-level behaviour).
+ */
 final readonly class ResponsePipeline
 {
     /** @param Set<class-string<ResponseTransformer>> $transformers */
@@ -14,6 +29,15 @@ final readonly class ResponsePipeline
     {
     }
 
+    /**
+     * Runs the response through each transformer in order, threading the output of one as the input of the next.
+     *
+     * Every transformer is instantiated with the current response and the shared context, and its produced
+     * `response` becomes the input for the next. Returns the response unchanged when the set is empty.
+     *
+     * @param Response $response The response to feed into the first transformer.
+     * @return Response The response produced by the last transformer, or the original when the set is empty.
+     */
     public function process(Response $response): Response
     {
         foreach ($this->transformers as $transformer) {

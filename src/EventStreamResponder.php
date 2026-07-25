@@ -8,7 +8,6 @@ use Override;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
-use Sabatier\Foundation\Set;
 
 /** @internal */
 #[Endpoint("Events")]
@@ -30,9 +29,7 @@ final class EventStreamResponder extends Responder
                 if ($this->isSessionEnabled) {
                     $this->session->start();
                 }
-                return new ResponsePipeline(new Set([ResponseHeaderSanitizerTransformer::class, RateLimitHeaderTransformer::class, SecurityHeadersTransformer::class, CORSResponseTransformer::class]), $this->transformerContext)->process(
-                    new EventStreamResponse($this->request->url, new EventStream($this->fetchRequest, $this->managedObjectContext)->generator(...))
-                );
+                return new ResponsePipeline($this->transformers->union($this->infrastructureTransformers), $this->transformerContext)->process(new EventStreamResponse($this->request->url, new EventStream($this->fetchRequest, $this->managedObjectContext)->generator(...)));
             } finally {
                 if ($this->isSessionEnabled) {
                     $this->session->commit();

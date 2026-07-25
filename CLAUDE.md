@@ -64,7 +64,9 @@ A CLI entry point parallel to the responder chain — for cron and one-shot prov
 
 Discovery mirrors the responder/MCP mechanism: `JobResolver` scans `src/Jobs/` and `JobRegistry` keys the resolved `Dictionary<Job>` by `name`. No manifest, no registration — dropping a `Job` subclass in `src/Jobs/` makes it runnable. Because the CLI only matches its argument against the registry keys (never instantiating from raw input), an unknown name cannot run.
 
-Do **not** add job bootstrap (`save`/`reset`, container boot) inside a job — that belongs to the CLI entry point.
+**`JobRunner::run()`** is the CLI run loop, the counterpart to `Application::run()` — it boots the delegate, resolves the argument against the registry, runs the job (`save` only if `hasChanges`, `reset` in `finally`), and `exit`s. Both are `: never`. A project's `cli.php` is one line — `new JobRunner()->run();` — as thin as `index.php`. `transactionAuthor` is the `JobRunner` constructor argument (default `"system"`).
+
+Do **not** add job bootstrap (`save`/`reset`, container boot) inside a job — that belongs to `JobRunner`.
 
 ### PersistentSpace
 

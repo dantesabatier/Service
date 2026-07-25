@@ -68,6 +68,7 @@ A parallel entry point to the responder chain, for cron and one-shot provisionin
 - **`name`** — concrete property hook, defaults to `class_name(static::class)`; the registry key the CLI matches its argument against. Override only to decouple the key from the class name.
 - **`log(string)`** — concrete `protected` helper; `error_log` with a `[date] [name]` prefix. The pipe idiom is `… |> $this->log(...)`.
 - **`JobResolver`** scans the app's `src/Jobs/` (FQCN `App\Jobs\{basename}`, `is_subclass_of(Job)` + instantiable); **`JobRegistry`** keys the result `Dictionary<Job>` by `name`. Same discovery shape as `ToolResolver`/`FirstResponderResolver` — no manifest, no registration step.
+- **`JobRunner::run(): never`** — the CLI run loop, counterpart to `Application::run()`. Boots the delegate, resolves `argv[1]` against the registry, runs the job (`save` only if `hasChanges`, `reset` in `finally`), `exit`s 0/1. `transactionAuthor` is a constructor arg (default `"system"`). The app's `cli.php` is one line: `new JobRunner()->run();`.
 
 ## PersistentSpace
 

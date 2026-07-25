@@ -474,16 +474,30 @@ Jobs are discovered exactly like MCP tools and responders — by scanning the ap
 
 Because the CLI matches its argument against the registry's keys and never instantiates a class from raw input, an argument that no discovered job declares simply cannot run.
 
-### The CLI entry point
+### The CLI run loop
 
-The application provides a single CLI script (conventionally `cli.php` at the project root) that boots the framework by hand — it cannot call `Application::shared()->run()`, which is HTTP-only. The sequence is:
+`JobRunner::run()` is the command-line run loop — the counterpart to `Application::run()`. Where `Application::run()` is the HTTP entry point (boot the framework, answer a request, `never` return), `JobRunner::run()` is the CLI entry point (boot the same framework by hand, run the named job, `never` return — it cannot call `Application::run()`, which is HTTP-only). A project's `cli.php` is therefore as thin as its `index.php`:
 
-1. `Delegate::initialize()` then `Delegate::applicationWillFinishLaunching()` — the same delegate hooks the HTTP path uses, registering UserDefaults flags and the Core Data stores before the container is touched.
-2. Read `Application::shared()->persistentContainer->viewContext` and set its `transactionAuthor` (e.g. `"system"`), so persistent history records who performed the writes.
-3. Resolve the job via `new JobRegistry(new JobResolver()->resolve())->job($argv[1])`.
-4. Run it inside `try/catch (Throwable)`, then `save()` on success and `reset()` in `finally`.
+```php
+<?php
 
-The entry point owns the orchestration lines (`started`, `completed in …`, `failed: …`) and writes them with the same `[date] [name]` prefix that `Job::log` uses for a job's internal progress, so both streams read uniformly in the log.
+declare(strict_types=1);
+
+require_once __DIR__ . "/vendor/autoload.php";
+
+use Sabatier\Service\Jobs\JobRunner;
+
+new JobRunner()->run();
+```
+
+`run()` performs the sequence the HTTP path performs inside `run()`:
+
+1. Resolve the job named by the first command-line argument (`ProcessInfo`) against the registry — `new JobRegistry(new JobResolver()->resolve())`. A missing or unknown name prints the usage with the available job names to `STDERR` and exits `1`.
+2. Boot the delegate in order — the class-level `initialize()` (declared on `ObjectClass`, which every generated delegate extends), then `applicationWillFinishLaunching()` — the same hooks the HTTP path fires, registering UserDefaults flags and the Core Data stores.
+3. Read `persistentContainer->viewContext` and set its `transactionAuthor` (the `JobRunner` constructor's argument, default `"system"`), so persistent history records who performed the writes.
+4. Run the job inside `try/catch (Throwable)`, `save()` on success only if the context `hasChanges`, `reset()` in `finally`, and `exit` with `0` on success or `1` on failure.
+
+The run loop owns the orchestration lines (`started`, `completed in …`, `failed: …`) and writes them with the same `[date] [name]` prefix that `Job::log` uses for a job's internal progress, so both streams read uniformly in the log. A failing job is logged before the non-zero exit, so cron captures the cause.
 
 ### Recurring vs. one-shot
 

@@ -30,7 +30,7 @@ The framework has a PHPUnit suite under `tests/` (`tests/Unit`, `tests/Integrati
 
 ## Architecture
 
-`sabatier/service` is an application framework for PHP 8.5+ built on two sibling libraries (`sabatier/foundation` and `sabatier/coredata`). Most source files live flat in `src/`. The exception is `src/MCP/`, which is a self-contained subsystem with its own subdirectories (`Tools/`, `Response/`, `Schema/`).
+`sabatier/service` is an application framework for PHP 8.5+ built on two sibling libraries (`sabatier/foundation` and `sabatier/coredata`). Most source files live flat in `src/`. The exceptions are `src/MCP/`, a self-contained subsystem with its own subdirectories (`Tools/`, `Response/`, `Schema/`), and `src/Jobs/`, which holds the scheduled-job base class and its resolver/registry.
 
 ### The `$data` pattern
 
@@ -52,7 +52,19 @@ Do **not** introduce a `$response` override when overriding `$data` is sufficien
 
 `ViewController` extends `Responder` and adds a view rendering lifecycle (`viewWillLoad` / `viewDidLoad`).
 
-Custom responders are **auto-discovered** from `src/Responders/` and `src/ViewControllers/` and prepended to the chain ahead of built-in responders. Custom MCP tools are auto-discovered from `src/MCPTools/`.
+Custom responders are **auto-discovered** from `src/Responders/` and `src/ViewControllers/` and prepended to the chain ahead of built-in responders. Custom MCP tools are auto-discovered from `src/MCPTools/`, and background jobs from `src/Jobs/`.
+
+### Scheduled Jobs (CLI)
+
+A CLI entry point parallel to the responder chain — for cron and one-shot provisioning — sharing the Core Data stack and delegate but not HTTP. A job is a `final` class extending `Sabatier\Service\Jobs\Job`:
+
+- **`run(ManagedObjectContext $context): void`** — the only abstract member. The context is pre-configured; the job never calls `save()`/`reset()` (the entry point owns the transaction boundary, exactly as a responder does not).
+- **`name`** — a concrete property hook defaulting to `class_name(static::class)`, the registry key the CLI resolves its argument against. This mirrors `AbstractTool::name` and `#[Endpoint]`'s default path. Override only to decouple the key from the class name.
+- **`log(string $message)`** — a concrete `protected` helper (`error_log` with a `[date] [name]` prefix). Use `$this->log(...)`, including as a pipe target `… |> $this->log(...)`.
+
+Discovery mirrors the responder/MCP mechanism: `JobResolver` scans `src/Jobs/` and `JobRegistry` keys the resolved `Dictionary<Job>` by `name`. No manifest, no registration — dropping a `Job` subclass in `src/Jobs/` makes it runnable. Because the CLI only matches its argument against the registry keys (never instantiating from raw input), an unknown name cannot run.
+
+Do **not** add job bootstrap (`save`/`reset`, container boot) inside a job — that belongs to the CLI entry point.
 
 ### PersistentSpace
 

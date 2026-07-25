@@ -3,7 +3,7 @@
 ## Quick facts
 
 - **PHPUnit suite** under `tests/` (`tests/Unit`, `tests/Integration`). Two tests fail in a clean tree — `AuthorizationServiceTest::tokenScopeExactMatchGrantsAccessWithoutCacheLookup` (fatal crash) and `FieldSecurityFilterTest::filterReadRemovesOwnedFieldWhenNotOwner`. Run per directory (`phpunit tests/Integration`) to work around the crash.
-- 173 source files live flat in `src/` — exception: `src/MCP/` has subdirectories (`Tools/`, `Response/`, `Schema/`).
+- Most source files live flat in `src/`. Exceptions: `src/MCP/` (subsystem with `Tools/`, `Response/`, `Schema/`) and `src/Jobs/` (the `Job` base class, `JobResolver`, `JobRegistry`).
 - Requires PHP 8.5+. Property hooks (`private(set) Type $prop { get => ... }`) are used throughout for lazy initialization — never convert to constructor injection or traditional getters.
 - Sibling libraries `sabatier/foundation` and `sabatier/coredata` are loaded via composer path repos (`../Foundation`, `../CoreData`).
 
@@ -58,7 +58,16 @@ A responder never constructs a `Response` directly. It **provides data** and let
 - **`#[Action(method: HTTPRequestMethod::patch, transformers: [...])]`** — mutation handler (POST/PATCH/DELETE).
 - **`#[Outlet]`** — on `ViewController` properties; reflects data into view templates.
 
-Custom responders auto-discover from `src/Responders/` and `src/ViewControllers/`. Custom MCP tools from `src/MCPTools/`.
+Custom responders auto-discover from `src/Responders/` and `src/ViewControllers/`. Custom MCP tools from `src/MCPTools/`. Background jobs from the app's `src/Jobs/`.
+
+## Scheduled jobs (CLI)
+
+A parallel entry point to the responder chain, for cron and one-shot provisioning — same Core Data stack and delegate, no HTTP.
+
+- **`Sabatier\Service\Jobs\Job`** — abstract base. `run(ManagedObjectContext $context): void` is the only abstract member; the context is pre-configured, so a job never calls `save()`/`reset()`.
+- **`name`** — concrete property hook, defaults to `class_name(static::class)`; the registry key the CLI matches its argument against. Override only to decouple the key from the class name.
+- **`log(string)`** — concrete `protected` helper; `error_log` with a `[date] [name]` prefix. The pipe idiom is `… |> $this->log(...)`.
+- **`JobResolver`** scans the app's `src/Jobs/` (FQCN `App\Jobs\{basename}`, `is_subclass_of(Job)` + instantiable); **`JobRegistry`** keys the result `Dictionary<Job>` by `name`. Same discovery shape as `ToolResolver`/`FirstResponderResolver` — no manifest, no registration step.
 
 ## PersistentSpace
 

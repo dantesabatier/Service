@@ -51,6 +51,7 @@
       "src/CORSConstants.php",
       "src/HTTPCacheConstants.php",
       "src/IdempotencyConstants.php",
+      "src/JobConstants.php",
       "src/JSONWebTokenConstants.php",
       "src/JSONWebTokenErrorCodes.php",
       "src/MCPConstants.php",

@@ -20,8 +20,9 @@ This document describes the internal architecture of the Service framework: how 
 12. [MCP Server](#12-mcp-server)
 13. [Event Streaming](#13-event-streaming)
 14. [Server-Side Rendering](#14-server-side-rendering)
-15. [Application Delegate](#15-application-delegate)
-16. [Environment Configuration Reference](#16-environment-configuration-reference)
+15. [Scheduled Jobs](#15-scheduled-jobs)
+16. [Application Delegate](#16-application-delegate)
+17. [Environment Configuration Reference](#17-environment-configuration-reference)
 
 ---
 
@@ -443,7 +444,54 @@ Templates are resolved from the `Renderer`'s associated `Bundle`. `HomeControlle
 
 ---
 
-## 15. Application Delegate
+## 15. Scheduled Jobs
+
+The request pipeline is not the only way into the framework. Recurring maintenance (cron) and one-shot provisioning run through a separate CLI entry point that shares the same Core Data stack and application delegate, but never the HTTP responder chain.
+
+### The Job base class
+
+A job is a `final` class that extends `Sabatier\Service\Jobs\Job` and holds business logic only:
+
+```php
+final class ResetMachineAvailability extends Job
+{
+    public function run(ManagedObjectContext $context): void
+    {
+        // …business logic, using $this->log(...) for progress…
+    }
+}
+```
+
+`Job` mirrors the `AbstractTool` design used by the MCP subsystem — a base class with a `name` property hook that acts as the registry key:
+
+- **`name`** — the lookup key the CLI matches against its argument. It is a concrete hook that defaults to the class short name (`class_name(static::class)`), so a job is invoked by its class name unless it overrides `name`. This is the job counterpart of `AbstractTool::name` and `#[Endpoint]`'s default path.
+- **`run(ManagedObjectContext $context): void`** — the only abstract member. The context arrives already configured (transaction author, merge policy); the job must **not** `save()` or `reset()` it — that is the entry point's responsibility, exactly as an HTTP responder never manages the transaction boundary itself.
+- **`log(string $message): void`** — a concrete `protected` helper that writes a progress line through `error_log` (the channel a cron redirection `>> …log 2>&1` captures), prefixed with the date and the job's `name`. Override it to send progress elsewhere.
+
+### Discovery
+
+Jobs are discovered exactly like MCP tools and responders — by scanning the application's source tree, not a manifest. `JobResolver` scans `src/Jobs/`, reconstructs each FQCN as `App\Jobs\{FileBaseName}`, and keeps every instantiable subclass of `Job`. `JobRegistry` reduces the resolved list into a `Dictionary<Job>` keyed by `$job->name`, and looks a job up by name (`job(string): ?Job`), exposing `$names` for the CLI usage message. There is no registration step: dropping a `Job` subclass in `src/Jobs/` makes it runnable.
+
+Because the CLI matches its argument against the registry's keys and never instantiates a class from raw input, an argument that no discovered job declares simply cannot run.
+
+### The CLI entry point
+
+The application provides a single CLI script (conventionally `cli.php` at the project root) that boots the framework by hand — it cannot call `Application::shared()->run()`, which is HTTP-only. The sequence is:
+
+1. `Delegate::initialize()` then `Delegate::applicationWillFinishLaunching()` — the same delegate hooks the HTTP path uses, registering UserDefaults flags and the Core Data stores before the container is touched.
+2. Read `Application::shared()->persistentContainer->viewContext` and set its `transactionAuthor` (e.g. `"system"`), so persistent history records who performed the writes.
+3. Resolve the job via `new JobRegistry(new JobResolver()->resolve())->job($argv[1])`.
+4. Run it inside `try/catch (Throwable)`, then `save()` on success and `reset()` in `finally`.
+
+The entry point owns the orchestration lines (`started`, `completed in …`, `failed: …`) and writes them with the same `[date] [name]` prefix that `Job::log` uses for a job's internal progress, so both streams read uniformly in the log.
+
+### Recurring vs. one-shot
+
+Not every job is scheduled. One-shot provisioning jobs (run manually once per environment, never in `crontab`) share the same `src/Jobs/` + CLI machinery as recurring cron jobs; the only difference is whether a `crontab` line invokes them. The framework draws no distinction — both are just `Job` subclasses.
+
+---
+
+## 16. Application Delegate
 
 `ApplicationDelegate` is the primary customization point. The framework discovers the delegate by reading the `NSPrincipalClass` key from the main bundle's `Info.plist` and verifying that the class implements `ApplicationDelegate`.
 
@@ -458,7 +506,7 @@ Application-wide policies — `$corsPolicy`, `$accessPolicy`, `$securityHeadersP
 
 ---
 
-## 16. Environment Configuration Reference
+## 17. Environment Configuration Reference
 
 All environment keys are PHP constants defined in the framework's constants files. Notable groups:
 

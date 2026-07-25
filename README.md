@@ -2,7 +2,7 @@
 
 **Service** is a PHP 8.5+ application framework built on two sibling libraries — [Foundation](../Foundation) and [CoreData](../CoreData) — that brings the architectural patterns of Apple's AppKit and Core Data to server-side PHP development.
 
-It covers the full spectrum from zero-boilerplate REST APIs to server-rendered web applications, with a consistent request pipeline, layered security, and a built-in MCP server for LLM tool access — all without routing tables, code generation, or CLI scaffolding.
+It covers the full spectrum from zero-boilerplate REST APIs to server-rendered web applications, with a consistent request pipeline, layered security, and a built-in MCP server for LLM tool access — all without routing tables or code generation. Scheduled and one-shot background work runs through a parallel CLI entry point that shares the same Core Data stack.
 
 ---
 
@@ -28,6 +28,7 @@ It covers the full spectrum from zero-boilerplate REST APIs to server-rendered w
 | **MCP Server**            | Exposes the full data model to LLM agents as JSON-RPC 2.0 tools — fetch, count, aggregate, group-by, create, update, delete, and batch operations — auto-derived from the Core Data schema. |
 | **Server-Side Rendering** | `ViewController` manages a template lifecycle (`viewWillLoad` / `viewDidLoad`) with `#[Outlet]` properties reflected into the rendering context. Pluggable renderer engine.                 |
 | **Event Streaming**       | First-class Server-Sent Events support via `EventStreamResponder`.                                                                                                                          |
+| **Scheduled Jobs**        | `Job` subclasses in `src/Jobs/`, auto-discovered and keyed by a `name` hook, run through a CLI entry point for cron and one-shot provisioning — same Core Data stack, no HTTP.               |
 
 ---
 
@@ -64,7 +65,7 @@ public function login(): void
 
 **For Core Data entities**, no responder is needed at all. `PersistentSpace` intercepts any URL whose last path component matches a registered entity name and handles `GET`, `POST`, `PATCH`, and `DELETE` automatically, including field-level security and ownership enforcement. A `User` entity in the model is immediately available as a REST endpoint at `/User` with no additional code.
 
-Custom responders are discovered automatically from `src/Responders/` and `src/ViewControllers/` and take priority over built-in responders in the chain.
+Custom responders are discovered automatically from `src/Responders/` and `src/ViewControllers/` and take priority over built-in responders in the chain. Custom MCP tools are discovered the same way from `src/MCPTools/`, and background jobs from `src/Jobs/` — the framework scans the source tree rather than reading a registry.
 
 ---
 

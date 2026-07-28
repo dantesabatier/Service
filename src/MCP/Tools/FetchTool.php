@@ -56,7 +56,7 @@ final class FetchTool extends AbstractTool
         $this->validateSort($entity, $arguments["sort"]);
         $request = $this->fetchRequest($entity);
         $this->applyPredicate($request, $entity, $arguments);
-        $this->applyOwnershipScope($request);
+        $this->applySecurityScope($request);
         $this->applySort($request, $arguments["sort"]);
         $request->fetchLimit = (int)$arguments["limit"];
         $request->fetchOffset = (int)$arguments["offset"];

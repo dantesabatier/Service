@@ -47,6 +47,7 @@ final class DeleteTool extends AbstractTool
         /** @var ManagedObject $object */
         $object = $this->context->fetch($request)->first ?? throw new NotFoundException();
         $this->enforceOwnership($object);
+        $this->enforceResourceAccess($object);
         $this->context->delete($object);
         $this->context->save();
         return $this->jsonResult(["deleted" => $objectID]);

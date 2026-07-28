@@ -46,6 +46,7 @@ final class CreateTool extends AbstractTool
         $this->assertConcreteEntity($entity);
         $object = EntityDescription::insertNewObject($entity, $this->context);
         $this->applySecureUpdate($object, $this->normalizeRelationships($entity, $values));
+        $this->enforceResourceAccess($object);
         $this->context->save();
         return $this->jsonResult($this->applySecureRead($object, $object->serialized($this->shapeFromValues($entity, $values))->jsonSerialize()));
     }

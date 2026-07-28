@@ -46,6 +46,7 @@ final class UpdateTool extends AbstractTool
         $request->predicate = $this->buildPredicate("%K = %d", new ArrayClass([ManagedObjectObjectIDKey, $objectID]));
         $object = $this->context->fetch($request)->first ?? throw new NotFoundException();
         $this->enforceOwnership($object);
+        $this->enforceResourceAccess($object);
         $this->applySecureUpdate($object, $this->normalizeRelationships($entity, $values));
         if ($this->context->hasChanges) {
             $this->context->save();

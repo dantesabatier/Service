@@ -110,17 +110,33 @@ abstract class AbstractTool
     }
 
     /**
-     * Scopes a fetch request to rows owned by the current user when the `own` scope applies,
-     * AND-combining with any predicate already on the request.
+     * Narrows a fetch request by every row-level rule that applies to the caller, AND-combining
+     * with any predicate the tool already set: the `own` ownership scope, and the resource-level
+     * `#[Readable]` declared on the entity's class.
+     *
+     * Call this on every fetch request a tool builds, before executing it. A tool that skips it
+     * reads rows the caller is not entitled to — the MCP request URL is always `/mcp`, so none of
+     * the URL-driven guards that protect a regular endpoint apply here.
+     *
      * @throws Exception
      */
-    protected function applyOwnershipScope(FetchRequest $request): void
+    protected function applySecurityScope(FetchRequest $request): void
     {
         $entity = $request->entity;
-        if (!$entity instanceof EntityDescription || !($ownershipPredicate = $this->ownershipPredicate($entity))) {
+        if (!$entity instanceof EntityDescription) {
             return;
         }
-        $request->predicate = $request->predicate ? CompoundPredicate::andPredicateWithSubpredicates(new ArrayClass([$request->predicate, $ownershipPredicate])) : $ownershipPredicate;
+        /** @var class-string<ManagedObject> $entityClassName */
+        $entityClassName = $entity->managedObjectClassName ?? $entity->name;
+        $predicates = new ArrayClass([
+            $request->predicate,
+            $this->ownershipPredicate($entity),
+            class_exists($entityClassName) ? $this->fieldSecurityPolicy->resourceReadPredicate($entityClassName) : null,
+        ])->filter(fn(?Predicate $predicate): bool => $predicate !== null);
+        if ($predicates->isEmpty) {
+            return;
+        }
+        $request->predicate = $predicates->count > 1 ? CompoundPredicate::andPredicateWithSubpredicates($predicates) : $predicates->first;
     }
 
     /**
@@ -129,6 +145,21 @@ abstract class AbstractTool
     protected function enforceOwnership(ManagedObject $object): void
     {
         $this->fieldSecurityPolicy->enforceOwnership($object);
+    }
+
+    /**
+     * Enforces the resource-level `#[Writable]` declared on the object's class — the write-side
+     * counterpart to the read narrowing {@see self::applySecurityScope()} performs.
+     *
+     * Call this on every object a tool creates, updates or deletes. Unlike a read, a write names
+     * the row it targets, so a denial is an error rather than an empty result.
+     *
+     * @throws ForbiddenException When the caller may not write the resource.
+     * @throws Exception
+     */
+    protected function enforceResourceAccess(ManagedObject $object): void
+    {
+        $this->fieldSecurityPolicy->enforceResourceAccess($object);
     }
 
     /**

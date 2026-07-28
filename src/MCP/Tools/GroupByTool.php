@@ -73,7 +73,7 @@ final class GroupByTool extends AbstractTool
             $this->validatePredicateKeyPaths($entity, $predicate, $params);
             $request->predicate = $this->buildPredicate($predicate, $params);
         }
-        $this->applyOwnershipScope($request);
+        $this->applySecurityScope($request);
         if ($having = $arguments["having_predicate"]) {
             $request->havingPredicate = $this->buildPredicate($having, $this->resolveVariables($arguments["having_arguments"] ?? new ArrayClass()));
         }

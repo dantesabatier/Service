@@ -74,7 +74,7 @@ final class AggregateTool extends AbstractTool
             $this->validatePredicateKeyPaths($entity, $predicate, $params);
             $request->predicate = $this->buildPredicate($predicate, $params);
         }
-        $this->applyOwnershipScope($request);
+        $this->applySecurityScope($request);
         $result = in_array($function, self::inMemoryFunctions, true) ? $this->computeInMemory($request, $property, $function) : $this->computeDatabase($request, $property, $function);
         return $this->jsonResult(["entity" => $entity, "function" => $function, "property" => $property, "result" => round($result, 4)]);
     }

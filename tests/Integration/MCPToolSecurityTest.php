@@ -77,7 +77,7 @@ final class SecurityProbeTool extends AbstractTool
 
     public function exposedApplyOwnershipScope(FetchRequest $request): void
     {
-        $this->applyOwnershipScope($request);
+        $this->applySecurityScope($request);
     }
 
     public function exposedEnforceOwnership(ManagedObject $object): void
@@ -193,7 +193,7 @@ final class MCPToolSecurityTest extends TestCase
         return $resource;
     }
 
-    // --- ownershipPredicate / applyOwnershipScope ---
+    // --- ownershipPredicate / applySecurityScope ---
 
     #[Test]
     public function ownershipPredicateBuiltWhenOwnScopeAndOwnerFieldPresent(): void
@@ -225,7 +225,7 @@ final class MCPToolSecurityTest extends TestCase
     }
 
     #[Test]
-    public function applyOwnershipScopeSetsPredicateWhenRequestHasNone(): void
+    public function applySecurityScopeSetsPredicateWhenRequestHasNone(): void
     {
         $tool = $this->makeTool($this->makeUser(), new ArrayClass(["Ownable:read:own"]));
         $request = new FetchRequest();
@@ -235,7 +235,7 @@ final class MCPToolSecurityTest extends TestCase
     }
 
     #[Test]
-    public function applyOwnershipScopeAndCombinesWithExistingPredicate(): void
+    public function applySecurityScopeAndCombinesWithExistingPredicate(): void
     {
         $tool = $this->makeTool($this->makeUser(), new ArrayClass(["Ownable:read:own"]));
         $request = new FetchRequest();
@@ -246,7 +246,7 @@ final class MCPToolSecurityTest extends TestCase
     }
 
     #[Test]
-    public function applyOwnershipScopeLeavesRequestUntouchedWhenSecurityDisabled(): void
+    public function applySecurityScopeLeavesRequestUntouchedWhenSecurityDisabled(): void
     {
         $tool = $this->makeTool($this->makeUser(), new ArrayClass(["Ownable:read:own"]), false);
         $request = new FetchRequest();

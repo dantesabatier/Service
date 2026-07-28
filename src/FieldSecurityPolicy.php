@@ -8,6 +8,9 @@ use Exception;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
+use Sabatier\Foundation\Predicates\ComparisonPredicate;
+use Sabatier\Foundation\Predicates\CompoundPredicate;
+use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Foundation\Predicates\Predicate;
 use Sabatier\Foundation\Set;
 use function Sabatier\Foundation\fatal_error;
@@ -69,11 +72,13 @@ abstract readonly class FieldSecurityPolicy
      * ones. The counterpart on the write side is {@see self::enforceResourceAccess()}, which does
      * throw — a write names the row it targets, so denying it cannot be expressed as an empty result.
      *
-     * The rule's `by` roles are enforced here; its `scope` is not, because ownership narrowing on
-     * read is already driven by the request's `own` authorization scope.
+     * Both the rule's `by` roles and its `scope` are enforced here. A rule scoped to `own` narrows
+     * the fetch to the subject's own rows, independently of the request's `own` authorization scope —
+     * the attribute is a second, declarative source of the same restriction, so the two may overlap
+     * and the narrowing is simply applied twice.
      *
      * Returns null when there is nothing to narrow: security is disabled, the class carries no
-     * `#[Readable]`, or the subject's roles satisfy a rule that declares no `where`.
+     * `#[Readable]`, or the subject's roles satisfy a rule that declares neither `where` nor `own`.
      *
      * @param class-string<ManagedObject> $className The managed object class backing the resource.
      * @throws Exception
@@ -91,11 +96,44 @@ abstract readonly class FieldSecurityPolicy
             error_log("Readable on $className excludes the subject's roles; the fetch is narrowed to no rows.");
             return Predicate::value(false);
         }
-        return $rule->where !== null ? $this->conditionResolver->predicate($rule->where, $rule->arguments) : null;
+        $predicates = new ArrayClass([
+            $rule->where !== null ? $this->conditionResolver->predicate($rule->where, $rule->arguments) : null,
+            $rule->requiresOwner ? $this->resourceOwnershipPredicate($className) : null,
+        ])->filter(fn(?Predicate $predicate): bool => $predicate !== null);
+        if ($predicates->isEmpty) {
+            return null;
+        }
+        return $predicates->count > 1 ? CompoundPredicate::andPredicateWithSubpredicates($predicates) : $predicates->first;
+    }
+
+    /**
+     * Builds the predicate narrowing a resource scoped to `own` down to the subject's own rows.
+     *
+     * Returns an unsatisfiable predicate when the restriction cannot be expressed — no authenticated
+     * subject to compare against, or a class that declares no `#[Owner]` field. A scope that cannot
+     * be applied must not read as no restriction at all, so it closes rather than opens.
+     *
+     * @param class-string<ManagedObject> $className The managed object class backing the resource.
+     * @throws Exception
+     */
+    private function resourceOwnershipPredicate(string $className): Predicate
+    {
+        $ownerKey = OwnerResolver::getOwnerFieldName($className);
+        if (!$this->user || $ownerKey === null) {
+            error_log("Readable on $className is scoped to own but the restriction cannot be expressed; the fetch is narrowed to no rows.");
+            return Predicate::value(false);
+        }
+        return new ComparisonPredicate(Expression::expressionForKeyPath($ownerKey), Expression::expressionForConstantValue($this->user));
     }
 
     /**
      * Enforces the resource-level write rule declared by a `#[Writable]` attribute on the object's class.
+     *
+     * A rule scoped to `own` requires the subject to own the row, independently of the request's `own`
+     * authorization scope — the attribute is a second, declarative source of the same restriction. An
+     * unowned row does not satisfy it: unlike {@see self::enforceOwnership()}, which treats a missing
+     * owner as nothing to enforce, a rule that explicitly asks for `own` is denied when ownership
+     * cannot be established.
      *
      * @param ManagedObject $object The managed object being created, updated, or deleted.
      * @throws ForbiddenException When the subject may not write the resource.
@@ -110,8 +148,25 @@ abstract readonly class FieldSecurityPolicy
         if (!$rule) {
             return;
         }
-        $allowed = $rule->allowsRoles($this->userRoles) && ($rule->where === null || $this->evaluateCondition($rule->where, $rule->arguments, $object));
+        $allowed = $rule->allowsRoles($this->userRoles)
+            && ($rule->where === null || $this->evaluateCondition($rule->where, $rule->arguments, $object))
+            && (!$rule->requiresOwner || $this->ownsResource($object));
         $allowed ?: throw new ForbiddenException(sprintf(localized_string("You don't have permission to modify this \"%s\" resource."), $object->entity->name));
+    }
+
+    /**
+     * Returns whether the subject owns the row a resource rule scoped to `own` targets.
+     *
+     * Requires an owner to compare against: a row whose `#[Owner]` field is empty, or a class that
+     * declares none, is not owned by anybody and so fails a scope that explicitly demands ownership.
+     *
+     * @param ManagedObject $object The managed object being written.
+     * @throws Exception
+     */
+    private function ownsResource(ManagedObject $object): bool
+    {
+        $owner = new OwnerResolver($object)->owner;
+        return $owner !== null && (bool)$this->user?->isEqual($owner);
     }
 
     /**

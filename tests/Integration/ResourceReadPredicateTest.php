@@ -10,10 +10,14 @@ use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Set;
+use Sabatier\Foundation\Predicates\ComparisonPredicate;
+use Sabatier\Foundation\Predicates\CompoundPredicate;
 use Sabatier\Service\Authorizable;
 use Sabatier\Service\AuthorizableRole;
 use Sabatier\Service\AuthorizationContext;
+use Sabatier\Service\AuthorizationScope;
 use Sabatier\Service\FieldLevelSecurityPolicy;
+use Sabatier\Service\Owner;
 use Sabatier\Service\Readable;
 
 // --- Fixtures ---
@@ -40,6 +44,32 @@ class RoleGuardedResourceFixture extends ManagedObject
 #[Readable(["Finance"], where: 'day == $TODAY')]
 class RoleAndConditionGuardedResourceFixture extends ManagedObject
 {
+}
+
+#[Readable(["Finance"], AuthorizationScope::own)]
+class OwnScopedResourceFixture extends ManagedObject
+{
+    #[Owner]
+    public ?Authorizable $createdBy = null;
+}
+
+#[Readable(["Finance"], AuthorizationScope::own)]
+class OwnScopedWithoutOwnerFieldResourceFixture extends ManagedObject
+{
+}
+
+#[Readable(["Finance"], AuthorizationScope::own, where: 'day == $TODAY')]
+class OwnScopedAndConditionResourceFixture extends ManagedObject
+{
+    #[Owner]
+    public ?Authorizable $createdBy = null;
+}
+
+#[Readable(scope: AuthorizationScope::own)]
+class OwnScopedAnyRoleResourceFixture extends ManagedObject
+{
+    #[Owner]
+    public ?Authorizable $createdBy = null;
 }
 
 // --- Tests ---
@@ -138,5 +168,39 @@ final class ResourceReadPredicateTest extends TestCase
         $predicate = $this->makePolicy(true, "Finance")->resourceReadPredicate(RoleAndConditionGuardedResourceFixture::class);
         $this->assertNotNull($predicate);
         $this->assertSame('day = $TODAY', $predicate->predicateFormat, "an admitted role is still narrowed by the rule's condition");
+    }
+
+    // --- scope ---
+
+    #[Test]
+    public function ownScopeNarrowsToTheSubjectsOwnRows(): void
+    {
+        $predicate = $this->makePolicy(true, "Finance")->resourceReadPredicate(OwnScopedResourceFixture::class);
+        $this->assertInstanceOf(ComparisonPredicate::class, $predicate, "an own-scoped rule compares the #[Owner] field against the subject");
+        $this->assertSame("createdBy", $predicate->leftExpression->keyPath);
+    }
+
+    #[Test]
+    public function ownScopeNarrowsToNoRowsWithoutAnOwnerField(): void
+    {
+        $predicate = $this->makePolicy(true, "Finance")->resourceReadPredicate(OwnScopedWithoutOwnerFieldResourceFixture::class);
+        $this->assertNotNull($predicate);
+        $this->assertSame("FALSEPREDICATE", $predicate->predicateFormat, "a scope that cannot be expressed closes rather than opens");
+    }
+
+    #[Test]
+    public function ownScopeNarrowsToNoRowsWhenUnauthenticated(): void
+    {
+        $predicate = $this->makePolicy(true)->resourceReadPredicate(OwnScopedAnyRoleResourceFixture::class);
+        $this->assertNotNull($predicate);
+        $this->assertSame("FALSEPREDICATE", $predicate->predicateFormat, "a rule any role satisfies still has no own rows without a subject to compare against");
+    }
+
+    #[Test]
+    public function ownScopeCombinesWithTheCondition(): void
+    {
+        $predicate = $this->makePolicy(true, "Finance")->resourceReadPredicate(OwnScopedAndConditionResourceFixture::class);
+        $this->assertInstanceOf(CompoundPredicate::class, $predicate, "a rule declaring both a condition and own scope applies both");
+        $this->assertCount(2, $predicate->subpredicates);
     }
 }

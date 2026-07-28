@@ -59,12 +59,21 @@ abstract readonly class FieldSecurityPolicy
     }
 
     /**
-     * Resolves the attribute-based read predicate declared by a `#[Readable]` attribute on a managed
-     * object class, to be AND-folded into the fetch the same way `#[Owner]` narrows a read by owner.
+     * Resolves the read predicate declared by a `#[Readable]` attribute on a managed object class,
+     * to be AND-folded into the fetch the same way `#[Owner]` narrows a read by owner.
      *
-     * Only the `where` condition is translated here; roles and scope are enforced programmatically
-     * elsewhere. Returns null when security is disabled, the class carries no `#[Readable]`, or the
-     * rule declares no `where` — in every such case there is nothing to narrow.
+     * A resource-level rule gates the row rather than a field, so a subject the rule excludes reads
+     * nothing: a listing omits every row and a read by id yields none. That exclusion is expressed as
+     * an unsatisfiable predicate rather than a thrown error, both because it composes with whatever
+     * else narrows the fetch and because it keeps the restricted rows indistinguishable from absent
+     * ones. The counterpart on the write side is {@see self::enforceResourceAccess()}, which does
+     * throw — a write names the row it targets, so denying it cannot be expressed as an empty result.
+     *
+     * The rule's `by` roles are enforced here; its `scope` is not, because ownership narrowing on
+     * read is already driven by the request's `own` authorization scope.
+     *
+     * Returns null when there is nothing to narrow: security is disabled, the class carries no
+     * `#[Readable]`, or the subject's roles satisfy a rule that declares no `where`.
      *
      * @param class-string<ManagedObject> $className The managed object class backing the resource.
      * @throws Exception
@@ -75,7 +84,14 @@ abstract readonly class FieldSecurityPolicy
             return null;
         }
         $rule = ResourceRule::resolve($className, Readable::class);
-        return $rule && $rule->where !== null ? $this->conditionResolver->predicate($rule->where, $rule->arguments) : null;
+        if (!$rule) {
+            return null;
+        }
+        if (!$rule->allowsRoles($this->userRoles)) {
+            error_log("Readable on $className excludes the subject's roles; the fetch is narrowed to no rows.");
+            return Predicate::value(false);
+        }
+        return $rule->where !== null ? $this->conditionResolver->predicate($rule->where, $rule->arguments) : null;
     }
 
     /**

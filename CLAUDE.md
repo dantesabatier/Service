@@ -158,6 +158,28 @@ The `/refresh` action uses a shorter chain that accepts only the refresh-scoped 
 
 Field-level security is declared with `#[Readable]` and `#[Writable]` attributes on managed object properties. `FieldSecurityFilter` applies them at read and write time with a static reflection cache. `#[Owner]` marks the ownership field; `OwnershipService` enforces it on PATCH and DELETE.
 
+#### Resource-level `#[Readable]` / `#[Writable]`
+
+Both attributes also target a **class**, where they gate the row rather than a field. `ResourceRule` resolves them and `FieldSecurityPolicy` applies all three of their arguments — `by` roles, `where` condition and `scope`:
+
+- **Read** — `resourceReadPredicate()` returns a predicate to AND-fold into the fetch. A subject the rule excludes gets `FALSEPREDICATE`, so a listing omits every row and a read by id yields nothing. Never a 403: the rows stay indistinguishable from absent ones, and the predicate composes with everything else narrowing the fetch.
+- **Write** — `enforceResourceAccess()` throws `ForbiddenException`. A write names the row it targets, so denying it cannot be expressed as an empty result.
+
+The asymmetry is deliberate; do **not** "fix" the read side to throw.
+
+A rule declaring `AuthorizationScope::own` narrows to the subject's own rows, independently of the request's `own` token scope — the attribute is a second, declarative source of the same restriction, and the two are allowed to overlap. When that restriction cannot be expressed (no authenticated subject, or the class declares no `#[Owner]`) it **closes**: no rows on read, denial on write.
+
+That last point is intentionally asymmetric to `OwnershipService`/`enforceOwnership`, which treat a missing owner as nothing to enforce and pass. That permissive default is what keeps `#[Owner]` from being mandatory everywhere, and it stays. But a rule that explicitly asks for `own` must not accept a row nobody owns — do not unify the two behaviours.
+
+#### MCP tools and row-level rules
+
+An MCP request URL is always `/mcp`, so none of the URL-driven guards protecting a regular endpoint apply. `AbstractTool` provides the equivalents, and a tool that skips them reads or writes rows the caller is not entitled to:
+
+- **`applySecurityScope($request)`** — call on **every** `FetchRequest` a tool builds, before executing it. Folds in both the ownership scope and the resource-level `#[Readable]`. Where a helper method returns the request, call it next to the `return` so every caller inherits it.
+- **`enforceResourceAccess($object)`** — call on every object a tool creates, updates or deletes. On create, call it *after* populating the object, so a `where` reading the row's own values sees the values being written.
+
+This applies to custom tools in an application's `src/MCPTools/` exactly as it does to the built-in ones.
+
 ### Property Hooks
 
 The codebase uses PHP 8.5 property hooks throughout for lazy initialization:

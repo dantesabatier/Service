@@ -127,6 +127,35 @@ abstract readonly class FieldSecurityPolicy
     }
 
     /**
+     * Enforces the field-level `#[Readable]` declared on a single field of a class, for a caller that
+     * reads that field without materializing the row it belongs to — an aggregate or a grouping reads
+     * the column straight out of the database, so {@see self::applySecureRead()} never sees it.
+     *
+     * A rule this caller cannot satisfy is denied rather than filtered out: the column *is* the
+     * result, so dropping it would leave nothing to return. Because there is no row to evaluate
+     * against, a rule carrying a `where` condition or scoped to `own` cannot be checked and is
+     * refused outright — the same way an inexpressible restriction closes on the read side.
+     *
+     * @param class-string<ManagedObject> $className The managed object class declaring the field.
+     * @param string $fieldName The field being read.
+     * @param string $keyPath The key path as the caller spelled it, for the error message.
+     * @throws ForbiddenException When the subject may not read the field.
+     * @throws Exception
+     */
+    public function enforceFieldRead(string $className, string $fieldName, string $keyPath): void
+    {
+        if (!$this->isSecurityEnabled) {
+            return;
+        }
+        $rule = FieldSecurityFilter::rule($className, Readable::class, $fieldName);
+        if (!$rule) {
+            return;
+        }
+        $rule->allowsRoles($this->userRoles) && $rule->where === null && !$rule->requiresOwner
+            ?: throw new ForbiddenException(sprintf(localized_string("You don't have permission to read \"%s\"."), $keyPath));
+    }
+
+    /**
      * Enforces the resource-level write rule declared by a `#[Writable]` attribute on the object's class.
      *
      * A rule scoped to `own` requires the subject to own the row, independently of the request's `own`
@@ -166,7 +195,7 @@ abstract readonly class FieldSecurityPolicy
     private function ownsResource(ManagedObject $object): bool
     {
         $owner = new OwnerResolver($object)->owner;
-        return $owner !== null && (bool)$this->user?->isEqual($owner);
+        return $owner !== null && $this->user?->isEqual($owner);
     }
 
     /**

@@ -140,6 +140,42 @@ abstract class AbstractTool
     }
 
     /**
+     * Enforces the field-level `#[Readable]` on every key path a tool reads without materializing
+     * the rows behind it — the guard {@see self::applySecureRead()} provides for a tool that
+     * serializes objects, which an aggregate or a grouping never does.
+     *
+     * Call this on each key path an aggregate computes over or groups by, before executing the
+     * request. `applySecurityScope()` narrows which rows are read; this narrows which columns,
+     * and the two are not interchangeable: a protected column aggregated over permitted rows
+     * still discloses the column.
+     *
+     * @throws ForbiddenException When the caller may not read the key path.
+     * @throws Exception
+     */
+    protected function enforceFieldRead(string $entityName, string $keyPath): void
+    {
+        if (!$this->isSecurityEnabled) {
+            return;
+        }
+        $parts = new ArrayClass(explode(".", $keyPath));
+        $schema = $this->entity($entityName);
+        /** @var string $field */
+        $field = $parts->last;
+        foreach ($parts->dropLast(1) as $part) {
+            $relationship = $schema->relationships[(string)$part] ?? null;
+            if (!$relationship instanceof RelationshipSchema) {
+                return;
+            }
+            $schema = $this->entity($relationship->target);
+        }
+        /** @var class-string<ManagedObject> $className */
+        $className = $schema->className;
+        if (class_exists($className)) {
+            $this->fieldSecurityPolicy->enforceFieldRead($className, $field, $keyPath);
+        }
+    }
+
+    /**
      * @throws ForbiddenException
      */
     protected function enforceOwnership(ManagedObject $object): void

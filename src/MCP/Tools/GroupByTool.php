@@ -142,6 +142,7 @@ final class GroupByTool extends AbstractTool
         $result = new ArrayClass();
         foreach ($keys as $key) {
             $this->validateKeyPath($entity, (string)$key);
+            $this->enforceFieldRead($entity, (string)$key);
             $result->append((string)$key);
         }
         return $result;
@@ -156,6 +157,7 @@ final class GroupByTool extends AbstractTool
             $property = (string)($item["property"] ?? fatal_error("aggregate.property required"));
             in_array($function, self::allowedFunctions, true) ?: fatal_error("Invalid aggregate function");
             $this->validateKeyPath($entity, $property);
+            $this->enforceFieldRead($entity, $property);
             $description = new ExpressionDescription();
             $description->entity = $request->entity ?? fatal_error("Missing entity");
             $description->name = (string)($item["as"] ?? "{$function}_$property");

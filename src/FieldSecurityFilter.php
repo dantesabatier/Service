@@ -57,6 +57,22 @@ final class FieldSecurityFilter
     }
 
     /**
+     * Resolves the rule a security attribute declares for a single field of a class, without an
+     * instance to evaluate it against. Returns null when the field carries no such attribute.
+     *
+     * This is the class-level counterpart to the instance filtering below, for callers that never
+     * materialize a row — an aggregate reads a column straight out of the database.
+     *
+     * @param class-string<ManagedObject> $className
+     * @param class-string<Writable|Readable> $attributeClass
+     * @throws Exception
+     */
+    public static function rule(string $className, string $attributeClass, string $fieldName): ?FieldRule
+    {
+        return self::getRules($className, $attributeClass)[$fieldName] ?? null;
+    }
+
+    /**
      * @param Dictionary<mixed> $data
      * @param class-string<Writable|Readable> $attributeClass
      * @return Dictionary<mixed>

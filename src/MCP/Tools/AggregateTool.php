@@ -63,6 +63,7 @@ final class AggregateTool extends AbstractTool
         $this->enforceEntityAuthorization($entity, AuthorizationType::read);
         in_array($function, self::allowedFunctions, true) ?: fatal_error("Invalid function");
         $this->validateKeyPath($entity, $property);
+        $this->enforceFieldRead($entity, $property);
         $attribute = $this->entity($entity)->attributes[$property] ?? null;
         if ($attribute instanceof AttributeSchema && in_array($function, ["sum", "average"], true)) {
             in_array($attribute->type, ["integer", "float", "enum"], true) ?: fatal_error("Property must be numeric type \"$attribute->type\" given");

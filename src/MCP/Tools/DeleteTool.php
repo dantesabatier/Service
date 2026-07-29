@@ -44,6 +44,7 @@ final class DeleteTool extends AbstractTool
         $this->enforceEntityAuthorization($entity, AuthorizationType::delete);
         $request = $this->fetchRequest($entity);
         $request->predicate = $this->buildPredicate("%K = %d", new ArrayClass([ManagedObjectObjectIDKey, $objectID]));
+        $this->applySecurityScope($request);
         /** @var ManagedObject $object */
         $object = $this->context->fetch($request)->first ?? throw new NotFoundException();
         $this->enforceOwnership($object);

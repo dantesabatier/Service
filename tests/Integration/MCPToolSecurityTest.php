@@ -29,6 +29,7 @@ use Sabatier\Service\MCP\Schema\ModelDescriptor;
 use Sabatier\Service\MCP\Tools\AbstractTool;
 use Sabatier\Service\MCP\Tools\ToolRegistry;
 use Sabatier\Service\Owner;
+use Sabatier\Service\Readable;
 
 // --- Fixtures ---
 
@@ -39,6 +40,12 @@ class OwnedToolEntityFixture extends ManagedObject
 }
 
 class UnownedToolEntityFixture extends ManagedObject
+{
+    public string $title = "";
+}
+
+#[Readable(["Finance"])]
+class RoleGuardedReadToolEntityFixture extends ManagedObject
 {
     public string $title = "";
 }
@@ -253,6 +260,49 @@ final class MCPToolSecurityTest extends TestCase
         $request->entity = $this->makeEntity("Ownable", OwnedToolEntityFixture::class);
         $tool->exposedApplyOwnershipScope($request);
         $this->assertNull($request->predicate);
+    }
+
+    // --- resource-level #[Readable] on a fetch by objectID ---
+
+    /**
+     * The predicate `UpdateTool` and `DeleteTool` build to reach a single row by id. Both pass it
+     * through `applySecurityScope`, so a class-level `#[Readable]` that excludes the caller narrows
+     * the lookup to no rows and the tool raises `NotFoundException` instead of writing the row.
+     */
+    private function makeObjectIDRequest(string $entityName, string $className): FetchRequest
+    {
+        $request = new FetchRequest();
+        $request->entity = $this->makeEntity($entityName, $className);
+        $request->predicate = Predicate::format("%K = %d", new ArrayClass(["objectID", 1]));
+        return $request;
+    }
+
+    #[Test]
+    public function applySecurityScopeNarrowsObjectIDLookupWhenResourceReadExcludesTheSubject(): void
+    {
+        $tool = $this->makeTool($this->makeUser("Sales"), new ArrayClass());
+        $request = $this->makeObjectIDRequest("Guarded", RoleGuardedReadToolEntityFixture::class);
+        $tool->exposedApplyOwnershipScope($request);
+        $this->assertInstanceOf(CompoundPredicate::class, $request->predicate);
+        $this->assertStringContainsStringIgnoringCase("FALSEPREDICATE", (string)$request->predicate->predicateFormat);
+    }
+
+    #[Test]
+    public function applySecurityScopeLeavesObjectIDLookupIntactForAllowedRole(): void
+    {
+        $tool = $this->makeTool($this->makeUser("Finance"), new ArrayClass());
+        $request = $this->makeObjectIDRequest("Guarded", RoleGuardedReadToolEntityFixture::class);
+        $tool->exposedApplyOwnershipScope($request);
+        $this->assertInstanceOf(ComparisonPredicate::class, $request->predicate);
+    }
+
+    #[Test]
+    public function applySecurityScopeLeavesObjectIDLookupIntactForUnguardedClass(): void
+    {
+        $tool = $this->makeTool($this->makeUser("Sales"), new ArrayClass());
+        $request = $this->makeObjectIDRequest("Plain", UnownedToolEntityFixture::class);
+        $tool->exposedApplyOwnershipScope($request);
+        $this->assertInstanceOf(ComparisonPredicate::class, $request->predicate);
     }
 
     // --- enforceOwnership ---

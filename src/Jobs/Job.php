@@ -21,6 +21,9 @@ use function Sabatier\Foundation\class_name;
  * A job holds business logic only. Booting the container, configuring the
  * context (`transactionAuthor`, merge policy) and persisting or resetting it
  * are the entry point's responsibility, never the job's.
+ *
+ * @psalm-consistent-constructor
+ * @phpstan-consistent-constructor
  */
 abstract class Job
 {

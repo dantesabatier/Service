@@ -162,7 +162,7 @@ abstract class AbstractTool
         /** @var string $field */
         $field = $parts->last;
         foreach ($parts->dropLast(1) as $part) {
-            $relationship = $schema->relationships[(string)$part] ?? null;
+            $relationship = $schema->relationships[(string)$part];
             if (!$relationship instanceof RelationshipSchema) {
                 return;
             }
@@ -302,10 +302,10 @@ abstract class AbstractTool
         $last = count($parts) - 1;
         foreach ($parts as $index => $part) {
             if ($index === $last) {
-                return $current->attributes[$part] ?? null;
+                return $current->attributes[$part];
             }
             /** @var RelationshipSchema|null $relationship */
-            $relationship = $current->relationships[$part] ?? null;
+            $relationship = $current->relationships[$part];
             if (!$relationship) {
                 return null;
             }
@@ -372,7 +372,7 @@ abstract class AbstractTool
         /** @var Dictionary<mixed> $shape */
         $shape = new Dictionary();
         foreach ($values as $key => $value) {
-            $relationship = $schema->relationships[$key] ?? null;
+            $relationship = $schema->relationships[$key];
             if (!$relationship instanceof RelationshipSchema) {
                 $shape[$key] = true;
                 continue;

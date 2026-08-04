@@ -35,7 +35,7 @@ final class DescribeModelTool extends AbstractTool
         get => [
             "type" => "object",
             "properties" => [
-                "entity" => ["type" => ["string", "array"], "items" => ["type" => "string"], "description" => "Omit for a lightweight index of every entity (class, label, aliases and attribute/relationship counts). Pass an entity name for the full attributes, relationships and enum cases of that entity, or a JSON array of names, e.g. [\"Order\", \"Customer\"], for several. To request more than one entity, pass a real array — never a single bracketed string."],
+                "entity" => ["type" => "array", "items" => ["type" => "string"], "description" => "Omit for a lightweight index of every entity (class, label, aliases and attribute/relationship counts). Pass a JSON array of entity names — [\"Order\"] for one, [\"Order\", \"Customer\"] for several — for the full attributes, relationships and enum cases of those entities. Must be a real array of strings, never a single bracketed string."],
             ],
             "required" => [],
         ];

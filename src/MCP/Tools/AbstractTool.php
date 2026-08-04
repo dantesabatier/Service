@@ -162,7 +162,7 @@ abstract class AbstractTool
         /** @var string $field */
         $field = $parts->last;
         foreach ($parts->dropLast(1) as $part) {
-            $relationship = $schema->relationships[(string)$part];
+            $relationship = $schema->relationships[$part];
             if (!$relationship instanceof RelationshipSchema) {
                 return;
             }

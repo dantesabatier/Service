@@ -11,6 +11,7 @@ use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Foundation\Networking\URLResponse;
 use Sabatier\Foundation\Networking\URLSession;
+use Sabatier\Foundation\Networking\URLSessionConfiguration;
 use Sabatier\Service\InternalServerErrorException;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
 
@@ -31,6 +32,21 @@ abstract class LLMClient
     /** Maximum output tokens to request from the model. */
     abstract public int $maxTokens {
         get;
+    }
+    /**
+     * Request timeout, in seconds. Local models can take considerably longer than the shared
+     * session's default to produce a first token, so the default is generous. Override per provider.
+     */
+    public float|int $timeoutIntervalForRequest = 300.0;
+
+    /**
+     * The session used to send requests. Configured with {@see LLMClient::$timeoutIntervalForRequest}
+     * rather than reusing {@see URLSession::shared()}, whose default timeout is too short for local models.
+     */
+    private URLSession $session {
+        get => $this->session ??= new URLSession(clone(URLSessionConfiguration::default(), [
+            "timeoutIntervalForRequest" => $this->timeoutIntervalForRequest,
+        ]));
     }
 
     /**
@@ -65,7 +81,7 @@ abstract class LLMClient
     {
         $data = null;
         $error = null;
-        URLSession::shared()->dataTaskWithRequest($request, function (?string $responseData, ?URLResponse $response, ?Error $err) use (&$data, &$error): void {
+        $this->session->dataTaskWithRequest($request, function (?string $responseData, ?URLResponse $response, ?Error $err) use (&$data, &$error): void {
             $data = $responseData;
             $error = $err;
         })->resume();

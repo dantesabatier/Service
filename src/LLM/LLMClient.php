@@ -40,6 +40,19 @@ abstract class LLMClient
     public float|int $timeoutIntervalForRequest = 300.0;
 
     /**
+     * Extra request-body fields merged over the ones the client builds, for per-provider generation
+     * settings the base body does not model. Keys are opaque: the client neither interprets nor
+     * validates them, so any field the backend understands works (a sampling parameter at the root,
+     * or a nested object its API expects). Empty by default, so a provider that sets nothing is
+     * unaffected. A key here overrides the client's own value for that field.
+     *
+     * @var Dictionary<mixed>
+     */
+    public Dictionary $extraBody {
+        get => $this->extraBody ??= new Dictionary();
+    }
+
+    /**
      * The session used to send requests. Configured with {@see LLMClient::$timeoutIntervalForRequest}
      * rather than reusing {@see URLSession::shared()}, whose default timeout is too short for local models.
      */

@@ -59,7 +59,7 @@ final class StandardLLMClient extends LLMClient
         if (!$tools->isEmpty) {
             $body["tools"] = $this->formatTools($tools);
         }
-        $request->httpBody = (string)json_encode($body);
+        $request->httpBody = (string)json_encode([...$body, ...$this->extraBody->array]);
         return $request;
     }
 

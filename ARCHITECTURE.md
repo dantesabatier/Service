@@ -392,7 +392,7 @@ The framework registers nine tools automatically, all backed by the managed obje
 
 | Tool             | Operation                                                   | Notes                                                                          |
 |------------------|-------------------------------------------------------------|--------------------------------------------------------------------------------|
-| `describe_model` | Schema introspection                                        | Should be called first; returns the full model schema                          |
+| `describe_model` | Schema introspection                                        | Should be called first. With no argument returns a lightweight index of every entity (class, label, aliases, attribute/relationship counts) plus the predicate guide; pass `entity` (one name or an array of names) for the full attributes, relationships and enum cases of those entities |
 | `fetch`          | Query with filters, sort, pagination, projection            | Field/relationship projection; `serialization` shape traverses relationships to any depth; default limit 100 |
 | `count`          | Count matching records                                      |                                                                                |
 | `aggregate`      | Compute sum, average, min, max, count, median, mode, stddev | `median`, `mode`, `stddev` are computed in-memory; others push to the database |
@@ -404,9 +404,19 @@ The framework registers nine tools automatically, all backed by the managed obje
 
 Every tool validates all key paths and predicate placeholders against the in-memory schema before touching the database, so invalid field names produce a clear error message rather than a SQL error.
 
+The full per-tool reference — every input parameter and the security behaviour of each tool — is in [MCP.md](MCP.md).
+
 ### Custom Tools
 
-Place a class that extends `AbstractTool` in `src/MCPTools/`. The framework discovers it automatically at startup. The class receives the `ManagedObjectContext` and `ModelDescriptor` in its constructor and has access to all helper methods from `AbstractTool`: `fetchRequest`, `buildPredicate`, `validateKeyPath`, `jsonResult`, and `textResult`.
+Place a class that extends `AbstractTool` in `src/MCPTools/`. The framework discovers it automatically at startup. The class receives the `ManagedObjectContext` and `ModelDescriptor` in its constructor and has access to all helper methods from `AbstractTool`: query-building (`fetchRequest`, `buildPredicate`), validation (`validateKeyPath`, `validatePredicateKeyPaths`, `assertConcreteEntity`), and result-wrapping (`jsonResult`, `textResult`).
+
+A custom tool must also apply the same security helpers the built-in tools use — the MCP request URL is always `/mcp`, so none of the URL-driven guards that protect a regular endpoint apply, and a tool that skips them reads or writes rows the caller is not entitled to:
+
+- **`applySecurityScope($request)`** — call on every `FetchRequest` the tool builds, before executing it. AND-folds in the caller's `own` ownership scope and the resource-level `#[Readable]`.
+- **`enforceFieldRead($entityName, $keyPath)`** — call on every key path an aggregate computes over or groups by. `applySecurityScope` narrows which rows are read; this narrows which columns.
+- **`enforceResourceAccess($object)`** — call on every object the tool creates, updates or deletes (on create, after populating it). Enforces the resource-level `#[Writable]`; throws `ForbiddenException` on denial.
+- **`enforceEntityAuthorization($resource, $action)`** — call to check per-entity RBAC for the resource, the check `AuthorizationEvaluator` performs by URL for regular endpoints.
+- **`applySecureRead` / `applySecureUpdate` / `enforceOwnership`** — field-level read filtering, field-level write filtering, and `#[Owner]` enforcement, respectively.
 
 ---
 

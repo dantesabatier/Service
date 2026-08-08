@@ -9,7 +9,6 @@ use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLRequest;
-use Sabatier\Foundation\URL;
 use Sabatier\Service\InternalServerErrorException;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
 use function Sabatier\Foundation\fatal_error;
@@ -28,10 +27,6 @@ final class AnthropicClient extends LLMClient
     public string $version = "2023-06-01";
     #[Override]
     public int $maxTokens = 8192;
-
-    public function __construct(private readonly ?string $model = null, private readonly ?URL $endpoint = null, private readonly ?string $key = null)
-    {
-    }
 
     /**
      * @param ArrayClass<LLMMessage> $messages
@@ -168,7 +163,7 @@ final class AnthropicClient extends LLMClient
         $text = null;
         /** @var ArrayClass<LLMToolCall> $toolCalls */
         $toolCalls = new ArrayClass();
-        /** @var ArrayClass<array{type: string, thinking: string, signature: string}> $thinkingBlocks */
+        /** @var ArrayClass<Dictionary<string>> $thinkingBlocks */
         $thinkingBlocks = new ArrayClass();
         /** @var ArrayClass<Dictionary<mixed>> $content */
         $content = $body["content"] ?? new ArrayClass();
@@ -176,7 +171,7 @@ final class AnthropicClient extends LLMClient
             match ($block["type"]) {
                 "text" => $text = $block["text"],
                 "tool_use" => $toolCalls->append(new LLMToolCall($block["id"] ?? "", $block["name"] ?? "", $block["input"] ?? new Dictionary())),
-                "thinking" => $thinkingBlocks->append(["type" => "thinking", "thinking" => (string)($block["thinking"] ?? ""), "signature" => (string)($block["signature"] ?? "")]),
+                "thinking" => $thinkingBlocks->append(new Dictionary(["type" => "thinking", "thinking" => (string)($block["thinking"] ?? ""), "signature" => (string)($block["signature"] ?? "")])),
                 default => null,
             };
         }

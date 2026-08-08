@@ -9,7 +9,6 @@ use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLRequest;
-use Sabatier\Foundation\URL;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
 use function Sabatier\Foundation\fatal_error;
 
@@ -34,10 +33,6 @@ final class OllamaClient extends LLMClient
     #[Override]
     public int $maxTokens = 8192;
 
-    public function __construct(private readonly ?string $model = null, private readonly ?URL $endpoint = null, private readonly ?string $key = null)
-    {
-    }
-
     /**
      * @param ArrayClass<LLMMessage> $messages
      * @param ArrayClass<ToolDescriptor> $tools
@@ -47,6 +42,7 @@ final class OllamaClient extends LLMClient
     {
         $request = new URLRequest($this->endpoint ?? fatal_error("Endpoint URL must be provided for OllamaClient"));
         $request->httpMethod = HTTPRequestMethod::post;
+        /** @var Dictionary<mixed> $headers */
         $headers = new Dictionary(["Content-Type" => "application/json"]);
         if ($this->key !== null && $this->key !== "") {
             $headers["Authorization"] = "Bearer $this->key";
@@ -144,7 +140,7 @@ final class OllamaClient extends LLMClient
     {
         /** @var string|null $error */
         $error = $body["error"];
-        $error === null ?: fatal_error(is_string($error) ? $error : "Unknown API error");
+        $error === null ?: fatal_error($error);
         /** @var Dictionary<mixed> $message */
         $message = $body["message"] ?? new Dictionary();
         /** @var string|null $text */

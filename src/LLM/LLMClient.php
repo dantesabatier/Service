@@ -12,6 +12,7 @@ use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Foundation\Networking\URLResponse;
 use Sabatier\Foundation\Networking\URLSession;
 use Sabatier\Foundation\Networking\URLSessionConfiguration;
+use Sabatier\Foundation\URL;
 use Sabatier\Service\InternalServerErrorException;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
 
@@ -41,11 +42,8 @@ abstract class LLMClient
 
     /** @var Dictionary<mixed> Per-provider request-body fields merged over the built body; opaque keys the client neither interprets nor validates, overriding its own values on collision. */
     public Dictionary $extraBody {
-        get => $this->_extraBody ??= new Dictionary();
-        set => $this->_extraBody = $value;
+        get => $this->extraBody ??= new Dictionary();
     }
-    /** @var Dictionary<mixed>|null */
-    private ?Dictionary $_extraBody = null;
 
     /**
      * The session used to send requests. Configured with {@see LLMClient::$timeoutIntervalForRequest}
@@ -55,6 +53,10 @@ abstract class LLMClient
         get => $this->session ??= new URLSession(clone(URLSessionConfiguration::default(), [
             "timeoutIntervalForRequest" => $this->timeoutIntervalForRequest,
         ]));
+    }
+
+    public function __construct(public readonly ?string $model = null, public readonly ?URL $endpoint = null, public readonly ?string $key = null)
+    {
     }
 
     /**

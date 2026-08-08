@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sabatier\Service\LLM;
 
 use Sabatier\Foundation\ArrayClass;
+use Sabatier\Foundation\Dictionary;
 
 /** A single message in an LLM conversation, carrying its role, text content, any tool calls or tool result id, optional image attachments, and the token count charged for generating it. */
 final readonly class LLMMessage
@@ -14,9 +15,9 @@ final readonly class LLMMessage
      * @param string|null $content
      * @param ArrayClass<LLMToolCall>|null $toolCalls
      * @param string|null $toolCallId
-     * @param ArrayClass<array{name: string, mimeType: string, data: string}>|null $images
+     * @param ArrayClass<Dictionary<string>>|null $images
      * @param int $outputTokens
-     * @param ArrayClass<array{type: string, thinking: string, signature: string}>|null $thinkingBlocks Raw Anthropic thinking blocks; must be echoed back verbatim on the next turn.
+     * @param ArrayClass<Dictionary<string>>|null $thinkingBlocks Raw Anthropic thinking blocks; must be echoed back verbatim on the next turn.
      * @param string|null $reasoningContent OpenAI-compatible reasoning string; must be echoed back on the next turn.
      * @param bool $isError Marks a tool-result message as a failure so the provider flags it to the model (e.g. Anthropic `is_error`).
      */

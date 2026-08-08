@@ -106,10 +106,15 @@ final class OllamaClient extends LLMClient
                 ];
                 continue;
             }
-            $result[] = [
+            $entry = [
                 "role" => $message->role,
                 "content" => $message->content ?? "",
             ];
+            if ($message->images && !$message->images->isEmpty) {
+                // Ollama takes images as bare base64 strings on the message, without the data-URI prefix.
+                $entry["images"] = $message->images->compactMap(fn(Dictionary $image): ?string => $image["data"])->array;
+            }
+            $result[] = $entry;
         }
         return $result;
     }

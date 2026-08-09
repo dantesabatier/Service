@@ -21,6 +21,7 @@ use Sabatier\Service\MCP\Tools\DeleteTool;
 use Sabatier\Service\MCP\Tools\DescribeModelTool;
 use Sabatier\Service\MCP\Tools\FetchTool;
 use Sabatier\Service\MCP\Tools\GroupByTool;
+use Sabatier\Service\MCP\Tools\JobTool;
 use Sabatier\Service\MCP\Tools\PersistentHistoryTool;
 use Sabatier\Service\MCP\Tools\UpdateTool;
 use function Sabatier\Foundation\string_is_equal;
@@ -46,6 +47,7 @@ final readonly class ToolResolver
         CreateTool::class,
         UpdateTool::class,
         DeleteTool::class,
+        JobTool::class,
         PersistentHistoryTool::class,
     ];
 

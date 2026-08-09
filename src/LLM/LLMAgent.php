@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Sabatier\Service\LLM;
 
 use Sabatier\Foundation\ArrayClass;
+use Sabatier\Foundation\Dictionary;
+use Sabatier\Service\MCP\Response\ToolDescriptor;
 use Sabatier\Service\MCP\Tools\ToolRegistry;
 use Throwable;
 
@@ -22,9 +24,25 @@ use Throwable;
  * call may succeed once corrected. A real program fault propagates out of the registry and
  * aborts the run for the caller to handle.
  */
-final readonly class LLMAgent
+final class LLMAgent
 {
-    public function __construct(private LLMClient $client, private ToolRegistry $toolRegistry, private int $maxIterations = 25)
+    private const string subagentToolName = "run_subagent";
+    private const int subagentMaxIterations = 8;
+    private static ?ToolDescriptor $subagentToolDescriptor = null;
+    /** @var ArrayClass<ToolDescriptor> */
+    private ArrayClass $toolList {
+        get {
+            if (isset($this->toolList)) {
+                return $this->toolList;
+            }
+            if ($this->canSpawnSubagents) {
+                return $this->toolList = $this->toolRegistry->list->appending(self::subagentToolDescriptor());
+            }
+            return $this->toolList = $this->toolRegistry->list;
+        }
+    }
+
+    public function __construct(private readonly LLMClient $client, private readonly ToolRegistry $toolRegistry, private readonly int $maxIterations = 25, private readonly bool $canSpawnSubagents = true)
     {
     }
 
@@ -49,7 +67,7 @@ final readonly class LLMAgent
         $toolCallCache = [];
         $iterations = 0;
         while ($iterations++ < $this->maxIterations) {
-            $turn = $this->client->complete($history, $this->toolRegistry->list, $systemPrompt);
+            $turn = $this->client->complete($history, $this->toolList, $systemPrompt);
             $totalInputTokens += $turn->inputTokens;
             $totalOutputTokens += $turn->outputTokens;
             $assistantMsg = new LLMMessage(LLMMessageRole::assistant, $turn->text, $turn->toolCalls, outputTokens: $turn->outputTokens, thinkingBlocks: $turn->thinkingBlocks, reasoningContent: $turn->reasoningContent);
@@ -64,9 +82,16 @@ final readonly class LLMAgent
                 if (isset($toolCallCache[$cacheKey])) {
                     $text = "You already called this tool with these exact arguments. Result: " . $toolCallCache[$cacheKey] . " Do not call it again.";
                 } else {
-                    $result = $this->toolRegistry->call($toolCall->name, $toolCall->arguments);
-                    $text = $result->text;
-                    $isError = $result->isError;
+                    if ($this->canSpawnSubagents && $toolCall->name === self::subagentToolName) {
+                        $subRun = $this->runSubagent($toolCall->arguments, $systemPrompt);
+                        $totalInputTokens += $subRun->inputTokens;
+                        $totalOutputTokens += $subRun->outputTokens;
+                        $text = $this->subagentResultText($subRun);
+                    } else {
+                        $result = $this->toolRegistry->call($toolCall->name, $toolCall->arguments);
+                        $text = $result->text;
+                        $isError = $result->isError;
+                    }
                     if (!$isError) {
                         $toolCallCache[$cacheKey] = $text;
                     }
@@ -77,5 +102,50 @@ final readonly class LLMAgent
             }
         }
         return new LLMRun($newMessages, $totalInputTokens, $totalOutputTokens);
+    }
+
+    /**
+     * @param Dictionary<mixed> $arguments
+     * @throws Throwable
+     */
+    private function runSubagent(Dictionary $arguments, ?string $parentSystemPrompt): LLMRun
+    {
+        $task = trim((string)$arguments["task"]);
+        if ($task === "") {
+            return new LLMRun(new ArrayClass([new LLMMessage(LLMMessageRole::assistant, "Subagent task is required.")]));
+        }
+        $context = trim((string)$arguments["context"]);
+        $content = $context === "" ? $task : "Task:\n$task\n\nContext:\n$context";
+        $systemPrompt = trim((string)$arguments["systemPrompt"]);
+        $subagent = new self($this->client, $this->toolRegistry, self::subagentMaxIterations, false);
+        return $subagent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, $content)]), $systemPrompt === "" ? $parentSystemPrompt : $systemPrompt);
+    }
+
+    /**
+     * Returns the subagent's final answer, or an explicit sentinel when the sub-run
+     * produced no assistant content to report back.
+     */
+    private function subagentResultText(LLMRun $run): string
+    {
+        return $run->messages->last(fn(LLMMessage $message): bool => $message->role === LLMMessageRole::assistant && !empty($message->content))?->content ?? "The subagent produced no answer.";
+    }
+
+    private static function subagentToolDescriptor(): ToolDescriptor
+    {
+        return self::$subagentToolDescriptor ??= new ToolDescriptor(
+            self::subagentToolName,
+            "Launch a focused subagent with the same tool catalogue to complete one bounded task. The subagent cannot launch further subagents.",
+            [
+                "type" => "object",
+                "properties" => [
+                    "task" => ["type" => "string", "description" => "The focused task the subagent should complete."],
+                    "context" => ["type" => "string", "description" => "Optional context the subagent needs to complete the task."],
+                    "systemPrompt" => ["type" => "string", "description" => "Optional system prompt override for the subagent. Omit to inherit the parent system prompt."],
+                ],
+                "required" => ["task"],
+                "additionalProperties" => false,
+            ],
+            "Run Subagent"
+        );
     }
 }

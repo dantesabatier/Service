@@ -165,6 +165,18 @@ The scope parameters `date`, `transaction` and `token` are evaluated in that fix
 
 ---
 
+## `run_job`
+
+Run a named domain job in the current request — the MCP surface over the same job catalogue the CLI entry point (`JobRunner`) matches its command-line argument against. A job is an application `Job` subclass discovered from `src/Jobs/`, not a data-model operation.
+
+| Parameter | Type   | Required | Description |
+|-----------|--------|----------|-------------|
+| `job`     | string | yes      | Name of the job to run. Matches the job's class short name unless the job overrides its `name` hook. |
+
+The job runs against the request context, and its changes are saved in the same transaction boundary the CRUD tools keep. An unknown name comes back as a correctable failure listing the available jobs; a job that throws propagates its fault out of the registry funnel. Running a job is a coarse action that may read or write, so authorization is enforced per call against the `Jobs` resource with `AuthorizationType::any` — seed a `Jobs` permission of type `any` on the roles allowed to invoke jobs. Returns `{"status": "completed", "job": <name>}`.
+
+---
+
 ## Custom Tools
 
 Drop a class extending `AbstractTool` in the application's `src/MCPTools/` directory and the framework discovers it at startup — no registration step. The constructor receives the `ManagedObjectContext` and the `ModelDescriptor`; the subclass supplies three members:

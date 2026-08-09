@@ -388,7 +388,7 @@ Two files enrich the raw schema:
 
 ### Built-in Tools
 
-The framework registers nine tools automatically, all backed by the managed object context:
+The framework registers ten tools automatically — nine of them backed by the managed object context, plus `run_job` backed by the domain job catalogue:
 
 | Tool             | Operation                                                   | Notes                                                                          |
 |------------------|-------------------------------------------------------------|--------------------------------------------------------------------------------|
@@ -401,6 +401,7 @@ The framework registers nine tools automatically, all backed by the managed obje
 | `update`         | Update a single record by `objectID`                        | Saves only if there are actual changes                                         |
 | `delete`         | Delete a single record by `objectID`                        |                                                                                |
 | `persistent_history` | Fetch or purge the persistent history change log        | Mirrors the `/history` endpoint; purge is destructive                          |
+| `run_job`         | Run a domain job by name                                 | Backed by the `src/Jobs/` catalogue, not the data model; same transaction boundary as the CRUD tools; gate on the `Jobs` resource |
 
 Every tool validates all key paths and predicate placeholders against the in-memory schema before touching the database, so invalid field names produce a clear error message rather than a SQL error.
 
@@ -417,6 +418,10 @@ A custom tool must also apply the same security helpers the built-in tools use �
 - **`enforceResourceAccess($object)`** — call on every object the tool creates, updates or deletes (on create, after populating it). Enforces the resource-level `#[Writable]`; throws `ForbiddenException` on denial.
 - **`enforceEntityAuthorization($resource, $action)`** — call to check per-entity RBAC for the resource, the check `AuthorizationEvaluator` performs by URL for regular endpoints.
 - **`applySecureRead` / `applySecureUpdate` / `enforceOwnership`** — field-level read filtering, field-level write filtering, and `#[Owner]` enforcement, respectively.
+
+### In-process agents and subagents
+
+The JSON-RPC server is one face of the tool catalogue. `LLMAgent` drives the same catalogue in-process: it loops over `LLMClient` turns, dispatches tool calls through a `ToolRegistry`, and feeds results back until the model finishes or the iteration budget runs out. Agents built on it expose one synthetic tool the registry never sees: **`run_subagent`** — launch a fresh agent on the same catalogue to complete one bounded task. The subagent is a new `LLMAgent` bound to the same client and registry, so every data tool still enforces its own RBAC; the recursion guard is structural (`canSpawnSubagents: false`), not a prompt. The subagent's final answer is returned as the tool result, and its tokens are charged to the parent run.
 
 ---
 
@@ -512,6 +517,10 @@ The run loop owns the orchestration lines (`started`, `completed in …`, `faile
 ### Recurring vs. one-shot
 
 Not every job is scheduled. One-shot provisioning jobs (run manually once per environment, never in `crontab`) share the same `src/Jobs/` + CLI machinery as recurring cron jobs; the only difference is whether a `crontab` line invokes them. The framework draws no distinction — both are just `Job` subclasses.
+
+### The MCP surface
+
+The same catalogue is exposed to LLM agents as the `run_job` MCP tool (documented in [MCP.md](MCP.md)): it resolves the name against the same registry, runs the job against the request context, and saves in the same transaction boundary the CRUD tools keep. Because running a job is a coarse action that may read or write, the tool gates each call on a `Jobs` permission of type `any`. The CLI and MCP paths therefore stay in lockstep — a job dropped in `src/Jobs/` is runnable from both entry points with no extra registration.
 
 ---
 

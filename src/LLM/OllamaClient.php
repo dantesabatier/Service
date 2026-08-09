@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\LLM;
 
+use JsonException;
 use Override;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
@@ -36,6 +37,7 @@ final class OllamaClient extends LLMClient
     /**
      * @param ArrayClass<LLMMessage> $messages
      * @param ArrayClass<ToolDescriptor> $tools
+     * @throws JsonException
      */
     #[Override]
     protected function buildRequest(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): URLRequest
@@ -63,7 +65,7 @@ final class OllamaClient extends LLMClient
         if (!$tools->isEmpty) {
             $body["tools"] = $this->formatTools($tools);
         }
-        $request->httpBody = (string)json_encode($body);
+        $request->httpBody = json_encode($body, JSON_THROW_ON_ERROR);
         return $request;
     }
 

@@ -388,7 +388,7 @@ Two files enrich the raw schema:
 
 ### Built-in Tools
 
-The framework registers ten tools automatically — nine of them backed by the managed object context, plus `run_job` backed by the domain job catalogue:
+The framework registers twelve tools automatically — nine of them backed by the managed object context, `run_job` by the domain job catalogue, and `get_server_time` and `web_search` by the framework itself:
 
 | Tool             | Operation                                                   | Notes                                                                          |
 |------------------|-------------------------------------------------------------|--------------------------------------------------------------------------------|
@@ -402,6 +402,8 @@ The framework registers ten tools automatically — nine of them backed by the m
 | `delete`         | Delete a single record by `objectID`                        |                                                                                |
 | `persistent_history` | Fetch or purge the persistent history change log        | Mirrors the `/history` endpoint; purge is destructive                          |
 | `run_job`         | Run a domain job by name                                 | Backed by the `src/Jobs/` catalogue, not the data model; same transaction boundary as the CRUD tools; gate on the `Jobs` resource |
+| `get_server_time` | Return the server's current date and time                | App-agnostic; reads no entities, so no security scope                           |
+| `web_search`      | Search the web via a pluggable provider                 | Backed by `src/Search/` (`WebSearchProvider`, `TavilySearchProvider`); the application picks the provider by identifier in its `.env` (`WEB_SEARCH_PROVIDER`), the same way it picks the `LLMClient` backing the agent |
 
 Every tool validates all key paths and predicate placeholders against the in-memory schema before touching the database, so invalid field names produce a clear error message rather than a SQL error.
 

@@ -38,3 +38,9 @@ const MCPServerNameDefault = "MCP Server";
 const MCPServerVersionKey = "MCP_SERVER_VERSION";
 /** @var string Default MCP server version when the environment variable is not set. */
 const MCPServerVersionDefault = "1.0.0";
+/** @var string Environment variable key for the Tavily API key consumed by `Sabatier\Service\Search\TavilySearchProvider`; the application decides how it reads it. */
+const WebSearchApiKey = "WEB_SEARCH_API_KEY";
+/** @var string Environment variable key for the identifier of the `WebSearchProvider` the server uses to back `web_search`. */
+const WebSearchProviderKey = "WEB_SEARCH_PROVIDER";
+/** @var string Default `WebSearchProvider` identifier when the environment variable is not set. */
+const WebSearchProviderDefault = "tavily";

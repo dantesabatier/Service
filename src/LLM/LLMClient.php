@@ -26,18 +26,15 @@ use Sabatier\Service\MCP\Response\ToolDescriptor;
  */
 abstract class LLMClient
 {
-    /** API version header value sent with every request. */
+    /** @var string API version header value sent with every request. */
     abstract public string $version {
         get;
     }
-    /** Maximum output tokens to request from the model. */
+    /** @var int Maximum output tokens to request from the model. */
     abstract public int $maxTokens {
         get;
     }
-    /**
-     * Request timeout, in seconds. Local models can take considerably longer than the shared
-     * session's default to produce a first token, so the default is generous. Override per provider.
-     */
+    /** @var float|int Request timeout, in seconds. Local models can take considerably longer than the shared session's default to produce a first token, so the default is generous. Override per provider. */
     public float|int $timeoutIntervalForRequest = 300.0;
 
     /** @var Dictionary<mixed> Per-provider request-body fields merged over the built body; opaque keys the client neither interprets nor validates, overriding its own values on collision. */
@@ -45,16 +42,18 @@ abstract class LLMClient
         get => $this->extraBody ??= new Dictionary();
     }
 
-    /**
-     * The session used to send requests. Configured with {@see LLMClient::$timeoutIntervalForRequest}
-     * rather than reusing {@see URLSession::shared()}, whose default timeout is too short for local models.
-     */
+    /** @var URLSession The session used to send requests, configured with {@see LLMClient::$timeoutIntervalForRequest} rather than reusing {@see URLSession::shared()}, whose default timeout is too short for local models. */
     private URLSession $session {
         get => $this->session ??= new URLSession(clone(URLSessionConfiguration::default(), [
             "timeoutIntervalForRequest" => $this->timeoutIntervalForRequest,
         ]));
     }
 
+    /**
+     * @param string|null $model The model name to request, or `null` to use the provider's default.
+     * @param URL|null $endpoint The provider API endpoint, or `null` to use the provider's default.
+     * @param string|null $key The provider API key, or `null` when unconfigured.
+     */
     public function __construct(public readonly ?string $model = null, public readonly ?URL $endpoint = null, public readonly ?string $key = null)
     {
     }

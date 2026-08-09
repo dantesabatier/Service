@@ -177,6 +177,58 @@ The job runs against the request context, and its changes are saved in the same 
 
 ---
 
+## `get_server_time`
+
+Returns the server's current date and time. The generic counterpart to the data tools: it answers "what time is it now?" without relying on the timestamp of the prompt, which an agent needs to reason about schedules, deadlines and date-relative predicates.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| *(none)*  |      |          |             |
+
+Returns the server's local time in its configured timezone:
+
+```json
+{
+  "iso8601": "2026-08-09T14:30:00-05:00",
+  "unix": 1754764200,
+  "timezone": "America/Mexico_City",
+  "weekday": "Sunday",
+  "date": "2026-08-09",
+  "time": "14:30:00"
+}
+```
+
+`unix` is the absolute timestamp, so the model can derive any other zone. Reads no entities and enforces no row- or column-level security.
+
+---
+
+## `web_search`
+
+Searches the web — the generic counterpart to the data tools for questions the persisted model cannot answer. Results come back as an `answer` (when the provider returns one) plus a bounded list of `results`.
+
+The tool is provider-agnostic and **built in**: the framework ships the `WebSearchTool` (name, schema, argument validation) in `src/MCP/Tools/` and the provider machinery in `src/Search/` — `WebSearchProvider` (abstract), `TavilySearchProvider`, `WebSearchResult` — and the application picks the backing provider through its environment, the same way it picks which `LLMClient` backs the agent. `WebSearchProvider::provider()` resolves the identifier in `WEB_SEARCH_PROVIDER` (default `tavily`) to a concrete provider and hands it the `WEB_SEARCH_API_KEY` from the same source; no subclassing is required.
+
+| Parameter    | Type    | Required | Description |
+|--------------|---------|----------|-------------|
+| `query`      | string  | yes      | The web search query, in natural language. |
+| `maxResults` | integer | no       | Maximum number of results to return (1–10, default 5). |
+
+The Tavily provider reads its key from the `WEB_SEARCH_API_KEY` environment variable; a provider without its key fails the call with a message telling the model the tool is not configured. Returns:
+
+```json
+{
+  "query": "...",
+  "answer": "...",
+  "results": [
+    {"title": "...", "url": "...", "content": "..."}
+  ]
+}
+```
+
+`content` is truncated to keep the token cost of the tool result sane. Reads no entities and enforces no row- or column-level security; it is an outbound network call on behalf of the authenticated MCP caller.
+
+---
+
 ## Custom Tools
 
 Drop a class extending `AbstractTool` in the application's `src/MCPTools/` directory and the framework discovers it at startup — no registration step. The constructor receives the `ManagedObjectContext` and the `ModelDescriptor`; the subclass supplies three members:

@@ -20,10 +20,12 @@ use Sabatier\Service\MCP\Tools\CreateTool;
 use Sabatier\Service\MCP\Tools\DeleteTool;
 use Sabatier\Service\MCP\Tools\DescribeModelTool;
 use Sabatier\Service\MCP\Tools\FetchTool;
+use Sabatier\Service\MCP\Tools\GetServerTimeTool;
 use Sabatier\Service\MCP\Tools\GroupByTool;
 use Sabatier\Service\MCP\Tools\JobTool;
 use Sabatier\Service\MCP\Tools\PersistentHistoryTool;
 use Sabatier\Service\MCP\Tools\UpdateTool;
+use Sabatier\Service\MCP\Tools\WebSearchTool;
 use function Sabatier\Foundation\string_is_equal;
 use const Sabatier\Service\MCPToolsDirectory;
 
@@ -49,6 +51,8 @@ final readonly class ToolResolver
         DeleteTool::class,
         JobTool::class,
         PersistentHistoryTool::class,
+        GetServerTimeTool::class,
+        WebSearchTool::class
     ];
 
     public function __construct(private ManagedObjectContext $context, private ModelDescriptor $descriptor)

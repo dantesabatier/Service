@@ -29,13 +29,9 @@ final class TavilySearchProvider extends WebSearchProvider
     public string $name = "Tavily";
     #[Override]
     public string $identifier = "tavily";
-
-    /**
-     * @param string|null $key The Tavily API key, or `null` when unconfigured.
-     */
-    public function __construct(?string $key = null)
-    {
-        parent::__construct(new URL(self::defaultEndpoint), $key);
+    #[Override]
+    public URL $endpoint {
+        get => new URL(self::defaultEndpoint);
     }
 
     #[Override]

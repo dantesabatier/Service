@@ -37,12 +37,15 @@ abstract class WebSearchProvider
     abstract public string $identifier {
         get;
     }
+    /** @var URL The provider API endpoint this instance talks to; owned by the concrete provider, not the caller. */
+    abstract public URL $endpoint {
+        get;
+    }
 
     /**
-     * @param URL $endpoint The provider API endpoint this instance talks to.
      * @param string|null $key The provider API key, or `null` when unconfigured; subclasses fail the call with a correctable message telling the model the tool is not configured.
      */
-    public function __construct(public readonly URL $endpoint, public readonly ?string $key = null)
+    public function __construct(public readonly ?string $key = null)
     {
     }
 

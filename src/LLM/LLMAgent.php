@@ -27,6 +27,7 @@ use Throwable;
 final class LLMAgent
 {
     private const string subagentToolName = "run_subagent";
+    private const string subagentNoAnswer = "The subagent produced no answer.";
     private const int subagentMaxIterations = 8;
     private static ?ToolDescriptor $subagentToolDescriptor = null;
     /** @var ArrayClass<ToolDescriptor> */
@@ -86,7 +87,9 @@ final class LLMAgent
                         $subRun = $this->runSubagent($toolCall->arguments, $systemPrompt);
                         $totalInputTokens += $subRun->inputTokens;
                         $totalOutputTokens += $subRun->outputTokens;
-                        $text = $this->subagentResultText($subRun);
+                        $answer = $this->subagentResultText($subRun);
+                        $text = $answer ?? self::subagentNoAnswer;
+                        $isError = $answer === null;
                     } else {
                         $result = $this->toolRegistry->call($toolCall->name, $toolCall->arguments);
                         $text = $result->text;
@@ -122,12 +125,12 @@ final class LLMAgent
     }
 
     /**
-     * Returns the subagent's final answer, or an explicit sentinel when the sub-run
-     * produced no assistant content to report back.
+     * Returns the subagent's final answer, or `null` when the sub-run produced
+     * no assistant content to report back.
      */
-    private function subagentResultText(LLMRun $run): string
+    private function subagentResultText(LLMRun $run): ?string
     {
-        return $run->messages->last(fn(LLMMessage $message): bool => $message->role === LLMMessageRole::assistant && !empty($message->content))?->content ?? "The subagent produced no answer.";
+        return $run->messages->last(fn(LLMMessage $message): bool => $message->role === LLMMessageRole::assistant && !empty($message->content))?->content;
     }
 
     private static function subagentToolDescriptor(): ToolDescriptor

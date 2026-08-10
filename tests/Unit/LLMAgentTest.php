@@ -40,6 +40,18 @@ final class LLMAgentTest extends TestCase
         $this->assertSame("sub answer", $run->messages[1]->content);
     }
 
+    #[Test]
+    public function subagentNoAnswerIsFlaggedAsToolError(): void
+    {
+        $client = new ScriptedNoAnswerSubagentClient();
+        $agent = new LLMAgent($client, new ToolRegistry(new ArrayClass([$this->tool()])));
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "parent task")]), "system");
+
+        $this->assertSame("The subagent produced no answer.", $run->messages[1]->content);
+        $this->assertTrue($run->messages[1]->isError);
+    }
+
     private function tool(): AbstractTool
     {
         /** @var AbstractTool */
@@ -72,6 +84,47 @@ final class ScriptedSubagentClient extends LLMClient
             1 => new LLMTurn(null, new ArrayClass([new LLMToolCall("sub-tool", "probe_tool", new Dictionary())]), 7, 3),
             2 => new LLMTurn("sub answer", new ArrayClass(), 5, 4),
             3 => new LLMTurn("parent done", new ArrayClass(), 6, 1),
+            default => throw new LogicException("Unexpected LLM call."),
+        };
+    }
+
+    /**
+     * @param ArrayClass<LLMMessage> $messages
+     * @param ArrayClass<ToolDescriptor> $tools
+     */
+    protected function buildRequest(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): URLRequest
+    {
+        throw new LogicException("Scripted client does not build requests.");
+    }
+
+    /** @param Dictionary<mixed> $body */
+    protected function parse(Dictionary $body): LLMTurn
+    {
+        throw new LogicException("Scripted client does not parse responses.");
+    }
+}
+
+final class ScriptedNoAnswerSubagentClient extends LLMClient
+{
+    public string $version {
+        get => "test";
+    }
+    public int $maxTokens {
+        get => 1024;
+    }
+
+    private int $call = 0;
+
+    /**
+     * @param ArrayClass<LLMMessage> $messages
+     * @param ArrayClass<ToolDescriptor> $tools
+     */
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    {
+        return match ($this->call++) {
+            0 => new LLMTurn(null, new ArrayClass([new LLMToolCall("parent-subagent", "run_subagent", new Dictionary(["task" => "inspect one thing"]))]), 10, 2),
+            1 => new LLMTurn(null, new ArrayClass(), 7, 3),
+            2 => new LLMTurn("parent done", new ArrayClass(), 6, 1),
             default => throw new LogicException("Unexpected LLM call."),
         };
     }

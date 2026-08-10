@@ -67,7 +67,7 @@ abstract class LLMResponder extends Responder
     {
         $parameters = $this->request->parameters;
         $name = (string)($parameters["tool"] ?? throw new BadRequestException("`tool` is required"));
-        $this->restrictedTools->containsElement($name) ?: throw new BadRequestException("`$name` is not available here.");
+        !$this->restrictedTools->containsElement($name) ?: throw new BadRequestException("`$name` is not available here.");
         /** @var Dictionary<mixed> $arguments */
         $arguments = $parameters["arguments"] ?? new Dictionary();
         $result = $this->registry->call($name, $arguments);

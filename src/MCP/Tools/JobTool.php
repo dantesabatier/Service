@@ -37,6 +37,15 @@ use function Sabatier\Foundation\fatal_error;
  */
 final class JobTool extends AbstractTool
 {
+    /**
+     * @var string The RBAC resource name gated per call. Since the MCP request URL is always
+     * `/mcp` and never names a resource, this is the identifier the caller must hold a
+     * permission on to run any job — seed a `Jobs` permission of type `any` on the roles
+     * allowed to invoke jobs. It is a coarse gate over the whole job catalogue, not any one
+     * entity, so it is a literal constant rather than a per-request entity name.
+     */
+    private const string jobsResource = "Jobs";
+
     /** @var JobRegistry */
     private JobRegistry $registry {
         get => $this->registry ??= new JobRegistry(new JobResolver()->resolve());
@@ -66,7 +75,7 @@ final class JobTool extends AbstractTool
     {
         /** @var string $name */
         $name = $arguments["job"] ?? fatal_error("job is required");
-        $this->enforceEntityAuthorization("Jobs", AuthorizationType::any);
+        $this->enforceEntityAuthorization(self::jobsResource, AuthorizationType::any);
         $job = $this->registry->job($name) ?? fatal_error("Unknown job \"$name\". Available: {$this->registry->names->join(", ")}.");
         $this->context->transactionAuthor = $this->user?->username ?? "system";
         $job->run($this->context);

@@ -55,9 +55,7 @@ final class WebSearchTool extends AbstractTool
     public function execute(Dictionary $arguments): ArrayClass
     {
         $query = trim((string)$arguments["query"]);
-        if ($query === "") {
-            fatal_error("web_search requires a non-empty query.");
-        }
+        $query ?: fatal_error("web_search requires a non-empty query.");
         $maxResults = min(max((int)($arguments["maxResults"] ?? 5), 1), self::maxResultsLimit);
         $result = $this->provider->search($query, $maxResults);
         return $this->jsonResult([

@@ -54,7 +54,7 @@ final class WebSearchTool extends AbstractTool
     #[Override]
     public function execute(Dictionary $arguments): ArrayClass
     {
-        $query = trim((string)($arguments["query"] ?? fatal_error("web_search requires a non-empty query.")));
+        $query = trim((string)$arguments["query"]);
         if ($query === "") {
             fatal_error("web_search requires a non-empty query.");
         }

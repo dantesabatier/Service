@@ -16,15 +16,24 @@ use const Sabatier\Service\MCPInstructionsFilenameKey;
  *
  * Composes the framework-level invariant rules ({@see BaseInstructionsBuilder})
  * with the app-supplied, localized domain instructions loaded from the main
- * bundle. The bundle filename comes from the {@see MCPInstructionsFilenameKey}
- * environment variable, defaulting to {@see MCPInstructionsFilenameDefault}.
+ * bundle.
  *
  * Used by `InitializeHandler` for the MCP `initialize` handshake and by any
  * in-process LLM agent (e.g. an editor chat) that needs the same instructions,
- * so the two never drift apart.
+ * so the two never drift apart. Each surface reads its own bundle resource:
+ * pass its filename to the constructor, or leave it null to take the
+ * {@see MCPInstructionsFilenameKey} environment variable and, failing that,
+ * {@see MCPInstructionsFilenameDefault}.
  */
 final class MCPInstructionsProvider
 {
+    /**
+     * @param string|null $filename Bundle resource holding the app's domain instructions. Null resolves the MCP server's own.
+     */
+    public function __construct(private readonly ?string $filename = null)
+    {
+    }
+
     private string $instructions {
         get => $this->instructions ??= new BaseInstructionsBuilder()->build($this->appInstructions());
     }
@@ -47,7 +56,7 @@ final class MCPInstructionsProvider
      */
     private function appInstructions(): ?string
     {
-        $filename = ProcessInfo::processInfo()->environment[MCPInstructionsFilenameKey] ?? MCPInstructionsFilenameDefault;
+        $filename = $this->filename ?? ProcessInfo::processInfo()->environment[MCPInstructionsFilenameKey] ?? MCPInstructionsFilenameDefault;
         $bundle = Bundle::main();
         $url = $bundle->url($filename, localization: Locale::getPrimaryLanguage(Locale::getDefault())) ?? $bundle->url($filename);
         return $url !== null ? FileManager::default()->contents($url->path) : null;

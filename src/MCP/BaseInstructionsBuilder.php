@@ -38,7 +38,7 @@ final class BaseInstructionsBuilder
 
         0c. Complete the whole request before answering: chain as many read-only calls as it takes instead of reporting partial findings. Ask for confirmation before a create, update or delete — a write is not reversible. Read-only queries never need confirmation.
 
-        1. Call describe_model as the first step of every request, without exception. Attribute names are system-specific and differ from common conventions — never assume or invent them. Called with no argument it answers with an index of every entity; pass `entity` with the names you need for their full attributes, relationships and enum cases. Reaching for a field means describing its entity first.
+        1. Anything that reads or writes the data model starts with describe_model, without exception: attribute names are system-specific and differ from common conventions, so reaching for a field means describing its entity first — never assume or invent one. Called with no argument it answers with an index of every entity; pass `entity` with the names you need for their full attributes, relationships and enum cases. Tools that do not touch the model — a clock, a web search — need no schema and are called on their own.
 
         2. Only use entity names, attributes, relationships, and enum cases that appear literally in the schema returned by describe_model. Never invent identifiers.
 

@@ -42,9 +42,9 @@ final class BaseInstructionsBuilder
 
         2. Only use entity names, attributes, relationships, and enum cases that appear literally in the schema returned by describe_model. Never invent identifiers.
 
-        3. Transient attributes are not written to the persistent store. A SQL store has no column for them, so it cannot evaluate a predicate or sort descriptor that references a transient attribute — such a query fails or is ignored against a SQL store. Atomic stores (XML, binary, in-memory) keep the whole graph in memory and can filter and sort by transient attributes normally. When the store is SQL, do not query by a transient attribute; instead fetch candidate rows with a persistent predicate and filter the transient value from the results in memory.
+        3. An attribute the schema marks `"transient": true` has no column behind it, so a predicate or sort descriptor that references one cannot be evaluated: fetch the candidate rows with a persistent predicate and filter or sort the transient value from the results yourself.
 
-        4. Abstract entities have no table of their own and cannot be instantiated. Never create a row for an abstract entity — create a concrete sub-entity instead. To query across an inheritance hierarchy, fetch on the abstract (super) entity, which transparently includes rows of all its concrete sub-entities.
+        4. An entity the schema marks `"abstract": true` has no table of its own and cannot be instantiated — create one of its concrete sub-entities instead. Fetching on it is not only allowed but the way to query a whole hierarchy at once: it transparently includes the rows of every concrete sub-entity.
 
         5. If a tool returns an error, read the message carefully and fix the exact reported issue before retrying. Retry at most once per approach — if the same error occurs again, switch to a completely different strategy (e.g. remove the predicate and filter manually from the results). Never retry more than twice with the same predicate.
 

@@ -26,9 +26,9 @@ final class SchemaLocalizer
             foreach ($entity->attributes as $attrName => $attribute) {
                 $key = "$name.$attrName";
                 $data = $attributesVocabulary[$key] ?? [];
-                $localizedAttributes[$attrName] = new AttributeSchema($attribute->name, $attribute->type, $attribute->nullable, $data["description"] ?? null, $data["aliases"] ?? [], $attribute->enum);
+                $localizedAttributes[$attrName] = new AttributeSchema($attribute->name, $attribute->type, $attribute->nullable, $data["description"] ?? null, $data["aliases"] ?? [], $attribute->enum, $attribute->transient);
             }
-            $entities[$name] = new EntitySchema($entity->name, $entity->className, $entityVocabulary["description"] ?? $name, $entityVocabulary["aliases"] ?? [], $localizedAttributes, $entity->relationships);
+            $entities[$name] = new EntitySchema($entity->name, $entity->className, $entityVocabulary["description"] ?? $name, $entityVocabulary["aliases"] ?? [], $localizedAttributes, $entity->relationships, $entity->abstract);
         }
         return $entities;
     }

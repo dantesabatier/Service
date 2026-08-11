@@ -17,9 +17,9 @@ final class AttributeSchemaFactory
     public function make(string $className, string $name, AttributeDescription $attribute): AttributeSchema
     {
         if ($enum = $this->resolveEnum($className, $name)) {
-            return new AttributeSchema($name, "enum", $attribute->isOptional, enum: $enum);
+            return new AttributeSchema($name, "enum", $attribute->isOptional, enum: $enum, transient: $attribute->isTransient);
         }
-        return new AttributeSchema($name, $this->mapType($attribute->type), $attribute->isOptional);
+        return new AttributeSchema($name, $this->mapType($attribute->type), $attribute->isOptional, transient: $attribute->isTransient);
     }
 
     private function mapType(AttributeType $type): string

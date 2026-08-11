@@ -34,12 +34,22 @@ final class MCPInstructionsProvider
         return $this->instructions;
     }
 
+    /**
+     * Loads the app's domain instructions, preferring the current language and
+     * falling back to the unlocalized resource.
+     *
+     * A bundle lookup with a localization only ever looks inside that language's
+     * directory, so an app that ships its instructions unlocalized — or one running
+     * under a language it has no directory for — would silently contribute nothing
+     * and leave the model with the framework rules alone. Retrying without the
+     * localization keeps `Resources/<lang>/` as the preferred location and the
+     * bundle root as the fallback.
+     */
     private function appInstructions(): ?string
     {
         $filename = ProcessInfo::processInfo()->environment[MCPInstructionsFilenameKey] ?? MCPInstructionsFilenameDefault;
-        if ($url = Bundle::main()->url($filename, localization: Locale::getPrimaryLanguage(Locale::getDefault()))) {
-            return FileManager::default()->contents($url->path);
-        }
-        return null;
+        $bundle = Bundle::main();
+        $url = $bundle->url($filename, localization: Locale::getPrimaryLanguage(Locale::getDefault())) ?? $bundle->url($filename);
+        return $url !== null ? FileManager::default()->contents($url->path) : null;
     }
 }

@@ -63,7 +63,12 @@ final readonly class PredicateGuideFactory
     private function loadExamples(): array
     {
         $filename = ProcessInfo::processInfo()->environment[MCPPredicateExamplesFilenameKey] ?? MCPPredicateExamplesFilenameDefault;
-        if (!($url = Bundle::main()->url($filename, localization: Locale::getPrimaryLanguage(Locale::getDefault())))) {
+        $bundle = Bundle::main();
+        // A localized lookup only ever looks inside that language's directory, so a locale
+        // with no directory of its own would leave the guide without examples, silently.
+        // Retrying without the localization keeps `Resources/<lang>/` as the preferred
+        // location and the bundle root as the fallback.
+        if (!($url = $bundle->url($filename, localization: Locale::getPrimaryLanguage(Locale::getDefault())) ?? $bundle->url($filename))) {
             return [];
         }
         if (!($contents = FileManager::default()->contents($url->path))) {

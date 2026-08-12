@@ -26,7 +26,7 @@ final class CreateTool extends AbstractTool
     public array $inputSchema {
         get => [
             "type" => "object",
-            "properties" => ["entity" => ["type" => "string", "description" => "Always required. Entity name from the data model — call describe_model first if unsure."], "values" => ["type" => "object"]],
+            "properties" => ["entity" => ["type" => "string", "description" => "Always required. Entity name from the data model — call describe_model first if unsure."], "values" => ["type" => "object", "description" => "Attribute name → value, and relationship name → the object to relate, nested to any depth. A related object is always identified by its objectID — a bare integer, or an object carrying \"objectID\" plus the fields to change on it, which are applied to that row as part of this same write: {\"orderNumber\": \"A-1\", \"customer\": 42, \"items\": [{\"objectID\": 7, \"quantity\": 2}]}. A nested object with no objectID resolves to nothing and is dropped silently, so create the related rows first and link them by id here. Only fields you are authorized to write are applied; the rest are discarded."]],
             "required" => ["entity", "values"],
         ];
     }

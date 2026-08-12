@@ -25,7 +25,7 @@ final class UpdateTool extends AbstractTool
     public array $inputSchema {
         get => [
             "type" => "object",
-            "properties" => ["entity" => ["type" => "string", "description" => "Always required. Entity name from the data model — call describe_model first if unsure."], "objectID" => ["type" => "integer"], "values" => ["type" => "object"]],
+            "properties" => ["entity" => ["type" => "string", "description" => "Always required. Entity name from the data model — call describe_model first if unsure."], "objectID" => ["type" => "integer", "description" => "Always required. The row to update."], "values" => ["type" => "object", "description" => "Only the fields to change — anything you omit is left as it is, so a single attribute is a valid update: {\"status\": 2} touches one column. Relationships take the same shape as in create, nested to any depth, and are always identified by objectID: {\"customer\": 42} relinks, and {\"customer\": {\"objectID\": 42, \"email\": \"a@b.c\"}} also updates that customer in the same write, rather than adding a second one. A nested object with no objectID resolves to nothing and is dropped silently. Only fields you are authorized to write are applied; the rest are discarded."]],
             "required" => ["entity", "objectID", "values"],
         ];
     }

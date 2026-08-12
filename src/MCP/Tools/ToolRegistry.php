@@ -54,6 +54,12 @@ final class ToolRegistry
      * funnel, not to the security layer that raised the denial. Any other `Throwable` is a real
      * program fault, not something the model can fix, and propagates to the caller.
      *
+     * The reason is read off the attached `Error` rather than `getMessage()`. Core Data reports a
+     * validation failure by throwing `new InternalInconsistencyException(error: $error)` with no
+     * message at all, so reading the message alone hands the model an empty failure — it is told
+     * the call did not work and never which constraint it broke, which is the one thing that would
+     * let it fix the call. `ErrorResponder` already reports HTTP errors from the same `Error`.
+     *
      * @param string $name The name of the tool to invoke.
      * @param Dictionary<mixed> $arguments The arguments supplied by the model for the call.
      * @return ToolResult The tool's content on success, or a correctable failure carrying the message for the model.
@@ -67,7 +73,18 @@ final class ToolRegistry
             return ToolResult::success($tool->execute($arguments));
         } catch (InternalInconsistencyException $exception) {
             error_log((string)$exception);
-            return ToolResult::failure($exception instanceof ForbiddenException ? trim($exception->getMessage() . " " . localized_string("Do not retry this call.")) : $exception->getMessage());
+            $reason = self::reason($exception);
+            return ToolResult::failure($exception instanceof ForbiddenException ? trim($reason . " " . localized_string("Do not retry this call.")) : $reason);
         }
+    }
+
+    /**
+     * The failure as the model should read it: the exception's own message when it carries one,
+     * and otherwise the reason off its `Error`, which is where Core Data puts the detail.
+     */
+    private static function reason(InternalInconsistencyException $exception): string
+    {
+        $error = $exception->error;
+        return $exception->getMessage() ?: ($error->localizedFailureReason ?? $error->localizedDescription);
     }
 }

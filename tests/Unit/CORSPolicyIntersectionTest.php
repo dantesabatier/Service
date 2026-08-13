@@ -58,7 +58,7 @@ final class CORSPolicyIntersectionTest extends TestCase
     public function headersReducedToIntersection(): void
     {
         $global = new CORSPolicy(allowedHeaders: new Set(['Authorization', 'Content-Type', 'X-Custom']));
-        $result = $this->intersect($global, new ArrayClass([]), new ArrayClass(['Authorization', 'Content-Type']));
+        $result = $this->intersect($global, new ArrayClass(), new ArrayClass(['Authorization', 'Content-Type']));
         $this->assertTrue($result->allowedHeaders->contains(fn(string $h) => $h === 'Authorization'));
         $this->assertTrue($result->allowedHeaders->contains(fn(string $h) => $h === 'Content-Type'));
         $this->assertFalse($result->allowedHeaders->contains(fn(string $h) => $h === 'X-Custom'));
@@ -76,7 +76,7 @@ final class CORSPolicyIntersectionTest extends TestCase
     public function credentialsPassThroughUnchanged(): void
     {
         $global = new CORSPolicy(allowCredentials: true);
-        $result = $this->intersect($global, new ArrayClass([]), new ArrayClass([]));
+        $result = $this->intersect($global, new ArrayClass(), new ArrayClass([]));
         $this->assertTrue($result->allowCredentials);
     }
 
@@ -84,7 +84,7 @@ final class CORSPolicyIntersectionTest extends TestCase
     public function exposedHeadersPassThroughUnchanged(): void
     {
         $global = new CORSPolicy(exposedHeaders: new Set(['X-Request-Id']));
-        $result = $this->intersect($global, new ArrayClass([]), new ArrayClass([]));
+        $result = $this->intersect($global, new ArrayClass(), new ArrayClass([]));
         $this->assertTrue($result->exposedHeaders->contains(fn(string $h) => $h === 'X-Request-Id'));
     }
 
@@ -92,7 +92,7 @@ final class CORSPolicyIntersectionTest extends TestCase
     public function responderWithNoMethodsProducesEmptyIntersection(): void
     {
         $global = new CORSPolicy(allowedMethods: new Set(['GET', 'POST']));
-        $result = $this->intersect($global, new ArrayClass([]), new ArrayClass([]));
+        $result = $this->intersect($global, new ArrayClass(), new ArrayClass([]));
         $this->assertTrue($result->allowedMethods->isEmpty);
     }
 

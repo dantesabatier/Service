@@ -70,7 +70,7 @@ final readonly class ToolResolver
     {
         $directoryURL = Bundle::main()->bundleURL->appendingPathComponent("src")->appendingPathComponent(MCPToolsDirectory);
         if (!FileManager::default()->fileExists($directoryURL->path)) {
-            return new ArrayClass([]);
+            return new ArrayClass();
         }
         return $this->fileURLs($directoryURL)->map(fn(URL $url): string => /** @var class-string<AbstractTool> */ "App\\" . MCPToolsDirectory . "\\" . FileManager::default()->displayName($url->path))->filter($this->isValidToolClass(...))->map(fn(string $class): AbstractTool => new $class($this->context, $this->descriptor));
     }

@@ -34,7 +34,7 @@ final readonly class JobResolver
     {
         $directoryURL = Bundle::main()->bundleURL->appendingPathComponent("src")->appendingPathComponent(JobsDirectory);
         if (!FileManager::default()->fileExists($directoryURL->path)) {
-            return new ArrayClass([]);
+            return new ArrayClass();
         }
         return $this->fileURLs($directoryURL)->map(fn(URL $url): string => /** @var class-string<Job> */ "App\\" . JobsDirectory . "\\" . FileManager::default()->displayName($url->path))->filter($this->isValidJobClass(...))->map(fn(string $class): Job => new $class());
     }

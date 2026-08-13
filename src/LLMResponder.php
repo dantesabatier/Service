@@ -16,6 +16,7 @@ use Sabatier\Service\MCP\Schema\SchemaLocalizer;
 use Sabatier\Service\MCP\Schema\VocabularyRepository;
 use Sabatier\Service\MCP\ToolResolver;
 use Sabatier\Service\MCP\Tools\ToolRegistry;
+use stdClass;
 use Throwable;
 
 /**
@@ -68,9 +69,12 @@ abstract class LLMResponder extends Responder
         $parameters = $this->request->parameters;
         $name = (string)($parameters["tool"] ?? throw new BadRequestException("`tool` is required"));
         !$this->restrictedTools->containsElement($name) ?: throw new BadRequestException("`$name` is not available here.");
-        /** @var Dictionary<mixed> $arguments */
+        // An `argument` that is not an object is the caller's mistake, not the model's: without
+        // this guard it would reach the registry as an ArrayClass and die on a TypeError that
+        // never says what was sent wrong.
         $arguments = $parameters["arguments"] ?? new Dictionary();
+        $arguments instanceof Dictionary ?: throw new BadRequestException("`arguments` must be an object.");
         $result = $this->registry->call($name, $arguments);
-        $this->data = Dictionary::dictionaryWithArray(json_decode($result->text, true) ?? []);
+        $this->data = Dictionary::dictionaryWithArray(json_decode($result->text) ?? new stdClass());
     }
 }

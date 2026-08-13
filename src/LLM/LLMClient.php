@@ -95,6 +95,6 @@ abstract class LLMClient
             $error = $err;
         })->resume();
         !$error instanceof Error ?: throw new InternalInconsistencyException(error: $error);
-        return Dictionary::dictionaryWithArray(json_decode($data ?? "[]", true) ?? [], false);
+        return Dictionary::dictionaryWithArray(json_decode($data ?? "[]") ?? [], false);
     }
 }

@@ -176,7 +176,9 @@ final class StandardLLMClient extends LLMClient
                 $fn = $tc["function"] ?? new Dictionary();
                 $id = $tc["id"] ?? "";
                 $name = $fn["name"] ?? "";
-                $arguments = Dictionary::dictionaryWithArray(json_decode($fn["arguments"] ?? "[]", true) ?? [], false);
+                // `{}` rather than `[]` as the fallback: a call without arguments is an empty
+                // object, and `[]` would yield an ArrayClass where the registry expects a Dictionary.
+                $arguments = Dictionary::dictionaryWithArray(json_decode($fn["arguments"] ?? "{}") ?? new stdClass(), false);
                 $toolCalls->append(new LLMToolCall($id, $name, $arguments));
             }
             break;

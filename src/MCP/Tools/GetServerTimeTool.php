@@ -10,6 +10,7 @@ use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\MCP\Response\ContentItem;
+use stdClass;
 
 /**
  * Returns the server's current date and time, with timezone.
@@ -31,7 +32,7 @@ final class GetServerTimeTool extends AbstractTool
     public array $inputSchema {
         get => [
             "type" => "object",
-            "properties" => new \stdClass(),
+            "properties" => new stdClass(),
         ];
     }
 

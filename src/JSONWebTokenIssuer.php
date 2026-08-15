@@ -19,6 +19,10 @@ use function Sabatier\Foundation\read_random;
  * by {@see AuthorizationScopeBuilder}. Validity is bounded by `$validityTimeInterval`, which
  * defaults to {@see JWTValidityDefaultTimeInterval}.
  *
+ * An audience may be named to bind the token to a single resource, so that it opens that one
+ * and no other. The claim is omitted when none is given, which is how the tokens minted for
+ * the application itself stay usable everywhere.
+ *
  * All dependencies are supplied through the constructor, so issuance does not require an
  * incoming HTTP request and can be driven directly from a CLI job or scheduled task.
  *
@@ -46,9 +50,13 @@ final readonly class JSONWebTokenIssuer implements TokenIssuer
      * @throws Exception
      */
     #[Override]
-    public function issue(Authorizable $subject, ArrayClass $technicalScopes): string
+    public function issue(Authorizable $subject, ArrayClass $technicalScopes, string $audience = ""): string
     {
         $date = new Date();
-        return $this->service->encode([JWTIssuerKey => $this->service->issuer, JWTSubjectKey => $subject->username, JWTEnabledKey => $subject->isEnabled, JWTExpirationTimeKey => $date->addingTimeInterval($this->validityTimeInterval)->timeIntervalSinceReferenceDate, JWTNotBeforeTimeKey => $date->timeIntervalSinceReferenceDate, JWTIssuedAtTimeKey => $date->timeIntervalSinceReferenceDate, JWTIdKey => base64_encode(read_random(16)), JWTVersionKey => $subject->refreshTokenVersion, JWTScopesKey => $technicalScopes->array, JWTAuthorizationScopesKey => $this->scopeBuilder->build($subject, $this->managedObjectContext)->array]);
+        $claims = [JWTIssuerKey => $this->service->issuer, JWTSubjectKey => $subject->username, JWTEnabledKey => $subject->isEnabled, JWTExpirationTimeKey => $date->addingTimeInterval($this->validityTimeInterval)->timeIntervalSinceReferenceDate, JWTNotBeforeTimeKey => $date->timeIntervalSinceReferenceDate, JWTIssuedAtTimeKey => $date->timeIntervalSinceReferenceDate, JWTIdKey => base64_encode(read_random(16)), JWTVersionKey => $subject->refreshTokenVersion, JWTScopesKey => $technicalScopes->array, JWTAuthorizationScopesKey => $this->scopeBuilder->build($subject, $this->managedObjectContext)->array];
+        if ($audience !== "") {
+            $claims[JWTAudienceKey] = $audience;
+        }
+        return $this->service->encode($claims);
     }
 }

@@ -18,6 +18,18 @@ const MCPProtocolVersionStable = "2025-06-18";
 const MCPProtocolVersionLatestStable = "2025-11-25";
 /** @var string Name of the directory under src/ where the app's MCP tool classes are discovered. */
 const MCPToolsDirectory = "MCPTools";
+/** @var string Response and request header carrying the Streamable HTTP session identifier. */
+const MCPSessionHeader = "Mcp-Session-Id";
+/** @var string Request header carrying the protocol version negotiated during initialization. */
+const MCPProtocolVersionHeader = "MCP-Protocol-Version";
+/** @var string Environment variable key for the comma-separated list of browser origins allowed to reach the MCP endpoint. Requests without an `Origin` header are unaffected; MCP clients are not browsers and do not send one. */
+const MCPAllowedOriginsKey = "MCP_ALLOWED_ORIGINS";
+/** @var string Environment variable key for the idle lifetime of an MCP session, in seconds. */
+const MCPSessionTTLKey = "MCP_SESSION_TTL";
+/** @var int Default idle lifetime of an MCP session, in seconds, when the environment variable is not set. The TTL is refreshed on every request that carries the session, so only an abandoned session expires. */
+const MCPSessionTTLDefault = 3600;
+/** @var string Environment variable key for the audience claim a token must carry to reach the MCP endpoint. Leave unset to accept any audience. */
+const MCPTokenAudienceKey = "MCP_TOKEN_AUDIENCE";
 /** @var string Environment variable key for the bundle resource filename of the domain vocabulary used to localize the model schema. */
 const MCPVocabularyFilenameKey = "MCP_VOCABULARY_FILENAME";
 /** @var string Default bundle resource filename for the domain vocabulary when the environment variable is not set. */

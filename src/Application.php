@@ -149,6 +149,10 @@ class Application extends Responder
     public IdempotencyStore $idempotencyStore {
         get => $this->idempotencyStore ??= new APCuIdempotencyStore();
     }
+    /** @var MCPSessionStore The storage backend used to persist MCP sessions established by the `initialize` handshake. Defaults to APCuMCPSessionStore. Override with a Redis store for multi-server deployments, where a session established on one server is otherwise unknown to the others. */
+    public MCPSessionStore $mcpSessionStore {
+        get => $this->mcpSessionStore ??= new APCuMCPSessionStore();
+    }
     /** @var RateLimitInfo|null The rate limit state produced for the current request. Populated by enforceRateLimitIfNeeded() and consumed by RateLimitHeaderTransformer via the transformer context. */
     private(set) ?RateLimitInfo $rateLimitInfo = null;
     private bool $isTerminated = false;

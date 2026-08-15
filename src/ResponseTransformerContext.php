@@ -20,7 +20,7 @@ namespace Sabatier\Service;
  */
 final readonly class ResponseTransformerContext
 {
-    public function __construct(public ?Request $request = null, public ?HTTPCachePolicy $cachePolicy = null, public ?CORSPolicy $corsPolicy = null, public ?SecurityHeadersPolicy $securityHeadersPolicy = null, public ?RateLimitInfo $rateLimitInfo = null, public ?StaticResourceDisposition $staticResourceDisposition = null)
+    public function __construct(public ?Request $request = null, public ?HTTPCachePolicy $cachePolicy = null, public ?CORSPolicy $corsPolicy = null, public ?SecurityHeadersPolicy $securityHeadersPolicy = null, public ?RateLimitInfo $rateLimitInfo = null, public ?StaticResourceDisposition $staticResourceDisposition = null, public ?string $mcpSessionIdentifier = null)
     {
     }
 }

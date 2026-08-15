@@ -28,7 +28,8 @@ interface TokenIssuer
      *
      * @param Authorizable $subject The authenticated identity the token is issued for.
      * @param ArrayClass<string> $technicalScopes The technical scopes granted to the token (e.g. access and refresh).
+     * @param string $audience The resource the token is meant for, or an empty string to leave the claim out. A token that names its audience is accepted only by the resource that expects that name, so a credential minted for one endpoint does not open another.
      * @return string The encoded token.
      */
-    public function issue(Authorizable $subject, ArrayClass $technicalScopes): string;
+    public function issue(Authorizable $subject, ArrayClass $technicalScopes, string $audience = ""): string;
 }

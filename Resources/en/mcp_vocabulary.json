@@ -32,9 +32,21 @@
       "title": "Delete",
       "description": "Delete an existing entity."
     },
+    "run_job": {
+      "title": "Run Job",
+      "description": "Run a named application job."
+    },
     "persistent_history": {
       "title": "Persistent History",
       "description": "Fetch or purge the Core Data persistent history change log.\n\"operation\":\"purge\" is destructive and permanently removes history transactions.\nBoth operations require exactly one scope parameter — \"date\", \"transaction\" or \"token\" — that marks the boundary: fetch returns history after it, purge removes history before it. When more than one is given, precedence is date > transaction > token.\n\"predicate\" further filters the history in scope; it applies to both operations. It runs against \"entity\" — PersistentHistoryTransaction by default, or PersistentHistoryChange.\n\"resultType\" applies to fetch only and is ignored for purge.\nOnly meaningful when persistent history tracking is enabled for the store."
+    },
+    "get_server_time": {
+      "title": "Get Server Time",
+      "description": "Return the server's current date, time and timezone."
+    },
+    "web_search": {
+      "title": "Web Search",
+      "description": "Search the web using the provider configured by the application."
     }
   }
 }

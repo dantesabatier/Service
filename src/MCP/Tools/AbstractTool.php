@@ -53,9 +53,9 @@ abstract class AbstractTool
     abstract public string $name {
         get;
     }
-    /** @var string|null Human-readable display name; defaults to vocabulary `title` or falls back to `name`. */
-    public ?string $title {
-        get => $this->vocabulary->localize($this->name, "title");
+    /** @var string Human-readable display name; defaults to vocabulary `title` or falls back to `name`. */
+    public string $title {
+        get => $this->vocabulary->localize($this->name, "title") ?? $this->name;
     }
     /** @var string Description read by the LLM client; defaults to vocabulary `description` or falls back to `name`. */
     public string $description {

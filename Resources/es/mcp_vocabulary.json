@@ -32,9 +32,21 @@
       "title": "Eliminar",
       "description": "Elimina una entidad existente."
     },
+    "run_job": {
+      "title": "Ejecutar tarea",
+      "description": "Ejecuta una tarea de la aplicación por su nombre."
+    },
     "persistent_history": {
       "title": "Historial persistente",
       "description": "Consulta o purga el registro de cambios del historial persistente de Core Data.\n\"operation\":\"purge\" es destructivo y elimina permanentemente las transacciones del historial.\nAmbas operaciones requieren exactamente un parámetro de alcance — \"date\", \"transaction\" o \"token\" — que marca el límite: la consulta devuelve el historial posterior a él, la purga elimina el historial anterior. Cuando se indica más de uno, la precedencia es date > transaction > token.\n\"predicate\" filtra adicionalmente el historial dentro del alcance; se aplica a ambas operaciones. Actúa sobre \"entity\": PersistentHistoryTransaction por defecto, o PersistentHistoryChange.\n\"resultType\" solo aplica a la consulta y se ignora en la purga.\nSolo tiene sentido cuando el seguimiento de historial persistente está habilitado para el almacén."
+    },
+    "get_server_time": {
+      "title": "Obtener hora del servidor",
+      "description": "Devuelve la fecha, hora y zona horaria actuales del servidor."
+    },
+    "web_search": {
+      "title": "Búsqueda web",
+      "description": "Busca en la web con el proveedor configurado por la aplicación."
     }
   }
 }

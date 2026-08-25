@@ -306,7 +306,7 @@ class Application extends Responder
             return;
         }
         $username = $this->authenticationManager->authentication->credential?->user;
-        [$key, $limit] = $username !== null ? ["rate_limit:user:$username", $policy->maxRequestsUser] : ["rate_limit:ip:" . ($_SERVER["REMOTE_ADDR"] ?? "unknown"), $policy->maxRequestsIP];
+        [$key, $limit] = $username !== null ? ["rate_limit:user:$username", $policy->maxRequestsUser] : ["rate_limit:ip:" . ($this->request->remoteAddress ?? "unknown"), $policy->maxRequestsIP];
         $count = $this->rateLimitStore->increment($key, $policy->windowSeconds);
         $ttl = $this->rateLimitStore->ttl($key);
         $reset = time() + $ttl;

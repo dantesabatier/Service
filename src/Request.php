@@ -21,6 +21,7 @@ use function Sabatier\Foundation\request_url;
  * - Parsed request body from URL query or HTTP body
  * - JSON serialization directives from the `Serialization` header
  * - Authorization header parsing
+ * - The remote address of the connection
  * - Detection of CORS preflight requests
  *
  * This class centralizes request-related data and
@@ -63,6 +64,10 @@ final class Request extends URLRequest
     /** @var AuthorizationHeader Parsed `Authorization` header. */
     private(set) AuthorizationHeader $authorizationHeader {
         get => $this->authorizationHeader ??= new AuthorizationHeader($this->valueForHttpHeaderField("Authorization") ?? "");
+    }
+    /** @var string|null The TCP peer address of the connection, or null when unavailable. */
+    private(set) ?string $remoteAddress {
+        get => $this->remoteAddress ??= $_SERVER["REMOTE_ADDR"] ?? null;
     }
     /** @var bool Returns true if this is a CORS preflight request. */
     public bool $isPreflight {

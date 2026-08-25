@@ -2,7 +2,7 @@
 
 ## Quick facts
 
-- **PHPUnit suite** under `tests/` (`tests/Unit`, `tests/Integration`). Two tests fail in a clean tree — `AuthorizationServiceTest::tokenScopeExactMatchGrantsAccessWithoutCacheLookup` (fatal crash) and `FieldSecurityFilterTest::filterReadRemovesOwnedFieldWhenNotOwner`. Run per directory (`phpunit tests/Integration`) to work around the crash.
+- **PHPUnit suite** under `tests/` (`tests/Unit`, `tests/Integration`). The full suite passes in a clean tree — run it with `phpunit`, or per directory (`phpunit tests/Unit`, `phpunit tests/Integration`).
 - Most source files live flat in `src/`. Exceptions: `src/MCP/` (subsystem with `Tools/`, `Response/`, `Schema/`) and `src/Jobs/` (the `Job` base class, `JobResolver`, `JobRegistry`).
 - Requires PHP 8.5+. Property hooks (`private(set) Type $prop { get => ... }`) are used throughout for lazy initialization — never convert to constructor injection or traditional getters.
 - Sibling libraries `sabatier/foundation` and `sabatier/coredata` are loaded via composer path repos (`../Foundation`, `../CoreData`).

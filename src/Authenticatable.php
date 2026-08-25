@@ -21,6 +21,7 @@ use Sabatier\Foundation\Equatable;
  * class that represents a user in the application's domain model.
  *
  * @see Authorizable
+ * @see AuthenticationObserver
  * @see AuthenticationService
  */
 interface Authenticatable extends Equatable

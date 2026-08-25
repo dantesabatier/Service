@@ -66,6 +66,9 @@ final class AuthenticationManager extends Responder
             $session->setValueForKey($user, SessionUserKey);
             $session->setValueForKey(true, SessionAuthenticatedKey);
         }
+        if ($user instanceof AuthenticationObserver) {
+            $user->didLogin($this->request);
+        }
         $this->data = $data;
     }
 

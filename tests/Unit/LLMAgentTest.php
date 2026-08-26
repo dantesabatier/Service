@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sabatier\Service\Tests\Unit;
 
 use LogicException;
+use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
@@ -15,8 +16,10 @@ use Sabatier\Service\LLM\LLMAgent;
 use Sabatier\Service\LLM\LLMClient;
 use Sabatier\Service\LLM\LLMMessage;
 use Sabatier\Service\LLM\LLMMessageRole;
+use Sabatier\Service\LLM\LLMRunStopReason;
 use Sabatier\Service\LLM\LLMToolCall;
 use Sabatier\Service\LLM\LLMTurn;
+use Sabatier\Service\InternalServerErrorException;
 use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
 use Sabatier\Service\MCP\Tools\AbstractTool;
@@ -131,6 +134,111 @@ final class LLMAgentTest extends TestCase
         $this->assertSame("counted 2", $run->messages[3]->content);
     }
 
+    #[Test]
+    public function providerFailureEndsTheRunWithWhatWasAlreadyPaidFor(): void
+    {
+        $client = new ScriptedFailingClient();
+        $agent = new LLMAgent($client, new ToolRegistry(new ArrayClass([$this->tool()])), 25, false);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        $this->assertSame(LLMRunStopReason::providerFailure, $run->stopReason);
+        $this->assertFalse($run->isComplete);
+        $this->assertSame(2, $run->messages->count);
+        $this->assertSame(9, $run->inputTokens);
+        $this->assertSame(4, $run->outputTokens);
+    }
+
+    #[Test]
+    public function runStoppedByIterationCapSaysSo(): void
+    {
+        $client = new ScriptedNeverDoneClient();
+        $agent = new LLMAgent($client, new ToolRegistry(new ArrayClass([$this->tool()])), 2, false);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        $this->assertSame(LLMRunStopReason::iterationCap, $run->stopReason);
+    }
+
+    #[Test]
+    public function runEndedByTheModelSaysSo(): void
+    {
+        $client = new ScriptedNoAnswerSubagentClient();
+        $agent = new LLMAgent($client, new ToolRegistry(new ArrayClass([$this->tool()])));
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "parent task")]), "system");
+
+        $this->assertSame(LLMRunStopReason::done, $run->stopReason);
+    }
+
+    #[Test]
+    public function subagentProviderFailureIsReportedAsRetryable(): void
+    {
+        $client = new ScriptedFailingSubagentClient();
+        $agent = new LLMAgent($client, new ToolRegistry(new ArrayClass([$this->tool()])));
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "parent task")]), "system");
+
+        $this->assertSame("The subagent could not reach the model provider. Retrying may work.", $run->messages[1]->content);
+        $this->assertTrue($run->messages[1]->isError);
+    }
+
+    #[Test]
+    public function aRunPastItsTimeLimitStopsBeforeSpendingAnotherTurn(): void
+    {
+        $client = new ScriptedNeverDoneClient();
+        $agent = new LLMAgent($client, new ToolRegistry(new ArrayClass([$this->tool()])), 25, false, 0.0);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        $this->assertSame(LLMRunStopReason::deadline, $run->stopReason);
+        $this->assertFalse($run->isComplete);
+        $this->assertSame(0, $client->calls);
+    }
+
+    #[Test]
+    public function aRunWithinItsTimeLimitIsLeftAlone(): void
+    {
+        $client = new ScriptedNoAnswerSubagentClient();
+        $agent = new LLMAgent($client, new ToolRegistry(new ArrayClass([$this->tool()])), 25, true, 60.0);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "parent task")]), "system");
+
+        $this->assertSame(LLMRunStopReason::done, $run->stopReason);
+        $this->assertTrue($run->isComplete);
+    }
+
+    #[Test]
+    public function noTimeLimitLeavesTheLoopBoundedOnlyByIterations(): void
+    {
+        $client = new ScriptedNeverDoneClient();
+        $agent = new LLMAgent($client, new ToolRegistry(new ArrayClass([$this->tool()])), 3, false);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        $this->assertSame(LLMRunStopReason::iterationCap, $run->stopReason);
+        $this->assertSame(3, $client->calls);
+    }
+
+    #[Test]
+    public function aRepeatedCallToAWritingToolIsExecutedAgainRatherThanCached(): void
+    {
+        $client = new ScriptedReorderedArgumentsClient("writing_tool");
+        LLMAgentWritingTool::$calls = 0;
+        $agent = new LLMAgent($client, new ToolRegistry(new ArrayClass([$this->writingTool()])), 25, false);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        $this->assertSame(2, LLMAgentWritingTool::$calls);
+        $this->assertSame("wrote 2", $run->messages[3]->content);
+    }
+
+    private function writingTool(): AbstractTool
+    {
+        /** @var AbstractTool */
+        return (new ReflectionClass(LLMAgentWritingTool::class))->newInstanceWithoutConstructor();
+    }
+
     private function tool(): AbstractTool
     {
         /** @var AbstractTool */
@@ -161,6 +269,7 @@ final class ScriptedSubagentClient extends LLMClient
      * @param ArrayClass<LLMMessage> $messages
      * @param ArrayClass<ToolDescriptor> $tools
      */
+    #[Override]
     public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
     {
         $this->toolNamesByCall[] = $tools->map(fn(ToolDescriptor $tool): string => $tool->name)->array;
@@ -177,12 +286,14 @@ final class ScriptedSubagentClient extends LLMClient
      * @param ArrayClass<LLMMessage> $messages
      * @param ArrayClass<ToolDescriptor> $tools
      */
+    #[Override]
     protected function buildRequest(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): URLRequest
     {
         throw new LogicException("Scripted client does not build requests.");
     }
 
     /** @param Dictionary<mixed> $body */
+    #[Override]
     protected function parse(Dictionary $body): LLMTurn
     {
         throw new LogicException("Scripted client does not parse responses.");
@@ -204,6 +315,7 @@ final class ScriptedNoAnswerSubagentClient extends LLMClient
      * @param ArrayClass<LLMMessage> $messages
      * @param ArrayClass<ToolDescriptor> $tools
      */
+    #[Override]
     public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
     {
         return match ($this->call++) {
@@ -218,12 +330,14 @@ final class ScriptedNoAnswerSubagentClient extends LLMClient
      * @param ArrayClass<LLMMessage> $messages
      * @param ArrayClass<ToolDescriptor> $tools
      */
+    #[Override]
     protected function buildRequest(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): URLRequest
     {
         throw new LogicException("Scripted client does not build requests.");
     }
 
     /** @param Dictionary<mixed> $body */
+    #[Override]
     protected function parse(Dictionary $body): LLMTurn
     {
         throw new LogicException("Scripted client does not parse responses.");
@@ -246,6 +360,7 @@ final class ScriptedNeverDoneClient extends LLMClient
      * @param ArrayClass<LLMMessage> $messages
      * @param ArrayClass<ToolDescriptor> $tools
      */
+    #[Override]
     public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
     {
         $this->calls++;
@@ -256,12 +371,14 @@ final class ScriptedNeverDoneClient extends LLMClient
      * @param ArrayClass<LLMMessage> $messages
      * @param ArrayClass<ToolDescriptor> $tools
      */
+    #[Override]
     protected function buildRequest(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): URLRequest
     {
         throw new LogicException("Scripted client does not build requests.");
     }
 
     /** @param Dictionary<mixed> $body */
+    #[Override]
     protected function parse(Dictionary $body): LLMTurn
     {
         throw new LogicException("Scripted client does not parse responses.");
@@ -287,6 +404,7 @@ final class ScriptedExhaustedSubagentClient extends LLMClient
      * @param ArrayClass<LLMMessage> $messages
      * @param ArrayClass<ToolDescriptor> $tools
      */
+    #[Override]
     public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
     {
         $call = $this->call++;
@@ -306,12 +424,14 @@ final class ScriptedExhaustedSubagentClient extends LLMClient
      * @param ArrayClass<LLMMessage> $messages
      * @param ArrayClass<ToolDescriptor> $tools
      */
+    #[Override]
     protected function buildRequest(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): URLRequest
     {
         throw new LogicException("Scripted client does not build requests.");
     }
 
     /** @param Dictionary<mixed> $body */
+    #[Override]
     protected function parse(Dictionary $body): LLMTurn
     {
         throw new LogicException("Scripted client does not parse responses.");
@@ -334,6 +454,7 @@ final class ScriptedTasklessSubagentClient extends LLMClient
      * @param ArrayClass<LLMMessage> $messages
      * @param ArrayClass<ToolDescriptor> $tools
      */
+    #[Override]
     public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
     {
         return match ($this->call++) {
@@ -347,12 +468,14 @@ final class ScriptedTasklessSubagentClient extends LLMClient
      * @param ArrayClass<LLMMessage> $messages
      * @param ArrayClass<ToolDescriptor> $tools
      */
+    #[Override]
     protected function buildRequest(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): URLRequest
     {
         throw new LogicException("Scripted client does not build requests.");
     }
 
     /** @param Dictionary<mixed> $body */
+    #[Override]
     protected function parse(Dictionary $body): LLMTurn
     {
         throw new LogicException("Scripted client does not parse responses.");
@@ -371,15 +494,21 @@ final class ScriptedReorderedArgumentsClient extends LLMClient
 
     private int $call = 0;
 
+    public function __construct(private readonly string $toolName = "counting_tool")
+    {
+        parent::__construct();
+    }
+
     /**
      * @param ArrayClass<LLMMessage> $messages
      * @param ArrayClass<ToolDescriptor> $tools
      */
+    #[Override]
     public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
     {
         return match ($this->call++) {
-            0 => new LLMTurn(null, new ArrayClass([new LLMToolCall("c1", "counting_tool", new Dictionary(["a" => 1, "b" => "two"]))])),
-            1 => new LLMTurn(null, new ArrayClass([new LLMToolCall("c2", "counting_tool", new Dictionary(["b" => "two", "a" => 1]))])),
+            0 => new LLMTurn(null, new ArrayClass([new LLMToolCall("c1", $this->toolName, new Dictionary(["a" => 1, "b" => "two"]))])),
+            1 => new LLMTurn(null, new ArrayClass([new LLMToolCall("c2", $this->toolName, new Dictionary(["b" => "two", "a" => 1]))])),
             2 => new LLMTurn("done", new ArrayClass()),
             default => throw new LogicException("Unexpected LLM call."),
         };
@@ -389,12 +518,14 @@ final class ScriptedReorderedArgumentsClient extends LLMClient
      * @param ArrayClass<LLMMessage> $messages
      * @param ArrayClass<ToolDescriptor> $tools
      */
+    #[Override]
     protected function buildRequest(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): URLRequest
     {
         throw new LogicException("Scripted client does not build requests.");
     }
 
     /** @param Dictionary<mixed> $body */
+    #[Override]
     protected function parse(Dictionary $body): LLMTurn
     {
         throw new LogicException("Scripted client does not parse responses.");
@@ -417,6 +548,7 @@ final class ScriptedDistinctArgumentsClient extends LLMClient
      * @param ArrayClass<LLMMessage> $messages
      * @param ArrayClass<ToolDescriptor> $tools
      */
+    #[Override]
     public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
     {
         return match ($this->call++) {
@@ -431,12 +563,14 @@ final class ScriptedDistinctArgumentsClient extends LLMClient
      * @param ArrayClass<LLMMessage> $messages
      * @param ArrayClass<ToolDescriptor> $tools
      */
+    #[Override]
     protected function buildRequest(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): URLRequest
     {
         throw new LogicException("Scripted client does not build requests.");
     }
 
     /** @param Dictionary<mixed> $body */
+    #[Override]
     protected function parse(Dictionary $body): LLMTurn
     {
         throw new LogicException("Scripted client does not parse responses.");
@@ -457,6 +591,10 @@ final class LLMAgentCountingTool extends AbstractTool
     public string $name {
         get => "counting_tool";
     }
+    #[Override]
+    public bool $isReadOnly {
+        get => true;
+    }
     public string $description {
         get => "Counting tool.";
     }
@@ -465,10 +603,35 @@ final class LLMAgentCountingTool extends AbstractTool
     }
 
     /** @return ArrayClass<ContentItem> */
+    #[Override]
     public function execute(Dictionary $arguments): ArrayClass
     {
         self::$calls++;
         return new ArrayClass([new ContentItem("text", "counted " . self::$calls)]);
+    }
+}
+
+/** Writes, so a repeated call must reach it every time rather than being served from the run's cache. */
+final class LLMAgentWritingTool extends AbstractTool
+{
+    public static int $calls = 0;
+
+    public string $name {
+        get => "writing_tool";
+    }
+    public string $description {
+        get => "Writing tool.";
+    }
+    public array $inputSchema {
+        get => ["type" => "object"];
+    }
+
+    /** @return ArrayClass<ContentItem> */
+    #[Override]
+    public function execute(Dictionary $arguments): ArrayClass
+    {
+        self::$calls++;
+        return new ArrayClass([new ContentItem("text", "wrote " . self::$calls)]);
     }
 }
 
@@ -485,8 +648,96 @@ final class LLMAgentProbeTool extends AbstractTool
     }
 
     /** @return ArrayClass<ContentItem> */
+    #[Override]
     public function execute(Dictionary $arguments): ArrayClass
     {
         return new ArrayClass([new ContentItem("text", "probe result")]);
+    }
+}
+
+/** Fails on its second turn, after one turn has already been paid for and recorded. */
+final class ScriptedFailingClient extends LLMClient
+{
+    public string $version {
+        get => "test";
+    }
+    public int $maxTokens {
+        get => 1024;
+    }
+
+    private int $call = 0;
+
+    /**
+     * @param ArrayClass<LLMMessage> $messages
+     * @param ArrayClass<ToolDescriptor> $tools
+     */
+    #[Override]
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    {
+        if ($this->call++ === 0) {
+            return new LLMTurn(null, new ArrayClass([new LLMToolCall("c1", "probe_tool", new Dictionary())]), 9, 4);
+        }
+        throw new InternalServerErrorException("The LLM provider returned HTTP 503");
+    }
+
+    /**
+     * @param ArrayClass<LLMMessage> $messages
+     * @param ArrayClass<ToolDescriptor> $tools
+     */
+    #[Override]
+    protected function buildRequest(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): URLRequest
+    {
+        throw new LogicException("Scripted client does not build requests.");
+    }
+
+    /** @param Dictionary<mixed> $body */
+    #[Override]
+    protected function parse(Dictionary $body): LLMTurn
+    {
+        throw new LogicException("Scripted client does not parse responses.");
+    }
+}
+
+/** The parent delegates to a subagent whose own first turn hits a provider failure. */
+final class ScriptedFailingSubagentClient extends LLMClient
+{
+    public string $version {
+        get => "test";
+    }
+    public int $maxTokens {
+        get => 1024;
+    }
+
+    private int $call = 0;
+
+    /**
+     * @param ArrayClass<LLMMessage> $messages
+     * @param ArrayClass<ToolDescriptor> $tools
+     */
+    #[Override]
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    {
+        return match ($this->call++) {
+            0 => new LLMTurn(null, new ArrayClass([new LLMToolCall("parent-subagent", "run_subagent", new Dictionary(["task" => "inspect one thing"]))])),
+            1 => throw new InternalServerErrorException("The LLM provider returned HTTP 502"),
+            default => new LLMTurn("parent done", new ArrayClass()),
+        };
+    }
+
+    /**
+     * @param ArrayClass<LLMMessage> $messages
+     * @param ArrayClass<ToolDescriptor> $tools
+     */
+    #[Override]
+    protected function buildRequest(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): URLRequest
+    {
+        throw new LogicException("Scripted client does not build requests.");
+    }
+
+    /** @param Dictionary<mixed> $body */
+    #[Override]
+    protected function parse(Dictionary $body): LLMTurn
+    {
+        throw new LogicException("Scripted client does not parse responses.");
     }
 }

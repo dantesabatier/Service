@@ -6,6 +6,7 @@ namespace Sabatier\Service\LLM;
 
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
+use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
 use Sabatier\Service\MCP\Tools\ToolRegistry;
 use Throwable;
@@ -19,10 +20,7 @@ use function Sabatier\Foundation\human_readable_value;
  * (`LLMTurn::$isDone`). Returns an `LLMRun` containing only the messages generated during
  * this run (not the input history) and the total tokens consumed.
  *
- * The loop also stops once it has run `$maxIterations` turns without the model concluding.
- * That run is reported as incomplete (`LLMRun::$isComplete`), since its last message is a
- * tool result rather than an answer; a caller that treats the two alike presents unfinished
- * work as a conclusion.
+ * The loop also stops when it runs out of iterations, when it runs past its time limit, and when the provider fails after the client has exhausted its retries. Both are reported as incomplete (`LLMRun::$isComplete`) and told apart by `LLMRun::$stopReason`; a caller that treats them alike presents unfinished work as a conclusion. A provider failure ends the run rather than propagating, so the messages and tokens already paid for survive it.
  *
  * Tool failures are resolved by the registry, not here. A correctable mistake — the model
  * mis-called a tool — comes back as a failed `ToolResult` and is fed to the model as an
@@ -30,9 +28,7 @@ use function Sabatier\Foundation\human_readable_value;
  * call may succeed once corrected. A real program fault propagates out of the registry and
  * aborts the run for the caller to handle.
  *
- * Successful calls are cached for the length of the run, keyed on the tool name and arguments
- * regardless of the order the model emitted them in, so a model that loops on one call is told
- * what it already got back instead of paying for the call again.
+ * Successful calls to a read-only tool are cached for the length of the run, keyed on the tool name and arguments regardless of the order the model emitted them in, so a model that loops on one call is told what it already got back instead of paying for the call again. A tool that writes is never cached: two identical calls are two mutations the model asked for, and answering the second from the cache would silently drop one.
  */
 final class LLMAgent
 {
@@ -40,6 +36,8 @@ final class LLMAgent
     private const string subagentNoAnswer = "The subagent produced no answer.";
     private const string subagentTaskRequired = "Subagent task is required.";
     private const string subagentIncomplete = "The subagent ran out of iterations before finishing. Narrow the task and try again.";
+    private const string subagentProviderFailure = "The subagent could not reach the model provider. Retrying may work.";
+    private const string subagentDeadline = "The subagent ran out of time before finishing. Narrow the task and try again.";
     private const int subagentMaxIterations = 8;
     private static ?ToolDescriptor $subagentToolDescriptor = null;
     /** @var ArrayClass<ToolDescriptor> */
@@ -55,7 +53,14 @@ final class LLMAgent
         }
     }
 
-    public function __construct(private readonly LLMClient $client, private readonly ToolRegistry $toolRegistry, private readonly int $maxIterations = 25, private readonly bool $canSpawnSubagents = true)
+    /**
+     * @param LLMClient $client The provider client every turn is sent through.
+     * @param ToolRegistry $toolRegistry The catalogue the model may call, and the funnel every call goes through.
+     * @param int $maxIterations Turns the loop may take before it gives up on the model concluding.
+     * @param bool $canSpawnSubagents Whether the synthetic subagent tool is offered alongside the registry's own.
+     * @param float|null $timeLimit Seconds the whole run may take, or `null` for no limit. Bounds the wall clock the iteration cap cannot: a turn that waits out a provider's backoff costs time without costing an iteration.
+     */
+    public function __construct(private readonly LLMClient $client, private readonly ToolRegistry $toolRegistry, private readonly int $maxIterations = 25, private readonly bool $canSpawnSubagents = true, private readonly ?float $timeLimit = null)
     {
     }
 
@@ -64,7 +69,7 @@ final class LLMAgent
      *
      * @param ArrayClass<LLMMessage> $messages The input conversation history; cloned, never mutated.
      * @param string|null $systemPrompt The system prompt to send on every turn, or null for none.
-     * @return LLMRun The messages generated during this run, the total input and output tokens consumed, and whether the model concluded or the iteration cap stopped it.
+     * @return LLMRun The messages generated during this run, the total input and output tokens consumed, and why the loop stopped.
      * @throws Throwable A fatal program fault raised by a tool, left to propagate out of the run.
      */
     public function run(ArrayClass $messages, ?string $systemPrompt = null): LLMRun
@@ -79,14 +84,26 @@ final class LLMAgent
         /** @var Dictionary<string> $toolCallCache */
         $toolCallCache = new Dictionary();
         $iterations = 0;
+        $stopReason = LLMRunStopReason::iterationCap;
+        $deadline = $this->timeLimit === null ? null : microtime(true) + $this->timeLimit;
         while ($iterations++ < $this->maxIterations) {
-            $turn = $this->client->complete($history, $this->toolList, $systemPrompt);
+            if ($deadline !== null && microtime(true) >= $deadline) {
+                $stopReason = LLMRunStopReason::deadline;
+                break;
+            }
+            try {
+                $turn = $this->client->complete($history, $this->toolList, $systemPrompt);
+            } catch (InternalInconsistencyException) {
+                $stopReason = LLMRunStopReason::providerFailure;
+                break;
+            }
             $totalInputTokens += $turn->inputTokens;
             $totalOutputTokens += $turn->outputTokens;
             $assistantMsg = new LLMMessage(LLMMessageRole::assistant, $turn->text, $turn->toolCalls, outputTokens: $turn->outputTokens, thinkingBlocks: $turn->thinkingBlocks, reasoningContent: $turn->reasoningContent);
             $history->append($assistantMsg);
             $newMessages->append($assistantMsg);
             if ($turn->isDone) {
+                $stopReason = LLMRunStopReason::done;
                 break;
             }
             foreach ($turn->toolCalls as $toolCall) {
@@ -108,7 +125,7 @@ final class LLMAgent
                         $text = $result->text;
                         $isError = $result->isError;
                     }
-                    if (!$isError) {
+                    if (!$isError && $this->isCacheable($toolCall->name)) {
                         $toolCallCache[$cacheKey] = $text;
                     }
                 }
@@ -117,7 +134,17 @@ final class LLMAgent
                 $newMessages->append($toolMsg);
             }
         }
-        return new LLMRun($newMessages, $totalInputTokens, $totalOutputTokens);
+        return new LLMRun($newMessages, $totalInputTokens, $totalOutputTokens, $stopReason);
+    }
+
+    /**
+     * Whether a repeated call to this tool may be answered from the run's cache instead of executed again.
+     *
+     * Only a tool that declares itself read-only qualifies. A tool that writes must run every time it is called: two identical `create` calls are two rows the model asked for, and serving the second from the cache silently drops the write. The synthetic subagent tool is never cacheable either — it runs a whole nested conversation, and the same task posed twice is not a repeated read.
+     */
+    private function isCacheable(string $name): bool
+    {
+        return $name !== self::subagentToolName && $this->toolRegistry->isReadOnly($name);
     }
 
     /**
@@ -186,17 +213,21 @@ final class LLMAgent
     /**
      * Explains why a sub-run yielded no answer, in terms the model can act on.
      *
-     * The three failures are distinct and call for different corrections: a run that never
-     * started because the call omitted `task`, one that finished with nothing to say, and one
-     * the iteration cap cut short. Collapsing them into one message would tell the model to
-     * retry the case it should reformulate, and reformulate the case it should retry.
+     * The failures are distinct and call for different corrections: a run that never started because the call omitted `task`, one that finished with nothing to say, one the iteration cap cut short, one that ran out of time, and one the provider broke off. Collapsing them would tell the model to retry the case it should reformulate, and reformulate the case it should retry.
+     *
+     * The missing `task` is the one case the stop reason cannot express — the run never began, so it stopped for no reason at all — and an empty message list is what identifies it.
      */
     private function subagentFailureText(LLMRun $run): string
     {
-        if ($run->messages->isEmpty) {
+        if ($run->messages->isEmpty && $run->stopReason === LLMRunStopReason::done) {
             return self::subagentTaskRequired;
         }
-        return $run->isComplete ? self::subagentNoAnswer : self::subagentIncomplete;
+        return match ($run->stopReason) {
+            LLMRunStopReason::providerFailure => self::subagentProviderFailure,
+            LLMRunStopReason::iterationCap => self::subagentIncomplete,
+            LLMRunStopReason::deadline => self::subagentDeadline,
+            LLMRunStopReason::done => self::subagentNoAnswer,
+        };
     }
 
     private static function subagentToolDescriptor(): ToolDescriptor

@@ -8,6 +8,8 @@ use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Error;
 use Sabatier\Foundation\InternalInconsistencyException;
+use Sabatier\Foundation\Networking\HTTPStatusCode;
+use Sabatier\Foundation\Networking\HTTPURLResponse;
 use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Foundation\Networking\URLResponse;
 use Sabatier\Foundation\Networking\URLSession;
@@ -36,6 +38,13 @@ abstract class LLMClient
     }
     /** @var float|int Request timeout, in seconds. Local models can take considerably longer than the shared session's default to produce a first token, so the default is generous. Override per provider. */
     public float|int $timeoutIntervalForRequest = 300.0;
+
+    /** @var int Times a transient failure is retried before the request is given up on. Zero disables retrying. */
+    public int $maximumRetryCount = 3;
+    /** @var float Seconds to wait before the first retry; each further attempt doubles it. */
+    public float $initialRetryDelay = 1.0;
+    /** @var float Ceiling for any single wait between attempts, applied to the exponential delay and to a provider's `Retry-After` alike, so one oversized value cannot stall the run for the whole request timeout. */
+    public float $maximumRetryDelay = 30.0;
 
     /** @var Dictionary<mixed> Per-provider request-body fields merged over the built body; opaque keys the client neither interprets nor validates, overriding its own values on collision. */
     public Dictionary $extraBody {
@@ -84,6 +93,38 @@ abstract class LLMClient
     }
 
     /**
+     * Sends one request, retrying the failures that are worth retrying, and returns the decoded body.
+     *
+     * A provider failure must not reach `parse` as an empty body: a turn parsed from `[]` carries no text and no tool calls, which is exactly the shape of a model that decided to stop, so the run would be reported as complete when nothing answered it. Every failure therefore throws.
+     *
+     * @throws InternalServerErrorException The provider failed in a way retrying cannot fix, or every attempt was exhausted.
+     * @throws InternalInconsistencyException The transport itself failed.
+     */
+    protected function send(URLRequest $request): Dictionary
+    {
+        $attempt = 0;
+        while (true) {
+            $data = null;
+            $error = null;
+            $response = null;
+            $this->session->dataTaskWithRequest($request, function (?string $responseData, ?URLResponse $urlResponse, ?Error $err) use (&$data, &$error, &$response): void {
+                $data = $responseData;
+                $error = $err;
+                $response = $urlResponse;
+            })->resume();
+            $statusCode = $response instanceof HTTPURLResponse ? $response->statusCode : null;
+            if (!($error instanceof Error) && $statusCode !== null && !self::isRetryable($statusCode)) {
+                $statusCode >= HTTPStatusCode::badRequest ? throw new InternalServerErrorException(self::failureReason($statusCode, $data)) : null;
+                return Dictionary::dictionaryWithArray(json_decode($data ?? "[]") ?? [], false);
+            }
+            if ($attempt >= $this->maximumRetryCount) {
+                $error instanceof Error ? throw new InternalInconsistencyException(error: $error) : throw new InternalServerErrorException(self::failureReason($statusCode, $data));
+            }
+            usleep((int)round($this->retryDelay($attempt++, $response) * 1_000_000.0));
+        }
+    }
+
+    /**
      * Renders a tool result for a provider whose wire format has no failure flag of its own.
      *
      * Anthropic carries the distinction natively (`is_error`), so a failed result stays recognisable there. The OpenAI and Ollama tool messages have no such field, and without a marker in the text a failure reaches the model looking exactly like a successful result — so it treats the error message as the answer instead of correcting the call. The prefix restores what the format drops.
@@ -97,17 +138,34 @@ abstract class LLMClient
     }
 
     /**
-     * @throws InternalServerErrorException
+     * Whether a status is worth sending the same request again for.
+     *
+     * Rate limiting and the 5xx family are transient by definition. A 4xx the caller caused — a bad key, an unknown model, a malformed body — returns the same answer however many times it is asked, so retrying it only delays the error. `requestTimeout` is the one 4xx that is about timing rather than the request's content.
      */
-    protected function send(URLRequest $request): Dictionary
+    private static function isRetryable(int $statusCode): bool
     {
-        $data = null;
-        $error = null;
-        $this->session->dataTaskWithRequest($request, function (?string $responseData, ?URLResponse $response, ?Error $err) use (&$data, &$error): void {
-            $data = $responseData;
-            $error = $err;
-        })->resume();
-        !$error instanceof Error ?: throw new InternalInconsistencyException(error: $error);
-        return Dictionary::dictionaryWithArray(json_decode($data ?? "[]") ?? [], false);
+        return $statusCode === HTTPStatusCode::tooManyRequests || $statusCode === HTTPStatusCode::requestTimeout || $statusCode >= HTTPStatusCode::internalServerError;
+    }
+
+    /** Describes a failed response in terms the caller can act on, preferring the provider's own words when it sent any. */
+    private static function failureReason(?int $statusCode, ?string $data): string
+    {
+        $body = trim((string)$data);
+        $reason = $statusCode === null ? "The LLM provider returned no response" : sprintf("The LLM provider returned HTTP %d", $statusCode);
+        return $body === "" ? $reason : "$reason: $body";
+    }
+
+    /**
+     * Seconds to wait before the next attempt: the provider's own `Retry-After` when it sent one, and otherwise an exponentially growing delay.
+     *
+     * `Retry-After` is authoritative because the provider knows when its own limit resets; guessing shorter earns another 429 and guessing longer wastes the caller's time. The header comes as either a delay in seconds or an HTTP date, and only the numeric form is honoured here — a date needs a clock comparison that would make the wait depend on the skew between the two machines.
+     */
+    private function retryDelay(int $attempt, ?URLResponse $response): float
+    {
+        $retryAfter = $response instanceof HTTPURLResponse ? trim((string)$response->allHeaderFields["Retry-After"]) : "";
+        if (ctype_digit($retryAfter)) {
+            return min((float)$retryAfter, $this->maximumRetryDelay);
+        }
+        return min($this->initialRetryDelay * (float)(2 ** $attempt), $this->maximumRetryDelay);
     }
 }

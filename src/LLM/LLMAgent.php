@@ -6,7 +6,6 @@ namespace Sabatier\Service\LLM;
 
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
-use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
 use Sabatier\Service\MCP\Tools\ToolRegistry;
 use Throwable;
@@ -20,7 +19,7 @@ use function Sabatier\Foundation\human_readable_value;
  * (`LLMTurn::$isDone`). Returns an `LLMRun` containing only the messages generated during
  * this run (not the input history) and the total tokens consumed.
  *
- * The loop also stops when it runs out of iterations, when it runs past its time limit, and when the provider fails after the client has exhausted its retries. Both are reported as incomplete (`LLMRun::$isComplete`) and told apart by `LLMRun::$stopReason`; a caller that treats them alike presents unfinished work as a conclusion. A provider failure ends the run rather than propagating, so the messages and tokens already paid for survive it.
+ * The loop also stops when it runs out of iterations, when it runs past its time limit, and when the provider fails after the client has exhausted its retries. All are reported as incomplete (`LLMRun::$isComplete`) and told apart by `LLMRun::$stopReason`; a caller that treats them alike presents unfinished work as a conclusion. A provider failure ends the run rather than propagating, so the messages and tokens already paid for survive it, and `LLMRun::$isRetryable` carries whether another attempt is worth making — a rate limit clears on its own, a rejected key does not.
  *
  * Tool failures are resolved by the registry, not here. A correctable mistake — the model
  * mis-called a tool — comes back as a failed `ToolResult` and is fed to the model as an
@@ -37,6 +36,7 @@ final class LLMAgent
     private const string subagentTaskRequired = "Subagent task is required.";
     private const string subagentIncomplete = "The subagent ran out of iterations before finishing. Narrow the task and try again.";
     private const string subagentProviderFailure = "The subagent could not reach the model provider. Retrying may work.";
+    private const string subagentProviderRefused = "The subagent could not reach the model provider, and the failure will repeat: it needs the server's configuration fixed, not another attempt. Report it rather than retrying.";
     private const string subagentDeadline = "The subagent ran out of time before finishing. Narrow the task and try again.";
     private const int subagentMaxIterations = 8;
     private static ?ToolDescriptor $subagentToolDescriptor = null;
@@ -85,6 +85,7 @@ final class LLMAgent
         $toolCallCache = new Dictionary();
         $iterations = 0;
         $stopReason = LLMRunStopReason::iterationCap;
+        $isRetryable = true;
         $deadline = $this->timeLimit === null ? null : microtime(true) + $this->timeLimit;
         while ($iterations++ < $this->maxIterations) {
             if ($deadline !== null && microtime(true) >= $deadline) {
@@ -93,8 +94,9 @@ final class LLMAgent
             }
             try {
                 $turn = $this->client->complete($history, $this->toolList, $systemPrompt);
-            } catch (InternalInconsistencyException) {
+            } catch (LLMProviderException $exception) {
                 $stopReason = LLMRunStopReason::providerFailure;
+                $isRetryable = $exception->isTransient;
                 break;
             }
             $totalInputTokens += $turn->inputTokens;
@@ -104,6 +106,7 @@ final class LLMAgent
             $newMessages->append($assistantMsg);
             if ($turn->isDone) {
                 $stopReason = LLMRunStopReason::done;
+                $isRetryable = null;
                 break;
             }
             foreach ($turn->toolCalls as $toolCall) {
@@ -134,7 +137,7 @@ final class LLMAgent
                 $newMessages->append($toolMsg);
             }
         }
-        return new LLMRun($newMessages, $totalInputTokens, $totalOutputTokens, $stopReason);
+        return new LLMRun($newMessages, $totalInputTokens, $totalOutputTokens, $stopReason, $isRetryable);
     }
 
     /**
@@ -215,6 +218,8 @@ final class LLMAgent
      *
      * The failures are distinct and call for different corrections: a run that never started because the call omitted `task`, one that finished with nothing to say, one the iteration cap cut short, one that ran out of time, and one the provider broke off. Collapsing them would tell the model to retry the case it should reformulate, and reformulate the case it should retry.
      *
+     * A provider failure splits again on `LLMRun::$isRetryable`, because the two halves need opposite advice: a rate limit clears on its own and is worth another attempt, while a rejected key answers the same way every time and only burns the parent's iterations. Only a definite `false` is treated as permanent — an unknown stays retryable, which costs one wasted attempt rather than abandoning work that would have succeeded.
+     *
      * The missing `task` is the one case the stop reason cannot express — the run never began, so it stopped for no reason at all — and an empty message list is what identifies it.
      */
     private function subagentFailureText(LLMRun $run): string
@@ -223,7 +228,7 @@ final class LLMAgent
             return self::subagentTaskRequired;
         }
         return match ($run->stopReason) {
-            LLMRunStopReason::providerFailure => self::subagentProviderFailure,
+            LLMRunStopReason::providerFailure => $run->isRetryable === false ? self::subagentProviderRefused : self::subagentProviderFailure,
             LLMRunStopReason::iterationCap => self::subagentIncomplete,
             LLMRunStopReason::deadline => self::subagentDeadline,
             LLMRunStopReason::done => self::subagentNoAnswer,

@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\InternalInconsistencyException;
-use Sabatier\Service\InternalServerErrorException;
+use Sabatier\Service\LLM\LLMProviderException;
 use Sabatier\Service\LLM\AnthropicClient;
 use Sabatier\Service\LLM\LLMClient;
 use Sabatier\Service\LLM\LLMTurn;
@@ -83,7 +83,7 @@ final class LLMClientParseTest extends TestCase
     #[Test]
     public function anthropicReportsTheProviderErrorBody(): void
     {
-        $this->expectException(InternalServerErrorException::class);
+        $this->expectException(LLMProviderException::class);
 
         $this->parse(new AnthropicClient(), '{"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}');
     }

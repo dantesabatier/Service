@@ -9,7 +9,6 @@ use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Networking\URLRequest;
-use Sabatier\Service\InternalServerErrorException;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
 use function Sabatier\Foundation\fatal_error;
 
@@ -160,7 +159,7 @@ final class AnthropicClient extends LLMClient
         if ($body["type"] === "error") {
             /** @var Dictionary<mixed> $error */
             $error = $body["error"] ?? new Dictionary();
-            throw new InternalServerErrorException($error["message"] ?? "Unknown API error");
+            throw new LLMProviderException($error["message"] ?? "Unknown API error");
         }
         $text = null;
         /** @var ArrayClass<LLMToolCall> $toolCalls */

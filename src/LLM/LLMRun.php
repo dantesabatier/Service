@@ -12,7 +12,11 @@ use Sabatier\Foundation\Dictionary;
  *
  * `$isComplete` answers the one question most callers have — is this an answer or not — and `$stopReason` says which ending produced it, because the three call for different corrections: retry, narrow the task, or fix the configuration.
  *
- * `$isComplete` stays derived rather than passed, so it cannot contradict the messages it summarises: a run is complete when its last message is an assistant message carrying no tool calls — the same condition `LLMTurn::$isDone` expresses for a single turn — and only when the run also reached that point on its own. A capped run always ends on a tool message, because the loop executes every tool call of a turn before re-testing the cap. A failed run is never complete however it ends: the provider stopped answering partway, and the messages already collected are not a conclusion. An empty run is not complete either: nothing answered it.
+ * `$isRetryable` answers a separate question the stop reason cannot: whether running the same thing again is worth the tokens. The two are deliberately apart. They vary independently — a provider failure is worth retrying when it was a 429 and pointless when it was a bad API key, and the same split will apply to a deadline the caller can afford to raise. Folding the answer into `$stopReason` would double its cases for every ending that gains the distinction.
+ *
+ * The class marks its properties `readonly` one by one rather than declaring itself `final readonly`, which would be shorter: a `readonly` class forbids property hooks, and `$toolCallResults` is one. Every stored property still carries the keyword, so the run is as immutable as the shorter form would have made it — only the computed property is exempt, and it has nothing to store.
+ *
+ * `$isComplete` stays derived rather than passed, so it cannot contradict the messages it summarizes: a run is complete when its last message is an assistant message carrying no tool calls — the same condition `LLMTurn::$isDone` expresses for a single turn — and only when the run also reached that point on its own. A capped run always ends on a tool message, because the loop executes every tool call of a turn before re-testing the cap. A failed run is never complete, however, it ends: the provider stopped answering partway, and the messages already collected are not a conclusion. An empty run is not complete either: nothing answered it.
  */
 final class LLMRun
 {
@@ -31,14 +35,7 @@ final class LLMRun
                 $contents[$message->toolCallId] = $message->content;
                 $failures[$message->toolCallId] = $message->isError;
             }
-            /** @var ArrayClass<LLMToolCallResult> $results */
-            $results = new ArrayClass();
-            foreach ($this->messages as $message) {
-                foreach ($message->toolCalls ?? new ArrayClass() as $call) {
-                    $results->append(new LLMToolCallResult($call, $contents[$call->id], $failures[$call->id] === true));
-                }
-            }
-            return $results;
+            return $this->messages->flatMap(fn(LLMMessage $message): ArrayClass => $message->toolCalls ?? new ArrayClass())->map(fn(LLMToolCall $call): LLMToolCallResult => new LLMToolCallResult($call, $contents[$call->id], $failures[$call->id] === true));
         }
     }
 
@@ -47,8 +44,9 @@ final class LLMRun
      * @param int<0, max> $inputTokens
      * @param int<0, max> $outputTokens
      * @param LLMRunStopReason $stopReason Why the loop stopped. Defaults to `done`, leaving `$isComplete` to the messages alone.
+     * @param bool|null $isRetryable Whether running the same thing again is worth attempting, or `null` when the question does not apply — a run the model concluded has nothing to retry. A caller can tell that from a definite `false`, which says the ending will repeat itself.
      */
-    public function __construct(public readonly ArrayClass $messages, public readonly int $inputTokens = 0, public readonly int $outputTokens = 0, public readonly LLMRunStopReason $stopReason = LLMRunStopReason::done)
+    public function __construct(public readonly ArrayClass $messages, public readonly int $inputTokens = 0, public readonly int $outputTokens = 0, public readonly LLMRunStopReason $stopReason = LLMRunStopReason::done, public readonly ?bool $isRetryable = null)
     {
         $last = $this->messages->last;
         $this->isComplete = $this->stopReason === LLMRunStopReason::done && $last !== null && $last->role === LLMMessageRole::assistant && $last->toolCalls?->isEmpty !== false;

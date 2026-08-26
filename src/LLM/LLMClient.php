@@ -7,7 +7,6 @@ namespace Sabatier\Service\LLM;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Error;
-use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\Networking\HTTPURLResponse;
 use Sabatier\Foundation\Networking\URLRequest;
@@ -15,7 +14,6 @@ use Sabatier\Foundation\Networking\URLResponse;
 use Sabatier\Foundation\Networking\URLSession;
 use Sabatier\Foundation\Networking\URLSessionConfiguration;
 use Sabatier\Foundation\URL;
-use Sabatier\Service\InternalServerErrorException;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
 
 /**
@@ -97,8 +95,7 @@ abstract class LLMClient
      *
      * A provider failure must not reach `parse` as an empty body: a turn parsed from `[]` carries no text and no tool calls, which is exactly the shape of a model that decided to stop, so the run would be reported as complete when nothing answered it. Every failure therefore throws.
      *
-     * @throws InternalServerErrorException The provider failed in a way retrying cannot fix, or every attempt was exhausted.
-     * @throws InternalInconsistencyException The transport itself failed.
+     * @throws LLMProviderException The provider failed: a status retrying cannot fix, a transport that never delivered the request, or every attempt exhausted. Carries whether a later attempt is worth making.
      */
     protected function send(URLRequest $request): Dictionary
     {
@@ -114,11 +111,11 @@ abstract class LLMClient
             })->resume();
             $statusCode = $response instanceof HTTPURLResponse ? $response->statusCode : null;
             if (!($error instanceof Error) && $statusCode !== null && !self::isRetryable($statusCode)) {
-                $statusCode >= HTTPStatusCode::badRequest ? throw new InternalServerErrorException(self::failureReason($statusCode, $data)) : null;
+                $statusCode < HTTPStatusCode::badRequest ?: throw new LLMProviderException(self::failureReason($statusCode, $data));
                 return Dictionary::dictionaryWithArray(json_decode($data ?? "[]") ?? [], false);
             }
             if ($attempt >= $this->maximumRetryCount) {
-                $error instanceof Error ? throw new InternalInconsistencyException(error: $error) : throw new InternalServerErrorException(self::failureReason($statusCode, $data));
+                $error instanceof Error ? throw new LLMProviderException((string)$error->localizedFailureReason ?: self::failureReason($statusCode, $data), true, $error) : throw new LLMProviderException(self::failureReason($statusCode, $data), true);
             }
             usleep((int)round($this->retryDelay($attempt++, $response) * 1_000_000.0));
         }

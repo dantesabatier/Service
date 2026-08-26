@@ -11,15 +11,16 @@ use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
+use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Service\LLM\LLMAgent;
 use Sabatier\Service\LLM\LLMClient;
 use Sabatier\Service\LLM\LLMMessage;
 use Sabatier\Service\LLM\LLMMessageRole;
+use Sabatier\Service\LLM\LLMProviderException;
 use Sabatier\Service\LLM\LLMRunStopReason;
 use Sabatier\Service\LLM\LLMToolCall;
 use Sabatier\Service\LLM\LLMTurn;
-use Sabatier\Service\InternalServerErrorException;
 use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
 use Sabatier\Service\MCP\Tools\AbstractTool;
@@ -147,6 +148,48 @@ final class LLMAgentTest extends TestCase
         $this->assertSame(2, $run->messages->count);
         $this->assertSame(9, $run->inputTokens);
         $this->assertSame(4, $run->outputTokens);
+        $this->assertTrue($run->isRetryable);
+    }
+
+    /** The stop reason says the provider failed; whether that is worth another attempt is the separate question `$isRetryable` answers. */
+    #[Test]
+    public function aProviderRefusalIsReportedAsNotRetryable(): void
+    {
+        $agent = new LLMAgent(new ScriptedRefusingClient(), new ToolRegistry(new ArrayClass([$this->tool()])), 25, false);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        $this->assertSame(LLMRunStopReason::providerFailure, $run->stopReason);
+        $this->assertFalse($run->isRetryable);
+    }
+
+    /** A run the model concluded has nothing to retry, which is not the same as a retry that would fail. */
+    #[Test]
+    public function aConcludedRunLeavesRetryabilityUnanswered(): void
+    {
+        $client = new ScriptedNoAnswerSubagentClient();
+        $agent = new LLMAgent($client, new ToolRegistry(new ArrayClass([$this->tool()])));
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "parent task")]), "system");
+
+        $this->assertSame(LLMRunStopReason::done, $run->stopReason);
+        $this->assertNull($run->isRetryable);
+    }
+
+    /**
+     * A fault in the code that talks to the provider is not a provider failure, and must not be reported as one.
+     *
+     * Both used to surface as `InternalInconsistencyException`, so the catch that ends the run on a provider failure also swallowed a deserialization bug: the run came back partial and retryable, and the caller retried something no amount of retrying would fix. It propagates now.
+     */
+    #[Test]
+    public function programFaultPropagatesInsteadOfEndingTheRunAsAProviderFailure(): void
+    {
+        $agent = new LLMAgent(new ScriptedFaultyClient(), new ToolRegistry(new ArrayClass([$this->tool()])), 25, false);
+
+        $this->expectException(InternalInconsistencyException::class);
+        $this->expectExceptionMessage("Unexpected shape in the decoded body.");
+
+        $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
     }
 
     #[Test]
@@ -180,6 +223,19 @@ final class LLMAgentTest extends TestCase
         $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "parent task")]), "system");
 
         $this->assertSame("The subagent could not reach the model provider. Retrying may work.", $run->messages[1]->content);
+        $this->assertTrue($run->messages[1]->isError);
+    }
+
+    /** A failure the provider will repeat must not be reported to the model as worth retrying, or it spends the parent's iterations on attempts that answer identically. */
+    #[Test]
+    public function subagentProviderRefusalIsReportedAsNotWorthRetrying(): void
+    {
+        $client = new ScriptedRefusedSubagentClient();
+        $agent = new LLMAgent($client, new ToolRegistry(new ArrayClass([$this->tool()])));
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "parent task")]), "system");
+
+        $this->assertStringContainsString("the failure will repeat", (string)$run->messages[1]->content);
         $this->assertTrue($run->messages[1]->isError);
     }
 
@@ -236,27 +292,29 @@ final class LLMAgentTest extends TestCase
     private function writingTool(): AbstractTool
     {
         /** @var AbstractTool */
-        return (new ReflectionClass(LLMAgentWritingTool::class))->newInstanceWithoutConstructor();
+        return new ReflectionClass(LLMAgentWritingTool::class)->newInstanceWithoutConstructor();
     }
 
     private function tool(): AbstractTool
     {
         /** @var AbstractTool */
-        return (new ReflectionClass(LLMAgentProbeTool::class))->newInstanceWithoutConstructor();
+        return new ReflectionClass(LLMAgentProbeTool::class)->newInstanceWithoutConstructor();
     }
 
     private function countingTool(): AbstractTool
     {
         /** @var AbstractTool */
-        return (new ReflectionClass(LLMAgentCountingTool::class))->newInstanceWithoutConstructor();
+        return new ReflectionClass(LLMAgentCountingTool::class)->newInstanceWithoutConstructor();
     }
 }
 
 final class ScriptedSubagentClient extends LLMClient
 {
+    #[\Override]
     public string $version {
         get => "test";
     }
+    #[\Override]
     public int $maxTokens {
         get => 1024;
     }
@@ -302,9 +360,11 @@ final class ScriptedSubagentClient extends LLMClient
 
 final class ScriptedNoAnswerSubagentClient extends LLMClient
 {
+    #[\Override]
     public string $version {
         get => "test";
     }
+    #[\Override]
     public int $maxTokens {
         get => 1024;
     }
@@ -347,9 +407,11 @@ final class ScriptedNoAnswerSubagentClient extends LLMClient
 /** Never concludes: every turn asks for a tool again, so only the iteration cap can stop the loop. */
 final class ScriptedNeverDoneClient extends LLMClient
 {
+    #[\Override]
     public string $version {
         get => "test";
     }
+    #[\Override]
     public int $maxTokens {
         get => 1024;
     }
@@ -391,9 +453,11 @@ final class ScriptedNeverDoneClient extends LLMClient
  */
 final class ScriptedExhaustedSubagentClient extends LLMClient
 {
+    #[\Override]
     public string $version {
         get => "test";
     }
+    #[\Override]
     public int $maxTokens {
         get => 1024;
     }
@@ -441,9 +505,11 @@ final class ScriptedExhaustedSubagentClient extends LLMClient
 /** Calls the subagent tool with no `task`, the mis-call the parent must flag back to the model. */
 final class ScriptedTasklessSubagentClient extends LLMClient
 {
+    #[\Override]
     public string $version {
         get => "test";
     }
+    #[\Override]
     public int $maxTokens {
         get => 1024;
     }
@@ -485,9 +551,11 @@ final class ScriptedTasklessSubagentClient extends LLMClient
 /** Issues the same call twice with the argument order swapped; only the first should reach the tool. */
 final class ScriptedReorderedArgumentsClient extends LLMClient
 {
+    #[\Override]
     public string $version {
         get => "test";
     }
+    #[\Override]
     public int $maxTokens {
         get => 1024;
     }
@@ -535,9 +603,11 @@ final class ScriptedReorderedArgumentsClient extends LLMClient
 /** Same keys, different values: two genuinely distinct calls that must both reach the tool. */
 final class ScriptedDistinctArgumentsClient extends LLMClient
 {
+    #[\Override]
     public string $version {
         get => "test";
     }
+    #[\Override]
     public int $maxTokens {
         get => 1024;
     }
@@ -588,6 +658,7 @@ final class LLMAgentCountingTool extends AbstractTool
 {
     public static int $calls = 0;
 
+    #[\Override]
     public string $name {
         get => "counting_tool";
     }
@@ -595,9 +666,11 @@ final class LLMAgentCountingTool extends AbstractTool
     public bool $isReadOnly {
         get => true;
     }
+    #[\Override]
     public string $description {
         get => "Counting tool.";
     }
+    #[\Override]
     public array $inputSchema {
         get => ["type" => "object"];
     }
@@ -616,12 +689,15 @@ final class LLMAgentWritingTool extends AbstractTool
 {
     public static int $calls = 0;
 
+    #[\Override]
     public string $name {
         get => "writing_tool";
     }
+    #[\Override]
     public string $description {
         get => "Writing tool.";
     }
+    #[\Override]
     public array $inputSchema {
         get => ["type" => "object"];
     }
@@ -637,12 +713,15 @@ final class LLMAgentWritingTool extends AbstractTool
 
 final class LLMAgentProbeTool extends AbstractTool
 {
+    #[\Override]
     public string $name {
         get => "probe_tool";
     }
+    #[\Override]
     public string $description {
         get => "Probe tool.";
     }
+    #[\Override]
     public array $inputSchema {
         get => ["type" => "object"];
     }
@@ -655,12 +734,14 @@ final class LLMAgentProbeTool extends AbstractTool
     }
 }
 
-/** Fails on its second turn, after one turn has already been paid for and recorded. */
-final class ScriptedFailingClient extends LLMClient
+/** Fails on its second turn the way a bug in a client's own deserialization does, rather than the way a provider does. */
+final class ScriptedFaultyClient extends LLMClient
 {
+    #[\Override]
     public string $version {
         get => "test";
     }
+    #[\Override]
     public int $maxTokens {
         get => 1024;
     }
@@ -677,7 +758,97 @@ final class ScriptedFailingClient extends LLMClient
         if ($this->call++ === 0) {
             return new LLMTurn(null, new ArrayClass([new LLMToolCall("c1", "probe_tool", new Dictionary())]), 9, 4);
         }
-        throw new InternalServerErrorException("The LLM provider returned HTTP 503");
+        throw new InternalInconsistencyException("Unexpected shape in the decoded body.");
+    }
+
+    /**
+     * @param ArrayClass<LLMMessage> $messages
+     * @param ArrayClass<ToolDescriptor> $tools
+     */
+    #[Override]
+    protected function buildRequest(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): URLRequest
+    {
+        throw new LogicException("Scripted client does not build requests.");
+    }
+
+    /** @param Dictionary<mixed> $body */
+    #[Override]
+    protected function parse(Dictionary $body): LLMTurn
+    {
+        throw new LogicException("Scripted client does not parse responses.");
+    }
+}
+
+/** Fails definitively on its second turn, the way a rejected key or an unknown model does. */
+final class ScriptedRefusingClient extends LLMClient
+{
+    #[\Override]
+    public string $version {
+        get => "test";
+    }
+    #[\Override]
+    public int $maxTokens {
+        get => 1024;
+    }
+
+    private int $call = 0;
+
+    /**
+     * @param ArrayClass<LLMMessage> $messages
+     * @param ArrayClass<ToolDescriptor> $tools
+     */
+    #[Override]
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    {
+        if ($this->call++ === 0) {
+            return new LLMTurn(null, new ArrayClass([new LLMToolCall("c1", "probe_tool", new Dictionary())]), 9, 4);
+        }
+        throw new LLMProviderException("The LLM provider returned HTTP 401");
+    }
+
+    /**
+     * @param ArrayClass<LLMMessage> $messages
+     * @param ArrayClass<ToolDescriptor> $tools
+     */
+    #[Override]
+    protected function buildRequest(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): URLRequest
+    {
+        throw new LogicException("Scripted client does not build requests.");
+    }
+
+    /** @param Dictionary<mixed> $body */
+    #[Override]
+    protected function parse(Dictionary $body): LLMTurn
+    {
+        throw new LogicException("Scripted client does not parse responses.");
+    }
+}
+
+/** Fails on its second turn, after one turn has already been paid for and recorded. */
+final class ScriptedFailingClient extends LLMClient
+{
+    #[\Override]
+    public string $version {
+        get => "test";
+    }
+    #[\Override]
+    public int $maxTokens {
+        get => 1024;
+    }
+
+    private int $call = 0;
+
+    /**
+     * @param ArrayClass<LLMMessage> $messages
+     * @param ArrayClass<ToolDescriptor> $tools
+     */
+    #[Override]
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    {
+        if ($this->call++ === 0) {
+            return new LLMTurn(null, new ArrayClass([new LLMToolCall("c1", "probe_tool", new Dictionary())]), 9, 4);
+        }
+        throw new LLMProviderException("The LLM provider returned HTTP 503", true);
     }
 
     /**
@@ -699,11 +870,14 @@ final class ScriptedFailingClient extends LLMClient
 }
 
 /** The parent delegates to a subagent whose own first turn hits a provider failure. */
-final class ScriptedFailingSubagentClient extends LLMClient
+/** Fails the sub-run the way a rejected key does: definitively, so another attempt would answer the same. */
+final class ScriptedRefusedSubagentClient extends LLMClient
 {
+    #[\Override]
     public string $version {
         get => "test";
     }
+    #[\Override]
     public int $maxTokens {
         get => 1024;
     }
@@ -719,7 +893,52 @@ final class ScriptedFailingSubagentClient extends LLMClient
     {
         return match ($this->call++) {
             0 => new LLMTurn(null, new ArrayClass([new LLMToolCall("parent-subagent", "run_subagent", new Dictionary(["task" => "inspect one thing"]))])),
-            1 => throw new InternalServerErrorException("The LLM provider returned HTTP 502"),
+            1 => throw new LLMProviderException("The LLM provider returned HTTP 401"),
+            default => new LLMTurn("parent done", new ArrayClass()),
+        };
+    }
+
+    /**
+     * @param ArrayClass<LLMMessage> $messages
+     * @param ArrayClass<ToolDescriptor> $tools
+     */
+    #[Override]
+    protected function buildRequest(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): URLRequest
+    {
+        throw new LogicException("Scripted client does not build requests.");
+    }
+
+    /** @param Dictionary<mixed> $body */
+    #[Override]
+    protected function parse(Dictionary $body): LLMTurn
+    {
+        throw new LogicException("Scripted client does not parse responses.");
+    }
+}
+
+final class ScriptedFailingSubagentClient extends LLMClient
+{
+    #[\Override]
+    public string $version {
+        get => "test";
+    }
+    #[\Override]
+    public int $maxTokens {
+        get => 1024;
+    }
+
+    private int $call = 0;
+
+    /**
+     * @param ArrayClass<LLMMessage> $messages
+     * @param ArrayClass<ToolDescriptor> $tools
+     */
+    #[Override]
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    {
+        return match ($this->call++) {
+            0 => new LLMTurn(null, new ArrayClass([new LLMToolCall("parent-subagent", "run_subagent", new Dictionary(["task" => "inspect one thing"]))])),
+            1 => throw new LLMProviderException("The LLM provider returned HTTP 502", true),
             default => new LLMTurn("parent done", new ArrayClass()),
         };
     }

@@ -18,8 +18,8 @@ use Sabatier\Foundation\ProcessInfo;
  * `Application::$securityHeadersPolicy` is the central override point. The static `policy()`
  * factory reads the following environment variables:
  *
- * - `SECURITY_CONTENT_SECURITY_POLICY`
- * - `SECURITY_STRICT_TRANSPORT_SECURITY`
+ * - `SECURITY_CSP`
+ * - `SECURITY_HSTS`
  * - `SECURITY_X_CONTENT_TYPE_OPTIONS`
  * - `SECURITY_X_FRAME_OPTIONS`
  * - `SECURITY_REFERRER_POLICY`

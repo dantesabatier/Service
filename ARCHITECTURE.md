@@ -569,11 +569,11 @@ All environment keys are PHP constants defined in the framework's constants file
 | Key                                  | Default           | Description                             |
 |--------------------------------------|-------------------|-----------------------------------------|
 | `SECURITY_X_CONTENT_TYPE_OPTIONS`    | `nosniff`         |                                         |
-| `SECURITY_X_FRAME_OPTIONS`           | `DENY`            |                                         |
-| `SECURITY_REFERRER_POLICY`           | framework default |                                         |
-| `SECURITY_PERMISSIONS_POLICY`        | framework default |                                         |
-| `SECURITY_CONTENT_SECURITY_POLICY`   | —                 | Not set by default; must be configured. |
-| `SECURITY_STRICT_TRANSPORT_SECURITY` | —                 | Not set by default; must be configured. |
+| `SECURITY_X_FRAME_OPTIONS`           | `SAMEORIGIN`      |                                         |
+| `SECURITY_REFERRER_POLICY`           | `strict-origin-when-cross-origin` |                         |
+| `SECURITY_PERMISSIONS_POLICY`        | `camera=(), microphone=(), geolocation=()` |                |
+| `SECURITY_CSP`                       | —                 | Not set by default; must be configured. |
+| `SECURITY_HSTS`                      | —                 | Not set by default; only meaningful over HTTPS. |
 
 ### Rate Limiting
 

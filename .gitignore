@@ -5,3 +5,8 @@
 vendor
 composer.lock
 /.claude/
+
+# Real environment files carry signing keys and API keys; only the example is tracked.
+.env
+.env.*
+!.env.example

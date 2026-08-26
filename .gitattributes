@@ -1,2 +1,24 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Keep the distributed package to what an application actually loads. Everything
+# below is development apparatus: it belongs in the repository, not in the
+# vendor directory of every project that installs this framework.
+/.claude            export-ignore
+/.gitattributes     export-ignore
+/.gitignore         export-ignore
+/.idea              export-ignore
+/.php-cs-fixer.dist.php export-ignore
+/AGENTS.md          export-ignore
+/CONTRIBUTING.md    export-ignore
+/API.md             export-ignore
+/ARCHITECTURE.md    export-ignore
+/CLAUDE.md          export-ignore
+/MCP.md             export-ignore
+/ExtractLocalizables.php export-ignore
+/phpcs.xml          export-ignore
+/phpstan.neon       export-ignore
+/phpunit.xml        export-ignore
+/psalm.xml          export-ignore
+/rector.php         export-ignore
+/tests             export-ignore

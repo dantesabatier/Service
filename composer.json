@@ -15,24 +15,17 @@
   ],
   "require": {
     "php": "^8.5",
-    "ext-gd": "*",
-    "ext-mbstring": "*",
-    "ext-curl": "*",
-    "ext-intl": "*",
-    "ext-gettext": "*",
-    "ext-dom": "*",
     "ext-ctype": "*",
-    "ext-libxml": "*",
-    "ext-pdo": "*",
-    "ext-zlib": "*",
+    "ext-intl": "*",
+    "ext-mbstring": "*",
     "ext-openssl": "*",
-    "ext-apcu": "*",
-    "ext-memcached": "*",
-    "ext-redis": "*",
     "sabatier/foundation": "@dev",
     "sabatier/coredata": "@dev"
   },
   "suggest": {
+    "ext-apcu": "Backs rate limiting, idempotency, the authorization cache and MCP session storage on a single server, with no external service to run.",
+    "ext-redis": "Backs rate limiting, idempotency, the authorization cache and MCP session storage across several servers.",
+    "ext-memcached": "Alternative shared backend for rate limiting, idempotency and the authorization cache."
   },
   "config": {
     "platform": {

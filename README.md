@@ -1,6 +1,6 @@
 # Sabatier Service
 
-**Service** is a PHP 8.5+ application framework built on two sibling libraries — [Foundation](../Foundation) and [CoreData](../CoreData) — that brings the architectural patterns of Apple's AppKit and Core Data to server-side PHP development.
+**Service** is a PHP 8.5+ application framework built on two sibling libraries — [Foundation](https://github.com/dantesabatier/Foundation) and [CoreData](https://github.com/dantesabatier/CoreData) — that brings the architectural patterns of Apple's AppKit and Core Data to server-side PHP development.
 
 It covers the full spectrum from zero-boilerplate REST APIs to server-rendered web applications, with a consistent request pipeline, layered security, and a built-in MCP server for LLM tool access — all without routing tables or code generation. Scheduled and one-shot background work runs through a parallel CLI entry point that shares the same Core Data stack.
 
@@ -81,9 +81,33 @@ Application::shared()->run();
 
 ## Requirements
 
-- PHP 8.5+ with extensions: `openssl`, `apcu`, `pdo`, `mbstring`, `intl`, `redis`, `memcached`
-- [`sabatier/foundation`](../Foundation)
-- [`sabatier/coredata`](../CoreData)
+- **PHP 8.5 or newer.** Property hooks and the pipe operator are used
+  throughout, so this is a floor rather than a recommendation.
+- Extensions `ctype`, `intl`, `mbstring` and `openssl`, plus those the sibling
+  libraries require.
+- [`sabatier/foundation`](https://github.com/dantesabatier/Foundation) and
+  [`sabatier/coredata`](https://github.com/dantesabatier/CoreData).
+
+Rate limiting, idempotency, the authorization cache and MCP session storage
+each run over a pluggable store. Installing `ext-apcu`, `ext-redis` or
+`ext-memcached` selects a shared backend; with none of them, an in-memory store
+applies per process.
+
+Configuration is by environment variable — see [.env.example](.env.example) for
+every variable the framework reads, with its default.
+
+---
+
+## Documentation
+
+| Document                             | Covers                                                    |
+|--------------------------------------|-----------------------------------------------------------|
+| [ARCHITECTURE.md](ARCHITECTURE.md)   | The design, subsystem by subsystem                        |
+| [API.md](API.md)                     | How a client talks to a Service application over HTTP     |
+| [MCP.md](MCP.md)                     | The MCP tool catalogue and the contract a custom tool honours |
+| [CONTRIBUTING.md](CONTRIBUTING.md)   | Setting up, the checks to pass, the conventions to keep   |
+| [SECURITY.md](SECURITY.md)           | Reporting a vulnerability, and what is in scope           |
+| [CHANGELOG.md](CHANGELOG.md)         | What changed between versions                             |
 
 ---
 

@@ -21,6 +21,8 @@ use function Sabatier\Foundation\fatal_error;
  * assistant message and results as `tool` role messages. JSON schemas for tools are normalized
  * to satisfy OpenAI's requirement that array-typed properties declare an `items` field.
  * Auth is passed via the `Authorization: Bearer` header.
+ *
+ * Token usage is read under both spellings the OpenAI-compatible surface uses: Chat Completions reports `prompt_tokens`/`completion_tokens`, the Responses API `input_tokens`/`output_tokens`. The Chat Completions pair is preferred, matching the request format this client builds.
  */
 final class StandardLLMClient extends LLMClient
 {
@@ -70,7 +72,7 @@ final class StandardLLMClient extends LLMClient
                 $result[] = [
                     "role" => "tool",
                     "tool_call_id" => $message->toolCallId ?? "",
-                    "content" => $message->content ?? "",
+                    "content" => self::toolResultText($message->content, $message->isError),
                 ];
                 continue;
             }
@@ -176,8 +178,7 @@ final class StandardLLMClient extends LLMClient
                 $fn = $tc["function"] ?? new Dictionary();
                 $id = $tc["id"] ?? "";
                 $name = $fn["name"] ?? "";
-                // `{}` rather than `[]` as the fallback: a call without arguments is an empty
-                // object, and `[]` would yield an ArrayClass where the registry expects a Dictionary.
+                // `{}` rather than `[]` as the fallback: a call without arguments is an empty object, and `[]` would yield an ArrayClass where the registry expects a Dictionary.
                 $arguments = Dictionary::dictionaryWithArray(json_decode($fn["arguments"] ?? "{}") ?? new stdClass(), false);
                 $toolCalls->append(new LLMToolCall($id, $name, $arguments));
             }
@@ -186,9 +187,9 @@ final class StandardLLMClient extends LLMClient
         /** @var Dictionary<int<0, max>> $usage */
         $usage = $body["usage"] ?? new Dictionary();
         /** @var int<0, max> $inputTokens */
-        $inputTokens = (int)($usage["input_tokens"] ?? 0);
+        $inputTokens = (int)($usage["prompt_tokens"] ?? $usage["input_tokens"] ?? 0);
         /** @var int<0, max> $outputTokens */
-        $outputTokens = (int)($usage["output_tokens"] ?? 0);
+        $outputTokens = (int)($usage["completion_tokens"] ?? $usage["output_tokens"] ?? 0);
         return new LLMTurn($text, $toolCalls, $inputTokens, $outputTokens, reasoningContent: $reasoningContent);
     }
 }

@@ -20,6 +20,8 @@ use function Sabatier\Foundation\fatal_error;
  * single `user` turn, assistant tool use is expressed as `tool_use` blocks, and images are
  * sent as base64-encoded `image` blocks. The system prompt is a top-level body field rather
  * than a message. API version and auth are passed via `anthropic-version` and `x-api-key` headers.
+ *
+ * A response may carry several `text` blocks — interleaved with `thinking` or `tool_use` ones — and all of them are the model's answer, so they are concatenated rather than overwritten. The turn's text stays `null` when no `text` block arrives at all, which is not the same as an empty one.
  */
 final class AnthropicClient extends LLMClient
 {
@@ -51,7 +53,7 @@ final class AnthropicClient extends LLMClient
         if ($systemPrompt !== null) {
             $body["system"] = $systemPrompt;
         }
-        $request->httpBody = (string)json_encode($body);
+        $request->httpBody = (string)json_encode([...$body, ...$this->extraBody->array]);
         return $request;
     }
 
@@ -169,7 +171,7 @@ final class AnthropicClient extends LLMClient
         $content = $body["content"] ?? new ArrayClass();
         foreach ($content as $block) {
             match ($block["type"]) {
-                "text" => $text = $block["text"],
+                "text" => $text = ($text ?? "") . (string)$block["text"],
                 "tool_use" => $toolCalls->append(new LLMToolCall($block["id"] ?? "", $block["name"] ?? "", $block["input"] ?? new Dictionary())),
                 "thinking" => $thinkingBlocks->append(new Dictionary(["type" => "thinking", "thinking" => (string)($block["thinking"] ?? ""), "signature" => (string)($block["signature"] ?? "")])),
                 default => null,

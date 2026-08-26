@@ -84,6 +84,19 @@ abstract class LLMClient
     }
 
     /**
+     * Renders a tool result for a provider whose wire format has no failure flag of its own.
+     *
+     * Anthropic carries the distinction natively (`is_error`), so a failed result stays recognisable there. The OpenAI and Ollama tool messages have no such field, and without a marker in the text a failure reaches the model looking exactly like a successful result — so it treats the error message as the answer instead of correcting the call. The prefix restores what the format drops.
+     *
+     * @param bool $isError Whether the tool call this message reports failed.
+     */
+    protected static function toolResultText(?string $content, bool $isError): string
+    {
+        $text = $content ?? "";
+        return $isError ? "Error: $text" : $text;
+    }
+
+    /**
      * @throws InternalServerErrorException
      */
     protected function send(URLRequest $request): Dictionary

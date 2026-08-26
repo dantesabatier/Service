@@ -82,7 +82,7 @@ final class OllamaClient extends LLMClient
                 // synthetic tool_call_id is not sent: only the content goes.
                 $result[] = [
                     "role" => "tool",
-                    "content" => $message->content ?? "",
+                    "content" => self::toolResultText($message->content, $message->isError),
                 ];
                 continue;
             }

@@ -9,7 +9,6 @@ use Generator;
 use Override;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\DirectoryEnumerator;
-use Sabatier\Foundation\FileAttributeKey;
 use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\Set;
 use Sabatier\Foundation\URL;
@@ -28,6 +27,10 @@ final class UploadsEnumerator extends DirectoryEnumerator
         get => $this->count === 0;
     }
     private ?URL $currentURL = null;
+    /** @var URL The directory uploads are written to, resolved by the policy from the subdirectory the request named. */
+    public URL $directoryURL {
+        get => $this->directoryURL ??= Application::shared()->fileTransferPolicy->directoryURL($this->directory) ?? throw new BadRequestException("The upload directory is not accepted.");
+    }
     #[Override]
     public ?Dictionary $directoryAttributes {
         get {
@@ -61,10 +64,10 @@ final class UploadsEnumerator extends DirectoryEnumerator
     }
 
     /**
-     * @param URL $directoryURL
+     * @param string $directory The subdirectory the request asked for, as a single path component.
      * @param Set<string>|null $keys
      */
-    public function __construct(public readonly URL $directoryURL, public readonly ?Set $keys = null)
+    public function __construct(public readonly string $directory, public readonly ?Set $keys = null)
     {
     }
 
@@ -72,24 +75,29 @@ final class UploadsEnumerator extends DirectoryEnumerator
     public function getIterator(): Traversable
     {
         return (function (): Generator {
-            $fileAttributes = new Dictionary([FileAttributeKey::posixPermissions => 0777]);
-            $directoryURL = $this->directoryURL;
+            $policy = Application::shared()->fileTransferPolicy;
             $fileManager = FileManager::default();
-            if (!$fileManager->fileExists($directoryURL->path)) {
-                $fileManager->createDirectory($directoryURL, true, $fileAttributes);
-            }
             $keys = $this->keys;
-            /** @var array{name: string, tmp_name: string} $file */
-            foreach ($_FILES as $file) {
-                $name = $file["name"];
-                $url = $directoryURL->appendingPathComponent($name);
+            foreach ($this->uploadedFiles() as $file) {
+                $disposition = $policy->evaluateUpload($this->directory, (string)$file["name"], (int)$file["size"]);
+                $url = $disposition->isAllowed ? $disposition->destinationURL : null;
+                if ($url === null) {
+                    throw new BadRequestException($disposition->failureReason ?? "The upload was not accepted.");
+                }
+                $attributes = $disposition->fileAttributes;
+                $directoryURL = $this->directoryURL;
+                if (!$fileManager->fileExists($directoryURL->path)) {
+                    $fileManager->createDirectory($directoryURL, true, $attributes);
+                }
                 $destination = $url->path;
                 if ($fileManager->fileExists($destination)) {
                     $fileManager->removeItem($url);
                 }
-                $source = $file["tmp_name"] ?? throw new BadRequestException();
+                $source = (string)($file["tmp_name"] ?? throw new BadRequestException());
                 $fileManager->moveItem(URL::fileURL($source), $url) ?: throw new InternalServerErrorException();
-                $fileManager->setAttributes($fileAttributes, $destination);
+                if ($attributes !== null) {
+                    $fileManager->setAttributes($attributes, $destination);
+                }
                 if ($keys !== null) {
                     $values = $url->resourceValues($keys);
                     foreach ($values->allValues as $key => $value) {
@@ -100,5 +108,27 @@ final class UploadsEnumerator extends DirectoryEnumerator
                 yield $url;
             }
         })();
+    }
+
+    /**
+     * A single-file field arrives with scalar members, while `name="files[]"` arrives with each member as a parallel array — the same field carrying several files. Reading `name` without telling the two apart works only for the first shape, so a multiple upload would otherwise fail on an array where a string was expected.
+     *
+     * @return Generator<array{name: string, tmp_name: string, size: int}>
+     */
+    private function uploadedFiles(): Generator
+    {
+        /** @var array{name: string|list<string>, tmp_name: string|list<string>, size: int|list<int>} $file */
+        foreach ($_FILES as $file) {
+            $names = $file["name"];
+            /** @var list<string> $nameList */
+            $nameList = is_array($names) ? $names : [(string)$names];
+            /** @var list<string> $tmpNames */
+            $tmpNames = is_array($file["tmp_name"]) ? $file["tmp_name"] : [(string)$file["tmp_name"]];
+            /** @var list<int> $sizes */
+            $sizes = is_array($file["size"]) ? $file["size"] : [(int)$file["size"]];
+            foreach ($nameList as $index => $name) {
+                yield ["name" => $name, "tmp_name" => $tmpNames[$index] ?? "", "size" => $sizes[$index] ?? 0];
+            }
+        }
     }
 }

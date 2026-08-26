@@ -143,9 +143,13 @@ These responders are always present in the chain, in this order of priority afte
 
 **`Preferences`** exposes the application's `UserDefaults` store at `/Preferences`. `GET` returns the full key-value dictionary as JSON; `PATCH` merges the request body into the store. This is always no-cache.
 
-**`Uploader`** receives `multipart/form-data` uploads at `/upload`. It validates that the target directory name contains only safe characters (`[A-Za-z0-9_-]`), creates it if absent (with permissions 0777), moves each uploaded file from the PHP temporary location into the destination, and returns an array of the saved filenames. Existing files at the target path are silently replaced.
+**`Uploader`** receives `multipart/form-data` uploads at `/upload`. The request names a subdirectory, never a path; `FileTransferPolicy` resolves where each file lands and under what name, creates the directory if absent, moves each uploaded file from the PHP temporary location into place, and returns an array of the saved filenames. Both the subdirectory and each filename must be a single alphanumeric slug (`[A-Za-z0-9_-]`), stem and extension alike — a name that could describe another location is refused rather than adjusted, since storing a file under a name nobody asked for is harder to explain than a `400`. Existing files at the target path are silently replaced.
 
-**`Downloader`** responds to `POST /download` with a file attachment. The request body contains the URL of the file to serve; the framework resolves it against the document root, reads it, detects its MIME type and character encoding, and delivers it with a `Content-Disposition: attachment` header. The POST method is used deliberately — the URL of the file to download is a parameter, not a path segment, which avoids exposing arbitrary file paths in GET URLs.
+Permissions default to `0777`, deliberately: a deployment whose writing and reading processes are different users cannot read back a stricter file, and what the endpoint serves is mediated by the responder chain rather than by the filesystem. Tighten it with `FILE_TRANSFER_FILE_PERMISSIONS` where the deployment allows. What may be uploaded is a question of authorization, not of file type — the endpoint sits behind the same RBAC every other responder does, and a role entitled to upload is trusted with what it uploads. `FILE_TRANSFER_ALLOWED_EXTENSIONS` is there for an application that wants to narrow that.
+
+**`Downloader`** responds to `POST /download` with a file attachment. The request body contains the URL of the file to serve; its path is split into a directory and a filename, `FileTransferPolicy` resolves those two names against the document root, and the file is read, its MIME type and character encoding detected, and delivered with a `Content-Disposition: attachment` header. The POST method is used deliberately — the URL of the file to download is a parameter, not a path segment, which avoids exposing arbitrary file paths in GET URLs.
+
+Only names travel to the policy, never a path, so nothing the request sends can describe a location outside the directory the policy chose — there is no path left to canonicalize or prefix-check. The location must be exactly one directory deep, matching the single level `Uploader` writes to. The default policy then asks `StaticResourcePolicy` about the resolved URL, so a download answers to the same rules a static request does rather than deciding on its own.
 
 **`MCPResponder`** exposes the full Core Data model as an MCP tool server at `/mcp`. See [Section 12](#12-mcp-server).
 
@@ -537,7 +541,7 @@ The delegate receives four lifecycle callbacks:
 - **`applicationWillTerminate`** — called by the PHP shutdown handler on a clean exit.
 - **`applicationDidCrash`** — called when a fatal PHP error is caught by the shutdown handler, before the error response is emitted.
 
-Application-wide policies — `$corsPolicy`, `$accessPolicy`, `$securityHeadersPolicy`, `$cachePolicy`, `$rateLimitPolicy`, `$idempotencyPolicy`, `$rateLimitStore`, `$idempotencyStore`, `$authorizationCache` — are public properties on `Application` and can be reassigned in `applicationWillFinishLaunching` to replace any default.
+Application-wide policies — `$corsPolicy`, `$accessPolicy`, `$securityHeadersPolicy`, `$cachePolicy`, `$rateLimitPolicy`, `$idempotencyPolicy`, `$staticResourcePolicy`, `$fileTransferPolicy`, `$rateLimitStore`, `$idempotencyStore`, `$authorizationCache` — are public properties on `Application` and can be reassigned in `applicationWillFinishLaunching` to replace any default.
 
 ---
 

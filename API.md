@@ -266,9 +266,11 @@ Authorization: Bearer <jwt>
 Content-Type: application/json
 
 {
-  "url": "/uploads/documents/report.pdf"
+  "url": "https://api.example.com/uploads/report.pdf"
 }
 ```
+
+`url` is a full URL, not a path — the scheme and host are required and the host is ignored. Only its path is read, and it must name one directory and one file: the same single level `POST /upload` writes to. A deeper or shallower path is rejected with `400`, as is a path component that is not an alphanumeric slug.
 
 Response: the raw file content with the appropriate `Content-Type` and `Content-Disposition: attachment` headers set by `DownloadResponseTransformer`.
 

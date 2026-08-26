@@ -42,6 +42,7 @@
       "src/Constants.php",
       "src/ConstantsInternal.php",
       "src/CORSConstants.php",
+      "src/FileTransferConstants.php",
       "src/HTTPCacheConstants.php",
       "src/IdempotencyConstants.php",
       "src/JobConstants.php",

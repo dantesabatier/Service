@@ -126,6 +126,10 @@ class Application extends Responder
     public StaticResourcePolicy $staticResourcePolicy {
         get => $this->staticResourcePolicy ??= new DefaultStaticResourcePolicy();
     }
+    /** @var FileTransferPolicy Policy used to determine where an upload may be written and which file a download may read. The counterpart of {@see Application::$staticResourcePolicy} for the transfer surface; the default implementation defers to it on the read side. */
+    public FileTransferPolicy $fileTransferPolicy {
+        get => $this->fileTransferPolicy ??= new DefaultFileTransferPolicy();
+    }
     /** @var HTTPCachePolicy The HTTP cache policy that controls caching behavior (ETags, Cache-Control directives) for all responses. Override this property in the application delegate to customize the default policy. */
     #[Override]
     public HTTPCachePolicy $cachePolicy {

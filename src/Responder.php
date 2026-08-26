@@ -174,12 +174,7 @@ abstract class Responder extends ObjectClass
                     } && ($selector = $this->selector)) {
                     $this->perform($selector);
                 }
-                // Read in this order deliberately: producing the body is what runs the action, and
-                // a responder may build part of its transformer context from what the action left
-                // behind — MCPResponder carries the session identifier its handshake issued.
-                // Passing both inline would evaluate the context first, since PHP reads arguments
-                // left to right, handing the pipeline a context assembled before the work it
-                // describes had happened.
+                // Read in this order deliberately: producing the body is what runs the action, and a responder may build part of its transformer context from what the action left behind — MCPResponder carries the session identifier its handshake issued. Passing both inline would evaluate the context first, since PHP reads arguments left to right, handing the pipeline a context assembled before the work it describes had happened.
                 $data = $this->data;
                 $transformerContext = $this->transformerContext;
                 $userResponse = new ResponsePipeline($this->transformers, $transformerContext)->process(new Response($request->url, $this->statusCode, body: $data));

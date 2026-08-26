@@ -29,6 +29,11 @@ final class GetServerTimeTool extends AbstractTool
         get => "get_server_time";
     }
     #[Override]
+    public bool $isReadOnly {
+        get => true;
+    }
+
+    #[Override]
     public array $inputSchema {
         get => [
             "type" => "object",

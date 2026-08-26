@@ -33,6 +33,11 @@ final class GroupByTool extends AbstractTool
         get => "group_by";
     }
     #[Override]
+    public bool $isReadOnly {
+        get => true;
+    }
+
+    #[Override]
     public array $inputSchema {
         get => [
             "type" => "object",

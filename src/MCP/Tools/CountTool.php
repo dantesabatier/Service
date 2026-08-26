@@ -20,6 +20,11 @@ final class CountTool extends AbstractTool
         get => "count";
     }
     #[Override]
+    public bool $isReadOnly {
+        get => true;
+    }
+
+    #[Override]
     public array $inputSchema {
         get => [
             "type" => "object",

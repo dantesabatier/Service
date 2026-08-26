@@ -43,6 +43,18 @@ final class ToolRegistry
     }
 
     /**
+     * Whether the named tool only reads state, and so may have a repeated call served from a cache.
+     *
+     * An unknown name answers `false`: the registry cannot vouch for a tool it does not hold, and treating it as cacheable would suppress a call it never inspected.
+     *
+     * @param string $name The name of the tool to test.
+     */
+    public function isReadOnly(string $name): bool
+    {
+        return $this->tools[$name]?->isReadOnly ?? false;
+    }
+
+    /**
      * Invokes a tool by name and never lets it throw past this point.
      *
      * This is the single funnel both MCP and the in-process agent loop converge on. A tool that

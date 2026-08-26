@@ -24,6 +24,11 @@ final class FetchTool extends AbstractTool
         get => "fetch";
     }
     #[Override]
+    public bool $isReadOnly {
+        get => true;
+    }
+
+    #[Override]
     public array $inputSchema {
         get => [
             "type" => "object",

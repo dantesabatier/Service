@@ -32,6 +32,11 @@ final class AggregateTool extends AbstractTool
         get => "aggregate";
     }
     #[Override]
+    public bool $isReadOnly {
+        get => true;
+    }
+
+    #[Override]
     public array $inputSchema {
         get => [
             "type" => "object",

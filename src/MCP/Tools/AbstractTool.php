@@ -64,6 +64,10 @@ abstract class AbstractTool
     abstract public array $inputSchema {
         get;
     }
+    /** @var bool Whether calling this tool only reads state, making a repeated call with identical arguments safe to serve from a cache. Defaults to `false`, so a tool that does not declare itself read-only is always executed; a tool that writes must never override this to `true`. */
+    public bool $isReadOnly {
+        get => false;
+    }
     /** @var ToolVocabulary The vocabulary of the bundle that owns this concrete tool class. */
     private ToolVocabulary $vocabulary {
         get => $this->vocabulary ??= ToolVocabulary::forBundle(Bundle::bundleForClass(static::class));

@@ -32,6 +32,11 @@ final class WebSearchTool extends AbstractTool
         get => "web_search";
     }
     #[Override]
+    public bool $isReadOnly {
+        get => true;
+    }
+
+    #[Override]
     public array $inputSchema {
         get => [
             "type" => "object",

@@ -6,8 +6,8 @@ use Rector\CodeQuality\Rector\Class_\ConvertStaticToSelfRector;
 use Rector\CodeQuality\Rector\ClassMethod\ExplicitReturnNullRector;
 use Rector\CodeQuality\Rector\ClassMethod\LocallyCalledStaticMethodToNonStaticRector;
 use Rector\CodeQuality\Rector\Identical\FlipTypeControlToUseExclusiveTypeRector;
-use Rector\CodeQuality\Rector\If_\ExplicitBoolCompareRector;
 use Rector\Config\RectorConfig;
+use Rector\DeadCode\Rector\ClassMethod\RemoveMixedDocblockOverruledByNativeTypeRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedConstructorParamRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPrivateMethodParameterRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPublicMethodParameterRector;
@@ -18,10 +18,8 @@ use Rector\Exception\Configuration\InvalidConfigurationException;
 use Rector\Php73\Rector\ConstFetch\SensitiveConstantNameRector;
 use Rector\Php74\Rector\Property\RestoreDefaultNullToNullableTypePropertyRector;
 use Rector\Php80\Rector\Class_\ClassPropertyAssignToConstructorPromotionRector;
-use Rector\Php81\Rector\FuncCall\NullToStrictStringFuncCallArgRector;
 use Rector\Php81\Rector\MethodCall\RemoveReflectionSetAccessibleCallsRector;
 use Rector\Php81\Rector\Property\ReadOnlyPropertyRector;
-use Rector\Strict\Rector\Empty_\DisallowedEmptyRuleFixerRector;
 
 try {
     return RectorConfig::configure()
@@ -30,24 +28,20 @@ try {
         ])->withPhpSets()->withSkip([
             SensitiveConstantNameRector::class,
             ClassPropertyAssignToConstructorPromotionRector::class,
-            ExplicitBoolCompareRector::class,
             FlipTypeControlToUseExclusiveTypeRector::class,
-            DisallowedEmptyRuleFixerRector::class,
             LocallyCalledStaticMethodToNonStaticRector::class,
             ExplicitReturnNullRector::class,
             RemoveUselessReturnTagRector::class,
             ReadOnlyPropertyRector::class,
             RestoreDefaultNullToNullableTypePropertyRector::class,
             RemoveUselessParamTagRector::class,
+            RemoveMixedDocblockOverruledByNativeTypeRector::class,
             RemoveUnusedPrivateMethodParameterRector::class => [
                 __DIR__ . "/src/Application.php"
             ],
             RemoveNonExistingVarAnnotationRector::class => [
                 __DIR__ . "/src/FirstResponderResolver.php",
                 __DIR__ . "/src/MCP/Tools/AbstractTool.php",
-            ],
-            NullToStrictStringFuncCallArgRector::class => [
-                __DIR__ . "/src/JSONWebTokenRS256EncoderStrategy.php"
             ],
             ConvertStaticToSelfRector::class => [
                 __DIR__ . "/src/Application.php"

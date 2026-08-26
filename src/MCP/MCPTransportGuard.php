@@ -115,7 +115,7 @@ final readonly class MCPTransportGuard
         if (!($origin = $request->valueForHttpHeaderField("Origin"))) {
             return;
         }
-        $allowed = new Set(string_split_trimmed((string)(ProcessInfo::processInfo()->environment[MCPAllowedOriginsKey] ?? "")));
+        $allowed = new Set(string_split_trimmed((string)ProcessInfo::processInfo()->environment[MCPAllowedOriginsKey]));
         if ($allowed->contains(fn(string $allowedOrigin): bool => $allowedOrigin === "*" || $allowedOrigin === $origin)) {
             return;
         }

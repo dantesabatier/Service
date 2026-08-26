@@ -45,12 +45,9 @@ final class JobTool extends AbstractTool
      * entity, so it is a literal constant rather than a per-request entity name.
      */
     private const string jobsResource = "Jobs";
-
-    /** @var JobRegistry */
     private JobRegistry $registry {
         get => $this->registry ??= new JobRegistry(new JobResolver()->resolve());
     }
-
     #[Override]
     public string $name {
         get => "run_job";

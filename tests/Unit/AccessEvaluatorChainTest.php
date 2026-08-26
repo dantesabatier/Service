@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
 
+use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
@@ -22,6 +23,7 @@ final class AccessEvaluatorChainTest extends TestCase
     private function allow(): AccessEvaluator
     {
         return new class() implements AccessEvaluator {
+            #[Override]
             public function evaluate(AccessEvaluationContext $context): bool { return true; }
         };
     }
@@ -29,6 +31,7 @@ final class AccessEvaluatorChainTest extends TestCase
     private function deny(): AccessEvaluator
     {
         return new class() implements AccessEvaluator {
+            #[Override]
             public function evaluate(AccessEvaluationContext $context): bool { return false; }
         };
     }
@@ -94,6 +97,7 @@ final class AccessEvaluatorChainTest extends TestCase
         $state = (object)['called' => false];
         $sentinel = new class($state) implements AccessEvaluator {
             public function __construct(private readonly object $state) {}
+            #[Override]
             public function evaluate(AccessEvaluationContext $context): bool {
                 $this->state->called = true;
                 return true;

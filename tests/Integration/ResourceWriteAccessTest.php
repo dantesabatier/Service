@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Integration;
 
+use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
@@ -78,7 +79,9 @@ final class ResourceWriteAccessTest extends TestCase
             public bool $isEnabled { get => true; }
             public int $refreshTokenVersion { get => 1; set {} }
             public Set $roles { get => $this->userRoles; }
+            #[Override]
             public function isEqual(mixed $other): bool { return $this === $other; }
+            #[Override]
             public static function defaultRepresentation(): Dictionary { return new Dictionary(); }
         };
     }

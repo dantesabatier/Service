@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
 
+use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Sabatier\Service\JSONWebToken;
@@ -26,6 +27,7 @@ final class JSONWebTokenServiceTest extends TestCase
 
     private ?string $originalIssuer = null;
 
+    #[Override]
     protected function setUp(): void
     {
         $env = ProcessInfo::processInfo()->environment;
@@ -33,6 +35,7 @@ final class JSONWebTokenServiceTest extends TestCase
         unset($env[JWTIssuerEnvironmentKey]);
     }
 
+    #[Override]
     protected function tearDown(): void
     {
         $env = ProcessInfo::processInfo()->environment;
@@ -70,6 +73,7 @@ final class JSONWebTokenServiceTest extends TestCase
     -----END PUBLIC KEY-----
     PEM;
 
+    #[Override]
     public static function setUpBeforeClass(): void
     {
         JSONWebTokenCoderStrategyRegistrar::register();

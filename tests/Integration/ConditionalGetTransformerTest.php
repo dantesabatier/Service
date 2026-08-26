@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Integration;
 
+use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
@@ -18,6 +19,7 @@ final class ConditionalGetTransformerTest extends TestCase
 {
     private array $originalServer;
 
+    #[Override]
     protected function setUp(): void
     {
         $this->originalServer = $_SERVER;
@@ -27,6 +29,7 @@ final class ConditionalGetTransformerTest extends TestCase
         unset($_SERVER['HTTPS'], $_SERVER['HTTP_IF_NONE_MATCH']);
     }
 
+    #[Override]
     protected function tearDown(): void
     {
         $_SERVER = $this->originalServer;

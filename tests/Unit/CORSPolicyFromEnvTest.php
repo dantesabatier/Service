@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
 
+use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Sabatier\Foundation\ProcessInfo;
@@ -18,6 +19,7 @@ final class CORSPolicyFromEnvTest extends TestCase
 {
     private array $originalValues = [];
 
+    #[Override]
     protected function setUp(): void
     {
         $env = ProcessInfo::processInfo()->environment;
@@ -27,6 +29,7 @@ final class CORSPolicyFromEnvTest extends TestCase
         }
     }
 
+    #[Override]
     protected function tearDown(): void
     {
         $env = ProcessInfo::processInfo()->environment;

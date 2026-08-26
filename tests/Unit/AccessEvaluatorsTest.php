@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
 
+use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
@@ -35,6 +36,7 @@ final class AccessEvaluatorsTest extends TestCase
             public AuthenticationScheme $scheme { get => AuthenticationScheme::bearer; }
             public ?URLCredential $credential { get => null; }
             public bool $isValid { get => $this->_valid; }
+            #[Override]
             public static function isSupported(AuthenticationScheme $scheme): bool { return false; }
         };
         if ($technicalScopes !== null) {

@@ -148,10 +148,12 @@ final class MCPToolSecurityTest extends TestCase
             public Set $roles {
                 get => $this->userRoles;
             }
+            #[Override]
             public function isEqual(mixed $other): bool
             {
                 return $this === $other;
             }
+            #[Override]
             public static function defaultRepresentation(): Dictionary
             {
                 return new Dictionary();

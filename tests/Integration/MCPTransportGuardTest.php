@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Integration;
 
+use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Sabatier\Foundation\ProcessInfo;
@@ -36,6 +37,7 @@ final class MCPTransportGuardTest extends TestCase
     private array $originalServer;
     private mixed $originalAllowedOrigins;
 
+    #[Override]
     protected function setUp(): void
     {
         $this->originalServer = $_SERVER;
@@ -50,6 +52,7 @@ final class MCPTransportGuardTest extends TestCase
         InMemoryMCPSessionStore::reset();
     }
 
+    #[Override]
     protected function tearDown(): void
     {
         $_SERVER = $this->originalServer;

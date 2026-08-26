@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sabatier\Service\Tests\Unit;
 
 use JsonException;
+use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
@@ -23,6 +24,7 @@ final class UntitledMCPToolFixture extends AbstractTool
         get => ["type" => "object"];
     }
 
+    #[Override]
     public function execute(Dictionary $arguments): ArrayClass
     {
         return new ArrayClass();

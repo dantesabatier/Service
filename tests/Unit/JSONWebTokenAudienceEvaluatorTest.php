@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
 
+use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
@@ -35,6 +36,7 @@ final class JSONWebTokenAudienceEvaluatorTest extends TestCase
     private array $originalServer;
     private mixed $originalAudience;
 
+    #[Override]
     protected function setUp(): void
     {
         $this->originalServer = $_SERVER;
@@ -43,6 +45,7 @@ final class JSONWebTokenAudienceEvaluatorTest extends TestCase
         $this->originalAudience = ProcessInfo::processInfo()->environment[MCPTokenAudienceKey];
     }
 
+    #[Override]
     protected function tearDown(): void
     {
         $_SERVER = $this->originalServer;

@@ -43,15 +43,15 @@ final class ToolRegistry
     }
 
     /**
-     * Whether the named tool only reads state, and so may have a repeated call served from a cache.
+     * Whether a repeated call to the named tool may be served from a cache instead of executed again.
      *
      * An unknown name answers `false`: the registry cannot vouch for a tool it does not hold, and treating it as cacheable would suppress a call it never inspected.
      *
      * @param string $name The name of the tool to test.
      */
-    public function isReadOnly(string $name): bool
+    public function isCacheable(string $name): bool
     {
-        return $this->tools[$name]?->isReadOnly ?? false;
+        return $this->tools[$name]?->isCacheable ?? false;
     }
 
     /**

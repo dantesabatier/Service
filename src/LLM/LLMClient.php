@@ -93,7 +93,7 @@ abstract class LLMClient
     /**
      * Sends one request, retrying the failures that are worth retrying, and returns the decoded body.
      *
-     * A provider failure must not reach `parse` as an empty body: a turn parsed from `[]` carries no text and no tool calls, which is exactly the shape of a model that decided to stop, so the run would be reported as complete when nothing answered it. Every failure therefore throws.
+     * Nothing must reach `parse` as an empty body: a turn parsed from `[]` carries no text and no tool calls, which is exactly the shape of a model that decided to stop, so the run would be reported as complete when nothing answered it. A failing status throws, and so does a success whose body will not decode into one — a `200` carrying a truncated or non-JSON payload is a provider that failed to answer, however it labelled the response, and it is worth another attempt.
      *
      * @throws LLMProviderException The provider failed: a status retrying cannot fix, a transport that never delivered the request, or every attempt exhausted. Carries whether a later attempt is worth making.
      */
@@ -112,7 +112,9 @@ abstract class LLMClient
             $statusCode = $response instanceof HTTPURLResponse ? $response->statusCode : null;
             if (!($error instanceof Error) && $statusCode !== null && !self::isRetryable($statusCode)) {
                 $statusCode < HTTPStatusCode::badRequest ?: throw new LLMProviderException(self::failureReason($statusCode, $data));
-                return Dictionary::dictionaryWithArray(json_decode($data ?? "[]") ?? [], false);
+                $decoded = json_decode((string)$data);
+                is_object($decoded) || is_array($decoded) ?: throw new LLMProviderException(self::failureReason($statusCode, $data), true);
+                return Dictionary::dictionaryWithArray($decoded, false);
             }
             if ($attempt >= $this->maximumRetryCount) {
                 $error instanceof Error ? throw new LLMProviderException((string)$error->localizedFailureReason ?: self::failureReason($statusCode, $data), true, $error) : throw new LLMProviderException(self::failureReason($statusCode, $data), true);

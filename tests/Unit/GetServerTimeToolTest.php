@@ -46,4 +46,20 @@ final class GetServerTimeToolTest extends TestCase
         $this->assertLessThanOrEqual(2, abs($result["unix"] - time()));
         $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/', $result["iso8601"]);
     }
+
+    /**
+     * Reading state is not the same question as answering the same way twice.
+     *
+     * This tool takes no arguments, so every call in a run shares one cache key: cached, the first
+     * answer would stand as the time for the rest of the run, and the model would be told not to ask
+     * again. It stays read-only — it writes nothing — and declines the cache.
+     */
+    #[Test]
+    public function theClockIsReadOnlyButNeverCacheable(): void
+    {
+        $tool = $this->makeTool();
+
+        $this->assertTrue($tool->isReadOnly);
+        $this->assertFalse($tool->isCacheable, "A run that remembers the time reports a frozen clock.");
+    }
 }

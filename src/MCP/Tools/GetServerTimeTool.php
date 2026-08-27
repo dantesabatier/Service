@@ -32,6 +32,11 @@ final class GetServerTimeTool extends AbstractTool
     public bool $isReadOnly {
         get => true;
     }
+    /** @var bool The clock is the one thing a run must never remember: this tool takes no arguments, so every call in a run would share one cache key, and the first answer would stand as the time for the rest of it. */
+    #[Override]
+    public bool $isCacheable {
+        get => false;
+    }
 
     #[Override]
     public array $inputSchema {

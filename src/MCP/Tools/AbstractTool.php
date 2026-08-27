@@ -64,9 +64,13 @@ abstract class AbstractTool
     abstract public array $inputSchema {
         get;
     }
-    /** @var bool Whether calling this tool only reads state, making a repeated call with identical arguments safe to serve from a cache. Defaults to `false`, so a tool that does not declare itself read-only is always executed; a tool that writes must never override this to `true`. */
+    /** @var bool Whether calling this tool only reads state. Defaults to `false`, so a tool that does not declare itself read-only is always executed; a tool that writes must never override this to `true`. */
     public bool $isReadOnly {
         get => false;
+    }
+    /** @var bool Whether a repeated call with identical arguments may be served from the run's cache instead of executed again. Reading state is necessary but not sufficient: a tool that reads something which moves on its own — the clock, a queue depth — answers differently to the same arguments, and caching it would freeze the first answer for the rest of the run. Such a tool stays read-only and overrides this to `false`. */
+    public bool $isCacheable {
+        get => $this->isReadOnly;
     }
     /** @var ToolVocabulary The vocabulary of the bundle that owns this concrete tool class. */
     private ToolVocabulary $vocabulary {

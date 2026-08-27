@@ -122,6 +122,26 @@ final class LLMAgentTest extends TestCase
         $this->assertFalse($run->messages[3]->isError);
     }
 
+    /**
+     * A read-only tool that declines the cache is executed on every call.
+     *
+     * Caching asks `isCacheable`, not `isReadOnly`: a tool reading something that moves on its own
+     * writes nothing and still answers differently to the same arguments, and serving the second call
+     * from the cache would report the first answer as the current one for the rest of the run.
+     */
+    #[Test]
+    public function aReadOnlyToolThatDeclinesTheCacheRunsEveryTime(): void
+    {
+        $client = new ScriptedReorderedArgumentsClient();
+        LLMAgentMovingTool::$calls = 0;
+        $agent = new LLMAgent($client, new ToolRegistry(new ArrayClass([$this->movingTool()])), 25, false);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        $this->assertSame(2, LLMAgentMovingTool::$calls, "The repeated call must reach the tool again.");
+        $this->assertSame("moved 2", $run->messages[3]->content);
+    }
+
     #[Test]
     public function callsDifferingInArgumentValuesAreNotConfused(): void
     {
@@ -305,6 +325,12 @@ final class LLMAgentTest extends TestCase
     {
         /** @var AbstractTool */
         return new ReflectionClass(LLMAgentCountingTool::class)->newInstanceWithoutConstructor();
+    }
+
+    private function movingTool(): AbstractTool
+    {
+        /** @var AbstractTool */
+        return new ReflectionClass(LLMAgentMovingTool::class)->newInstanceWithoutConstructor();
     }
 }
 
@@ -654,6 +680,41 @@ final class ScriptedDistinctArgumentsClient extends LLMClient
  * test has no use for, so instances are built with `newInstanceWithoutConstructor()` and
  * cannot initialise instance state. Reset it in the test's arrange step.
  */
+/** Read-only, like a clock: it writes nothing, and answers differently to the same arguments. */
+final class LLMAgentMovingTool extends AbstractTool
+{
+    public static int $calls = 0;
+
+    #[Override]
+    public string $name {
+        get => "counting_tool";
+    }
+    #[Override]
+    public bool $isReadOnly {
+        get => true;
+    }
+    #[Override]
+    public bool $isCacheable {
+        get => false;
+    }
+    #[Override]
+    public string $description {
+        get => "Moving tool.";
+    }
+    #[Override]
+    public array $inputSchema {
+        get => ["type" => "object"];
+    }
+
+    /** @return ArrayClass<ContentItem> */
+    #[Override]
+    public function execute(Dictionary $arguments): ArrayClass
+    {
+        self::$calls++;
+        return new ArrayClass([new ContentItem("text", "moved " . self::$calls)]);
+    }
+}
+
 final class LLMAgentCountingTool extends AbstractTool
 {
     public static int $calls = 0;

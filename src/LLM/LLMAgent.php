@@ -52,6 +52,8 @@ final class LLMAgent
             return $this->toolList = $this->toolRegistry->list;
         }
     }
+    /** @var float|null When the current run must stop, or `null` when it is unbounded. Set at the top of `run()` so a subagent can inherit what is left of it rather than a fresh copy of the whole limit. */
+    private ?float $deadline = null;
 
     /**
      * @param LLMClient $client The provider client every turn is sent through.
@@ -86,7 +88,7 @@ final class LLMAgent
         $iterations = 0;
         $stopReason = LLMRunStopReason::iterationCap;
         $isRetryable = true;
-        $deadline = $this->timeLimit === null ? null : microtime(true) + $this->timeLimit;
+        $deadline = $this->deadline = $this->timeLimit === null ? null : microtime(true) + $this->timeLimit;
         while ($iterations++ < $this->maxIterations) {
             if ($deadline !== null && microtime(true) >= $deadline) {
                 $stopReason = LLMRunStopReason::deadline;
@@ -145,9 +147,19 @@ final class LLMAgent
      *
      * Only a tool that declares itself read-only qualifies. A tool that writes must run every time it is called: two identical `create` calls are two rows the model asked for, and serving the second from the cache silently drops the write. The synthetic subagent tool is never cacheable either — it runs a whole nested conversation, and the same task posed twice is not a repeated read.
      */
+    /**
+     * The seconds a nested run may take, or `null` when this one is unbounded.
+     *
+     * A subagent inherits what is left of the parent's window rather than a fresh copy of the limit: given the limit itself, a subagent started near the end would run for as long again, and the bound the caller asked for would mean nothing. A window already spent yields zero, which stops the sub-run on its first check instead of letting it take one more turn.
+     */
+    private function remainingTime(): ?float
+    {
+        return $this->deadline === null ? null : max(0.0, $this->deadline - microtime(true));
+    }
+
     private function isCacheable(string $name): bool
     {
-        return $name !== self::subagentToolName && $this->toolRegistry->isReadOnly($name);
+        return $name !== self::subagentToolName && $this->toolRegistry->isCacheable($name);
     }
 
     /**
@@ -192,7 +204,7 @@ final class LLMAgent
         $context = trim((string)$arguments["context"]);
         $content = $context === "" ? $task : "Task:\n$task\n\nContext:\n$context";
         $systemPrompt = trim((string)$arguments["systemPrompt"]);
-        $subagent = new self($this->client, $this->toolRegistry, self::subagentMaxIterations, false);
+        $subagent = new self($this->client, $this->toolRegistry, self::subagentMaxIterations, false, $this->remainingTime());
         return $subagent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, $content)]), $systemPrompt === "" ? $parentSystemPrompt : $systemPrompt);
     }
 

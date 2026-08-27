@@ -10,8 +10,40 @@ onward.
 Nothing is released yet: `master` is pre-1.0 and its public surface is still
 free to change. This section collects what will become the 1.0.0 notes.
 
+### Security
+
+- An upload's filename reached the filesystem unchecked. `appendingPathComponent`
+  does not canonicalize, so a name carrying `..` was written outside the
+  subdirectory `Uploader` had validated — and where the destination fell inside a
+  directory `StaticResourcePolicy` calls public, the file was then served without
+  authentication and cached for a year.
+- A download validated its location by comparing the prefix of a string it had
+  not resolved, so the guard passed a path whose `..` the filesystem resolved
+  afterwards. It also bypassed the policy that already protects static reads,
+  serving what `ResourceManager` refuses: dotfiles, and without the public and
+  protected distinction.
+- An upload's temporary path was moved without `is_uploaded_file()`, so a
+  `tmp_name` naming some other file on the server was moved into the upload
+  directory rather than refused.
+- Rate limiting keyed its counter on the username the request claimed, which is
+  read before any credential is verified. Anyone could exhaust another subject's
+  quota by asserting their name, or escape the address limit entirely by
+  inventing a new name per request. Every counter now carries the address, and
+  the address counter applies to every request.
+
 ### Added
 
+- `FileTransferPolicy`, resolving where an upload may be written and which file a
+  download may read — the counterpart of `StaticResourcePolicy` for the transfer
+  surface, deferring to it on the read side. Configured through
+  `FILE_TRANSFER_DIRECTORIES`, `FILE_TRANSFER_ALLOWED_EXTENSIONS`,
+  `FILE_TRANSFER_MAXIMUM_SIZE` and `FILE_TRANSFER_FILE_PERMISSIONS`.
+- `FileTransferComponent`, which judges one name of a transfer location. Both
+  halves — the subdirectory and the filename — are held to the same shape, and an
+  invalid name is refused rather than rewritten.
+- `AbstractTool::$isCacheable`, separating "may a repeated call be served from
+  the run's cache" from "does this tool only read state". A tool reading
+  something that moves on its own is read-only and not cacheable.
 - `LLMProviderException`, distinguishing a provider that failed to answer from
   a fault in the code that talks to it. It carries whether the failure is worth
   retrying, and the transport error when the request never arrived.
@@ -33,9 +65,20 @@ free to change. This section collects what will become the 1.0.0 notes.
 
 ### Fixed
 
-- A provider failure no longer reaches `parse` as an empty body, which used to
-  produce a turn with no text and no tool calls — the same shape as a model
-  that decided to stop — so a failed run was reported as complete.
+- Nothing reaches `parse` as an empty body any more, which used to produce a
+  turn with no text and no tool calls — the same shape as a model that decided
+  to stop — so a failed run was reported as complete. Both doors are closed: a
+  failing status, and a success whose body does not decode into one.
+- `get_server_time` was cached for the length of a run. It takes no arguments,
+  so every call shared one cache key and the first answer stood as the time for
+  the rest of the run. Caching now asks `isCacheable`, which a tool reading
+  something that moves on its own declines while staying read-only.
+- A subagent inherited no time limit, and its own time did not count against
+  the parent's. It now inherits what is left of the parent's window.
+- An upload that the transport rejected was not detected: a file over
+  `upload_max_filesize` arrives with a size of zero and an empty temporary path,
+  passed the size check, and failed to move — a `500` where the caller deserved
+  `400` and the reason. `$_FILES["error"]` is now read per file.
 - `StandardLLMClient` read `input_tokens`/`output_tokens` from a Chat
   Completions body, which reports `prompt_tokens`/`completion_tokens`. Every
   run through that client counted zero tokens.
@@ -51,6 +94,12 @@ free to change. This section collects what will become the 1.0.0 notes.
 
 ### Changed
 
+- **Breaking.** `POST /download` still takes the same `url` field, but its path
+  must now name exactly one directory and one file — the single level `POST
+  /upload` writes to. A deeper or shallower location is refused with `400`, where
+  it was previously resolved against the document root. `API.md` had documented a
+  path without a scheme, which the endpoint has never accepted: `url` is a full
+  URL and only its path is read.
 - Extensions that back interchangeable stores — `ext-apcu`, `ext-redis`,
   `ext-memcached` — moved from `require` to `suggest`, and extensions used by
   the sibling libraries are no longer re-declared here. Installing the

@@ -303,20 +303,35 @@ class Application extends Responder
         register_shutdown_function($this->handleShutdown(...));
     }
 
+    /**
+     * Counts the request against its limits, and refuses it once either is spent.
+     *
+     * The username here is the one the request *claims* — this runs before the credential is verified, deliberately, because verifying costs a Core Data lookup and a bcrypt comparison, and a limiter that waits for them lets an unauthenticated caller spend both on every request. A claim therefore cannot be the whole key: keyed on the name alone, anyone could exhaust a victim's quota by asserting their username, or escape the address limit entirely by inventing a new name per request.
+     *
+     * Both keys carry the address, which is the part a caller cannot assert. The address counter applies to every request and is what bounds the cost of the work still ahead; the per-subject counter grants a claimed identity its larger allowance within that address, so a legitimate client is not held to the anonymous limit while a rotating one gains nothing. The reported {@see Application::$rateLimitInfo} describes whichever of the two is closer to being spent, since that is the one the client will hit.
+     */
     private function enforceRateLimitIfNeeded(): void
     {
         $policy = $this->rateLimitPolicy;
         if (!$policy->enabled) {
             return;
         }
+        $address = $this->request->remoteAddress ?? "unknown";
         $username = $this->authenticationManager->authentication->credential?->user;
-        [$key, $limit] = $username !== null ? ["rate_limit:user:$username", $policy->maxRequestsUser] : ["rate_limit:ip:" . ($this->request->remoteAddress ?? "unknown"), $policy->maxRequestsIP];
-        $count = $this->rateLimitStore->increment($key, $policy->windowSeconds);
-        $ttl = $this->rateLimitStore->ttl($key);
-        $reset = time() + $ttl;
-        $remaining = max(0, $limit - $count);
-        $this->rateLimitInfo = new RateLimitInfo($limit, $remaining, $reset);
-        $count <= $limit ?: throw new TooManyRequestsException(max(1, $ttl));
+        $limits = new Dictionary(["rate_limit:ip:$address" => $username !== null ? $policy->maxRequestsUser : $policy->maxRequestsIP]);
+        if ($username !== null) {
+            $limits["rate_limit:ip:$address:user:$username"] = $policy->maxRequestsUser;
+        }
+        foreach ($limits as $key => $limit) {
+            /** @var int $limit */
+            $count = $this->rateLimitStore->increment((string)$key, $policy->windowSeconds);
+            $ttl = $this->rateLimitStore->ttl((string)$key);
+            $remaining = max(0, $limit - $count);
+            if ($this->rateLimitInfo === null || $remaining < $this->rateLimitInfo->remaining) {
+                $this->rateLimitInfo = new RateLimitInfo($limit, $remaining, time() + $ttl);
+            }
+            $count <= $limit ?: throw new TooManyRequestsException(max(1, $ttl));
+        }
     }
 
     private function checkAccessPermissions(): void

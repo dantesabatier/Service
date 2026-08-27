@@ -54,6 +54,12 @@ free to change. This section collects what will become the 1.0.0 notes.
 
 ### Added
 
+- `LLMContextAssembler` and `WindowedLLMContextAssembler`, separating context
+  construction from the agent loop. Applications may bound messages or a
+  custom-measured context size, summarize omitted turns, or replace the
+  strategy entirely without changing a provider client.
+- `LLMContext`, reporting how many messages were omitted, whether a compacted
+  summary was inserted and whether the newest safe context fits its limit.
 - `LLMExecutionPolicy`, the application-supplied boundary for shared agent
   budgets and per-call write approval.
 - `AbstractTool::isReadOnlyCall()`, allowing a tool whose arguments select
@@ -76,7 +82,7 @@ free to change. This section collects what will become the 1.0.0 notes.
   worth the tokens — a question `$stopReason` cannot express on its own.
 - `LLMRun::$stopReason` and `LLMRunStopReason`, telling apart a run the model
   concluded from one stopped by the iteration cap, the time limit, or a
-  provider failure, output limit or refusal.
+  provider failure, output limit, refusal, execution budget or context limit.
 - `LLMTurnStopReason`, normalizing provider-specific completion, tool-use,
   output-limit and refusal reasons before the agent loop acts on them.
 - `LLMRun::$toolCallResults`, rejoining every tool call with the result that

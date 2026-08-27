@@ -19,4 +19,5 @@ enum LLMRunStopReason: string
     case outputTokenLimit = "outputTokenLimit";
     case totalTokenLimit = "totalTokenLimit";
     case writeApprovalRequired = "writeApprovalRequired";
+    case contextLimit = "contextLimit";
 }

@@ -25,6 +25,7 @@ use Sabatier\Service\LLM\LLMRunStopReason;
 use Sabatier\Service\LLM\LLMToolCall;
 use Sabatier\Service\LLM\LLMTurn;
 use Sabatier\Service\LLM\LLMTurnStopReason;
+use Sabatier\Service\LLM\WindowedLLMContextAssembler;
 use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
 use Sabatier\Service\MCP\Tools\AbstractTool;
@@ -418,6 +419,20 @@ final class LLMAgentTest extends TestCase
 
         $this->assertSame(LLMRunStopReason::inputTokenLimit, $run->stopReason);
         $this->assertFalse($run->isComplete);
+    }
+
+    #[Test]
+    public function contextThatCannotBeSafelyTruncatedStopsBeforeCallingTheProvider(): void
+    {
+        $assembler = new WindowedLLMContextAssembler(maximumMessages: 0);
+        $agent = new LLMAgent(new ScriptedTerminalTurnClient(LLMTurnStopReason::completed), new ToolRegistry(new ArrayClass()), canSpawnSubagents: false, contextAssembler: $assembler);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        $this->assertSame(LLMRunStopReason::contextLimit, $run->stopReason);
+        $this->assertFalse($run->isComplete);
+        $this->assertFalse($run->isRetryable);
+        $this->assertTrue($run->messages->isEmpty);
     }
 
     private function writingTool(): AbstractTool

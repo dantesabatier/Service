@@ -48,6 +48,7 @@ final class LLMAgent
     private const string inputTokenLimit = "The shared input-token budget is exhausted.";
     private const string outputTokenLimit = "The shared output-token budget is exhausted.";
     private const string totalTokenLimit = "The shared total-token budget is exhausted.";
+    private const string contextLimit = "The assembled context exceeds its configured limit without a safe turn left to remove.";
     private const int subagentMaxIterations = 8;
     /** @var ToolDescriptor Descriptor for the synthetic delegation tool offered only by parent agents. */
     private ToolDescriptor $subagentToolDescriptor {
@@ -81,6 +82,7 @@ final class LLMAgent
     /** @var float|null When the current run must stop, or `null` when it is unbounded. Set at the top of `run()` so a subagent can inherit what is left of it rather than a fresh copy of the whole limit. */
     private ?float $deadline = null;
     private readonly LLMExecutionPolicy $executionPolicy;
+    private readonly LLMContextAssembler $contextAssembler;
 
     /**
      * @param LLMClient $client The provider client every turn is sent through.
@@ -89,10 +91,12 @@ final class LLMAgent
      * @param bool $canSpawnSubagents Whether the synthetic subagent tool is offered alongside the registry's own.
      * @param float|null $timeLimit Seconds the whole run may take, or `null` for no limit. Bounds the wall clock the iteration cap cannot: a turn that waits out a provider's backoff costs time without costing an iteration.
      * @param LLMExecutionPolicy|null $executionPolicy Hard limits and write approvals shared with every subagent. Null uses the secure default policy.
+     * @param LLMContextAssembler|null $contextAssembler Formats and bounds the history sent on every model turn. Null preserves the complete history.
      */
-    public function __construct(private readonly LLMClient $client, private readonly ToolRegistry $toolRegistry, private readonly int $maxIterations = 25, private readonly bool $canSpawnSubagents = true, private readonly ?float $timeLimit = null, ?LLMExecutionPolicy $executionPolicy = null)
+    public function __construct(private readonly LLMClient $client, private readonly ToolRegistry $toolRegistry, private readonly int $maxIterations = 25, private readonly bool $canSpawnSubagents = true, private readonly ?float $timeLimit = null, ?LLMExecutionPolicy $executionPolicy = null, ?LLMContextAssembler $contextAssembler = null)
     {
         $this->executionPolicy = $executionPolicy ?? new LLMExecutionPolicy();
+        $this->contextAssembler = $contextAssembler ?? new WindowedLLMContextAssembler();
     }
 
     /**
@@ -136,8 +140,14 @@ final class LLMAgent
                 $stopReason = LLMRunStopReason::deadline;
                 break;
             }
+            $context = $this->contextAssembler->assemble($history, $this->toolList, $systemPrompt);
+            if (!$context->isWithinLimit) {
+                $stopReason = LLMRunStopReason::contextLimit;
+                $isRetryable = false;
+                break;
+            }
             try {
-                $turn = $this->client->complete($history, $this->toolList, $systemPrompt);
+                $turn = $this->client->complete($context->messages, $this->toolList, $context->systemPrompt);
             } catch (LLMProviderException $exception) {
                 $stopReason = LLMRunStopReason::providerFailure;
                 $isRetryable = $exception->isTransient;
@@ -288,7 +298,7 @@ final class LLMAgent
         }
         $context = trim((string)$arguments["context"]);
         $content = $context === "" ? $task : "Task:\n$task\n\nContext:\n$context";
-        $subagent = new self($this->client, $this->toolRegistry, self::subagentMaxIterations, false, $this->remainingTime(), $this->executionPolicy);
+        $subagent = new self($this->client, $this->toolRegistry, self::subagentMaxIterations, false, $this->remainingTime(), $this->executionPolicy, $this->contextAssembler);
         return $subagent->runWithState(new ArrayClass([new LLMMessage(LLMMessageRole::user, $content)]), $parentSystemPrompt, $executionState);
     }
 
@@ -335,6 +345,7 @@ final class LLMAgent
             LLMRunStopReason::outputTokenLimit => self::outputTokenLimit,
             LLMRunStopReason::totalTokenLimit => self::totalTokenLimit,
             LLMRunStopReason::writeApprovalRequired => self::writeApprovalRequired,
+            LLMRunStopReason::contextLimit => self::contextLimit,
             LLMRunStopReason::done => self::subagentNoAnswer,
         };
     }
@@ -347,14 +358,14 @@ final class LLMAgent
             LLMRunStopReason::inputTokenLimit => self::inputTokenLimit,
             LLMRunStopReason::outputTokenLimit => self::outputTokenLimit,
             LLMRunStopReason::totalTokenLimit => self::totalTokenLimit,
-            LLMRunStopReason::done, LLMRunStopReason::iterationCap, LLMRunStopReason::deadline, LLMRunStopReason::providerFailure, LLMRunStopReason::outputLimit, LLMRunStopReason::refusal, LLMRunStopReason::writeApprovalRequired => "The agent run stopped before this tool could execute.",
+            LLMRunStopReason::done, LLMRunStopReason::iterationCap, LLMRunStopReason::deadline, LLMRunStopReason::providerFailure, LLMRunStopReason::outputLimit, LLMRunStopReason::refusal, LLMRunStopReason::writeApprovalRequired, LLMRunStopReason::contextLimit => "The agent run stopped before this tool could execute.",
         };
     }
 
     private function propagatedStopReason(LLMRunStopReason $stopReason): ?LLMRunStopReason
     {
         return match ($stopReason) {
-            LLMRunStopReason::toolCallLimit, LLMRunStopReason::subagentCallLimit, LLMRunStopReason::inputTokenLimit, LLMRunStopReason::outputTokenLimit, LLMRunStopReason::totalTokenLimit, LLMRunStopReason::writeApprovalRequired => $stopReason,
+            LLMRunStopReason::toolCallLimit, LLMRunStopReason::subagentCallLimit, LLMRunStopReason::inputTokenLimit, LLMRunStopReason::outputTokenLimit, LLMRunStopReason::totalTokenLimit, LLMRunStopReason::writeApprovalRequired, LLMRunStopReason::contextLimit => $stopReason,
             LLMRunStopReason::done, LLMRunStopReason::iterationCap, LLMRunStopReason::deadline, LLMRunStopReason::providerFailure, LLMRunStopReason::outputLimit, LLMRunStopReason::refusal => null,
         };
     }

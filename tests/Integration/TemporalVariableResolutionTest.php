@@ -33,6 +33,8 @@ use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\Tools\AbstractTool;
 use Sabatier\Service\MCP\Tools\AggregateTool;
 use Sabatier\Service\MCP\Tools\CountTool;
+use Sabatier\Service\MCP\Tools\FetchTool;
+use Sabatier\Service\MCP\Tools\GroupByTool;
 use Sabatier\Service\PublicAccessPolicy;
 
 /**
@@ -165,5 +167,46 @@ final class TemporalVariableResolutionTest extends TestCase
         $this->disableSecurity($tool);
         $decoded = $this->decode($tool->execute($arguments));
         $this->assertSame(42, $decoded["result"]);
+    }
+
+    #[Test]
+    public function fetchResolvesTemporalPredicateArguments(): void
+    {
+        $tool = new FetchTool($this->context(), $this->descriptor());
+        $this->disableSecurity($tool);
+        $decoded = $this->decode($tool->execute($this->arguments()));
+        $this->assertSame(1, $decoded["rowCount"]);
+    }
+
+    #[Test]
+    public function groupByResolvesTemporalPredicateArguments(): void
+    {
+        $arguments = $this->arguments();
+        $arguments["group_by"] = new ArrayClass(["creationDate"]);
+        $arguments["aggregates"] = new ArrayClass([new Dictionary(["function" => "count", "property" => "amount", "as" => "total"])]);
+        $tool = new GroupByTool($this->context(), $this->descriptor());
+        $this->disableSecurity($tool);
+        $decoded = $this->decode($tool->execute($arguments));
+        $this->assertSame(1, $decoded["rowCount"]);
+    }
+
+    /**
+     * `having_arguments` is resolved on its own line, independently of `arguments`, so it needs its
+     * own case: the group predicate can regress while the row predicate keeps working.
+     */
+    #[Test]
+    public function groupByResolvesTemporalHavingArguments(): void
+    {
+        $arguments = new Dictionary([
+            "entity" => self::entityName,
+            "group_by" => new ArrayClass(["creationDate"]),
+            "aggregates" => new ArrayClass([new Dictionary(["function" => "count", "property" => "amount", "as" => "total"])]),
+            "having_predicate" => "%K == %@",
+            "having_arguments" => new ArrayClass(["creationDate", "\$WEEK_START"]),
+        ]);
+        $tool = new GroupByTool($this->context(), $this->descriptor());
+        $this->disableSecurity($tool);
+        $decoded = $this->decode($tool->execute($arguments));
+        $this->assertSame(1, $decoded["rowCount"]);
     }
 }

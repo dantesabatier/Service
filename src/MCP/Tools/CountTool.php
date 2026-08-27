@@ -51,7 +51,7 @@ final class CountTool extends AbstractTool
         /** @var string|null $predicate */
         $predicate = $arguments["predicate"];
         /** @var ArrayClass<mixed> $params */
-        $params = $arguments["arguments"] ?? new ArrayClass();
+        $params = $this->resolveVariables($arguments["arguments"] ?? new ArrayClass());
         if ($predicate) {
             $this->validatePredicateKeyPaths($entity, $predicate, $params);
             $request->predicate = $this->buildPredicate($predicate, $params);

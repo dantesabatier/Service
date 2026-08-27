@@ -76,7 +76,7 @@ final class AggregateTool extends AbstractTool
         }
         $request = $this->fetchRequest($entity);
         $predicate = $arguments["predicate"];
-        $params = $arguments["arguments"] ?? new ArrayClass();
+        $params = $this->resolveVariables($arguments["arguments"] ?? new ArrayClass());
         if ($predicate) {
             $this->validatePredicateKeyPaths($entity, $predicate, $params);
             $request->predicate = $this->buildPredicate($predicate, $params);

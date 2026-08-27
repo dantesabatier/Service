@@ -30,6 +30,16 @@ free to change. This section collects what will become the 1.0.0 notes.
   quota by asserting their name, or escape the address limit entirely by
   inventing a new name per request. Every counter now carries the address, and
   the address counter applies to every request.
+- The MCP endpoint admitted any request carrying a valid token: it did not look
+  at the `Origin`, required no prior handshake, and always answered the oldest
+  protocol version regardless of the one the client asked for. A token pasted
+  into another program entered exactly as the client it was issued for.
+  `MCPTransportGuard` now applies the three Streamable HTTP rules before
+  dispatch — see **Changed** for what this breaks.
+- The `aud` claim was modelled but never verified. With `MCP_TOKEN_AUDIENCE`
+  set, `JSONWebTokenAudienceEvaluator` admits only tokens issued for `/mcp`, so
+  the credential a user receives by signing in no longer opens it as a side
+  effect. Unset, the evaluator is inert and nothing changes.
 
 ### Added
 
@@ -91,6 +101,24 @@ free to change. This section collects what will become the 1.0.0 notes.
   for the answer instead of correcting the call.
 - The agentic run cached calls to every tool, so two identical `create` calls
   the model made on purpose became one and a write was silently dropped.
+- A tool call carrying an argument its schema does not declare ran anyway: the
+  tool read the keys it knew and ignored the rest, so `filter` where `predicate`
+  was meant produced a fetch with no filter — every row, returned as though it
+  were the answer. `ToolRegistry::call()` now names the unknown key and lists the
+  accepted ones, and reports a missing required argument the same way.
+- `$restrictedTools` only filtered `LLMResponder::callTool()`, leaving a
+  restricted tool listed by the catalogue and reachable through the agent loop.
+  It now narrows the registry itself, so every reader sees the same tools.
+- `POST /logout` answered `200` in session mode and `204` in JWT mode: the status
+  was assigned after the branch that drops the session returned. Both modes now
+  answer `204`, which is what a logout with no body should be either way.
+- `fetch` and `group_by` returned their summary ahead of the rows, which put the
+  "this is the whole answer" instruction in the middle of the result — the one
+  position a model attends to least, and where a long result set buries it.
+- `count` and `aggregate` passed temporal predicate tokens such as `$WEEK_START`
+  to Core Data as literal strings, despite the MCP instructions promising that
+  every predicate tool resolves them. A matching query therefore returned zero
+  without telling the model that its filter had not been understood.
 
 ### Changed
 
@@ -100,9 +128,32 @@ free to change. This section collects what will become the 1.0.0 notes.
   it was previously resolved against the document root. `API.md` had documented a
   path without a scheme, which the endpoint has never accepted: `url` is a full
   URL and only its path is read.
+- **Breaking.** `/mcp` now enforces the Streamable HTTP transport rules. A
+  method other than `initialize` must carry the `Mcp-Session-Id` the handshake
+  issued — missing is `400`, unknown or expired is `404` so the client
+  reinitializes — an `Origin` outside `MCP_ALLOWED_ORIGINS` is refused, and an
+  unsupported `MCP-Protocol-Version` is `400` (absent means the legacy version).
+  A client that previously reached the endpoint with only a bearer token must
+  now handshake first. The endpoint also answers `DELETE`, which ends a session.
+- `MCPSessionStore` and `Application::$mcpSessionStore`, backing MCP sessions
+  with APCu, Redis or memory. The session does not authenticate — the
+  specification forbids it — and is keyed under the token's subject, so an
+  identifier guessed by one identity does not resolve under another. Its idle
+  lifetime is `MCP_SESSION_TTL` (default 3600s), refreshed on every request
+  carrying it, so only an abandoned session expires.
+- `ARCHITECTURE.md` corrected against the code in seven places it described
+  something the framework does not do: the JWT lifetime default, the MCP resource
+  filenames, a `fetch` page limit that does not exist, the head of the responder
+  chain, a `retry` field `ServerSentEvent` does not carry, `Preferences`' write
+  action, and `/Events` presented as though it were routed. §17 now defers to
+  `.env.example`, which is the complete reference under the real variable names.
 - Extensions that back interchangeable stores — `ext-apcu`, `ext-redis`,
   `ext-memcached` — moved from `require` to `suggest`, and extensions used by
   the sibling libraries are no longer re-declared here. Installing the
   framework no longer requires all three cache backends.
 - Development files are excluded from the distributed package through
   `export-ignore`.
+- Removed the unused `ChatInstructionsFilenameKey` and
+  `WidgetInstructionsFilenameKey` constants. No framework surface ever read
+  their environment variables; chat and widget callers pass the retained
+  conventional filename constants to `MCPInstructionsProvider` explicitly.

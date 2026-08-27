@@ -42,13 +42,9 @@ const MCPPredicateExamplesFilenameDefault = "mcp_predicate_examples.json";
 const MCPInstructionsFilenameKey = "MCP_INSTRUCTIONS_FILENAME";
 /** @var string Default bundle resource filename for the MCP server instructions when the environment variable is not set. */
 const MCPInstructionsFilenameDefault = "mcp_instructions.txt";
-/** @var string Environment variable key for the bundle resource filename containing the chat agent's domain instructions. */
-const ChatInstructionsFilenameKey = "CHAT_INSTRUCTIONS_FILENAME";
-/** @var string Default bundle resource filename for the chat agent's domain instructions when the environment variable is not set. */
+/** @var string Conventional bundle resource filename for a chat agent's domain instructions. Pass it to `MCPInstructionsProvider`. */
 const ChatInstructionsFilenameDefault = "chat_system_prompt.txt";
-/** @var string Environment variable key for the bundle resource filename containing the widget agent's domain instructions. */
-const WidgetInstructionsFilenameKey = "WIDGET_INSTRUCTIONS_FILENAME";
-/** @var string Default bundle resource filename for the widget agent's domain instructions when the environment variable is not set. */
+/** @var string Conventional bundle resource filename for a widget agent's domain instructions. Pass it to `MCPInstructionsProvider`. */
 const WidgetInstructionsFilenameDefault = "widget_system_prompt.txt";
 /** @var string Environment variable key for the MCP server display name returned during initialization. */
 const MCPServerNameKey = "MCP_SERVER_NAME";

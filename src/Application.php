@@ -304,7 +304,7 @@ class Application extends Responder
     }
 
     /**
-     * Counts the request against its limits, and refuses it once either is spent.
+     * Counts the request against its limits and refuses it once either is spent.
      *
      * The username here is the one the request *claims* — this runs before the credential is verified, deliberately, because verifying costs a Core Data lookup and a bcrypt comparison, and a limiter that waits for them lets an unauthenticated caller spend both on every request. A claim therefore cannot be the whole key: keyed on the name alone, anyone could exhaust a victim's quota by asserting their username, or escape the address limit entirely by inventing a new name per request.
      *

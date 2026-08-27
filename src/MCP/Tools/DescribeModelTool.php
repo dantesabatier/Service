@@ -45,6 +45,27 @@ final class DescribeModelTool extends AbstractTool
             "required" => [],
         ];
     }
+    /** @var array<string, mixed> */
+    private array $index {
+        get {
+            if (isset($this->index)) {
+                return $this->index;
+            }
+            $schema = $this->descriptor->schema;
+            $entities = $schema->entities->mapValues(fn(EntitySchema $entity): array => [
+                "class" => $entity->className,
+                "es" => $entity->label,
+                "aliases" => $entity->aliases,
+                "attributes" => $entity->attributes->count,
+                "relationships" => $entity->relationships->count,
+            ]);
+            return $this->index = [
+                "entities" => $entities,
+                "predicate_syntax" => $schema->predicateGuide,
+                "usage" => "Call describe_model with {\"entity\": [\"Order\"]} — or {\"entity\": [\"Order\", \"Customer\"]} for several — for the full attributes, relationships and enum cases of those entities. \"entity\" is always a JSON array of strings, never a bare string.",
+            ];
+        }
+    }
 
     /**
      * @return ArrayClass<ContentItem>
@@ -55,36 +76,10 @@ final class DescribeModelTool extends AbstractTool
     {
         $entity = $arguments["entity"];
         $names = $entity instanceof ArrayClass ? $entity : ($entity === null ? new ArrayClass() : new ArrayClass([$entity]));
-        return $names->isEmpty ? $this->jsonResult($this->index()) : $this->jsonResult($this->detail($names));
+        return $names->isEmpty ? $this->jsonResult($this->index) : $this->jsonResult($this->detail($names));
     }
 
     /**
-     * The default response: every entity reduced to its identity and the size of its shape,
-     * small enough to always fit in one result.
-     *
-     * @return array<string, mixed>
-     */
-    private function index(): array
-    {
-        $schema = $this->descriptor->schema;
-        $entities = $schema->entities->mapValues(fn(EntitySchema $entity): array => [
-            "class" => $entity->className,
-            "es" => $entity->label,
-            "aliases" => $entity->aliases,
-            "attributes" => $entity->attributes->count,
-            "relationships" => $entity->relationships->count,
-        ]);
-        return [
-            "entities" => $entities,
-            "predicate_syntax" => $schema->predicateGuide,
-            "usage" => "Call describe_model with {\"entity\": \"Order\"} or {\"entity\": [\"Order\", \"Customer\"]} for the full attributes, relationships and enum cases of those entities.",
-        ];
-    }
-
-    /**
-     * The full schema of the named entities only — the same shape describe_model once returned
-     * for the whole model, scoped to what the client asked for.
-     *
      * @param ArrayClass<string> $names
      * @return array<string, mixed>
      */

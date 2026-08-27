@@ -47,7 +47,7 @@ When `run()` is called, the application executes a fixed sequence of steps befor
 1. **Bootstrap** — discovers and initializes the application delegate; registers authentication strategies and JWT signing algorithms.
 2. **Preflight** — if the request is a CORS preflight (`OPTIONS` with an `Origin` header), it is answered immediately and the pipeline exits.
 3. **Application initialization** — notifies the delegate (`applicationWillFinishLaunching`), loads the Core Data persistent store, and registers a shutdown handler that catches fatal PHP errors and converts them to structured error responses.
-4. **Rate limiting** — increments the request counter for the current client (by authenticated username or IP address) and rejects the request with `429 Too Many Requests` if the quota is exceeded.
+4. **Rate limiting** — increments the counters for the current client and rejects the request with `429 Too Many Requests` once either is spent. Every counter is keyed on the remote address: this step runs before any credential is verified, so a claimed username is not something the key may rest on. See §10.
 5. **Access enforcement** — resolves the first responder for the request and evaluates the full access evaluator chain. If the chain rejects the request, a `401 Unauthorized` or `403 Forbidden` response is emitted immediately.
 6. **Transaction author** — wires the authenticated user's identity into the Core Data context so that persistent history records who performed every write.
 7. **Response** — asks the first responder to produce its response and sends it.
@@ -92,11 +92,11 @@ The distinction between the user pipeline and the infrastructure pipeline is imp
 
 ## 4. The Responder Chain
 
-The responder chain is an ordered linked list of `Responder` objects. The framework builds it once per request by concatenating the custom responders discovered from the application's source tree with a fixed sequence of built-in responders:
+The responder chain is an ordered linked list of `Responder` objects. The framework builds it once per request by concatenating the custom responders discovered from the application's source tree with a fixed sequence of built-in responders. The chain is headed by `AuthenticationManager`, which `Application` hands to `FirstResponderResolver` as the default responder, so the login, logout and refresh routes are matched before anything else claims the request:
 
 ```
 [custom responders from src/Responders/ and src/ViewControllers/]
-    → Application
+    → AuthenticationManager
     → PersistentSpace
     → PersistentHistoryResponder
     → ResourceManager
@@ -141,7 +141,7 @@ These responders are always present in the chain, in this order of priority afte
 
 **`ResourceManager`** serves static files. It delegates the decision to `StaticResourcePolicy`, which determines whether the URL maps to a physical file in a public directory and how it should be cached. The `StaticResourceDisposition` it returns carries a `maxAge` and an `immutable` flag, which `ResourceManager` emits through `StaticCacheHeaderTransformer` in the user pipeline — independently of the application's `HTTPCachePolicy` (which targets dynamic API responses). Public bundle resources (`Resources`, `vendor`, `node_modules`, …) get `public, max-age=N, immutable` with `N` defaulting to one year and overridable via `STATIC_RESOURCE_MAX_AGE`; optional browser files like `favicon.ico` and `robots.txt` get a shorter `public, max-age`; everything else gets `no-cache`. Extra public directories — typically a bundler's output directory such as Vite's `Build` or `dist` — are declared through the `STATIC_PUBLIC_DIRECTORIES` environment variable (comma-separated, relative to the bundle root); their fingerprinted contents are then served with the same long-lived `immutable` policy. Because the user pipeline writes `Cache-Control` first, the downstream `CacheHeaderTransformer` leaves it untouched. Only `GET` and `HEAD` are accepted.
 
-**`Preferences`** exposes the application's `UserDefaults` store at `/Preferences`. `GET` returns the full key-value dictionary as JSON; `PATCH` merges the request body into the store. This is always no-cache.
+**`Preferences`** exposes the application's `UserDefaults` store at `/Preferences`. `GET` returns the full key-value dictionary as JSON; `PATCH` merges the request body into the store through its `synchronize` action. This is always no-cache.
 
 **`Uploader`** receives `multipart/form-data` uploads at `/upload`. The request names a subdirectory, never a path; `FileTransferPolicy` resolves where each file lands and under what name, creates the directory if absent, moves each uploaded file from the PHP temporary location into place, and returns an array of the saved filenames. Both the subdirectory and each filename must be a single alphanumeric slug (`[A-Za-z0-9_-]`), stem and extension alike — a name that could describe another location is refused rather than adjusted, since storing a file under a name nobody asked for is harder to explain than a `400`. Existing files at the target path are silently replaced.
 
@@ -274,9 +274,10 @@ For normal requests, the chain is:
 4. **`JSONWebTokenAccessTimeEvaluator`** — verifies `nbf ≤ now ≤ exp`.
 5. **`JSONWebTokenEnabledEvaluator`** — verifies the `enb` claim is `true`.
 6. **`JSONWebTokenVersionEvaluator`** — verifies the token's `ver` matches the user's current `refreshTokenVersion`. If the user has logged out or the token has been invalidated, this check fails.
-7. **`AuthorizationEvaluator`** — verifies the user has the required permission for the requested resource and HTTP method.
+7. **`JSONWebTokenAudienceEvaluator`** — verifies a bearer token presented to `/mcp` carries the audience `MCP_TOKEN_AUDIENCE` names. Inert on every other path, and inert everywhere while that variable is unset.
+8. **`AuthorizationEvaluator`** — verifies the user has the required permission for the requested resource and HTTP method.
 
-For refresh requests, the chain replaces the scope check with `JSONWebTokenScopeEvaluator(refresh)`, adds `JSONWebTokenRefreshTimeEvaluator`, and omits the `AuthorizationEvaluator` — a token refresh does not require a resource permission.
+For refresh requests, the chain is shorter: `AuthenticationEvaluator` → `JSONWebTokenScopeEvaluator(refresh)` → `JSONWebTokenRefreshTimeEvaluator` → `JSONWebTokenEnabledEvaluator` → `JSONWebTokenVersionEvaluator`. It accepts only a refresh-scoped token, and drops the session, audience and authorization checks — a token refresh is not a resource access and does not require a resource permission.
 
 `DefaultAccessPolicy` inspects which evaluator failed to decide between `401 Unauthorized` (authentication failure) and `403 Forbidden` (authorization failure). Any evaluator tagged as `AuthorizationAccessEvaluator` produces a 403; everything else produces a 401.
 
@@ -310,7 +311,14 @@ This layering means that a warm-cache user with a valid JWT authorizing the requ
 
 ### Rate Limiting
 
-Rate limiting is enforced before the first responder is consulted. The framework keys the counter on the authenticated username when a user is known, or on `REMOTE_ADDR` — the real TCP peer, which cannot be forged by request headers — for anonymous requests. Clients sharing an egress address (behind a NAT or forward proxy) therefore share the anonymous quota; authenticated requests are keyed per user and are unaffected. The counter and TTL are stored in a configurable backend.
+Rate limiting is enforced before the first responder is consulted, and therefore before any credential is verified. That ordering is deliberate: verifying costs a Core Data lookup and a bcrypt comparison, and a limiter that waits for them lets an unauthenticated caller spend both on every request. It also means the username reaching this step is the one the request *claims*, which cannot be what the counter rests on — keyed on the name alone, anyone could exhaust another subject's quota by asserting their username, or escape the address limit entirely by inventing a new name per request.
+
+Every key therefore carries `REMOTE_ADDR`, the real TCP peer, which no request header can forge:
+
+- `rate_limit:ip:<address>` is incremented for every request, and is what bounds the cost of the work still ahead.
+- `rate_limit:ip:<address>:user:<claimed>` is incremented as well when the request names a subject, granting it the larger `RATE_LIMIT_MAX_REQUESTS_USER` allowance within that address.
+
+A request that names a subject is held to the user allowance on both counters, so a legitimate client is not tied to the anonymous limit, while one rotating usernames gains nothing — the address counter is the same one either way. Clients sharing an egress address (behind a NAT or forward proxy) share the address counter. The reported quota describes whichever counter is closer to being spent, since that is the one the client will hit. The counter and TTL are stored in a configurable backend.
 
 Available backends: APCu (default, shared memory within a single server), Redis, Memcached, and InMemory (process-scoped, for testing). The backend is configured by replacing `Application::$rateLimitStore`.
 
@@ -343,7 +351,7 @@ Each responder narrows the global policy to its own capabilities: the effective 
 | Header                   | Default              |
 |--------------------------|----------------------|
 | `X-Content-Type-Options` | `nosniff`            |
-| `X-Frame-Options`        | `DENY`               |
+| `X-Frame-Options`        | `SAMEORIGIN`         |
 | `Referrer-Policy`        | configurable default |
 | `Permissions-Policy`     | configurable default |
 
@@ -362,11 +370,21 @@ Application::shared()->securityHeadersPolicy = new SecurityHeadersPolicy(
 
 ## 12. MCP Server
 
-The MCP (Model Context Protocol) server exposes the application's data model as a JSON-RPC 2.0 tool catalogue that LLM agents can discover and invoke. It is available at `/mcp` and accepts both `GET` and `POST`.
+The MCP (Model Context Protocol) server exposes the application's data model as a JSON-RPC 2.0 tool catalogue that LLM agents can discover and invoke. It is available at `/mcp` and accepts `GET`, `POST` and `DELETE` — the three verbs the Streamable HTTP transport uses, `DELETE` being how a client ends the session its handshake established.
 
 ### Protocol
 
 Every request is parsed as a JSON-RPC 2.0 message. Notifications (messages without an `id` field) are silently ignored. The response is always wrapped in the standard envelope `{"jsonrpc":"2.0","id":...,"result":...,"error":...}`. Any uncaught exception inside the handler is converted to a `JSONRPCError` with code `−32603 Internal Error`; the MCP server never leaks an HTTP 500.
+
+### Transport
+
+`MCPTransportGuard` enforces the Streamable HTTP transport requirements before a message is dispatched. These rules are about *where* a request comes from and *whether the handshake happened* — never about who the caller is, which stays with the access evaluator chain. Three checks, each rejecting with the status the specification prescribes:
+
+- **Origin** — a request carrying an `Origin` outside `MCP_ALLOWED_ORIGINS` is refused. A request with no `Origin` header passes: MCP clients are not browsers and send none, so the header only appears for a page running in the user's browser, which is the DNS-rebinding vector the check exists to close.
+- **Session** — any method other than `initialize` must carry the `Mcp-Session-Id` the server issued during the handshake. Missing is `400`; unknown or expired is `404`, which tells the client to initialize again rather than to give up. The session does not authenticate — the specification forbids that — and is stored under a key that includes the token's subject, so an identifier guessed by one identity does not resolve under another. `MCPSessionStore` backs it with APCu, Redis or memory, and its idle lifetime (`MCP_SESSION_TTL`, default 3600s) is refreshed on every request that carries it.
+- **Protocol version** — an unsupported `MCP-Protocol-Version` is `400`. An absent header means the legacy version, as the specification requires for backwards compatibility.
+
+Independently of the guard, `JSONWebTokenAudienceEvaluator` in the access chain binds a token to this endpoint when `MCP_TOKEN_AUDIENCE` is set: only a bearer token carrying that audience reaches `/mcp`, so the credential a user receives by signing in to the application does not open MCP as a side effect. Note that the framework's own `/login` and `/refresh` issue tokens without an `aud` claim, so setting this variable closes `/mcp` to them — it is for deployments that mint MCP tokens through `JSONWebTokenIssuer::issue()` with an explicit audience.
 
 Five methods are dispatched:
 
@@ -387,8 +405,8 @@ On first access, `ModelDescriptor` builds a `ModelSchema` from the Core Data mod
 
 Two files enrich the raw schema:
 
-- **`vocabulary.json`** (localised) — adds human-readable descriptions and aliases to entities and attributes. Attribute descriptions use the key `Entity.attributeName`.
-- **`predicate_examples.json`** (localised) — a list of example predicate strings included verbatim in the schema to guide the LLM.
+- **`mcp_vocabulary.json`** (localised) — adds human-readable descriptions and aliases to entities and attributes. Attribute descriptions use the key `Entity.attributeName`.
+- **`mcp_predicate_examples.json`** (localised) — a list of example predicate strings included verbatim in the schema to guide the LLM. The framework ships none: the file is supplied by the application, resolved through `Bundle::main()`.
 
 **Enum detection** deserves special mention: `AttributeSchemaFactory` inspects the managed object class for a method named `validate{AttributeName}`. If such a method exists and its parameter type is a `BackedEnum`, the factory extracts all case names and values and includes them in the attribute schema. This lets the LLM know the valid values for enum fields without a database query.
 
@@ -399,7 +417,7 @@ The framework registers twelve tools automatically — nine of them backed by th
 | Tool             | Operation                                                   | Notes                                                                          |
 |------------------|-------------------------------------------------------------|--------------------------------------------------------------------------------|
 | `describe_model` | Schema introspection                                        | Should be called first. With no argument returns a lightweight index of every entity (class, label, aliases, attribute/relationship counts) plus the predicate guide; pass `entity` (one name or an array of names) for the full attributes, relationships and enum cases of those entities |
-| `fetch`          | Query with filters, sort, pagination, projection            | Field/relationship projection; `serialization` shape traverses relationships to any depth; default limit 100 |
+| `fetch`          | Query with filters, sort, pagination, projection            | Field/relationship projection; `serialization` shape traverses relationships to any depth; no default limit — `limit` is passed through as given, and omitting it fetches every matching row |
 | `count`          | Count matching records                                      |                                                                                |
 | `aggregate`      | Compute sum, average, min, max, count, median, mode, stddev | `median`, `mode`, `stddev` are computed in-memory; others push to the database |
 | `group_by`       | GROUP BY with aggregates, HAVING, sort, pagination          | Fully database-side                                                            |
@@ -409,7 +427,7 @@ The framework registers twelve tools automatically — nine of them backed by th
 | `persistent_history` | Fetch or purge the persistent history change log        | Mirrors the `/history` endpoint; purge is destructive                          |
 | `run_job`         | Run a domain job by name                                 | Backed by the `src/Jobs/` catalogue, not the data model; same transaction boundary as the CRUD tools; gate on the `Jobs` resource |
 | `get_server_time` | Return the server's current date and time                | App-agnostic; reads no entities, so no security scope                           |
-| `web_search`      | Search the web via a pluggable provider                 | Backed by `src/Search/` (`WebSearchProvider`, `TavilySearchProvider`); the application picks the provider by identifier in its `.env` (`WEB_SEARCH_PROVIDER`), the same way it picks the `LLMClient` backing the agent |
+| `web_search`      | Search the web via a pluggable provider                 | Backed by `src/Search/` (`WebSearchProvider`, `TavilySearchProvider`); the application picks the provider by identifier in its `.env` (`WEB_SEARCH_PROVIDER`). Note the `LLMClient` backing an agent is *not* environment-driven — it is constructed and injected in code |
 
 Every tool validates all key paths and predicate placeholders against the in-memory schema before touching the database, so invalid field names produce a clear error message rather than a SQL error.
 
@@ -435,9 +453,11 @@ The JSON-RPC server is one face of the tool catalogue. `LLMAgent` drives the sam
 
 ## 13. Event Streaming
 
-`EventStreamResponder` handles long-lived connections using the Server-Sent Events protocol. It is used for pushing real-time updates to browser clients without WebSockets.
+Server-Sent Events are how the framework holds a long-lived connection open, pushing real-time updates to browser clients without WebSockets. An application streams them from any responder by returning an `EventStreamResponse`.
 
-Responses are produced by `EventStreamResponse`, which streams `ServerSentEvent` objects through an `EventStreamEmitter`. Each event carries a type, optional ID, retry interval, and data payload.
+`EventStreamResponder` is the framework's own example of that, marked `@internal` and carrying `#[Endpoint("Events")]`. It is **not** part of the built-in responder chain, so `/Events` answers nothing unless an application places a responder of its own there.
+
+Responses are produced by `EventStreamResponse`, which streams `ServerSentEvent` objects through an `EventStreamEmitter`. Each event carries a data payload, an optional ID and an optional event type.
 
 The `StreamResponse` class provides a more general incremental streaming mechanism: it wraps any iterable result set and serialises records in configurable chunks, applying an optional transform function to each chunk. `PersistentSpace` uses this automatically when a fetch request specifies a `fetchBatchSize`.
 
@@ -549,15 +569,17 @@ Application-wide policies — `$corsPolicy`, `$accessPolicy`, `$securityHeadersP
 
 ## 17. Environment Configuration Reference
 
-All environment keys are PHP constants defined in the framework's constants files. Notable groups:
+The tables below name the **PHP constants** the framework declares for each setting, which is what source code refers to. They are not the strings an operator writes in a `.env` — `JWTValidityTimeIntervalKey` is the constant, `JWT_VALIDITY_TIME_INTERVAL` the variable — and they cover only the groups worth explaining here.
+
+**[.env.example](.env.example) is the complete reference**, listing every variable the framework reads under its real name, with its default and what it does. Reach for it when configuring a deployment; reach for these tables when reading the framework's own code.
 
 ### Authentication and JWT
 
 | Key                          | Default | Description                                                                               |
 |------------------------------|---------|-------------------------------------------------------------------------------------------|
 | `JWTPrivateKey`              | —       | Enables JWT mode when set. Value is the signing key (HMAC secret or RSA private key PEM). |
-| `JWTSignatureAlgorithmKey`   | `hs256` | Signing algorithm. Values: `hs256`, `rs256`.                                              |
-| `JWTValidityTimeIntervalKey` | 3600    | Token lifetime in seconds.                                                                |
+| `JWTSignatureAlgorithmKey`   | `HS256` | Signing algorithm. Values: `HS256`, `RS256` — the two coder strategies the framework registers. |
+| `JWTValidityTimeIntervalKey` | 1800    | Token lifetime in seconds.                                                                  |
 | `JWTIssuerEnvironmentKey`    | —       | Canonical `iss` claim, used for both issuance and validation. When unset, issuer validation is skipped. Never derived from the request host. |
 
 ### CORS
@@ -597,8 +619,8 @@ All environment keys are PHP constants defined in the framework's constants file
 | `MCPServerNameKey`                | bundle name               | Server name reported in `initialize`.    |
 | `MCPServerVersionKey`             | bundle version            | Server version reported in `initialize`. |
 | `MCPInstructionsFilenameKey`      | `mcp_instructions.txt`    | Localised instructions file for the LLM. |
-| `MCPVocabularyFilenameKey`        | `vocabulary.json`         | Localised schema vocabulary file.        |
-| `MCPPredicateExamplesFilenameKey` | `predicate_examples.json` | Localised predicate examples file.       |
+| `MCPVocabularyFilenameKey`        | `mcp_vocabulary.json`     | Localised schema vocabulary file.        |
+| `MCPPredicateExamplesFilenameKey` | `mcp_predicate_examples.json` | Localised predicate examples file, supplied by the application. |
 
 ### Application
 

@@ -27,7 +27,7 @@ It covers the full spectrum from zero-boilerplate REST APIs to server-rendered w
 | **Security Pipeline**     | Basic, Bearer (JWT), and Digest authentication. Role-based authorization. Per-field read/write access control. Rate limiting with APCu, Redis, or Memcached backends.                       |
 | **MCP Server**            | Exposes the full data model to LLM agents as JSON-RPC 2.0 tools — describe-model, fetch, count, aggregate, group-by, create, update, delete, persistent-history, run-jobs, get-server-time, and web-search — the first nine auto-derived from the Core Data schema; run-jobs drives the domain job catalogue, get-server-time is an app-agnostic utility, and web-search delegates to a pluggable provider the application picks by identifier in its `.env`. |
 | **Server-Side Rendering** | `ViewController` manages a template lifecycle (`viewWillLoad` / `viewDidLoad`) with `#[Outlet]` properties reflected into the rendering context. Pluggable renderer engine.                 |
-| **Event Streaming**       | First-class Server-Sent Events support via `EventStreamResponder`.                                                                                                                          |
+| **Event Streaming**       | First-class Server-Sent Events support. A responder returns an `EventStreamResponse` of `ServerSentEvent` objects, streamed through an `EventStreamEmitter`.                                 |
 | **Scheduled Jobs**        | `Job` subclasses in `src/Jobs/`, auto-discovered and keyed by a `name` hook, run through a CLI entry point for cron and one-shot provisioning — same Core Data stack, and invocable over MCP via the `run_job` tool.               |
 
 ---

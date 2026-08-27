@@ -74,11 +74,18 @@ final class AuthenticationManager extends Responder
 
     /**
      * Invalidates the current authenticated identity.
+     *
+     * Answers `204` either way — the status is settled before the branch, since a logout has
+     * nothing to return in either mode and the caller should not have to tell them apart.
+     * Session mode drops the session; JWT mode bumps the subject's `refreshTokenVersion`, which
+     * invalidates every token outstanding for it at once.
+     *
      * @throws Exception
      */
     #[Action(transformers: [NoCacheHeaderTransformer::class])]
     public function logout(): void
     {
+        $this->statusCode = HTTPStatusCode::noContent;
         if ($this->isSessionEnabled) {
             $this->session->invalidate();
             return;
@@ -89,7 +96,6 @@ final class AuthenticationManager extends Responder
             $this->managedObjectContext->save();
         }
         $this->authorizationService->invalidateAuthorizable($user);
-        $this->statusCode = HTTPStatusCode::noContent;
     }
 
     /**
@@ -104,6 +110,7 @@ final class AuthenticationManager extends Responder
         $authentication->isValid ?: throw new UnauthorizedException();
         $user = $authentication->authenticatedUser ?? throw new UnauthorizedException();
         $environment = $this->environment;
+        /** @var string $privateKey */
         $privateKey = $environment[JWTPrivateKey] ?? throw new UnauthorizedException();
         /** @var Dictionary<mixed> $data */
         $data = new Dictionary();

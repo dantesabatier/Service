@@ -26,7 +26,7 @@ On success the response is `200 OK` with a JSON body:
 
 In session mode the `token` field is absent and a `Set-Cookie` header establishes the session instead.
 
-The JWT contains two scopes: `access` (short-lived, for regular requests) and `refresh` (for token rotation). The default validity window is 1800 seconds; override it with `JWT_VALIDITY_TIME_INTERVAL`. Set `JWT_ISSUER` to stamp and validate the `iss` claim; when unset, the issuer is not validated.
+`/login` issues **one** token carrying both technical scopes in its `scp` claim: `access` (accepted by regular endpoints) and `refresh` (accepted by `/refresh`). There is no separate refresh token to store — the same string satisfies both evaluator chains. The default validity window is 1800 seconds; override it with `JWT_VALIDITY_TIME_INTERVAL`. Set `JWT_ISSUER` to stamp and validate the `iss` claim; when unset, the issuer is not validated.
 
 ### Authenticated requests (JWT)
 
@@ -38,14 +38,16 @@ Authorization: Bearer <jwt>
 
 ### Token refresh
 
-When the access token expires, exchange the refresh token for a new one:
+When the token nears expiry, exchange it for a fresh one. Present the same token — its `refresh` scope is what this endpoint requires:
 
 ```
 POST /refresh
-Authorization: Bearer <refresh-jwt>
+Authorization: Bearer <jwt>
 ```
 
-The response shape is identical to `/login`: a new `user` object and a fresh `token`. The refresh token is rotated server-side; the previous one is invalidated.
+The response shape is identical to `/login`: a new `user` object and a fresh `token`.
+
+The previous token is **not** invalidated by a refresh. Tokens are revoked by version, not individually: `refreshTokenVersion` on the user is what `JSONWebTokenVersionEvaluator` compares against, and only `POST /logout` (or a change to the user's roles) increments it, which invalidates every outstanding token at once. A refreshed token therefore carries the same `ver` as the one it replaces, and both remain valid until they expire or a logout bumps the version.
 
 ### Logout
 
@@ -234,7 +236,7 @@ POST /logout       →  AuthenticationManager::logout()
 POST /refresh      →  AuthenticationManager::refresh()
 ```
 
-For custom actions the convention is the same: a method named `publish()` on a responder with `#[Endpoint("/article")]` is reachable at `POST /article/publish`.
+For custom actions the convention is the same: a method named `publish()` is reachable at `POST /publish`. An action's path is **not** nested under the class's `#[Endpoint]` path — the two are matched independently against the request path, so a responder declaring `#[Endpoint("/article")]` still answers its `publish()` action at `/publish`. Pass an explicit path to place it elsewhere: `#[Action(path: "/article/publish")]`.
 
 The request body may be JSON or form-encoded. The action sets `$this->data` before returning; the framework serializes it through the transformer chain declared on `#[Action]`.
 
@@ -353,7 +355,7 @@ Authorization: Bearer <jwt>
 | Header                  | Meaning                                                                                      |
 |-------------------------|----------------------------------------------------------------------------------------------|
 | `ETag`                  | Opaque hash of the response body; use with `If-None-Match` on subsequent requests.           |
-| `Cache-Control`         | Defaults to `private, max-age=0, must-revalidate`; configurable via `HTTP_CACHE_*` env vars. |
+| `Cache-Control`         | Defaults to `private, max-age=0`; configurable via `HTTP_CACHE_*` env vars. Endpoints declaring `NoCacheHeaderTransformer` send `no-store, no-cache, must-revalidate, max-age=0` instead, alongside `Pragma: no-cache` and `Expires: 0`. |
 | `X-RateLimit-Limit`     | Request quota per window.                                                                    |
 | `X-RateLimit-Remaining` | Requests remaining in the current window.                                                    |
 | `X-RateLimit-Reset`     | Unix timestamp when the window resets.                                                       |

@@ -25,11 +25,11 @@ Schema introspection. Should be called first, before any other tool.
 |-----------|-----------------|----------|-------------|
 | `entity`  | array of string | no       | Omit for a lightweight index of every entity. Pass an array of entity names for the full attributes, relationships and enum cases of those entities. |
 
-**With no argument** it returns the index — every entity keyed by name, each reduced to its class, label (`es`), aliases and the *counts* of its attributes and relationships — plus the `predicate_syntax` guide. This always fits in a single tool result, however large the model.
+**With no argument** it returns the index — every entity keyed by name under `entities`, each reduced to its class, label (`es`), aliases and the *counts* of its attributes and relationships — plus the `predicate_syntax` guide and a `usage` line naming how to ask for detail. This always fits in a single tool result, however large the model.
 
 **With `entity`** (one name or a list) it returns the full schema of just those entities: every attribute (type, nullability, enum cases), every relationship (target, cardinality, optionality), plus the `predicate_syntax` guide. An unknown name errors with a hint to call `describe_model` with no argument for the entity list.
 
-`entity` must be a real JSON array of strings — `["Order"]` for one, `["Order", "Customer"]` for several — never a single bracketed string.
+Pass `entity` as a real JSON array of strings — `["Order"]` for one, `["Order", "Customer"]` for several. Never send a *string that looks like* an array (`"[\"Order\"]"`): it is read as one entity name, and no entity is called that. A bare string (`"Order"`) is tolerated and treated as a one-element list, but the schema declares an array, so a strictly validating client will reject it — prefer the array form.
 
 ---
 
@@ -61,7 +61,7 @@ Count matching rows.
 |-------------|--------|----------|-------------|
 | `entity`    | string | yes      | Entity name from the data model. |
 | `predicate` | string | no       | `NSPredicate` format string. |
-| `arguments` | array  | no       | Positional arguments for the predicate placeholders. |
+| `arguments` | array  | no       | Positional arguments for the predicate placeholders. Temporal tokens (`$TODAY`, `$WEEK_START`, …) are resolved server-side. |
 
 Returns `{"count": N}`.
 
@@ -77,9 +77,9 @@ Compute a single aggregate over an attribute across matching rows.
 | `function`  | string | yes      | One of `sum`, `average`, `min`, `max`, `count`, `median`, `mode`, `stddev`. |
 | `property`  | string | yes      | Attribute key path to aggregate. |
 | `predicate` | string | no       | `NSPredicate` format string scoping the rows. |
-| `arguments` | array  | no       | Positional arguments for the predicate placeholders. |
+| `arguments` | array  | no       | Positional arguments for the predicate placeholders. Temporal tokens (`$TODAY`, `$WEEK_START`, …) are resolved server-side. |
 
-`sum` and `average` require a numeric (`integer`, `float` or `enum`) attribute. `median`, `mode` and `stddev` are computed in memory (the rows are materialized); the others are pushed to the database. The result is rounded to four decimal places. Returns `{"entity": …, "function": …, "property": …, "result": …}`.
+`sum` and `average` require a numeric (`integer`, `float` or `enum`) attribute — a check that only applies to an attribute on the named entity, so a dotted key path (`customer.total`) reaches the database unchecked. `median`, `mode` and `stddev` are computed in memory (the rows are materialized); the others are pushed to the database. The result is rounded to four decimal places. Returns `{"entity": …, "function": …, "property": …, "result": …}`.
 
 `enforceFieldRead` gates the aggregated column, so a protected column is refused even when the caller may read the rows.
 
@@ -161,7 +161,7 @@ Read or purge the Core Data persistent history change log — the MCP counterpar
 | `arguments`   | array   | no       | Positional arguments for the predicate placeholders. |
 | `resultType`  | string  | no       | fetch only. Shape of the returned history: `statusOnly`, `objectIDs`, `count`, `transactionsOnly`, `changesOnly`, `transactionsAndChanges` (default). |
 
-The scope parameters `date`, `transaction` and `token` are evaluated in that fixed precedence — only the first one present is used, they are not combined — and a fetch or purge requires exactly one of them. **Purge is destructive** and permanently removes history; it is authorized against the `history` resource with delete rights, whereas fetch requires read rights. Purge returns `{"purged": true}`; fetch returns the history shaped by `resultType`.
+The scope parameters `date`, `transaction` and `token` are evaluated in that fixed precedence — only the first one present is used, they are not combined — and a fetch or purge requires at least one of them, failing with a message naming the three when none is given. Passing more than one is not an error: the extras are silently ignored, so send exactly the one you mean. **Purge is destructive** and permanently removes history; it is authorized against the `history` resource with delete rights, whereas fetch requires read rights. Purge returns `{"purged": true}`; fetch returns the history shaped by `resultType`.
 
 ---
 
@@ -206,7 +206,7 @@ Returns the server's local time in its configured timezone:
 
 Searches the web — the generic counterpart to the data tools for questions the persisted model cannot answer. Results come back as an `answer` (when the provider returns one) plus a bounded list of `results`.
 
-The tool is provider-agnostic and **built in**: the framework ships the `WebSearchTool` (name, schema, argument validation) in `src/MCP/Tools/` and the provider machinery in `src/Search/` — `WebSearchProvider` (abstract), `TavilySearchProvider`, `WebSearchResult` — and the application picks the backing provider through its environment, the same way it picks which `LLMClient` backs the agent. `WebSearchProvider::provider()` resolves the identifier in `WEB_SEARCH_PROVIDER` (default `tavily`) to a concrete provider and hands it the `WEB_SEARCH_API_KEY` from the same source; no subclassing is required.
+The tool is provider-agnostic and **built in**: the framework ships the `WebSearchTool` (name, schema, argument validation) in `src/MCP/Tools/` and the provider machinery in `src/Search/` — `WebSearchProvider` (abstract), `TavilySearchProvider`, `WebSearchResult` — and the application picks the backing provider through its environment. `WebSearchProvider::provider()` resolves the identifier in `WEB_SEARCH_PROVIDER` (default `tavily`) to a concrete provider and hands it the `WEB_SEARCH_API_KEY` from the same source; no subclassing is required. This is the only environment-driven provider selection in the framework — the `LLMClient` backing an agent is constructed in code and injected into `LLMAgent`, with its model, endpoint and key as constructor arguments.
 
 | Parameter    | Type    | Required | Description |
 |--------------|---------|----------|-------------|

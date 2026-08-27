@@ -62,7 +62,7 @@ A CLI entry point parallel to the responder chain — for cron and one-shot prov
 - **`name`** — a concrete property hook defaulting to `class_name(static::class)`, the registry key the CLI resolves its argument against. This mirrors `AbstractTool::name` and `#[Endpoint]`'s default path. Override only to decouple the key from the class name.
 - **`log(string $message)`** — a concrete `protected` helper (`error_log` with a `[date] [name]` prefix). Use `$this->log(...)`, including as a pipe target `… |> $this->log(...)`.
 
-Discovery mirrors the responder/MCP mechanism: `JobResolver` scans `src/Jobs/` and `JobRegistry` keys the resolved `Dictionary<Job>` by `name`. No manifest, no registration — dropping a `Job` subclass in `src/Jobs/` makes it runnable. Because the CLI only matches its argument against the registry keys (never instantiating from raw input), an unknown name cannot run.
+Discovery mirrors the MCP tool mechanism: `JobResolver` scans `src/Jobs/`, reconstructing each FQCN as `App\Jobs\{basename}` — the same hardcoded `App\` prefix `ToolResolver` uses, and unlike `FirstResponderResolver`, which derives the namespace from the delegate. `JobRegistry` keys the resolved `Dictionary<Job>` by `name`. No manifest, no registration — dropping a `Job` subclass in `src/Jobs/` makes it runnable. Because the CLI only matches its argument against the registry keys (never instantiating from raw input), an unknown name cannot run.
 
 **`JobRunner::run()`** is the CLI run loop, the counterpart to `Application::run()` — it boots the delegate, resolves the argument against the registry, runs the job (`save` only if `hasChanges`, `reset` in `finally`), and `exit`s. Both are `: never`. A project's `cli.php` is one line — `new JobRunner()->run();` — as thin as `index.php`. `transactionAuthor` is the `JobRunner` constructor argument (default `"system"`).
 
@@ -152,9 +152,9 @@ JWT codec strategies: `JSONWebTokenHS256EncoderStrategy`, `JSONWebTokenRS256Deco
 Access control flows through `AccessEvaluatorChain` → `AccessPolicy` → `AuthorizationService` → `AuthorizationCache`.
 
 The default evaluator chain (AND short-circuit) is:
-`SessionAuthenticationEvaluator` → `AuthenticationEvaluator` → `JSONWebTokenScopeEvaluator` → `JSONWebTokenAccessTimeEvaluator` → `JSONWebTokenEnabledEvaluator` → `JSONWebTokenVersionEvaluator` → `AuthorizationEvaluator`
+`SessionAuthenticationEvaluator` → `AuthenticationEvaluator` → `JSONWebTokenScopeEvaluator(access)` → `JSONWebTokenAccessTimeEvaluator` → `JSONWebTokenEnabledEvaluator` → `JSONWebTokenVersionEvaluator` → `JSONWebTokenAudienceEvaluator` → `AuthorizationEvaluator`
 
-The `/refresh` action uses a shorter chain that accepts only the refresh-scoped token and skips `AuthorizationEvaluator`.
+The `/refresh` action uses a shorter chain that accepts only the refresh-scoped token: `AuthenticationEvaluator` → `JSONWebTokenScopeEvaluator(refresh)` → `JSONWebTokenRefreshTimeEvaluator` → `JSONWebTokenEnabledEvaluator` → `JSONWebTokenVersionEvaluator`. It skips the session, audience and authorization evaluators.
 
 Field-level security is declared with `#[Readable]` and `#[Writable]` attributes on managed object properties. `FieldSecurityFilter` applies them at read and write time with a static reflection cache. `#[Owner]` marks the ownership field; `OwnershipService` enforces it on PATCH and DELETE.
 

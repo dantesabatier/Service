@@ -13,6 +13,11 @@ namespace Sabatier\Service\MCP;
  */
 final class BaseInstructionsBuilder
 {
+    /**
+     * Builds the complete MCP instruction preamble.
+     *
+     * @param string|null $appInstructions Domain-specific instructions to prepend, or `null` when the framework rules stand alone.
+     */
     public function build(?string $appInstructions): string
     {
         if ($appInstructions) {
@@ -69,7 +74,7 @@ final class BaseInstructionsBuilder
 
          9. For sort descriptors, each item must have a non-null, non-empty "key" string and an optional "ascending" boolean (default true). Example: [{"key": "creationDate", "ascending": false}].
 
-         10. Dynamic date variables available in the arguments array — these are resolved server-side before building the predicate:
+         10. Dynamic date variables are available in predicate argument arrays — every tool resolves them server-side before building the predicate:
           - $TODAY → today's date (Y-m-d)
           - $NOW → current datetime (Y-m-d\TH:i:s)
           - $WEEK_START → monday of the current week (Y-m-d)

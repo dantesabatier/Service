@@ -26,9 +26,14 @@ use Sabatier\Foundation\ProcessInfo;
  * - `RATE_LIMIT_MAX_REQUESTS_IP` (default: `30`)
  * - `RATE_LIMIT_WINDOW_SECONDS` (default: `60`)
  *
- * Unauthenticated requests are keyed by `REMOTE_ADDR`, the real TCP peer, which cannot be forged
- * by request headers. Clients sharing an egress address (behind a NAT or forward proxy) therefore
- * share the unauthenticated quota; authenticated requests are keyed per user and are unaffected.
+ * Every counter is keyed on `REMOTE_ADDR`, the real TCP peer, which no request header can forge.
+ * The limiter runs before any credential is verified, so the username it sees is the one the
+ * request *claims*: `rate_limit:ip:<address>` is charged for every request, and a request naming
+ * a subject is charged to `rate_limit:ip:<address>:user:<claimed>` as well, at the larger
+ * `maxRequestsUser` allowance on both. Clients sharing an egress address (behind a NAT or forward
+ * proxy) therefore share the address counter whether or not they authenticate.
+ *
+ * @see Application::enforceRateLimitIfNeeded() for why the claim cannot be the whole key.
  *
  * Override in the application delegate for programmatic control:
  *
@@ -42,6 +47,12 @@ use Sabatier\Foundation\ProcessInfo;
  */
 final readonly class RateLimitPolicy
 {
+    /**
+     * @param bool $enabled Whether rate limiting is active.
+     * @param int $maxRequestsUser Requests allowed per window when the request names a subject.
+     * @param int $maxRequestsIP Requests allowed per window for an anonymous address.
+     * @param int $windowSeconds Length of the rate-limit window in seconds.
+     */
     public function __construct(public bool $enabled = RateLimitEnabledDefault, public int $maxRequestsUser = RateLimitMaxRequestsUserDefault, public int $maxRequestsIP = RateLimitMaxRequestsIPDefault, public int $windowSeconds = RateLimitWindowSecondsDefault)
     {
     }

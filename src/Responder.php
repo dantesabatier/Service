@@ -114,7 +114,7 @@ abstract class Responder extends ObjectClass
     protected ?string $selector {
         get => $this->resolution->selector;
     }
-    /** @var Set<class-string<ResponseTransformer>> The ordered set of response transformers applied to this responder. Sourced from the #[Endpoint] and #[Action] attributes. Override to declare additional transformers; the infrastructure layer (ConditionalGetTransformer, RateLimitHeaderTransformer, SecurityHeadersTransformer, CORSResponseTransformer) is always applied unconditionally after this set and must not be included here. */
+    /** @var Set<class-string<ResponseTransformer>> The ordered set of response transformers applied to this responder. Sourced from the #[Endpoint] and #[Action] attributes. Override to declare additional transformers; the infrastructure layer ({@see Responder::$infrastructureTransformers}) is always applied unconditionally after this set and must not be included here. */
     protected Set $transformers {
         get => $this->transformers ??= $this->resolution->transformers;
     }

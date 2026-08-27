@@ -24,7 +24,7 @@ phpcs src/
 Rector config (`rector.php`) skips:
 - `ClassPropertyAssignToConstructorPromotionRector` — no constructor promotion by design
 - `ReadOnlyPropertyRector` — no `readonly` conversion
-- File-specific skips on `Application.php`, `FirstResponderResolver.php`, `JSONWebTokenRS256EncoderStrategy.php`, `OwnerResolver.php`, `ResponseTransformer.php`
+- File-specific skips on `Application.php`, `FirstResponderResolver.php`, `MCP/Tools/AbstractTool.php`, `OwnerResolver.php`, `ResponseTransformer.php`, `MCP/InitializeHandler.php`, `MCP/ToolsListHandler.php`
 
 ## Patterns to preserve
 
@@ -67,7 +67,7 @@ A parallel entry point to the responder chain, for cron and one-shot provisionin
 - **`Sabatier\Service\Jobs\Job`** — abstract base. `run(ManagedObjectContext $context): void` is the only abstract member; the context is pre-configured, so a job never calls `save()`/`reset()`.
 - **`name`** — concrete property hook, defaults to `class_name(static::class)`; the registry key the CLI matches its argument against. Override only to decouple the key from the class name.
 - **`log(string)`** — concrete `protected` helper; `error_log` with a `[date] [name]` prefix. The pipe idiom is `… |> $this->log(...)`.
-- **`JobResolver`** scans the app's `src/Jobs/` (FQCN `App\Jobs\{basename}`, `is_subclass_of(Job)` + instantiable); **`JobRegistry`** keys the result `Dictionary<Job>` by `name`. Same discovery shape as `ToolResolver`/`FirstResponderResolver` — no manifest, no registration step.
+- **`JobResolver`** scans the app's `src/Jobs/` (FQCN `App\Jobs\{basename}`, `is_subclass_of(Job)` + instantiable); **`JobRegistry`** keys the result `Dictionary<Job>` by `name`. No manifest, no registration step — same as `ToolResolver`, which also hardcodes the `App\` prefix. Note `FirstResponderResolver` differs: it derives the namespace from the delegate's own (`new ReflectionClass($delegate)->getNamespaceName()`), so responders work under any namespace while jobs and MCP tools must live under `App\`.
 - **`JobRunner::run(): never`** — the CLI run loop, counterpart to `Application::run()`. Boots the delegate, resolves `argv[1]` against the registry, runs the job (`save` only if `hasChanges`, `reset` in `finally`), `exit`s 0/1. `transactionAuthor` is a constructor arg (default `"system"`). The app's `cli.php` is one line: `new JobRunner()->run();`.
 
 ## PersistentSpace
@@ -107,6 +107,8 @@ Authentication strategies: `BasicAuthentication`, `BearerAuthentication`, `Diges
 JWT codecs: `JSONWebTokenHS256EncoderStrategy`, `JSONWebTokenRS256DecoderStrategy` (and variants).
 
 Default evaluator chain (AND short-circuit):
-`SessionAuthenticationEvaluator` → `AuthenticationEvaluator` → `JSONWebTokenScopeEvaluator` → `JSONWebTokenAccessTimeEvaluator` → `JSONWebTokenEnabledEvaluator` → `JSONWebTokenVersionEvaluator` → `AuthorizationEvaluator`
+`SessionAuthenticationEvaluator` → `AuthenticationEvaluator` → `JSONWebTokenScopeEvaluator(access)` → `JSONWebTokenAccessTimeEvaluator` → `JSONWebTokenEnabledEvaluator` → `JSONWebTokenVersionEvaluator` → `JSONWebTokenAudienceEvaluator` → `AuthorizationEvaluator`
+
+The `/refresh` chain is shorter and different, not a subset: `AuthenticationEvaluator` → `JSONWebTokenScopeEvaluator(refresh)` → `JSONWebTokenRefreshTimeEvaluator` → `JSONWebTokenEnabledEvaluator` → `JSONWebTokenVersionEvaluator`.
 
 Field-level security: `#[Readable]` / `#[Writable]` on managed object properties. `#[Owner]` marks ownership; `OwnershipService` enforces on PATCH/DELETE.

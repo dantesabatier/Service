@@ -68,7 +68,8 @@ final readonly class WindowedLLMContextAssembler implements LLMContextAssembler
 
         $wasCompacted = false;
         if (!$omitted->isEmpty && $this->compressor !== null) {
-            $summary = trim((string)($this->compressor)($omitted));
+            $summary = ($this->compressor)($omitted);
+            $summary = trim("$summary");
             if ($summary !== "") {
                 $candidate = clone $assembled;
                 $index = $candidate->firstIndex(fn(LLMMessage $message): bool => $message->role !== LLMMessageRole::system) ?? $candidate->endIndex;

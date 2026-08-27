@@ -59,7 +59,11 @@ free to change. This section collects what will become the 1.0.0 notes.
   long-term-memory retrieval without coupling the loop to a vector database.
   Retrieved documents retain provenance, are bounded independently, enter as
   untrusted user data and remain subject to the wrapped context assembler's
-  final limits. Subagents retrieve independently for their own task.
+  final limits. Subagents retrieve independently for their own task. Each
+  document boundary carries an unguessable per-assembly token, so a document
+  whose text spells out a closing boundary cannot end its own block and continue
+  outside the frame the system rule declares as data; provenance fields are
+  flattened to one line each for the same reason.
 - `LLMToolExecutor`, separating the agent loop from the location and mechanism
   that runs its real tools. `InProcessLLMToolExecutor` adapts the existing
   `ToolRegistry`, while applications may supply a remote or process-isolated

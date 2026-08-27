@@ -54,6 +54,12 @@ free to change. This section collects what will become the 1.0.0 notes.
 
 ### Added
 
+- `LLMRetriever`, `LLMRetrievalRequest`, `LLMRetrievedDocument` and
+  `RetrievalAugmentedLLMContextAssembler`, providing backend-neutral RAG and
+  long-term-memory retrieval without coupling the loop to a vector database.
+  Retrieved documents retain provenance, are bounded independently, enter as
+  untrusted user data and remain subject to the wrapped context assembler's
+  final limits. Subagents retrieve independently for their own task.
 - `LLMToolExecutor`, separating the agent loop from the location and mechanism
   that runs its real tools. `InProcessLLMToolExecutor` adapts the existing
   `ToolRegistry`, while applications may supply a remote or process-isolated

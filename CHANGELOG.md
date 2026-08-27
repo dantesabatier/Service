@@ -58,6 +58,15 @@ free to change. This section collects what will become the 1.0.0 notes.
   construction from the agent loop. Applications may bound messages or a
   custom-measured context size, summarize omitted turns, or replace the
   strategy entirely without changing a provider client.
+- `LLMRunObserver` and `LLMRunContext`, reporting the agentic loop's progress
+  while it runs. `LLMRun` says what a finished run cost and why it stopped; the
+  observer reports what only the loop can see — which iteration a tool call
+  belonged to, how long it took, whether the run's cache answered it instead of
+  the tool, and which subagent did the work — and reports it before the run
+  returns, so a caller can stream progress rather than block on the whole run.
+  Subagents inherit the observer and report under their own identifier, naming
+  the parent that launched them. Optional: an agent built without one reports
+  nothing and behaves exactly as before.
 - `LLMContext`, reporting how many messages were omitted, whether a compacted
   summary was inserted and whether the newest safe context fits its limit.
 - `LLMExecutionPolicy`, the application-supplied boundary for shared agent

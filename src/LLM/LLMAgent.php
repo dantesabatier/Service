@@ -30,6 +30,8 @@ use function Sabatier\Foundation\human_readable_value;
  * aborts the run for the caller to handle.
  *
  * Successful calls to a read-only tool are cached for the length of the run, keyed on the tool name and arguments regardless of the order the model emitted them in, so a model that loops on one call is told what it already got back instead of paying for the call again. A tool that writes is never cached: two identical calls are two mutations the model asked for, and answering the second from the cache would silently drop one.
+ *
+ * An `LLMRunObserver` watches the loop while it runs. `LLMRun` reports what a finished run cost and why it stopped; the observer reports what only the loop can see — which iteration a tool call belonged to, how long it took, whether the cache answered it, and which subagent did the work — and reports it before the run returns, which is what lets a caller stream progress instead of blocking on the whole thing. Subagents inherit it and report under their own `LLMRunContext`, naming the parent that launched them.
  */
 final class LLMAgent
 {
@@ -92,8 +94,9 @@ final class LLMAgent
      * @param float|null $timeLimit Seconds the whole run may take, or `null` for no limit. Bounds the wall clock the iteration cap cannot: a turn that waits out a provider's backoff costs time without costing an iteration.
      * @param LLMExecutionPolicy|null $executionPolicy Hard limits and write approvals shared with every subagent. Null uses the secure default policy.
      * @param LLMContextAssembler|null $contextAssembler Formats and bounds the history sent on every model turn. Null preserves the complete history.
+     * @param LLMRunObserver|null $observer Watches the loop as it runs, and is inherited by every subagent. Null reports nothing.
      */
-    public function __construct(private readonly LLMClient $client, private readonly ToolRegistry $toolRegistry, private readonly int $maxIterations = 25, private readonly bool $canSpawnSubagents = true, private readonly ?float $timeLimit = null, ?LLMExecutionPolicy $executionPolicy = null, ?LLMContextAssembler $contextAssembler = null)
+    public function __construct(private readonly LLMClient $client, private readonly ToolRegistry $toolRegistry, private readonly int $maxIterations = 25, private readonly bool $canSpawnSubagents = true, private readonly ?float $timeLimit = null, ?LLMExecutionPolicy $executionPolicy = null, ?LLMContextAssembler $contextAssembler = null, private readonly ?LLMRunObserver $observer = null)
     {
         $this->executionPolicy = $executionPolicy ?? new LLMExecutionPolicy();
         $this->contextAssembler = $contextAssembler ?? new WindowedLLMContextAssembler();
@@ -109,15 +112,16 @@ final class LLMAgent
      */
     public function run(ArrayClass $messages, ?string $systemPrompt = null): LLMRun
     {
-        return $this->runWithState($messages, $systemPrompt, new LLMExecutionState());
+        return $this->runWithState($messages, $systemPrompt, new LLMExecutionState(), new LLMRunContext());
     }
 
     /**
      * @param ArrayClass<LLMMessage> $messages
      * @throws Throwable
      */
-    private function runWithState(ArrayClass $messages, ?string $systemPrompt, LLMExecutionState $executionState): LLMRun
+    private function runWithState(ArrayClass $messages, ?string $systemPrompt, LLMExecutionState $executionState, LLMRunContext $runContext): LLMRun
     {
+        $this->observer?->runWillStart($runContext);
         $history = clone $messages;
         /** @var ArrayClass<LLMMessage> $newMessages */
         $newMessages = new ArrayClass();
@@ -146,6 +150,7 @@ final class LLMAgent
                 $isRetryable = false;
                 break;
             }
+            $this->observer?->iterationWillStart($runContext, $iterations, $context);
             try {
                 $turn = $this->client->complete($context->messages, $this->toolList, $context->systemPrompt);
             } catch (LLMProviderException $exception) {
@@ -153,6 +158,7 @@ final class LLMAgent
                 $isRetryable = $exception->isTransient;
                 break;
             }
+            $this->observer?->iterationDidEnd($runContext, $iterations, $turn);
             $totalInputTokens += $turn->inputTokens;
             $totalOutputTokens += $turn->outputTokens;
             $executionState->recordTokens($turn->inputTokens, $turn->outputTokens);
@@ -199,11 +205,13 @@ final class LLMAgent
                 $propagatedStopReason = null;
                 $propagatedRetryable = null;
                 $cached = $toolCallCache[$cacheKey];
+                $wasCached = $cached !== null;
+                $startedAt = microtime(true);
                 if ($cached !== null) {
                     $text = $this->repeatedCallText($cached);
                 } else {
                     if ($isSubagent) {
-                        $subRun = $this->runSubagent($toolCall->arguments, $systemPrompt, $executionState);
+                        $subRun = $this->runSubagent($toolCall->arguments, $systemPrompt, $executionState, $runContext);
                         $totalInputTokens += $subRun->inputTokens;
                         $totalOutputTokens += $subRun->outputTokens;
                         $answer = $this->subagentResultText($subRun);
@@ -220,6 +228,7 @@ final class LLMAgent
                         $toolCallCache[$cacheKey] = $text;
                     }
                 }
+                $this->observer?->toolCallDidEnd($runContext, $iterations, $toolCall, $text, $isError, $wasCached, $wasCached ? 0.0 : microtime(true) - $startedAt);
                 $toolMsg = new LLMMessage(LLMMessageRole::tool, $text, toolCallId: $toolCall->id, isError: $isError);
                 $history->append($toolMsg);
                 $newMessages->append($toolMsg);
@@ -234,7 +243,9 @@ final class LLMAgent
                 }
             }
         }
-        return new LLMRun($newMessages, $totalInputTokens, $totalOutputTokens, $stopReason, $isRetryable);
+        $run = new LLMRun($newMessages, $totalInputTokens, $totalOutputTokens, $stopReason, $isRetryable);
+        $this->observer?->runDidEnd($runContext, $run);
+        return $run;
     }
 
     /**
@@ -290,7 +301,7 @@ final class LLMAgent
      * @param Dictionary<mixed> $arguments
      * @throws Throwable
      */
-    private function runSubagent(Dictionary $arguments, ?string $parentSystemPrompt, LLMExecutionState $executionState): LLMRun
+    private function runSubagent(Dictionary $arguments, ?string $parentSystemPrompt, LLMExecutionState $executionState, LLMRunContext $runContext): LLMRun
     {
         $task = trim((string)$arguments["task"]);
         if ($task === "") {
@@ -298,8 +309,8 @@ final class LLMAgent
         }
         $context = trim((string)$arguments["context"]);
         $content = $context === "" ? $task : "Task:\n$task\n\nContext:\n$context";
-        $subagent = new self($this->client, $this->toolRegistry, self::subagentMaxIterations, false, $this->remainingTime(), $this->executionPolicy, $this->contextAssembler);
-        return $subagent->runWithState(new ArrayClass([new LLMMessage(LLMMessageRole::user, $content)]), $parentSystemPrompt, $executionState);
+        $subagent = new self($this->client, $this->toolRegistry, self::subagentMaxIterations, false, $this->remainingTime(), $this->executionPolicy, $this->contextAssembler, $this->observer);
+        return $subagent->runWithState(new ArrayClass([new LLMMessage(LLMMessageRole::user, $content)]), $parentSystemPrompt, $executionState, $runContext->child());
     }
 
     /**

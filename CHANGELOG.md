@@ -54,6 +54,12 @@ free to change. This section collects what will become the 1.0.0 notes.
 
 ### Added
 
+- `LLMToolExecutor`, separating the agent loop from the location and mechanism
+  that runs its real tools. `InProcessLLMToolExecutor` adapts the existing
+  `ToolRegistry`, while applications may supply a remote or process-isolated
+  implementation with the same descriptors, effect classification and result
+  contract. Subagents inherit the same executor; approval, shared budgets and
+  the run-local cache remain enforced by the loop before execution.
 - `LLMContextAssembler` and `WindowedLLMContextAssembler`, separating context
   construction from the agent loop. Applications may bound messages or a
   custom-measured context size, summarize omitted turns, or replace the

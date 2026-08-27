@@ -13,8 +13,8 @@ use Sabatier\Service\MCP\Response\ContentItem;
  * `ToolRegistry::call` never lets a tool throw past it: every invocation funnels through one
  * try/catch and comes back as a `ToolResult`. The result carries the tool's content together
  * with whether the call failed, so each caller can translate it into the shape its own audience
- * expects — `ToolsCallHandler` into the MCP envelope, `LLMAgent` into a tool-result message fed
- * back to the model.
+ * expects — `ToolsCallHandler` into the MCP envelope, `InProcessLLMToolExecutor` into the
+ * provider-neutral text `LLMAgent` feeds back to the model.
  *
  * A failure is a *correctable* error: the LLM mis-called the tool (bad key path, unknown enum,
  * malformed predicate) and `$content` holds the descriptive message it needs to fix the call.

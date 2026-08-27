@@ -14,7 +14,7 @@ use function Sabatier\Foundation\human_readable_value;
 /**
  * Drives the agentic loop for a single run.
  *
- * Repeatedly calls the LLM client, executes any tool calls via the ToolRegistry, and feeds
+ * Repeatedly calls the LLM client, executes any tool calls via an `LLMToolExecutor`, and feeds
  * results back into the conversation until the model explicitly completes the turn.
  * A response cut off by its output limit or refused by the model ends the run as incomplete
  * rather than being laundered into a conclusion merely because it contains no tool calls.
@@ -23,10 +23,10 @@ use function Sabatier\Foundation\human_readable_value;
  *
  * The loop also stops when it runs out of iterations, runs past its time limit, exhausts a shared execution-policy budget, needs approval for a write, or the provider fails after the client has exhausted its retries. All are reported as incomplete (`LLMRun::$isComplete`) and told apart by `LLMRun::$stopReason`; a caller that treats them alike presents unfinished work as a conclusion. A provider failure ends the run rather than propagating, so the messages and tokens already paid for survive it, and `LLMRun::$isRetryable` carries whether another attempt is worth making — a rate limit clears on its own, a rejected key does not.
  *
- * Tool failures are resolved by the registry, not here. A correctable mistake — the model
- * mis-called a tool — comes back as a failed `ToolResult` and is fed to the model as an
+ * Tool failures are resolved by the executor, not here. A correctable mistake — the model
+ * mis-called a tool — comes back as a failed `LLMToolExecutionResult` and is fed to the model as an
  * error-flagged tool message so the loop can self-correct; it is not cached, since the same
- * call may succeed once corrected. A real program fault propagates out of the registry and
+ * call may succeed once corrected. A real program fault propagates out of the executor and
  * aborts the run for the caller to handle.
  *
  * Successful calls to a read-only tool are cached for the length of the run, keyed on the tool name and arguments regardless of the order the model emitted them in, so a model that loops on one call is told what it already got back instead of paying for the call again. A tool that writes is never cached: two identical calls are two mutations the model asked for, and answering the second from the cache would silently drop one.
@@ -76,9 +76,9 @@ final class LLMAgent
                 return $this->toolList;
             }
             if ($this->canSpawnSubagents) {
-                return $this->toolList = $this->toolRegistry->list->appending($this->subagentToolDescriptor);
+                return $this->toolList = $this->toolExecutor->tools->appending($this->subagentToolDescriptor);
             }
-            return $this->toolList = $this->toolRegistry->list;
+            return $this->toolList = $this->toolExecutor->tools;
         }
     }
     /** @var float|null When the current run must stop, or `null` when it is unbounded. Set at the top of `run()` so a subagent can inherit what is left of it rather than a fresh copy of the whole limit. */
@@ -86,10 +86,11 @@ final class LLMAgent
     private readonly LLMExecutionPolicy $executionPolicy;
     private readonly LLMContextAssembler $contextAssembler;
     private readonly LLMClock $clock;
+    private readonly LLMToolExecutor $toolExecutor;
 
     /**
      * @param LLMClient $client The provider client every turn is sent through.
-     * @param ToolRegistry $toolRegistry The catalogue the model may call, and the funnel every call goes through.
+     * @param ToolRegistry|LLMToolExecutor $toolRegistry The in-process registry to adapt, or a replaceable executor that supplies and runs the model's real tools.
      * @param int $maxIterations Turns the loop may take before it gives up on the model concluding.
      * @param bool $canSpawnSubagents Whether the synthetic subagent tool is offered alongside the registry's own.
      * @param float|null $timeLimit Seconds the whole run may take, or `null` for no limit. Bounds the wall clock the iteration cap cannot: a turn that waits out a provider's backoff costs time without costing an iteration.
@@ -99,8 +100,9 @@ final class LLMAgent
      * @param LLMRunObserverFailurePolicy $observerFailurePolicy Whether an observer failure is logged and ignored or aborts the run.
      * @param LLMClock|null $clock Supplies event timestamps, durations and deadlines. Null uses the system clock.
      */
-    public function __construct(private readonly LLMClient $client, private readonly ToolRegistry $toolRegistry, private readonly int $maxIterations = 25, private readonly bool $canSpawnSubagents = true, private readonly ?float $timeLimit = null, ?LLMExecutionPolicy $executionPolicy = null, ?LLMContextAssembler $contextAssembler = null, private readonly ?LLMRunObserver $observer = null, private readonly LLMRunObserverFailurePolicy $observerFailurePolicy = LLMRunObserverFailurePolicy::bestEffort, ?LLMClock $clock = null)
+    public function __construct(private readonly LLMClient $client, ToolRegistry|LLMToolExecutor $toolRegistry, private readonly int $maxIterations = 25, private readonly bool $canSpawnSubagents = true, private readonly ?float $timeLimit = null, ?LLMExecutionPolicy $executionPolicy = null, ?LLMContextAssembler $contextAssembler = null, private readonly ?LLMRunObserver $observer = null, private readonly LLMRunObserverFailurePolicy $observerFailurePolicy = LLMRunObserverFailurePolicy::bestEffort, ?LLMClock $clock = null)
     {
+        $this->toolExecutor = $toolRegistry instanceof ToolRegistry ? new InProcessLLMToolExecutor($toolRegistry) : $toolRegistry;
         $this->executionPolicy = $executionPolicy ?? new LLMExecutionPolicy();
         $this->contextAssembler = $contextAssembler ?? new WindowedLLMContextAssembler();
         $this->clock = $clock ?? new SystemLLMClock();
@@ -198,7 +200,7 @@ final class LLMAgent
                     $this->emit(new LLMToolCallStartedEvent($runContext, $this->clock->timestamp, $iterations, $toolCall->id, $toolCall->name));
                     $toolStartedAt = $this->clock->monotonicTime;
                     $isSubagent = $this->canSpawnSubagents && $toolCall->name === self::subagentToolName;
-                    if (!$isSubagent && $this->toolRegistry->isRegistered($toolCall->name) && !$this->toolRegistry->isReadOnlyCall($toolCall->name, $toolCall->arguments) && !$this->executionPolicy->approvesWrite($toolCall)) {
+                    if (!$isSubagent && $this->toolExecutor->contains($toolCall) && !$this->toolExecutor->isReadOnly($toolCall) && !$this->executionPolicy->approvesWrite($toolCall)) {
                         $text = self::writeApprovalRequired;
                         $toolMsg = new LLMMessage(LLMMessageRole::tool, $text, toolCallId: $toolCall->id, isError: true);
                         $history->append($toolMsg);
@@ -238,7 +240,7 @@ final class LLMAgent
                                 $propagatedStopReason = $this->propagatedStopReason($subRun->stopReason);
                                 $propagatedRetryable = $subRun->isRetryable;
                             } else {
-                                $result = $this->toolRegistry->call($toolCall->name, $toolCall->arguments);
+                                $result = $this->toolExecutor->execute($toolCall);
                                 $text = $result->text;
                                 $isError = $result->isError;
                             }
@@ -248,7 +250,7 @@ final class LLMAgent
                         }
                         $disposition = $isError ? LLMToolCallDisposition::failed : LLMToolCallDisposition::executed;
                         $duration = $this->clock->monotonicTime - $toolStartedAt;
-                        if (!$isError && $this->isCacheable($toolCall->name)) {
+                        if (!$isError && $this->isCacheable($toolCall)) {
                             $toolCallCache[$cacheKey] = $text;
                         }
                     }
@@ -309,9 +311,9 @@ final class LLMAgent
      *
      * Only a tool that declares itself read-only qualifies. A tool that writes must run every time it is called: two identical `create` calls are two rows the model asked for, and serving the second from the cache silently drops the write. The synthetic subagent tool is never cacheable either — it runs a whole nested conversation, and the same task posed twice is not a repeated read.
      */
-    private function isCacheable(string $name): bool
+    private function isCacheable(LLMToolCall $call): bool
     {
-        return $name !== self::subagentToolName && $this->toolRegistry->isCacheable($name);
+        return $call->name !== self::subagentToolName && $this->toolExecutor->isCacheable($call);
     }
 
     /**
@@ -355,7 +357,7 @@ final class LLMAgent
         }
         $context = trim((string)$arguments["context"]);
         $content = $context === "" ? $task : "Task:\n$task\n\nContext:\n$context";
-        $subagent = new self($this->client, $this->toolRegistry, self::subagentMaxIterations, false, $this->remainingTime(), $this->executionPolicy, $this->contextAssembler, $this->observer, $this->observerFailurePolicy, $this->clock);
+        $subagent = new self($this->client, $this->toolExecutor, self::subagentMaxIterations, false, $this->remainingTime(), $this->executionPolicy, $this->contextAssembler, $this->observer, $this->observerFailurePolicy, $this->clock);
         return $subagent->runWithState(new ArrayClass([new LLMMessage(LLMMessageRole::user, $content)]), $parentSystemPrompt, $executionState, $runContext->child());
     }
 

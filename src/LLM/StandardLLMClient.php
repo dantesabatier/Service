@@ -72,7 +72,7 @@ final class StandardLLMClient extends LLMClient
                 $result[] = [
                     "role" => "tool",
                     "tool_call_id" => $message->toolCallId ?? "",
-                    "content" => self::toolResultText($message->content, $message->isError),
+                    "content" => $this->toolResultText($message->content, $message->isError),
                 ];
                 continue;
             }
@@ -194,11 +194,11 @@ final class StandardLLMClient extends LLMClient
         $inputTokens = (int)($usage["prompt_tokens"] ?? $usage["input_tokens"] ?? 0);
         /** @var int<0, max> $outputTokens */
         $outputTokens = (int)($usage["completion_tokens"] ?? $usage["output_tokens"] ?? 0);
-        return new LLMTurn($text, $toolCalls, $inputTokens, $outputTokens, reasoningContent: $reasoningContent, stopReason: self::stopReason($finishReason, $refusal, $text, $toolCalls));
+        return new LLMTurn($text, $toolCalls, $inputTokens, $outputTokens, reasoningContent: $reasoningContent, stopReason: $this->stopReason($finishReason, $refusal, $text, $toolCalls));
     }
 
     /** @param ArrayClass<LLMToolCall> $toolCalls */
-    private static function stopReason(?string $finishReason, mixed $refusal, ?string $text, ArrayClass $toolCalls): LLMTurnStopReason
+    private function stopReason(?string $finishReason, mixed $refusal, ?string $text, ArrayClass $toolCalls): LLMTurnStopReason
     {
         if (!$toolCalls->isEmpty) {
             return LLMTurnStopReason::toolUse;

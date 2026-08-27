@@ -50,6 +50,7 @@ use const Sabatier\CoreData\ManagedObjectObjectIDKey;
  */
 abstract class AbstractTool
 {
+    /** @var string Stable name advertised to clients and used to dispatch calls. */
     abstract public string $name {
         get;
     }
@@ -61,6 +62,7 @@ abstract class AbstractTool
     public string $description {
         get => $this->vocabulary->localize($this->name, "description") ?? $this->name;
     }
+    /** @var array<array-key, mixed> JSON Schema describing the arguments accepted by the tool. */
     abstract public array $inputSchema {
         get;
     }
@@ -72,6 +74,7 @@ abstract class AbstractTool
     public bool $isCacheable {
         get => $this->isReadOnly;
     }
+
     /** @var ToolVocabulary The vocabulary of the bundle that owns this concrete tool class. */
     private ToolVocabulary $vocabulary {
         get => $this->vocabulary ??= ToolVocabulary::forBundle(Bundle::bundleForClass(static::class));
@@ -93,11 +96,30 @@ abstract class AbstractTool
         get => $this->fieldSecurityPolicy->user;
     }
 
+    /**
+     * @param ManagedObjectContext $context The context used to execute the tool's data operations.
+     * @param ModelDescriptor $descriptor The model schema exposed to the tool.
+     */
     public function __construct(protected readonly ManagedObjectContext $context, protected readonly ModelDescriptor $descriptor)
     {
     }
 
-    /** @return ArrayClass<ContentItem> */
+    /**
+     * Whether this concrete invocation only reads state.
+     *
+     * @param Dictionary<mixed> $arguments The arguments selecting the concrete operation.
+     */
+    public function isReadOnlyCall(Dictionary $arguments): bool
+    {
+        return $this->isReadOnly;
+    }
+
+    /**
+     * Executes the tool with model-supplied arguments.
+     *
+     * @param Dictionary<mixed> $arguments The validated arguments supplied by the caller.
+     * @return ArrayClass<ContentItem> The content returned to the caller.
+     */
     abstract public function execute(Dictionary $arguments): ArrayClass;
 
     /**

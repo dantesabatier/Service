@@ -21,7 +21,7 @@ use function Sabatier\Foundation\human_readable_value;
  * Returns an `LLMRun` containing only the messages generated during
  * this run (not the input history) and the total tokens consumed.
  *
- * The loop also stops when it runs out of iterations, when it runs past its time limit, and when the provider fails after the client has exhausted its retries. All are reported as incomplete (`LLMRun::$isComplete`) and told apart by `LLMRun::$stopReason`; a caller that treats them alike presents unfinished work as a conclusion. A provider failure ends the run rather than propagating, so the messages and tokens already paid for survive it, and `LLMRun::$isRetryable` carries whether another attempt is worth making — a rate limit clears on its own, a rejected key does not.
+ * The loop also stops when it runs out of iterations, runs past its time limit, exhausts a shared execution-policy budget, needs approval for a write, or the provider fails after the client has exhausted its retries. All are reported as incomplete (`LLMRun::$isComplete`) and told apart by `LLMRun::$stopReason`; a caller that treats them alike presents unfinished work as a conclusion. A provider failure ends the run rather than propagating, so the messages and tokens already paid for survive it, and `LLMRun::$isRetryable` carries whether another attempt is worth making — a rate limit clears on its own, a rejected key does not.
  *
  * Tool failures are resolved by the registry, not here. A correctable mistake — the model
  * mis-called a tool — comes back as a failed `ToolResult` and is fed to the model as an
@@ -42,8 +42,30 @@ final class LLMAgent
     private const string subagentDeadline = "The subagent ran out of time before finishing. Narrow the task and try again.";
     private const string subagentOutputLimit = "The subagent ran out of output tokens before finishing. Narrow the task and try again.";
     private const string subagentRefusal = "The subagent refused the task. Do not present its partial output as an answer.";
+    private const string writeApprovalRequired = "This tool changes state and requires explicit user approval before it can run.";
+    private const string toolCallLimit = "The shared tool-call budget is exhausted.";
+    private const string subagentCallLimit = "The shared subagent budget is exhausted.";
+    private const string inputTokenLimit = "The shared input-token budget is exhausted.";
+    private const string outputTokenLimit = "The shared output-token budget is exhausted.";
+    private const string totalTokenLimit = "The shared total-token budget is exhausted.";
     private const int subagentMaxIterations = 8;
-    private static ?ToolDescriptor $subagentToolDescriptor = null;
+    /** @var ToolDescriptor Descriptor for the synthetic delegation tool offered only by parent agents. */
+    private ToolDescriptor $subagentToolDescriptor {
+        get => $this->subagentToolDescriptor ??= new ToolDescriptor(
+            self::subagentToolName,
+            "Launch a focused subagent with the same tool catalogue to complete one bounded task. The subagent cannot launch further subagents.",
+            [
+                "type" => "object",
+                "properties" => [
+                    "task" => ["type" => "string", "description" => "The focused task the subagent should complete."],
+                    "context" => ["type" => "string", "description" => "Optional context the subagent needs to complete the task."],
+                ],
+                "required" => ["task"],
+                "additionalProperties" => false,
+            ],
+            "Run Subagent"
+        );
+    }
     /** @var ArrayClass<ToolDescriptor> */
     private ArrayClass $toolList {
         get {
@@ -51,13 +73,14 @@ final class LLMAgent
                 return $this->toolList;
             }
             if ($this->canSpawnSubagents) {
-                return $this->toolList = $this->toolRegistry->list->appending(self::subagentToolDescriptor());
+                return $this->toolList = $this->toolRegistry->list->appending($this->subagentToolDescriptor);
             }
             return $this->toolList = $this->toolRegistry->list;
         }
     }
     /** @var float|null When the current run must stop, or `null` when it is unbounded. Set at the top of `run()` so a subagent can inherit what is left of it rather than a fresh copy of the whole limit. */
     private ?float $deadline = null;
+    private readonly LLMExecutionPolicy $executionPolicy;
 
     /**
      * @param LLMClient $client The provider client every turn is sent through.
@@ -65,9 +88,11 @@ final class LLMAgent
      * @param int $maxIterations Turns the loop may take before it gives up on the model concluding.
      * @param bool $canSpawnSubagents Whether the synthetic subagent tool is offered alongside the registry's own.
      * @param float|null $timeLimit Seconds the whole run may take, or `null` for no limit. Bounds the wall clock the iteration cap cannot: a turn that waits out a provider's backoff costs time without costing an iteration.
+     * @param LLMExecutionPolicy|null $executionPolicy Hard limits and write approvals shared with every subagent. Null uses the secure default policy.
      */
-    public function __construct(private readonly LLMClient $client, private readonly ToolRegistry $toolRegistry, private readonly int $maxIterations = 25, private readonly bool $canSpawnSubagents = true, private readonly ?float $timeLimit = null)
+    public function __construct(private readonly LLMClient $client, private readonly ToolRegistry $toolRegistry, private readonly int $maxIterations = 25, private readonly bool $canSpawnSubagents = true, private readonly ?float $timeLimit = null, ?LLMExecutionPolicy $executionPolicy = null)
     {
+        $this->executionPolicy = $executionPolicy ?? new LLMExecutionPolicy();
     }
 
     /**
@@ -79,6 +104,15 @@ final class LLMAgent
      * @throws Throwable A fatal program fault raised by a tool, left to propagate out of the run.
      */
     public function run(ArrayClass $messages, ?string $systemPrompt = null): LLMRun
+    {
+        return $this->runWithState($messages, $systemPrompt, new LLMExecutionState());
+    }
+
+    /**
+     * @param ArrayClass<LLMMessage> $messages
+     * @throws Throwable
+     */
+    private function runWithState(ArrayClass $messages, ?string $systemPrompt, LLMExecutionState $executionState): LLMRun
     {
         $history = clone $messages;
         /** @var ArrayClass<LLMMessage> $newMessages */
@@ -94,6 +128,10 @@ final class LLMAgent
         $isRetryable = true;
         $deadline = $this->deadline = $this->timeLimit === null ? null : microtime(true) + $this->timeLimit;
         while ($iterations++ < $this->maxIterations) {
+            if (($tokenStopReason = $executionState->tokenStopReason($this->executionPolicy, true)) !== null) {
+                $stopReason = $tokenStopReason;
+                break;
+            }
             if ($deadline !== null && microtime(true) >= $deadline) {
                 $stopReason = LLMRunStopReason::deadline;
                 break;
@@ -107,9 +145,14 @@ final class LLMAgent
             }
             $totalInputTokens += $turn->inputTokens;
             $totalOutputTokens += $turn->outputTokens;
+            $executionState->recordTokens($turn->inputTokens, $turn->outputTokens);
             $assistantMsg = new LLMMessage(LLMMessageRole::assistant, $turn->text, $turn->toolCalls, outputTokens: $turn->outputTokens, thinkingBlocks: $turn->thinkingBlocks, reasoningContent: $turn->reasoningContent);
             $history->append($assistantMsg);
             $newMessages->append($assistantMsg);
+            if (($tokenStopReason = $executionState->tokenStopReason($this->executionPolicy, false)) !== null) {
+                $stopReason = $tokenStopReason;
+                break;
+            }
             $ending = match ($turn->stopReason) {
                 LLMTurnStopReason::toolUse => null,
                 LLMTurnStopReason::completed => [LLMRunStopReason::done, null],
@@ -120,20 +163,44 @@ final class LLMAgent
                 [$stopReason, $isRetryable] = $ending;
                 break;
             }
+            if (($tokenStopReason = $executionState->tokenStopReason($this->executionPolicy, true)) !== null) {
+                $stopReason = $tokenStopReason;
+                break;
+            }
             foreach ($turn->toolCalls as $toolCall) {
-                $cacheKey = self::toolCallCacheKey($toolCall);
+                $isSubagent = $this->canSpawnSubagents && $toolCall->name === self::subagentToolName;
+                if (!$isSubagent && $this->toolRegistry->isRegistered($toolCall->name) && !$this->toolRegistry->isReadOnlyCall($toolCall->name, $toolCall->arguments) && !$this->executionPolicy->approvesWrite($toolCall)) {
+                    $toolMsg = new LLMMessage(LLMMessageRole::tool, self::writeApprovalRequired, toolCallId: $toolCall->id, isError: true);
+                    $history->append($toolMsg);
+                    $newMessages->append($toolMsg);
+                    $stopReason = LLMRunStopReason::writeApprovalRequired;
+                    $isRetryable = false;
+                    break 2;
+                }
+                if (($callStopReason = $executionState->consumeToolCall($this->executionPolicy, $isSubagent)) !== null) {
+                    $toolMsg = new LLMMessage(LLMMessageRole::tool, $this->stopReasonText($callStopReason), toolCallId: $toolCall->id, isError: true);
+                    $history->append($toolMsg);
+                    $newMessages->append($toolMsg);
+                    $stopReason = $callStopReason;
+                    break 2;
+                }
+                $cacheKey = $this->toolCallCacheKey($toolCall);
                 $isError = false;
+                $propagatedStopReason = null;
+                $propagatedRetryable = null;
                 $cached = $toolCallCache[$cacheKey];
                 if ($cached !== null) {
-                    $text = self::repeatedCallText($cached);
+                    $text = $this->repeatedCallText($cached);
                 } else {
-                    if ($this->canSpawnSubagents && $toolCall->name === self::subagentToolName) {
-                        $subRun = $this->runSubagent($toolCall->arguments, $systemPrompt);
+                    if ($isSubagent) {
+                        $subRun = $this->runSubagent($toolCall->arguments, $systemPrompt, $executionState);
                         $totalInputTokens += $subRun->inputTokens;
                         $totalOutputTokens += $subRun->outputTokens;
                         $answer = $this->subagentResultText($subRun);
                         $text = $answer ?? $this->subagentFailureText($subRun);
                         $isError = $answer === null;
+                        $propagatedStopReason = $this->propagatedStopReason($subRun->stopReason);
+                        $propagatedRetryable = $subRun->isRetryable;
                     } else {
                         $result = $this->toolRegistry->call($toolCall->name, $toolCall->arguments);
                         $text = $result->text;
@@ -146,16 +213,20 @@ final class LLMAgent
                 $toolMsg = new LLMMessage(LLMMessageRole::tool, $text, toolCallId: $toolCall->id, isError: $isError);
                 $history->append($toolMsg);
                 $newMessages->append($toolMsg);
+                if ($propagatedStopReason !== null) {
+                    $stopReason = $propagatedStopReason;
+                    $isRetryable = $propagatedRetryable;
+                    break 2;
+                }
+                if (($tokenStopReason = $executionState->tokenStopReason($this->executionPolicy, true)) !== null) {
+                    $stopReason = $tokenStopReason;
+                    break 2;
+                }
             }
         }
         return new LLMRun($newMessages, $totalInputTokens, $totalOutputTokens, $stopReason, $isRetryable);
     }
 
-    /**
-     * Whether a repeated call to this tool may be answered from the run's cache instead of executed again.
-     *
-     * Only a tool that declares itself read-only qualifies. A tool that writes must run every time it is called: two identical `create` calls are two rows the model asked for, and serving the second from the cache silently drops the write. The synthetic subagent tool is never cacheable either — it runs a whole nested conversation, and the same task posed twice is not a repeated read.
-     */
     /**
      * The seconds a nested run may take, or `null` when this one is unbounded.
      *
@@ -166,6 +237,11 @@ final class LLMAgent
         return $this->deadline === null ? null : max(0.0, $this->deadline - microtime(true));
     }
 
+    /**
+     * Whether a repeated call to this tool may be answered from the run's cache instead of executed again.
+     *
+     * Only a tool that declares itself read-only qualifies. A tool that writes must run every time it is called: two identical `create` calls are two rows the model asked for, and serving the second from the cache silently drops the write. The synthetic subagent tool is never cacheable either — it runs a whole nested conversation, and the same task posed twice is not a repeated read.
+     */
     private function isCacheable(string $name): bool
     {
         return $name !== self::subagentToolName && $this->toolRegistry->isCacheable($name);
@@ -181,7 +257,7 @@ final class LLMAgent
      * order. Only the top level is sorted; a nested dictionary that differs solely in ordering
      * still misses, which costs a cache hit and never a wrong one.
      */
-    private static function toolCallCacheKey(LLMToolCall $toolCall): string
+    private function toolCallCacheKey(LLMToolCall $toolCall): string
     {
         $arguments = $toolCall->arguments;
         $canonical = $arguments->keys->sort()->map(fn(string $key): string => sprintf("%s: %s", $key, human_readable_value($arguments[$key])))->join(", ");
@@ -195,7 +271,7 @@ final class LLMAgent
      * where the model is still reading closely, which is precisely the case where the repeated
      * call is most expensive.
      */
-    private static function repeatedCallText(string $cached): string
+    private function repeatedCallText(string $cached): string
     {
         return "Do not call this tool with these arguments again — you already did, and it returned:\n\n$cached";
     }
@@ -204,7 +280,7 @@ final class LLMAgent
      * @param Dictionary<mixed> $arguments
      * @throws Throwable
      */
-    private function runSubagent(Dictionary $arguments, ?string $parentSystemPrompt): LLMRun
+    private function runSubagent(Dictionary $arguments, ?string $parentSystemPrompt, LLMExecutionState $executionState): LLMRun
     {
         $task = trim((string)$arguments["task"]);
         if ($task === "") {
@@ -212,8 +288,8 @@ final class LLMAgent
         }
         $context = trim((string)$arguments["context"]);
         $content = $context === "" ? $task : "Task:\n$task\n\nContext:\n$context";
-        $subagent = new self($this->client, $this->toolRegistry, self::subagentMaxIterations, false, $this->remainingTime());
-        return $subagent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, $content)]), $parentSystemPrompt);
+        $subagent = new self($this->client, $this->toolRegistry, self::subagentMaxIterations, false, $this->remainingTime(), $this->executionPolicy);
+        return $subagent->runWithState(new ArrayClass([new LLMMessage(LLMMessageRole::user, $content)]), $parentSystemPrompt, $executionState);
     }
 
     /**
@@ -253,25 +329,34 @@ final class LLMAgent
             LLMRunStopReason::deadline => self::subagentDeadline,
             LLMRunStopReason::outputLimit => self::subagentOutputLimit,
             LLMRunStopReason::refusal => self::subagentRefusal,
+            LLMRunStopReason::toolCallLimit => self::toolCallLimit,
+            LLMRunStopReason::subagentCallLimit => self::subagentCallLimit,
+            LLMRunStopReason::inputTokenLimit => self::inputTokenLimit,
+            LLMRunStopReason::outputTokenLimit => self::outputTokenLimit,
+            LLMRunStopReason::totalTokenLimit => self::totalTokenLimit,
+            LLMRunStopReason::writeApprovalRequired => self::writeApprovalRequired,
             LLMRunStopReason::done => self::subagentNoAnswer,
         };
     }
 
-    private static function subagentToolDescriptor(): ToolDescriptor
+    private function stopReasonText(LLMRunStopReason $stopReason): string
     {
-        return self::$subagentToolDescriptor ??= new ToolDescriptor(
-            self::subagentToolName,
-            "Launch a focused subagent with the same tool catalogue to complete one bounded task. The subagent cannot launch further subagents.",
-            [
-                "type" => "object",
-                "properties" => [
-                    "task" => ["type" => "string", "description" => "The focused task the subagent should complete."],
-                    "context" => ["type" => "string", "description" => "Optional context the subagent needs to complete the task."],
-                ],
-                "required" => ["task"],
-                "additionalProperties" => false,
-            ],
-            "Run Subagent"
-        );
+        return match ($stopReason) {
+            LLMRunStopReason::toolCallLimit => self::toolCallLimit,
+            LLMRunStopReason::subagentCallLimit => self::subagentCallLimit,
+            LLMRunStopReason::inputTokenLimit => self::inputTokenLimit,
+            LLMRunStopReason::outputTokenLimit => self::outputTokenLimit,
+            LLMRunStopReason::totalTokenLimit => self::totalTokenLimit,
+            LLMRunStopReason::done, LLMRunStopReason::iterationCap, LLMRunStopReason::deadline, LLMRunStopReason::providerFailure, LLMRunStopReason::outputLimit, LLMRunStopReason::refusal, LLMRunStopReason::writeApprovalRequired => "The agent run stopped before this tool could execute.",
+        };
     }
+
+    private function propagatedStopReason(LLMRunStopReason $stopReason): ?LLMRunStopReason
+    {
+        return match ($stopReason) {
+            LLMRunStopReason::toolCallLimit, LLMRunStopReason::subagentCallLimit, LLMRunStopReason::inputTokenLimit, LLMRunStopReason::outputTokenLimit, LLMRunStopReason::totalTokenLimit, LLMRunStopReason::writeApprovalRequired => $stopReason,
+            LLMRunStopReason::done, LLMRunStopReason::iterationCap, LLMRunStopReason::deadline, LLMRunStopReason::providerFailure, LLMRunStopReason::outputLimit, LLMRunStopReason::refusal => null,
+        };
+    }
+
 }

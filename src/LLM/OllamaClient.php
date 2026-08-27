@@ -58,8 +58,7 @@ final class OllamaClient extends LLMClient
             "model" => $this->model,
             "messages" => $formattedMessages,
             "stream" => false,
-            // The native API groups runner parameters under `options`: the output cap (num_predict)
-            // and the provider settings, which may override it.
+            // The native API groups runner parameters under `options`: the output cap (num_predict) and the provider settings, which may override it.
             "options" => [...["num_predict" => $this->maxTokens], ...$this->extraBody->array],
         ];
         if (!$tools->isEmpty) {
@@ -78,11 +77,10 @@ final class OllamaClient extends LLMClient
         $result = [];
         foreach ($messages as $message) {
             if ($message->role === LLMMessageRole::tool) {
-                // Ollama pairs a result with its call by position, not by id, so the message's
-                // synthetic tool_call_id is not sent: only the content goes.
+                // Ollama pairs a result with its call by position, not by id, so the message's synthetic tool_call_id is not sent: only the content goes.
                 $result[] = [
                     "role" => "tool",
-                    "content" => self::toolResultText($message->content, $message->isError),
+                    "content" => $this->toolResultText($message->content, $message->isError),
                 ];
                 continue;
             }
@@ -156,9 +154,7 @@ final class OllamaClient extends LLMClient
             /** @var Dictionary<mixed> $fn */
             $fn = $tc["function"] ?? new Dictionary();
             $name = $fn["name"] ?? "";
-            // Ollama does not number the calls; the synthetic id only lets the agent loop pair this
-            // result with its call. `arguments` already arrives as an object, not a string, so the
-            // response decoding hands it over as a Dictionary and only its absence needs a default.
+            // Ollama does not number the calls; the synthetic id only lets the agent loop pair this result with its call. `arguments` already arrives as an object, not a string, so the response decoding hands it over as a Dictionary and only its absence needs a default.
             $id = "call_" . $index++;
             /** @var Dictionary<mixed> $arguments */
             $arguments = $fn["arguments"] ?? new Dictionary();
@@ -170,11 +166,11 @@ final class OllamaClient extends LLMClient
         $outputTokens = (int)($body["eval_count"] ?? 0);
         $finishReason = is_string($body["done_reason"]) ? $body["done_reason"] : null;
         $done = $body["done"];
-        return new LLMTurn($text, $toolCalls, $inputTokens, $outputTokens, stopReason: self::stopReason($finishReason, $done, $text, $toolCalls));
+        return new LLMTurn($text, $toolCalls, $inputTokens, $outputTokens, stopReason: $this->stopReason($finishReason, $done, $text, $toolCalls));
     }
 
     /** @param ArrayClass<LLMToolCall> $toolCalls */
-    private static function stopReason(?string $finishReason, mixed $done, ?string $text, ArrayClass $toolCalls): LLMTurnStopReason
+    private function stopReason(?string $finishReason, mixed $done, ?string $text, ArrayClass $toolCalls): LLMTurnStopReason
     {
         if (!$toolCalls->isEmpty) {
             return LLMTurnStopReason::toolUse;

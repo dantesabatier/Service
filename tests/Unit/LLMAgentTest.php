@@ -9,15 +9,18 @@ use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionMethod;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Service\LLM\LLMAgent;
 use Sabatier\Service\LLM\LLMClient;
+use Sabatier\Service\LLM\LLMExecutionPolicy;
 use Sabatier\Service\LLM\LLMMessage;
 use Sabatier\Service\LLM\LLMMessageRole;
 use Sabatier\Service\LLM\LLMProviderException;
+use Sabatier\Service\LLM\LLMRun;
 use Sabatier\Service\LLM\LLMRunStopReason;
 use Sabatier\Service\LLM\LLMToolCall;
 use Sabatier\Service\LLM\LLMTurn;
@@ -107,6 +110,18 @@ final class LLMAgentTest extends TestCase
 
         $this->assertSame("Subagent task is required.", $run->messages[1]->content);
         $this->assertTrue($run->messages[1]->isError);
+    }
+
+    #[Test]
+    public function everyRunStopReasonHasSubagentFailureGuidance(): void
+    {
+        $agent = new LLMAgent(new ScriptedTerminalTurnClient(LLMTurnStopReason::completed), new ToolRegistry(new ArrayClass()));
+        $method = new ReflectionMethod($agent, "subagentFailureText");
+
+        foreach (LLMRunStopReason::cases() as $stopReason) {
+            $run = new LLMRun(new ArrayClass([new LLMMessage(LLMMessageRole::assistant, "partial")]), stopReason: $stopReason);
+            $this->assertNotSame("", $method->invoke($agent, $run), "Missing subagent guidance for $stopReason->value.");
+        }
     }
 
     #[Test]
@@ -328,12 +343,81 @@ final class LLMAgentTest extends TestCase
     {
         $client = new ScriptedReorderedArgumentsClient("writing_tool");
         LLMAgentWritingTool::$calls = 0;
-        $agent = new LLMAgent($client, new ToolRegistry(new ArrayClass([$this->writingTool()])), 25, false);
+        $policy = new LLMExecutionPolicy(writeApproval: static fn(LLMToolCall $call): bool => $call->name === "writing_tool");
+        $agent = new LLMAgent($client, new ToolRegistry(new ArrayClass([$this->writingTool()])), 25, false, executionPolicy: $policy);
 
         $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
 
         $this->assertSame(2, LLMAgentWritingTool::$calls);
         $this->assertSame("wrote 2", $run->messages[3]->content);
+    }
+
+    #[Test]
+    public function aWritingToolWithoutApprovalIsNotExecuted(): void
+    {
+        $client = new ScriptedReorderedArgumentsClient("writing_tool");
+        LLMAgentWritingTool::$calls = 0;
+        $agent = new LLMAgent($client, new ToolRegistry(new ArrayClass([$this->writingTool()])), canSpawnSubagents: false);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        $this->assertSame(0, LLMAgentWritingTool::$calls);
+        $this->assertSame(LLMRunStopReason::writeApprovalRequired, $run->stopReason);
+        $this->assertTrue($run->messages->last->isError);
+    }
+
+    #[Test]
+    public function toolCallBudgetStopsBeforeAnotherToolRuns(): void
+    {
+        $client = new ScriptedReorderedArgumentsClient();
+        LLMAgentCountingTool::$calls = 0;
+        $policy = new LLMExecutionPolicy(maxToolCalls: 1);
+        $agent = new LLMAgent($client, new ToolRegistry(new ArrayClass([$this->countingTool()])), canSpawnSubagents: false, executionPolicy: $policy);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        $this->assertSame(1, LLMAgentCountingTool::$calls);
+        $this->assertSame(LLMRunStopReason::toolCallLimit, $run->stopReason);
+        $this->assertTrue($run->messages->last->isError);
+    }
+
+    #[Test]
+    public function subagentBudgetStopsBeforeLaunchingOne(): void
+    {
+        $client = new ScriptedSubagentClient();
+        $policy = new LLMExecutionPolicy(maxSubagentCalls: 0);
+        $agent = new LLMAgent($client, new ToolRegistry(new ArrayClass([$this->tool()])), executionPolicy: $policy);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        $this->assertSame(LLMRunStopReason::subagentCallLimit, $run->stopReason);
+        $this->assertCount(1, $client->toolNamesByCall);
+    }
+
+    #[Test]
+    public function tokenBudgetCountsParentAndSubagentTogether(): void
+    {
+        $client = new ScriptedSubagentClient();
+        $policy = new LLMExecutionPolicy(maxTotalTokens: 18);
+        $agent = new LLMAgent($client, new ToolRegistry(new ArrayClass([$this->tool()])), executionPolicy: $policy);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        $this->assertSame(LLMRunStopReason::totalTokenLimit, $run->stopReason);
+        $this->assertSame(17, $run->inputTokens);
+        $this->assertSame(5, $run->outputTokens);
+    }
+
+    #[Test]
+    public function providerTurnThatExceedsItsInputBudgetIsIncomplete(): void
+    {
+        $policy = new LLMExecutionPolicy(maxInputTokens: 2);
+        $agent = new LLMAgent(new ScriptedTerminalTurnClient(LLMTurnStopReason::completed), new ToolRegistry(new ArrayClass()), canSpawnSubagents: false, executionPolicy: $policy);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        $this->assertSame(LLMRunStopReason::inputTokenLimit, $run->stopReason);
+        $this->assertFalse($run->isComplete);
     }
 
     private function writingTool(): AbstractTool
@@ -862,6 +946,10 @@ final class LLMAgentProbeTool extends AbstractTool
     #[\Override]
     public string $description {
         get => "Probe tool.";
+    }
+    #[Override]
+    public bool $isReadOnly {
+        get => true;
     }
     #[\Override]
     public array $inputSchema {

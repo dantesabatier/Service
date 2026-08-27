@@ -23,21 +23,7 @@ use const Sabatier\Service\PersistentHistoryTransactionNumberKey;
 use const Sabatier\Service\ServiceResponseCountKey;
 use const Sabatier\Service\ServiceResponseStatusKey;
 
-/**
- * Fetches or purges the Core Data persistent history change log.
- *
- * This tool is the MCP-facing interface over the same abstraction the HTTP
- * `/history` endpoint exposes: it translates the tool arguments into the exact
- * factory calls `PersistentHistoryChangeRequestAdapter` performs, executes the
- * resulting `PersistentHistoryChangeRequest`, and serializes the outcome.
- * Argument precedence and result shaping mirror the adapter and the
- * fetch/delete response strategies. Authorization over the `history` resource
- * — the gate `AuthorizationEvaluator` applies to the `/history` route by URL —
- * is enforced here per call, since the MCP request URL never names the
- * resource: `read` for fetch, `delete` for purge.
- *
- * @internal
- */
+/** @internal */
 final class PersistentHistoryTool extends AbstractTool
 {
     private const array operations = ["fetch", "purge"];
@@ -78,6 +64,12 @@ final class PersistentHistoryTool extends AbstractTool
             ],
             "required" => ["operation"],
         ];
+    }
+
+    #[Override]
+    public function isReadOnlyCall(Dictionary $arguments): bool
+    {
+        return $arguments["operation"] === "fetch";
     }
 
     /**

@@ -85,8 +85,9 @@ final class LLMClientRetryTest extends TestCase
 
     private function isRetryable(int $statusCode): bool
     {
+        $client = new StandardLLMClient();
         /** @var bool */
-        return new ReflectionMethod(StandardLLMClient::class, "isRetryable")->invoke(null, $statusCode);
+        return new ReflectionMethod($client, "isRetryable")->invoke($client, $statusCode);
     }
 
     private function retryDelay(StandardLLMClient $client, int $attempt, ?HTTPURLResponse $response): float

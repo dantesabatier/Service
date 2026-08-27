@@ -32,12 +32,12 @@ final class ToolRegistry
                 return $carry;
             });
     }
-    /** @var ArrayClass<ToolDescriptor> */
+    /** @var ArrayClass<ToolDescriptor> Descriptors advertised to the model in registry order. */
     public ArrayClass $list {
         get => $this->list ??= $this->tools->map(fn(AbstractTool $tool) => new ToolDescriptor($tool->name, $tool->description, $tool->inputSchema, $tool->title));
     }
 
-    /** @param ArrayClass<AbstractTool> $toolList */
+    /** @param ArrayClass<AbstractTool> $toolList The resolved tool implementations to register by name. */
     public function __construct(private readonly ArrayClass $toolList)
     {
     }
@@ -52,6 +52,27 @@ final class ToolRegistry
     public function isCacheable(string $name): bool
     {
         return $this->tools[$name]?->isCacheable ?? false;
+    }
+
+    /**
+     * Whether the registry contains a tool with the supplied name.
+     *
+     * @param string $name The name to look up.
+     */
+    public function isRegistered(string $name): bool
+    {
+        return $this->tools[$name] instanceof AbstractTool;
+    }
+
+    /**
+     * Whether the named concrete invocation only reads state.
+     *
+     * @param string $name The registered tool name.
+     * @param Dictionary<mixed> $arguments The arguments selecting the concrete operation.
+     */
+    public function isReadOnlyCall(string $name, Dictionary $arguments): bool
+    {
+        return $this->tools[$name]?->isReadOnlyCall($arguments) ?? false;
     }
 
     /**
@@ -82,14 +103,14 @@ final class ToolRegistry
         try {
             /** @var AbstractTool $tool */
             $tool = $this->tools[$name] ?? throw new ToolNotFoundException("Unknown tool: $name");
-            $complaint = self::schemaComplaint($tool, $arguments);
+            $complaint = $this->schemaComplaint($tool, $arguments);
             if ($complaint !== null) {
                 return ToolResult::failure($complaint);
             }
             return ToolResult::success($tool->execute($arguments));
         } catch (InternalInconsistencyException $exception) {
             error_log((string)$exception);
-            $reason = self::reason($exception);
+            $reason = $this->reason($exception);
             return ToolResult::failure($exception instanceof ForbiddenException ? trim($reason . " " . localized_string("Do not retry this call.")) : $reason);
         }
     }
@@ -104,7 +125,7 @@ final class ToolRegistry
      * @param AbstractTool $tool The tool the call is bound for.
      * @param Dictionary<mixed> $arguments The arguments supplied by the model.
      */
-    private static function schemaComplaint(AbstractTool $tool, Dictionary $arguments): ?string
+    private function schemaComplaint(AbstractTool $tool, Dictionary $arguments): ?string
     {
         $schema = $tool->inputSchema;
         $properties = $schema["properties"] ?? null;
@@ -124,11 +145,7 @@ final class ToolRegistry
         return $missing->isEmpty ? null : sprintf(localized_string("%s requires %s. Supply it and call again."), $tool->name, implode(", ", $missing->array));
     }
 
-    /**
-     * The failure as the model should read it: the exception's own message when it carries one,
-     * and otherwise the reason off its `Error`, which is where Core Data puts the detail.
-     */
-    private static function reason(InternalInconsistencyException $exception): string
+    private function reason(InternalInconsistencyException $exception): string
     {
         $error = $exception->error;
         return $exception->getMessage() ?: ($error->localizedFailureReason ?? $error->localizedDescription);

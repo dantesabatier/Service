@@ -68,6 +68,7 @@ abstract class LLMClient
     /**
      * @param ArrayClass<LLMMessage> $messages
      * @param ArrayClass<ToolDescriptor> $tools
+     * @param string|null $systemPrompt
      */
     abstract protected function buildRequest(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): URLRequest;
 
@@ -82,6 +83,7 @@ abstract class LLMClient
      *
      * @param ArrayClass<LLMMessage> $messages
      * @param ArrayClass<ToolDescriptor> $tools
+     * @param string|null $systemPrompt
      */
     public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
     {
@@ -110,14 +112,14 @@ abstract class LLMClient
                 $response = $urlResponse;
             })->resume();
             $statusCode = $response instanceof HTTPURLResponse ? $response->statusCode : null;
-            if (!($error instanceof Error) && $statusCode !== null && !self::isRetryable($statusCode)) {
-                $statusCode < HTTPStatusCode::badRequest ?: throw new LLMProviderException(self::failureReason($statusCode, $data));
+            if (!($error instanceof Error) && $statusCode !== null && !$this->isRetryable($statusCode)) {
+                $statusCode < HTTPStatusCode::badRequest ?: throw new LLMProviderException($this->failureReason($statusCode, $data));
                 $decoded = json_decode((string)$data);
-                is_object($decoded) || is_array($decoded) ?: throw new LLMProviderException(self::failureReason($statusCode, $data), true);
+                is_object($decoded) || is_array($decoded) ?: throw new LLMProviderException($this->failureReason($statusCode, $data), true);
                 return Dictionary::dictionaryWithArray($decoded, false);
             }
             if ($attempt >= $this->maximumRetryCount) {
-                $error instanceof Error ? throw new LLMProviderException((string)$error->localizedFailureReason ?: self::failureReason($statusCode, $data), true, $error) : throw new LLMProviderException(self::failureReason($statusCode, $data), true);
+                $error instanceof Error ? throw new LLMProviderException((string)$error->localizedFailureReason ?: $this->failureReason($statusCode, $data), true, $error) : throw new LLMProviderException($this->failureReason($statusCode, $data), true);
             }
             usleep((int)round($this->retryDelay($attempt++, $response) * 1_000_000.0));
         }
@@ -128,9 +130,10 @@ abstract class LLMClient
      *
      * Anthropic carries the distinction natively (`is_error`), so a failed result stays recognisable there. The OpenAI and Ollama tool messages have no such field, and without a marker in the text a failure reaches the model looking exactly like a successful result — so it treats the error message as the answer instead of correcting the call. The prefix restores what the format drops.
      *
+     * @param string|null $content The tool result text, or `null` when the tool returned none.
      * @param bool $isError Whether the tool call this message reports failed.
      */
-    protected static function toolResultText(?string $content, bool $isError): string
+    protected function toolResultText(?string $content, bool $isError): string
     {
         $text = $content ?? "";
         return $isError ? "Error: $text" : $text;
@@ -141,13 +144,12 @@ abstract class LLMClient
      *
      * Rate limiting and the 5xx family are transient by definition. A 4xx the caller caused — a bad key, an unknown model, a malformed body — returns the same answer however many times it is asked, so retrying it only delays the error. `requestTimeout` is the one 4xx that is about timing rather than the request's content.
      */
-    private static function isRetryable(int $statusCode): bool
+    private function isRetryable(int $statusCode): bool
     {
         return $statusCode === HTTPStatusCode::tooManyRequests || $statusCode === HTTPStatusCode::requestTimeout || $statusCode >= HTTPStatusCode::internalServerError;
     }
 
-    /** Describes a failed response in terms the caller can act on, preferring the provider's own words when it sent any. */
-    private static function failureReason(?int $statusCode, ?string $data): string
+    private function failureReason(?int $statusCode, ?string $data): string
     {
         $body = trim((string)$data);
         $reason = $statusCode === null ? "The LLM provider returned no response" : sprintf("The LLM provider returned HTTP %d", $statusCode);

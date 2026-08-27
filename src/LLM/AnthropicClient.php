@@ -183,11 +183,11 @@ final class AnthropicClient extends LLMClient
         /** @var int<0, max> $outputTokens */
         $outputTokens = (int)($usage["output_tokens"] ?? 0);
         $finishReason = is_string($body["stop_reason"]) ? $body["stop_reason"] : null;
-        return new LLMTurn($text, $toolCalls, $inputTokens, $outputTokens, $thinkingBlocks->isEmpty ? null : $thinkingBlocks, stopReason: self::stopReason($finishReason, $text, $toolCalls));
+        return new LLMTurn($text, $toolCalls, $inputTokens, $outputTokens, $thinkingBlocks->isEmpty ? null : $thinkingBlocks, stopReason: $this->stopReason($finishReason, $text, $toolCalls));
     }
 
     /** @param ArrayClass<LLMToolCall> $toolCalls */
-    private static function stopReason(?string $finishReason, ?string $text, ArrayClass $toolCalls): LLMTurnStopReason
+    private function stopReason(?string $finishReason, ?string $text, ArrayClass $toolCalls): LLMTurnStopReason
     {
         if (!$toolCalls->isEmpty) {
             return LLMTurnStopReason::toolUse;

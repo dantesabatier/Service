@@ -13,4 +13,10 @@ enum LLMRunStopReason: string
     case providerFailure = "providerFailure";
     case outputLimit = "outputLimit";
     case refusal = "refusal";
+    case toolCallLimit = "toolCallLimit";
+    case subagentCallLimit = "subagentCallLimit";
+    case inputTokenLimit = "inputTokenLimit";
+    case outputTokenLimit = "outputTokenLimit";
+    case totalTokenLimit = "totalTokenLimit";
+    case writeApprovalRequired = "writeApprovalRequired";
 }

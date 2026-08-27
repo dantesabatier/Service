@@ -10,7 +10,7 @@ use Sabatier\Foundation\Dictionary;
 /**
  * The aggregate result of a complete agentic run: all messages generated after the initial input, and the total tokens consumed across every turn.
  *
- * `$isComplete` answers the one question most callers have — is this an answer or not — and `$stopReason` says which ending produced it, because a provider failure, output limit, refusal, deadline and iteration cap call for different corrections.
+ * `$isComplete` answers the one question most callers have — is this an answer or not — and `$stopReason` says which ending produced it, because a provider failure, output limit, refusal, deadline, iteration cap, execution budget and write-approval boundary call for different corrections.
  *
  * `$isRetryable` answers a separate question the stop reason cannot: whether running the same thing again is worth the tokens. The two are deliberately apart. They vary independently — a provider failure is worth retrying when it was a 429 and pointless when it was a bad API key, and the same split will apply to a deadline the caller can afford to raise. Folding the answer into `$stopReason` would double its cases for every ending that gains the distinction.
  *
@@ -20,6 +20,7 @@ use Sabatier\Foundation\Dictionary;
  */
 final class LLMRun
 {
+    /** @var bool Whether the model concluded the run with a complete assistant response. */
     public readonly bool $isComplete;
     /** @var ArrayClass<LLMToolCallResult> Every tool call the model made, rejoined with the result that came back for it, in the order the calls were made. The run stores the two apart, as the wire format does: a call rides on an assistant message and its result arrives later as a `tool` message keyed by `toolCallId`. A call the run stopped before answering keeps a `null` content rather than being left out, so the caller sees that it was made. */
     public ArrayClass $toolCallResults {

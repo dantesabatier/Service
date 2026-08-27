@@ -12,6 +12,14 @@ free to change. This section collects what will become the 1.0.0 notes.
 
 ### Security
 
+- Agent tool calls that may change state are now denied unless an
+  `LLMExecutionPolicy` approves that concrete call. The same policy applies to
+  subagents, and mixed tools such as persistent history classify the selected
+  operation rather than the tool as a whole.
+- Agent and subagent runs now share hard budgets for tool calls, subagent
+  launches, input tokens, output tokens and total tokens. Reaching a limit
+  produces a distinct `LLMRunStopReason` instead of relying on a prompt to make
+  the model stop.
 - The synthetic `run_subagent` tool let the model replace the inherited system
   prompt while keeping the parent's real tool catalogue. Subagents now inherit
   the parent prompt exactly; the override is no longer advertised or read.
@@ -46,6 +54,10 @@ free to change. This section collects what will become the 1.0.0 notes.
 
 ### Added
 
+- `LLMExecutionPolicy`, the application-supplied boundary for shared agent
+  budgets and per-call write approval.
+- `AbstractTool::isReadOnlyCall()`, allowing a tool whose arguments select
+  between reads and writes to classify the concrete invocation.
 - `FileTransferPolicy`, resolving where an upload may be written and which file a
   download may read — the counterpart of `StaticResourcePolicy` for the transfer
   surface, deferring to it on the read side. Configured through

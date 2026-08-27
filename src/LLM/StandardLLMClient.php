@@ -180,11 +180,7 @@ final class StandardLLMClient extends LLMClient
             foreach ($calls as $tc) {
                 /** @var Dictionary<mixed> $fn */
                 $fn = $tc["function"] ?? new Dictionary();
-                $id = $tc["id"] ?? "";
-                $name = $fn["name"] ?? "";
-                // `{}` rather than `[]` as the fallback: a call without arguments is an empty object, and `[]` would yield an ArrayClass where the registry expects a Dictionary.
-                $arguments = Dictionary::dictionaryWithArray(json_decode($fn["arguments"] ?? "{}") ?? new stdClass(), false);
-                $toolCalls->append(new LLMToolCall($id, $name, $arguments));
+                $toolCalls->append($this->toolCallParser->parseEncoded($tc["id"], $fn["name"], $fn["arguments"]));
             }
             break;
         }

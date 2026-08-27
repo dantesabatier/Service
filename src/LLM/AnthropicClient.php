@@ -171,7 +171,7 @@ final class AnthropicClient extends LLMClient
         foreach ($content as $block) {
             match ($block["type"]) {
                 "text" => $text = ($text ?? "") . (string)$block["text"],
-                "tool_use" => $toolCalls->append(new LLMToolCall($block["id"] ?? "", $block["name"] ?? "", $block["input"] ?? new Dictionary())),
+                "tool_use" => $toolCalls->append($this->toolCallParser->parseObject($block["id"], $block["name"], $block["input"])),
                 "thinking" => $thinkingBlocks->append(new Dictionary(["type" => "thinking", "thinking" => (string)($block["thinking"] ?? ""), "signature" => (string)($block["signature"] ?? "")])),
                 default => null,
             };

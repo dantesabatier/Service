@@ -98,6 +98,11 @@ free to change. This section collects what will become the 1.0.0 notes.
 
 ### Fixed
 
+- Standard treated malformed JSON tool arguments as an empty object, allowing a
+  different call from the one the model emitted to reach the registry. Tool
+  calls from every provider now pass through `LLMToolCallParser`, which requires
+  a non-empty identity and an argument object while leaving domain value
+  validation to the tool.
 - Nothing reaches `parse` as an empty body any more, which used to produce a
   turn with no text and no tool calls — the same shape as a model that decided
   to stop — so a failed run was reported as complete. Both doors are closed: a

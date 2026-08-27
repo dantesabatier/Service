@@ -49,6 +49,10 @@ abstract class LLMClient
         get => $this->extraBody ??= new Dictionary();
     }
 
+    protected LLMToolCallParser $toolCallParser {
+        get => $this->toolCallParser ??= new LLMToolCallParser();
+    }
+
     /** @var URLSession The session used to send requests, configured with {@see LLMClient::$timeoutIntervalForRequest} rather than reusing {@see URLSession::shared()}, whose default timeout is too short for local models. */
     private URLSession $session {
         get => $this->session ??= new URLSession(clone(URLSessionConfiguration::default(), [

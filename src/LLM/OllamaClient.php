@@ -156,9 +156,8 @@ final class OllamaClient extends LLMClient
             $name = $fn["name"] ?? "";
             // Ollama does not number the calls; the synthetic id only lets the agent loop pair this result with its call. `arguments` already arrives as an object, not a string, so the response decoding hands it over as a Dictionary and only its absence needs a default.
             $id = "call_" . $index++;
-            /** @var Dictionary<mixed> $arguments */
-            $arguments = $fn["arguments"] ?? new Dictionary();
-            $toolCalls->append(new LLMToolCall($id, $name, $arguments));
+            $arguments = array_key_exists("arguments", $fn->array) ? $fn["arguments"] : new Dictionary();
+            $toolCalls->append($this->toolCallParser->parseObject($id, $name, $arguments));
         }
         /** @var int<0, max> $inputTokens */
         $inputTokens = (int)($body["prompt_eval_count"] ?? 0);

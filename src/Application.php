@@ -324,8 +324,8 @@ class Application extends Responder
         }
         foreach ($limits as $key => $limit) {
             /** @var int $limit */
-            $count = $this->rateLimitStore->increment((string)$key, $policy->windowSeconds);
-            $ttl = $this->rateLimitStore->ttl((string)$key);
+            $count = $this->rateLimitStore->increment($key, $policy->windowSeconds);
+            $ttl = $this->rateLimitStore->ttl($key);
             $remaining = max(0, $limit - $count);
             if ($this->rateLimitInfo === null || $remaining < $this->rateLimitInfo->remaining) {
                 $this->rateLimitInfo = new RateLimitInfo($limit, $remaining, time() + $ttl);

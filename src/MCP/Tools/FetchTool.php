@@ -71,9 +71,18 @@ final class FetchTool extends AbstractTool
         }
         $results = $this->context->fetch($request);
         $serialized = $this->serializeResults($results, $shape);
-        return $this->jsonResult(["rowCount" => $results->count, "summary" => $this->buildSummary($entity, $arguments, $results->count), "results" => $serialized]);
+        return $this->jsonResult(["rowCount" => $results->count, "results" => $serialized, "summary" => $this->buildSummary($entity, $arguments, $results->count)]);
     }
 
+    /**
+     * Restates the call and its outcome for the model, in the words it used to make the call.
+     *
+     * It is placed last in the result, after the rows, deliberately: a model attends most to the beginning and the end of what it is given, and the summary is where the "this is the whole answer, do not run the same query again" instruction lives. Ahead of the rows it lands in the middle — the one position that gets read least, and precisely where a long result set buries it.
+     *
+     * @param string $entityName The entity the fetch ran against.
+     * @param Dictionary<mixed> $arguments The arguments the call was made with.
+     * @param int $rowCount How many rows came back.
+     */
     private function buildSummary(string $entityName, Dictionary $arguments, int $rowCount): string
     {
         $parts = new ArrayClass(["Fetched $entityName"]);

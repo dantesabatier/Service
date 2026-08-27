@@ -82,12 +82,46 @@ final class ToolRegistry
         try {
             /** @var AbstractTool $tool */
             $tool = $this->tools[$name] ?? throw new ToolNotFoundException("Unknown tool: $name");
+            $complaint = self::schemaComplaint($tool, $arguments);
+            if ($complaint !== null) {
+                return ToolResult::failure($complaint);
+            }
             return ToolResult::success($tool->execute($arguments));
         } catch (InternalInconsistencyException $exception) {
             error_log((string)$exception);
             $reason = self::reason($exception);
             return ToolResult::failure($exception instanceof ForbiddenException ? trim($reason . " " . localized_string("Do not retry this call.")) : $reason);
         }
+    }
+
+    /**
+     * What is wrong with the arguments before the tool is asked to run, or `null` when nothing is.
+     *
+     * A key the schema does not declare is the failure worth catching: the tool reads the ones it knows and ignores the rest, so `filter` where `predicate` was meant produces a fetch with no filter at all — every row, returned as though it were the answer, with nothing to suggest the call was misread. Naming the unknown key and listing the accepted ones is what lets the model fix it; silence is what makes it believe the result.
+     *
+     * A missing required key is checked in the same pass. The intent is to catch the model's own mistakes, not to police the schema: a tool whose schema declares no properties accepts anything, and a value's type is left to the tool, which reports a type it cannot use in terms of its own domain.
+     *
+     * @param AbstractTool $tool The tool the call is bound for.
+     * @param Dictionary<mixed> $arguments The arguments supplied by the model.
+     */
+    private static function schemaComplaint(AbstractTool $tool, Dictionary $arguments): ?string
+    {
+        $schema = $tool->inputSchema;
+        $properties = $schema["properties"] ?? null;
+        if (!is_array($properties) || $properties === []) {
+            return null;
+        }
+        /** @var ArrayClass<string> $unknown */
+        $unknown = new ArrayClass(array_keys($arguments->array))->compactMap(fn(mixed $key): ?string => is_string($key) && !array_key_exists($key, $properties) ? $key : null);
+        if (!$unknown->isEmpty) {
+            $accepted = implode(", ", array_keys($properties));
+            return sprintf(localized_string("%s does not accept %s. Accepted arguments: %s. Re-read the tool's schema and call it again."), $tool->name, implode(", ", $unknown->array), $accepted);
+        }
+        /** @var list<string> $required */
+        $required = is_array($schema["required"] ?? null) ? $schema["required"] : [];
+        /** @var ArrayClass<string> $missing */
+        $missing = new ArrayClass($required)->compactMap(fn(string $key): ?string => $arguments[$key] === null ? $key : null);
+        return $missing->isEmpty ? null : sprintf(localized_string("%s requires %s. Supply it and call again."), $tool->name, implode(", ", $missing->array));
     }
 
     /**

@@ -44,12 +44,12 @@ final class GroupByTool extends AbstractTool
             "properties" => [
                 "entity" => ["type" => "string", "description" => "Always required. Entity name from the data model — call describe_model first if unsure."],
                 "group_by" => ["type" => "array", "description" => "Property key paths to group by. Only plain property names or dot-notation key paths (e.g. \"status\", \"customer.name\"). No transforms or expressions."],
-                "aggregates" => ["type" => "array", "description" => "Aggregate functions to compute per group. Each item: {\"function\": \"sum|average|min|max|count\", \"property\": \"keyPath\", \"as\": \"resultName\"}."],
-                "predicate" => ["type" => "string"],
-                "arguments" => ["type" => "array"],
-                "having_predicate" => ["type" => "string"],
-                "having_arguments" => ["type" => "array"],
-                "sort" => ["type" => "array"],
+                "aggregates" => ["type" => "array", "description" => "Aggregate functions to compute per group. Each item: {\"function\": \"sum|average|min|max|count\", \"property\": \"keyPath\", \"as\": \"resultName\"}. E.g. [{\"function\": \"sum\", \"property\": \"total\", \"as\": \"revenue\"}, {\"function\": \"count\", \"property\": \"objectID\", \"as\": \"orders\"}]."],
+                "predicate" => ["type" => "string", "description" => "Filters the rows BEFORE grouping, in NSPredicate format. E.g. \"%K >= %@\"."],
+                "arguments" => ["type" => "array", "description" => "Positional arguments for the predicate placeholders, one per placeholder in order."],
+                "having_predicate" => ["type" => "string", "description" => "Filters the groups AFTER aggregating, by the names given in \"as\". E.g. \"%K > %d\" with having_arguments [\"revenue\", 1000] keeps only groups whose summed total exceeds 1000. Filter raw rows with \"predicate\" instead — a key path that is not an aggregate result does not exist at this stage."],
+                "having_arguments" => ["type" => "array", "description" => "Positional arguments for the having_predicate placeholders, one per placeholder in order."],
+                "sort" => ["type" => "array", "description" => "Sort descriptors over the grouped rows, by a group_by key path or an aggregate name. E.g. [{\"key\": \"revenue\", \"ascending\": false}]."],
                 "limit" => ["type" => "integer", "description" => "Maximum rows to return. Omit to return all matching rows."],
                 "offset" => ["type" => "integer"],
             ],
@@ -93,7 +93,7 @@ final class GroupByTool extends AbstractTool
         $rows = $this->context->fetch($request);
         $groupByPaths = $arguments["group_by"];
         $normalized = $rows->map(fn(Dictionary $row): Dictionary => $this->normalizeRow($row, $groupByPaths));
-        return $this->jsonResult(["rowCount" => $rows->count, "summary" => $this->buildSummary($entity, $arguments, $rows->count), "results" => $normalized]);
+        return $this->jsonResult(["rowCount" => $rows->count, "results" => $normalized, "summary" => $this->buildSummary($entity, $arguments, $rows->count)]);
     }
 
     private function buildSummary(string $entityName, Dictionary $arguments, int $rowCount): string

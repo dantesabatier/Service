@@ -14,15 +14,25 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Service\LLM\LLMAgent;
 use Sabatier\Service\LLM\LLMClient;
-use Sabatier\Service\LLM\LLMContext;
+use Sabatier\Service\LLM\LLMClock;
 use Sabatier\Service\LLM\LLMExecutionPolicy;
 use Sabatier\Service\LLM\LLMMessage;
 use Sabatier\Service\LLM\LLMMessageRole;
-use Sabatier\Service\LLM\LLMRun;
-use Sabatier\Service\LLM\LLMRunContext;
+use Sabatier\Service\LLM\LLMModelTurnFailedEvent;
+use Sabatier\Service\LLM\LLMModelTurnFinishedEvent;
+use Sabatier\Service\LLM\LLMModelTurnStartedEvent;
+use Sabatier\Service\LLM\LLMProviderException;
+use Sabatier\Service\LLM\LLMRunEvent;
+use Sabatier\Service\LLM\LLMRunFailedEvent;
+use Sabatier\Service\LLM\LLMRunFinishedEvent;
 use Sabatier\Service\LLM\LLMRunObserver;
+use Sabatier\Service\LLM\LLMRunObserverFailurePolicy;
+use Sabatier\Service\LLM\LLMRunStartedEvent;
 use Sabatier\Service\LLM\LLMRunStopReason;
 use Sabatier\Service\LLM\LLMToolCall;
+use Sabatier\Service\LLM\LLMToolCallDisposition;
+use Sabatier\Service\LLM\LLMToolCallFinishedEvent;
+use Sabatier\Service\LLM\LLMToolCallStartedEvent;
 use Sabatier\Service\LLM\LLMTurn;
 use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
@@ -35,111 +45,219 @@ final class LLMRunObserverTest extends TestCase
     public function observerSeesEveryBoundaryOfASingleRunInOrder(): void
     {
         $observer = new RecordingRunObserver();
-        $agent = new LLMAgent(new ScriptedObservedClient(), new ToolRegistry(new ArrayClass([$this->tool()])), 25, false, null, null, null, $observer);
+        $agent = new LLMAgent(new ScriptedObservedClient(), new ToolRegistry(new ArrayClass([$this->tool()])), canSpawnSubagents: false, observer: $observer);
 
         $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]), "system");
 
         $this->assertSame(LLMRunStopReason::done, $run->stopReason);
         $this->assertSame([
-            "runWillStart",
-            "iterationWillStart:1",
-            "iterationDidEnd:1",
-            "toolCallDidEnd:1:probe_tool",
-            "iterationWillStart:2",
-            "iterationDidEnd:2",
-            "runDidEnd:done",
-        ], $observer->events);
+            LLMRunStartedEvent::class,
+            LLMModelTurnStartedEvent::class,
+            LLMModelTurnFinishedEvent::class,
+            LLMToolCallStartedEvent::class,
+            LLMToolCallFinishedEvent::class,
+            LLMModelTurnStartedEvent::class,
+            LLMModelTurnFinishedEvent::class,
+            LLMRunFinishedEvent::class,
+        ], array_map(fn(LLMRunEvent $event): string => $event::class, $observer->events));
     }
 
-    /**
-     * The assembled context reaches the observer before the provider sees it, which is what lets a
-     * caller report that history was dropped rather than discovering it from a shorter answer.
-     */
     #[Test]
-    public function iterationReportsTheAssembledContextItIsAboutToSend(): void
+    public function eventsCarryScalarSnapshotsInsteadOfLiveLoopObjects(): void
     {
         $observer = new RecordingRunObserver();
-        $agent = new LLMAgent(new ScriptedObservedClient(), new ToolRegistry(new ArrayClass([$this->tool()])), 25, false, null, null, null, $observer);
+        $agent = new LLMAgent(new ScriptedObservedClient(), new ToolRegistry(new ArrayClass([$this->tool()])), canSpawnSubagents: false, observer: $observer);
 
         $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]), "system");
 
-        $this->assertSame("system", $observer->assembledContexts[0]->systemPrompt);
-        $this->assertSame(1, $observer->assembledContexts[0]->messages->count);
-        $this->assertSame(3, $observer->assembledContexts[1]->messages->count);
+        /** @var LLMRunStartedEvent $started */
+        $started = $observer->eventsOf(LLMRunStartedEvent::class)[0];
+        /** @var LLMModelTurnStartedEvent $firstTurn */
+        $firstTurn = $observer->eventsOf(LLMModelTurnStartedEvent::class)[0];
+        /** @var LLMModelTurnFinishedEvent $finishedTurn */
+        $finishedTurn = $observer->eventsOf(LLMModelTurnFinishedEvent::class)[0];
+        $this->assertSame(1, $started->messageCount);
+        $this->assertTrue($started->hasSystemPrompt);
+        $this->assertSame(1, $firstTurn->messageCount);
+        $this->assertSame(0, $firstTurn->omittedMessageCount);
+        $this->assertFalse($firstTurn->wasCompacted);
+        $this->assertSame(5, $finishedTurn->inputTokens);
+        $this->assertSame(2, $finishedTurn->outputTokens);
+        $this->assertSame(1, $finishedTurn->toolCallCount);
+        $this->assertGreaterThanOrEqual(0.0, $finishedTurn->duration);
     }
 
-    /**
-     * A repeated call never reaches the tool, so without this event nothing explains why the model
-     * asked for it and no execution followed.
-     */
     #[Test]
-    public function cachedToolCallIsReportedAsCachedWithNoDuration(): void
+    public function toolOutcomesDistinguishExecutionFromCache(): void
     {
         $observer = new RecordingRunObserver();
-        $agent = new LLMAgent(new ScriptedRepeatingClient(), new ToolRegistry(new ArrayClass([$this->tool()])), 25, false, null, null, null, $observer);
+        $agent = new LLMAgent(new ScriptedRepeatingClient(), new ToolRegistry(new ArrayClass([$this->tool()])), canSpawnSubagents: false, observer: $observer);
 
         $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]), null);
 
-        $this->assertSame([false, true], $observer->toolCallWasCached);
-        $this->assertSame(0.0, $observer->toolCallDurations[1]);
-        $this->assertGreaterThanOrEqual(0.0, $observer->toolCallDurations[0]);
+        /** @var list<LLMToolCallFinishedEvent> $events */
+        $events = $observer->eventsOf(LLMToolCallFinishedEvent::class);
+        $this->assertSame(LLMToolCallDisposition::executed, $events[0]->disposition);
+        $this->assertSame(LLMToolCallDisposition::cached, $events[1]->disposition);
+        $this->assertGreaterThanOrEqual(0.0, $events[0]->duration);
+        $this->assertSame(0.0, $events[1]->duration);
+    }
+
+    #[Test]
+    public function injectedClockMakesEventTimestampsAndDurationsDeterministic(): void
+    {
+        $observer = new RecordingRunObserver();
+        $agent = new LLMAgent(new ScriptedObservedClient(), new ToolRegistry(new ArrayClass([$this->tool()])), canSpawnSubagents: false, observer: $observer, clock: new AdvancingRunClock());
+
+        $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        /** @var LLMModelTurnFinishedEvent $turn */
+        $turn = $observer->eventsOf(LLMModelTurnFinishedEvent::class)[0];
+        /** @var LLMToolCallFinishedEvent $tool */
+        $tool = $observer->eventsOf(LLMToolCallFinishedEvent::class)[0];
+        $this->assertSame(1700000000.0, $observer->events[0]->timestamp);
+        $this->assertSame(0.25, $turn->duration);
+        $this->assertSame(0.25, $tool->duration);
     }
 
     #[Test]
     public function subagentReportsUnderItsOwnIdentifierNamingItsParent(): void
     {
         $observer = new RecordingRunObserver();
-        $agent = new LLMAgent(new ScriptedObservedSubagentClient(), new ToolRegistry(new ArrayClass([$this->tool()])), 25, true, null, null, null, $observer);
+        $agent = new LLMAgent(new ScriptedObservedSubagentClient(), new ToolRegistry(new ArrayClass([$this->tool()])), observer: $observer);
 
         $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "parent task")]), "system");
 
-        $contexts = $observer->startedContexts;
-        $this->assertCount(2, $contexts);
-        $this->assertNull($contexts[0]->parentIdentifier);
-        $this->assertFalse($contexts[0]->isSubagent);
-        $this->assertSame(0, $contexts[0]->depth);
-        $this->assertSame($contexts[0]->identifier, $contexts[1]->parentIdentifier);
-        $this->assertTrue($contexts[1]->isSubagent);
-        $this->assertSame(1, $contexts[1]->depth);
-        $this->assertNotSame($contexts[0]->identifier, $contexts[1]->identifier);
+        /** @var list<LLMRunStartedEvent> $events */
+        $events = $observer->eventsOf(LLMRunStartedEvent::class);
+        $parent = $events[0]->context;
+        $child = $events[1]->context;
+        $this->assertNull($parent->parentIdentifier);
+        $this->assertFalse($parent->isSubagent);
+        $this->assertSame(0, $parent->depth);
+        $this->assertSame($parent->identifier, $child->parentIdentifier);
+        $this->assertTrue($child->isSubagent);
+        $this->assertSame(1, $child->depth);
+        $this->assertNotSame($parent->identifier, $child->identifier);
     }
 
-    /**
-     * The subagent's own ending is reported to the observer even though the parent only ever sees
-     * its answer as a tool result.
-     */
     #[Test]
     public function bothRunsReportTheirOwnEnding(): void
     {
         $observer = new RecordingRunObserver();
-        $agent = new LLMAgent(new ScriptedObservedSubagentClient(), new ToolRegistry(new ArrayClass([$this->tool()])), 25, true, null, null, null, $observer);
+        $agent = new LLMAgent(new ScriptedObservedSubagentClient(), new ToolRegistry(new ArrayClass([$this->tool()])), observer: $observer);
 
         $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "parent task")]), "system");
 
-        $this->assertCount(2, $observer->endedRuns);
-        $this->assertSame("sub answer", $observer->endedRuns[0]->messages->last->content);
-        $this->assertSame("parent done", $observer->endedRuns[1]->messages->last->content);
+        /** @var list<LLMRunFinishedEvent> $events */
+        $events = $observer->eventsOf(LLMRunFinishedEvent::class);
+        $this->assertCount(2, $events);
+        $this->assertTrue($events[0]->context->isSubagent);
+        $this->assertFalse($events[1]->context->isSubagent);
+        $this->assertSame(LLMRunStopReason::done, $events[0]->stopReason);
+        $this->assertSame(LLMRunStopReason::done, $events[1]->stopReason);
     }
 
-    /** A run stopped by a budget still ends, so the observer must be told why rather than left waiting. */
     #[Test]
-    public function runStoppedByABudgetReportsItsEnding(): void
+    public function budgetRejectedToolCallReportsItsOwnOutcomeAndRunEnding(): void
     {
         $observer = new RecordingRunObserver();
         $policy = new LLMExecutionPolicy(maxToolCalls: 0);
-        $agent = new LLMAgent(new ScriptedObservedClient(), new ToolRegistry(new ArrayClass([$this->tool()])), 25, false, null, $policy, null, $observer);
+        $agent = new LLMAgent(new ScriptedObservedClient(), new ToolRegistry(new ArrayClass([$this->tool()])), canSpawnSubagents: false, executionPolicy: $policy, observer: $observer);
 
         $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]), null);
 
+        /** @var LLMToolCallFinishedEvent $toolEvent */
+        $toolEvent = $observer->eventsOf(LLMToolCallFinishedEvent::class)[0];
+        /** @var LLMRunFinishedEvent $runEvent */
+        $runEvent = $observer->eventsOf(LLMRunFinishedEvent::class)[0];
         $this->assertSame(LLMRunStopReason::toolCallLimit, $run->stopReason);
-        $this->assertSame("runDidEnd:toolCallLimit", $observer->events[array_key_last($observer->events)]);
+        $this->assertSame(LLMToolCallDisposition::budgetExceeded, $toolEvent->disposition);
+        $this->assertSame(LLMRunStopReason::toolCallLimit, $runEvent->stopReason);
     }
 
-    /** The observer is optional: every existing caller constructs an agent without one. */
+    #[Test]
+    public function deniedWriteReportsItsOwnOutcome(): void
+    {
+        $observer = new RecordingRunObserver();
+        $agent = new LLMAgent(new ScriptedObservedWritingClient(), new ToolRegistry(new ArrayClass([$this->writingTool()])), canSpawnSubagents: false, observer: $observer);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        /** @var LLMToolCallFinishedEvent $event */
+        $event = $observer->eventsOf(LLMToolCallFinishedEvent::class)[0];
+        $this->assertSame(LLMRunStopReason::writeApprovalRequired, $run->stopReason);
+        $this->assertSame(LLMToolCallDisposition::denied, $event->disposition);
+        $this->assertGreaterThanOrEqual(0.0, $event->duration);
+    }
+
+    #[Test]
+    public function providerFailureClosesTheTurnAndReturnsANormalFailedRun(): void
+    {
+        $observer = new RecordingRunObserver();
+        $agent = new LLMAgent(new ScriptedObservedProviderFailureClient(), new ToolRegistry(new ArrayClass()), canSpawnSubagents: false, observer: $observer);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        $this->assertSame(LLMRunStopReason::providerFailure, $run->stopReason);
+        $this->assertCount(1, $observer->eventsOf(LLMModelTurnFailedEvent::class));
+        $this->assertCount(1, $observer->eventsOf(LLMRunFinishedEvent::class));
+        $this->assertCount(0, $observer->eventsOf(LLMRunFailedEvent::class));
+    }
+
+    #[Test]
+    public function unexpectedToolFailureClosesTheToolAndTheRun(): void
+    {
+        $observer = new RecordingRunObserver();
+        $agent = new LLMAgent(new ScriptedObservedExplodingToolClient(), new ToolRegistry(new ArrayClass([$this->explodingTool()])), canSpawnSubagents: false, observer: $observer);
+
+        try {
+            $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+            $this->fail("The tool failure should escape the run.");
+        } catch (LogicException $exception) {
+            $this->assertSame("tool exploded", $exception->getMessage());
+        }
+
+        /** @var LLMToolCallFinishedEvent $toolEvent */
+        $toolEvent = $observer->eventsOf(LLMToolCallFinishedEvent::class)[0];
+        /** @var LLMRunFailedEvent $runEvent */
+        $runEvent = $observer->eventsOf(LLMRunFailedEvent::class)[0];
+        $this->assertSame(LLMToolCallDisposition::failed, $toolEvent->disposition);
+        $this->assertSame(LogicException::class, $runEvent->errorType);
+    }
+
+    #[Test]
+    public function bestEffortObserverFailureDoesNotChangeTheRun(): void
+    {
+        $observer = new FailingOnceRunObserver();
+        $agent = new LLMAgent(new ScriptedObservedClient(), new ToolRegistry(new ArrayClass([$this->tool()])), canSpawnSubagents: false, observer: $observer);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        $this->assertTrue($run->isComplete);
+        $this->assertCount(1, $observer->eventsOf(LLMRunFinishedEvent::class));
+    }
+
+    #[Test]
+    public function strictObserverFailureAbortsAndEmitsAFailedRunBestEffort(): void
+    {
+        $observer = new FailingOnceRunObserver();
+        $agent = new LLMAgent(new ScriptedObservedClient(), new ToolRegistry(new ArrayClass([$this->tool()])), canSpawnSubagents: false, observer: $observer, observerFailurePolicy: LLMRunObserverFailurePolicy::strict);
+
+        try {
+            $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+            $this->fail("Strict observer failure should escape the run.");
+        } catch (LogicException $exception) {
+            $this->assertSame("observer exploded", $exception->getMessage());
+        }
+
+        $this->assertCount(1, $observer->eventsOf(LLMRunFailedEvent::class));
+    }
+
     #[Test]
     public function runWithoutAnObserverBehavesIdentically(): void
     {
-        $agent = new LLMAgent(new ScriptedObservedClient(), new ToolRegistry(new ArrayClass([$this->tool()])), 25, false);
+        $agent = new LLMAgent(new ScriptedObservedClient(), new ToolRegistry(new ArrayClass([$this->tool()])), canSpawnSubagents: false);
 
         $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]), "system");
 
@@ -151,6 +269,18 @@ final class LLMRunObserverTest extends TestCase
     {
         /** @var AbstractTool */
         return new ReflectionClass(ObservedProbeTool::class)->newInstanceWithoutConstructor();
+    }
+
+    private function writingTool(): AbstractTool
+    {
+        /** @var AbstractTool */
+        return new ReflectionClass(ObservedWritingTool::class)->newInstanceWithoutConstructor();
+    }
+
+    private function explodingTool(): AbstractTool
+    {
+        /** @var AbstractTool */
+        return new ReflectionClass(ObservedExplodingTool::class)->newInstanceWithoutConstructor();
     }
 }
 
@@ -184,54 +314,127 @@ final class ObservedProbeTool extends AbstractTool
     }
 }
 
+final class ObservedWritingTool extends AbstractTool
+{
+    #[Override]
+    public string $name {
+        get => "writing_tool";
+    }
+    #[Override]
+    public string $description {
+        get => "Writing tool.";
+    }
+    #[Override]
+    public array $inputSchema {
+        get => ["type" => "object", "properties" => []];
+    }
+
+    /**
+     * @param Dictionary<mixed> $arguments
+     * @return ArrayClass<ContentItem>
+     */
+    #[Override]
+    public function execute(Dictionary $arguments): ArrayClass
+    {
+        return new ArrayClass([new ContentItem("text", "written")]);
+    }
+}
+
+final class ObservedExplodingTool extends AbstractTool
+{
+    #[Override]
+    public string $name {
+        get => "exploding_tool";
+    }
+    #[Override]
+    public string $description {
+        get => "Exploding tool.";
+    }
+    #[Override]
+    public bool $isReadOnly {
+        get => true;
+    }
+    #[Override]
+    public array $inputSchema {
+        get => ["type" => "object", "properties" => []];
+    }
+
+    /**
+     * @param Dictionary<mixed> $arguments
+     * @return ArrayClass<ContentItem>
+     */
+    #[Override]
+    public function execute(Dictionary $arguments): ArrayClass
+    {
+        throw new LogicException("tool exploded");
+    }
+}
+
 final class RecordingRunObserver implements LLMRunObserver
 {
-    /** @var list<string> */
+    /** @var list<LLMRunEvent> */
     public array $events = [];
-    /** @var list<LLMRunContext> */
-    public array $startedContexts = [];
-    /** @var list<LLMContext> */
-    public array $assembledContexts = [];
-    /** @var list<bool> */
-    public array $toolCallWasCached = [];
-    /** @var list<float> */
-    public array $toolCallDurations = [];
-    /** @var list<LLMRun> */
-    public array $endedRuns = [];
 
     #[Override]
-    public function runWillStart(LLMRunContext $context): void
+    public function observe(LLMRunEvent $event): void
     {
-        $this->events[] = "runWillStart";
-        $this->startedContexts[] = $context;
+        $this->events[] = $event;
+    }
+
+    /**
+     * @param class-string<LLMRunEvent> $class
+     * @return list<LLMRunEvent>
+     */
+    public function eventsOf(string $class): array
+    {
+        return array_values(array_filter($this->events, fn(LLMRunEvent $event): bool => $event instanceof $class));
+    }
+}
+
+final class FailingOnceRunObserver implements LLMRunObserver
+{
+    private bool $hasFailed = false;
+    private RecordingRunObserver $recording;
+
+    public function __construct()
+    {
+        $this->recording = new RecordingRunObserver();
     }
 
     #[Override]
-    public function iterationWillStart(LLMRunContext $context, int $iteration, LLMContext $assembled): void
+    public function observe(LLMRunEvent $event): void
     {
-        $this->events[] = "iterationWillStart:$iteration";
-        $this->assembledContexts[] = $assembled;
+        if (!$this->hasFailed) {
+            $this->hasFailed = true;
+            throw new LogicException("observer exploded");
+        }
+        $this->recording->observe($event);
     }
 
-    #[Override]
-    public function iterationDidEnd(LLMRunContext $context, int $iteration, LLMTurn $turn): void
+    /**
+     * @param class-string<LLMRunEvent> $class
+     * @return list<LLMRunEvent>
+     */
+    public function eventsOf(string $class): array
     {
-        $this->events[] = "iterationDidEnd:$iteration";
+        return $this->recording->eventsOf($class);
     }
+}
+
+final class AdvancingRunClock implements LLMClock
+{
+    private float $time = 0.0;
 
     #[Override]
-    public function toolCallDidEnd(LLMRunContext $context, int $iteration, LLMToolCall $call, string $result, bool $isError, bool $wasCached, float $duration): void
-    {
-        $this->events[] = "toolCallDidEnd:$iteration:$call->name";
-        $this->toolCallWasCached[] = $wasCached;
-        $this->toolCallDurations[] = $duration;
+    public float $timestamp {
+        get => 1700000000.0;
     }
-
     #[Override]
-    public function runDidEnd(LLMRunContext $context, LLMRun $run): void
-    {
-        $this->events[] = "runDidEnd:{$run->stopReason->value}";
-        $this->endedRuns[] = $run;
+    public float $monotonicTime {
+        get {
+            $this->time += 0.25;
+            return $this->time;
+        }
     }
 }
 
@@ -280,6 +483,45 @@ final class ScriptedObservedClient extends ScriptedObserverClient
             1 => new LLMTurn("done", new ArrayClass(), 4, 3),
             default => throw new LogicException("Unexpected LLM call."),
         };
+    }
+}
+
+final class ScriptedObservedWritingClient extends ScriptedObserverClient
+{
+    /**
+     * @param ArrayClass<LLMMessage> $messages
+     * @param ArrayClass<ToolDescriptor> $tools
+     */
+    #[Override]
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    {
+        return new LLMTurn(null, new ArrayClass([new LLMToolCall("write-1", "writing_tool", new Dictionary())]));
+    }
+}
+
+final class ScriptedObservedExplodingToolClient extends ScriptedObserverClient
+{
+    /**
+     * @param ArrayClass<LLMMessage> $messages
+     * @param ArrayClass<ToolDescriptor> $tools
+     */
+    #[Override]
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    {
+        return new LLMTurn(null, new ArrayClass([new LLMToolCall("explode-1", "exploding_tool", new Dictionary())]));
+    }
+}
+
+final class ScriptedObservedProviderFailureClient extends ScriptedObserverClient
+{
+    /**
+     * @param ArrayClass<LLMMessage> $messages
+     * @param ArrayClass<ToolDescriptor> $tools
+     */
+    #[Override]
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    {
+        throw new LLMProviderException("provider unavailable", true);
     }
 }
 

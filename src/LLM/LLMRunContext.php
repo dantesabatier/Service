@@ -7,11 +7,11 @@ namespace Sabatier\Service\LLM;
 use Sabatier\Foundation\UUID;
 
 /**
- * Identifies one run to an observer, and names the run that launched it when it is a subagent.
+ * Identifies one run to an observer and names the run that launched it when it is a subagent.
  *
- * A parent and its subagents share the client, the registry, the execution budgets and the wall
+ * A parent and its subagents share the client, the registry, the execution budgets, and the wall
  * clock, so their events interleave in whatever an observer writes them to. The identifier tells
- * them apart and `$parentIdentifier` puts them back together: a subagent's tool calls belong to
+ * them apart, and `$parentIdentifier` puts them back together: a subagent's tool calls belong to
  * the work its parent asked for, not to some unrelated activity that happened at the same time.
  *
  * `$depth` is what a reader nests by without walking the parentage — zero for the run a caller

@@ -31,7 +31,7 @@ use function Sabatier\Foundation\human_readable_value;
  *
  * Successful calls to a read-only tool are cached for the length of the run, keyed on the tool name and arguments regardless of the order the model emitted them in, so a model that loops on one call is told what it already got back instead of paying for the call again. A tool that writes is never cached: two identical calls are two mutations the model asked for, and answering the second from the cache would silently drop one.
  *
- * An `LLMRunObserver` watches the loop while it runs. `LLMRun` reports what a finished run cost and why it stopped; the observer reports what only the loop can see — which iteration a tool call belonged to, how long it took, whether the cache answered it, and which subagent did the work — and reports it before the run returns, which is what lets a caller stream progress instead of blocking on the whole thing. Subagents inherit it and report under their own `LLMRunContext`, naming the parent that launched them.
+ * An `LLMRunObserver` receives immutable events while the loop runs. `LLMRun` reports what a finished run cost and why it stopped; the events report what only the loop can see — span boundaries, iteration numbers, durations, cache outcomes and subagent ancestry — before the run returns. They contain scalar snapshots rather than mutable loop objects and omit prompts, tool arguments and results. Subagents inherit the observer and report under their own `LLMRunContext`, naming the parent that launched them. Observer delivery is synchronous and best-effort by default, so a broken telemetry sink does not change the agent result; strict delivery is opt-in.
  */
 final class LLMAgent
 {
@@ -85,6 +85,7 @@ final class LLMAgent
     private ?float $deadline = null;
     private readonly LLMExecutionPolicy $executionPolicy;
     private readonly LLMContextAssembler $contextAssembler;
+    private readonly LLMClock $clock;
 
     /**
      * @param LLMClient $client The provider client every turn is sent through.
@@ -94,12 +95,15 @@ final class LLMAgent
      * @param float|null $timeLimit Seconds the whole run may take, or `null` for no limit. Bounds the wall clock the iteration cap cannot: a turn that waits out a provider's backoff costs time without costing an iteration.
      * @param LLMExecutionPolicy|null $executionPolicy Hard limits and write approvals shared with every subagent. Null uses the secure default policy.
      * @param LLMContextAssembler|null $contextAssembler Formats and bounds the history sent on every model turn. Null preserves the complete history.
-     * @param LLMRunObserver|null $observer Watches the loop as it runs, and is inherited by every subagent. Null reports nothing.
+     * @param LLMRunObserver|null $observer Receives structured loop events and is inherited by every subagent. Null reports nothing.
+     * @param LLMRunObserverFailurePolicy $observerFailurePolicy Whether an observer failure is logged and ignored or aborts the run.
+     * @param LLMClock|null $clock Supplies event timestamps, durations and deadlines. Null uses the system clock.
      */
-    public function __construct(private readonly LLMClient $client, private readonly ToolRegistry $toolRegistry, private readonly int $maxIterations = 25, private readonly bool $canSpawnSubagents = true, private readonly ?float $timeLimit = null, ?LLMExecutionPolicy $executionPolicy = null, ?LLMContextAssembler $contextAssembler = null, private readonly ?LLMRunObserver $observer = null)
+    public function __construct(private readonly LLMClient $client, private readonly ToolRegistry $toolRegistry, private readonly int $maxIterations = 25, private readonly bool $canSpawnSubagents = true, private readonly ?float $timeLimit = null, ?LLMExecutionPolicy $executionPolicy = null, ?LLMContextAssembler $contextAssembler = null, private readonly ?LLMRunObserver $observer = null, private readonly LLMRunObserverFailurePolicy $observerFailurePolicy = LLMRunObserverFailurePolicy::bestEffort, ?LLMClock $clock = null)
     {
         $this->executionPolicy = $executionPolicy ?? new LLMExecutionPolicy();
         $this->contextAssembler = $contextAssembler ?? new WindowedLLMContextAssembler();
+        $this->clock = $clock ?? new SystemLLMClock();
     }
 
     /**
@@ -121,8 +125,7 @@ final class LLMAgent
      */
     private function runWithState(ArrayClass $messages, ?string $systemPrompt, LLMExecutionState $executionState, LLMRunContext $runContext): LLMRun
     {
-        $this->observer?->runWillStart($runContext);
-        $history = clone $messages;
+        $runStartedAt = $this->clock->monotonicTime;
         /** @var ArrayClass<LLMMessage> $newMessages */
         $newMessages = new ArrayClass();
         /** @var int<0, max> $totalInputTokens */
@@ -134,118 +137,143 @@ final class LLMAgent
         $iterations = 0;
         $stopReason = LLMRunStopReason::iterationCap;
         $isRetryable = true;
-        $deadline = $this->deadline = $this->timeLimit === null ? null : microtime(true) + $this->timeLimit;
-        while ($iterations++ < $this->maxIterations) {
-            if (($tokenStopReason = $executionState->tokenStopReason($this->executionPolicy, true)) !== null) {
-                $stopReason = $tokenStopReason;
-                break;
-            }
-            if ($deadline !== null && microtime(true) >= $deadline) {
-                $stopReason = LLMRunStopReason::deadline;
-                break;
-            }
-            $context = $this->contextAssembler->assemble($history, $this->toolList, $systemPrompt);
-            if (!$context->isWithinLimit) {
-                $stopReason = LLMRunStopReason::contextLimit;
-                $isRetryable = false;
-                break;
-            }
-            $this->observer?->iterationWillStart($runContext, $iterations, $context);
-            try {
-                $turn = $this->client->complete($context->messages, $this->toolList, $context->systemPrompt);
-            } catch (LLMProviderException $exception) {
-                $stopReason = LLMRunStopReason::providerFailure;
-                $isRetryable = $exception->isTransient;
-                break;
-            }
-            $this->observer?->iterationDidEnd($runContext, $iterations, $turn);
-            $totalInputTokens += $turn->inputTokens;
-            $totalOutputTokens += $turn->outputTokens;
-            $executionState->recordTokens($turn->inputTokens, $turn->outputTokens);
-            $assistantMsg = new LLMMessage(LLMMessageRole::assistant, $turn->text, $turn->toolCalls, outputTokens: $turn->outputTokens, thinkingBlocks: $turn->thinkingBlocks, reasoningContent: $turn->reasoningContent);
-            $history->append($assistantMsg);
-            $newMessages->append($assistantMsg);
-            if (($tokenStopReason = $executionState->tokenStopReason($this->executionPolicy, false)) !== null) {
-                $stopReason = $tokenStopReason;
-                break;
-            }
-            $ending = match ($turn->stopReason) {
-                LLMTurnStopReason::toolUse => null,
-                LLMTurnStopReason::completed => [LLMRunStopReason::done, null],
-                LLMTurnStopReason::outputLimit => [LLMRunStopReason::outputLimit, true],
-                LLMTurnStopReason::refusal => [LLMRunStopReason::refusal, false],
-            };
-            if ($ending !== null) {
-                [$stopReason, $isRetryable] = $ending;
-                break;
-            }
-            if (($tokenStopReason = $executionState->tokenStopReason($this->executionPolicy, true)) !== null) {
-                $stopReason = $tokenStopReason;
-                break;
-            }
-            foreach ($turn->toolCalls as $toolCall) {
-                $isSubagent = $this->canSpawnSubagents && $toolCall->name === self::subagentToolName;
-                if (!$isSubagent && $this->toolRegistry->isRegistered($toolCall->name) && !$this->toolRegistry->isReadOnlyCall($toolCall->name, $toolCall->arguments) && !$this->executionPolicy->approvesWrite($toolCall)) {
-                    $toolMsg = new LLMMessage(LLMMessageRole::tool, self::writeApprovalRequired, toolCallId: $toolCall->id, isError: true);
-                    $history->append($toolMsg);
-                    $newMessages->append($toolMsg);
-                    $stopReason = LLMRunStopReason::writeApprovalRequired;
+        try {
+            $this->emit(new LLMRunStartedEvent($runContext, $this->clock->timestamp, $messages->count, $systemPrompt !== null));
+            $history = clone $messages;
+            $deadline = $this->deadline = $this->timeLimit === null ? null : $this->clock->monotonicTime + $this->timeLimit;
+            while ($iterations++ < $this->maxIterations) {
+                if (($tokenStopReason = $executionState->tokenStopReason($this->executionPolicy, true)) !== null) {
+                    $stopReason = $tokenStopReason;
+                    break;
+                }
+                if ($deadline !== null && $this->clock->monotonicTime >= $deadline) {
+                    $stopReason = LLMRunStopReason::deadline;
+                    break;
+                }
+                $context = $this->contextAssembler->assemble($history, $this->toolList, $systemPrompt);
+                if (!$context->isWithinLimit) {
+                    $stopReason = LLMRunStopReason::contextLimit;
                     $isRetryable = false;
-                    break 2;
+                    break;
                 }
-                if (($callStopReason = $executionState->consumeToolCall($this->executionPolicy, $isSubagent)) !== null) {
-                    $toolMsg = new LLMMessage(LLMMessageRole::tool, $this->stopReasonText($callStopReason), toolCallId: $toolCall->id, isError: true);
-                    $history->append($toolMsg);
-                    $newMessages->append($toolMsg);
-                    $stopReason = $callStopReason;
-                    break 2;
+                $this->emit(new LLMModelTurnStartedEvent($runContext, $this->clock->timestamp, $iterations, $context->messages->count, $context->omittedMessageCount, $context->wasCompacted));
+                $turnStartedAt = $this->clock->monotonicTime;
+                try {
+                    $turn = $this->client->complete($context->messages, $this->toolList, $context->systemPrompt);
+                } catch (LLMProviderException $exception) {
+                    $this->emit(new LLMModelTurnFailedEvent($runContext, $this->clock->timestamp, $iterations, $exception::class, $exception->getMessage(), $this->clock->monotonicTime - $turnStartedAt));
+                    $stopReason = LLMRunStopReason::providerFailure;
+                    $isRetryable = $exception->isTransient;
+                    break;
+                } catch (Throwable $exception) {
+                    $this->emit(new LLMModelTurnFailedEvent($runContext, $this->clock->timestamp, $iterations, $exception::class, $exception->getMessage(), $this->clock->monotonicTime - $turnStartedAt));
+                    throw $exception;
                 }
-                $cacheKey = $this->toolCallCacheKey($toolCall);
-                $isError = false;
-                $propagatedStopReason = null;
-                $propagatedRetryable = null;
-                $cached = $toolCallCache[$cacheKey];
-                $wasCached = $cached !== null;
-                $startedAt = microtime(true);
-                if ($cached !== null) {
-                    $text = $this->repeatedCallText($cached);
-                } else {
-                    if ($isSubagent) {
-                        $subRun = $this->runSubagent($toolCall->arguments, $systemPrompt, $executionState, $runContext);
-                        $totalInputTokens += $subRun->inputTokens;
-                        $totalOutputTokens += $subRun->outputTokens;
-                        $answer = $this->subagentResultText($subRun);
-                        $text = $answer ?? $this->subagentFailureText($subRun);
-                        $isError = $answer === null;
-                        $propagatedStopReason = $this->propagatedStopReason($subRun->stopReason);
-                        $propagatedRetryable = $subRun->isRetryable;
-                    } else {
-                        $result = $this->toolRegistry->call($toolCall->name, $toolCall->arguments);
-                        $text = $result->text;
-                        $isError = $result->isError;
-                    }
-                    if (!$isError && $this->isCacheable($toolCall->name)) {
-                        $toolCallCache[$cacheKey] = $text;
-                    }
+                $this->emit(new LLMModelTurnFinishedEvent($runContext, $this->clock->timestamp, $iterations, $turn->inputTokens, $turn->outputTokens, $turn->stopReason, $turn->toolCalls->count, $this->clock->monotonicTime - $turnStartedAt));
+                $totalInputTokens += $turn->inputTokens;
+                $totalOutputTokens += $turn->outputTokens;
+                $executionState->recordTokens($turn->inputTokens, $turn->outputTokens);
+                $assistantMsg = new LLMMessage(LLMMessageRole::assistant, $turn->text, $turn->toolCalls, outputTokens: $turn->outputTokens, thinkingBlocks: $turn->thinkingBlocks, reasoningContent: $turn->reasoningContent);
+                $history->append($assistantMsg);
+                $newMessages->append($assistantMsg);
+                if (($tokenStopReason = $executionState->tokenStopReason($this->executionPolicy, false)) !== null) {
+                    $stopReason = $tokenStopReason;
+                    break;
                 }
-                $this->observer?->toolCallDidEnd($runContext, $iterations, $toolCall, $text, $isError, $wasCached, $wasCached ? 0.0 : microtime(true) - $startedAt);
-                $toolMsg = new LLMMessage(LLMMessageRole::tool, $text, toolCallId: $toolCall->id, isError: $isError);
-                $history->append($toolMsg);
-                $newMessages->append($toolMsg);
-                if ($propagatedStopReason !== null) {
-                    $stopReason = $propagatedStopReason;
-                    $isRetryable = $propagatedRetryable;
-                    break 2;
+                $ending = match ($turn->stopReason) {
+                    LLMTurnStopReason::toolUse => null,
+                    LLMTurnStopReason::completed => [LLMRunStopReason::done, null],
+                    LLMTurnStopReason::outputLimit => [LLMRunStopReason::outputLimit, true],
+                    LLMTurnStopReason::refusal => [LLMRunStopReason::refusal, false],
+                };
+                if ($ending !== null) {
+                    [$stopReason, $isRetryable] = $ending;
+                    break;
                 }
                 if (($tokenStopReason = $executionState->tokenStopReason($this->executionPolicy, true)) !== null) {
                     $stopReason = $tokenStopReason;
-                    break 2;
+                    break;
+                }
+                foreach ($turn->toolCalls as $toolCall) {
+                    $this->emit(new LLMToolCallStartedEvent($runContext, $this->clock->timestamp, $iterations, $toolCall->id, $toolCall->name));
+                    $toolStartedAt = $this->clock->monotonicTime;
+                    $isSubagent = $this->canSpawnSubagents && $toolCall->name === self::subagentToolName;
+                    if (!$isSubagent && $this->toolRegistry->isRegistered($toolCall->name) && !$this->toolRegistry->isReadOnlyCall($toolCall->name, $toolCall->arguments) && !$this->executionPolicy->approvesWrite($toolCall)) {
+                        $text = self::writeApprovalRequired;
+                        $toolMsg = new LLMMessage(LLMMessageRole::tool, $text, toolCallId: $toolCall->id, isError: true);
+                        $history->append($toolMsg);
+                        $newMessages->append($toolMsg);
+                        $this->emit(new LLMToolCallFinishedEvent($runContext, $this->clock->timestamp, $iterations, $toolCall->id, $toolCall->name, LLMToolCallDisposition::denied, strlen($text), $this->clock->monotonicTime - $toolStartedAt));
+                        $stopReason = LLMRunStopReason::writeApprovalRequired;
+                        $isRetryable = false;
+                        break 2;
+                    }
+                    if (($callStopReason = $executionState->consumeToolCall($this->executionPolicy, $isSubagent)) !== null) {
+                        $text = $this->stopReasonText($callStopReason);
+                        $toolMsg = new LLMMessage(LLMMessageRole::tool, $text, toolCallId: $toolCall->id, isError: true);
+                        $history->append($toolMsg);
+                        $newMessages->append($toolMsg);
+                        $this->emit(new LLMToolCallFinishedEvent($runContext, $this->clock->timestamp, $iterations, $toolCall->id, $toolCall->name, LLMToolCallDisposition::budgetExceeded, strlen($text), $this->clock->monotonicTime - $toolStartedAt));
+                        $stopReason = $callStopReason;
+                        break 2;
+                    }
+                    $cacheKey = $this->toolCallCacheKey($toolCall);
+                    $isError = false;
+                    $propagatedStopReason = null;
+                    $propagatedRetryable = null;
+                    $cached = $toolCallCache[$cacheKey];
+                    if ($cached !== null) {
+                        $text = $this->repeatedCallText($cached);
+                        $disposition = LLMToolCallDisposition::cached;
+                        $duration = 0.0;
+                    } else {
+                        try {
+                            if ($isSubagent) {
+                                $subRun = $this->runSubagent($toolCall->arguments, $systemPrompt, $executionState, $runContext);
+                                $totalInputTokens += $subRun->inputTokens;
+                                $totalOutputTokens += $subRun->outputTokens;
+                                $answer = $this->subagentResultText($subRun);
+                                $text = $answer ?? $this->subagentFailureText($subRun);
+                                $isError = $answer === null;
+                                $propagatedStopReason = $this->propagatedStopReason($subRun->stopReason);
+                                $propagatedRetryable = $subRun->isRetryable;
+                            } else {
+                                $result = $this->toolRegistry->call($toolCall->name, $toolCall->arguments);
+                                $text = $result->text;
+                                $isError = $result->isError;
+                            }
+                        } catch (Throwable $exception) {
+                            $this->emit(new LLMToolCallFinishedEvent($runContext, $this->clock->timestamp, $iterations, $toolCall->id, $toolCall->name, LLMToolCallDisposition::failed, 0, $this->clock->monotonicTime - $toolStartedAt));
+                            throw $exception;
+                        }
+                        $disposition = $isError ? LLMToolCallDisposition::failed : LLMToolCallDisposition::executed;
+                        $duration = $this->clock->monotonicTime - $toolStartedAt;
+                        if (!$isError && $this->isCacheable($toolCall->name)) {
+                            $toolCallCache[$cacheKey] = $text;
+                        }
+                    }
+                    $this->emit(new LLMToolCallFinishedEvent($runContext, $this->clock->timestamp, $iterations, $toolCall->id, $toolCall->name, $disposition, strlen($text), $duration));
+                    $toolMsg = new LLMMessage(LLMMessageRole::tool, $text, toolCallId: $toolCall->id, isError: $isError);
+                    $history->append($toolMsg);
+                    $newMessages->append($toolMsg);
+                    if ($propagatedStopReason !== null) {
+                        $stopReason = $propagatedStopReason;
+                        $isRetryable = $propagatedRetryable;
+                        break 2;
+                    }
+                    if (($tokenStopReason = $executionState->tokenStopReason($this->executionPolicy, true)) !== null) {
+                        $stopReason = $tokenStopReason;
+                        break 2;
+                    }
                 }
             }
+            $run = new LLMRun($newMessages, $totalInputTokens, $totalOutputTokens, $stopReason, $isRetryable);
+            $this->emit(new LLMRunFinishedEvent($runContext, $this->clock->timestamp, $run->stopReason, $run->isComplete, $run->isRetryable, $run->messages->count, $run->inputTokens, $run->outputTokens, $this->clock->monotonicTime - $runStartedAt));
+            return $run;
+        } catch (Throwable $exception) {
+            $this->emit(new LLMRunFailedEvent($runContext, $this->clock->timestamp, $exception::class, $exception->getMessage(), $totalInputTokens, $totalOutputTokens, $this->clock->monotonicTime - $runStartedAt), false);
+            throw $exception;
         }
-        $run = new LLMRun($newMessages, $totalInputTokens, $totalOutputTokens, $stopReason, $isRetryable);
-        $this->observer?->runDidEnd($runContext, $run);
-        return $run;
     }
 
     /**
@@ -255,7 +283,25 @@ final class LLMAgent
      */
     private function remainingTime(): ?float
     {
-        return $this->deadline === null ? null : max(0.0, $this->deadline - microtime(true));
+        return $this->deadline === null ? null : max(0.0, $this->deadline - $this->clock->monotonicTime);
+    }
+
+    /**
+     * @throws Throwable
+     */
+    private function emit(LLMRunEvent $event, bool $honorFailurePolicy = true): void
+    {
+        if ($this->observer === null) {
+            return;
+        }
+        try {
+            $this->observer->observe($event);
+        } catch (Throwable $exception) {
+            if ($honorFailurePolicy && $this->observerFailurePolicy === LLMRunObserverFailurePolicy::strict) {
+                throw $exception;
+            }
+            error_log("LLM run observer failed: {$exception->getMessage()}");
+        }
     }
 
     /**
@@ -309,7 +355,7 @@ final class LLMAgent
         }
         $context = trim((string)$arguments["context"]);
         $content = $context === "" ? $task : "Task:\n$task\n\nContext:\n$context";
-        $subagent = new self($this->client, $this->toolRegistry, self::subagentMaxIterations, false, $this->remainingTime(), $this->executionPolicy, $this->contextAssembler, $this->observer);
+        $subagent = new self($this->client, $this->toolRegistry, self::subagentMaxIterations, false, $this->remainingTime(), $this->executionPolicy, $this->contextAssembler, $this->observer, $this->observerFailurePolicy, $this->clock);
         return $subagent->runWithState(new ArrayClass([new LLMMessage(LLMMessageRole::user, $content)]), $parentSystemPrompt, $executionState, $runContext->child());
     }
 

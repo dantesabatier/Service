@@ -32,6 +32,16 @@ final readonly class WindowedLLMContextAssembler implements LLMContextAssembler
         }
     }
 
+    /**
+     * Assembles the newest context that fits, dropping whole turns from the oldest end.
+     *
+     * The dropping loop already decides whether the result fits: it ends either because the
+     * context stopped exceeding the limit or because nothing else may be dropped, and only the
+     * second ending leaves an oversized context. `$isWithinLimit` records which ending occurred
+     * rather than measuring the assembled context a third time — with a custom `$measure` that
+     * cost is the application's, and asking it again cannot change the answer. Compaction never
+     * invalidates the flag either, since a summary is kept only when the candidate also fits.
+     */
     #[Override]
     public function assemble(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMContext
     {
@@ -55,9 +65,11 @@ final readonly class WindowedLLMContextAssembler implements LLMContextAssembler
         /** @var ArrayClass<LLMMessage> $omitted */
         $omitted = new ArrayClass();
         $assembled = $this->flatten($retained);
+        $isWithinLimit = true;
         while ($this->exceedsLimit($assembled, $tools, $systemPrompt)) {
             $index = $retained->dropLast(1)->firstIndex(fn(ArrayClass $segment): bool => !$segment->contains(fn(LLMMessage $message): bool => $message->role === LLMMessageRole::system));
             if ($index === null) {
+                $isWithinLimit = false;
                 break;
             }
             /** @var ArrayClass<LLMMessage> $removed */
@@ -81,7 +93,7 @@ final readonly class WindowedLLMContextAssembler implements LLMContextAssembler
             }
         }
 
-        return new LLMContext($assembled, $systemPrompt, $omitted->count, $wasCompacted, !$this->exceedsLimit($assembled, $tools, $systemPrompt));
+        return new LLMContext($assembled, $systemPrompt, $omitted->count, $wasCompacted, $isWithinLimit);
     }
 
     /**

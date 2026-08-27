@@ -152,6 +152,22 @@ free to change. This section collects what will become the 1.0.0 notes.
 
 ### Changed
 
+- **Breaking.** An `LLMAgent` constructed without an `LLMExecutionPolicy` now
+  denies every state-changing tool call. The run stops at the first one with
+  `LLMRunStopReason::writeApprovalRequired`, so an application whose agent wrote
+  through a tool keeps compiling and stops writing. Pass a policy whose
+  `writeApproval` accepts the calls the user approved:
+
+  ```php
+  new LLMAgent($client, $registry, executionPolicy: new LLMExecutionPolicy(
+      writeApproval: fn(LLMToolCall $call): bool => $call->name === "save_widget",
+  ));
+  ```
+
+  A tool counts as state-changing unless it declares `$isReadOnly`, so a custom
+  tool that only reads should declare it rather than be approved. The same
+  policy bounds tool calls, subagent launches and tokens; its defaults cap calls
+  and subagents but leave tokens unlimited.
 - **Breaking.** `POST /download` still takes the same `url` field, but its path
   must now name exactly one directory and one file — the single level `POST
   /upload` writes to. A deeper or shallower location is refused with `400`, where

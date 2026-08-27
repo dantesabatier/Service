@@ -15,8 +15,10 @@ use function Sabatier\Foundation\human_readable_value;
  * Drives the agentic loop for a single run.
  *
  * Repeatedly calls the LLM client, executes any tool calls via the ToolRegistry, and feeds
- * results back into the conversation until the model returns a turn with no tool calls
- * (`LLMTurn::$isDone`). Returns an `LLMRun` containing only the messages generated during
+ * results back into the conversation until the model explicitly completes the turn.
+ * A response cut off by its output limit or refused by the model ends the run as incomplete
+ * rather than being laundered into a conclusion merely because it contains no tool calls.
+ * Returns an `LLMRun` containing only the messages generated during
  * this run (not the input history) and the total tokens consumed.
  *
  * The loop also stops when it runs out of iterations, when it runs past its time limit, and when the provider fails after the client has exhausted its retries. All are reported as incomplete (`LLMRun::$isComplete`) and told apart by `LLMRun::$stopReason`; a caller that treats them alike presents unfinished work as a conclusion. A provider failure ends the run rather than propagating, so the messages and tokens already paid for survive it, and `LLMRun::$isRetryable` carries whether another attempt is worth making — a rate limit clears on its own, a rejected key does not.
@@ -38,6 +40,8 @@ final class LLMAgent
     private const string subagentProviderFailure = "The subagent could not reach the model provider. Retrying may work.";
     private const string subagentProviderRefused = "The subagent could not reach the model provider, and the failure will repeat: it needs the server's configuration fixed, not another attempt. Report it rather than retrying.";
     private const string subagentDeadline = "The subagent ran out of time before finishing. Narrow the task and try again.";
+    private const string subagentOutputLimit = "The subagent ran out of output tokens before finishing. Narrow the task and try again.";
+    private const string subagentRefusal = "The subagent refused the task. Do not present its partial output as an answer.";
     private const int subagentMaxIterations = 8;
     private static ?ToolDescriptor $subagentToolDescriptor = null;
     /** @var ArrayClass<ToolDescriptor> */
@@ -106,9 +110,14 @@ final class LLMAgent
             $assistantMsg = new LLMMessage(LLMMessageRole::assistant, $turn->text, $turn->toolCalls, outputTokens: $turn->outputTokens, thinkingBlocks: $turn->thinkingBlocks, reasoningContent: $turn->reasoningContent);
             $history->append($assistantMsg);
             $newMessages->append($assistantMsg);
-            if ($turn->isDone) {
-                $stopReason = LLMRunStopReason::done;
-                $isRetryable = null;
+            $ending = match ($turn->stopReason) {
+                LLMTurnStopReason::toolUse => null,
+                LLMTurnStopReason::completed => [LLMRunStopReason::done, null],
+                LLMTurnStopReason::outputLimit => [LLMRunStopReason::outputLimit, true],
+                LLMTurnStopReason::refusal => [LLMRunStopReason::refusal, false],
+            };
+            if ($ending !== null) {
+                [$stopReason, $isRetryable] = $ending;
                 break;
             }
             foreach ($turn->toolCalls as $toolCall) {
@@ -203,9 +212,8 @@ final class LLMAgent
         }
         $context = trim((string)$arguments["context"]);
         $content = $context === "" ? $task : "Task:\n$task\n\nContext:\n$context";
-        $systemPrompt = trim((string)$arguments["systemPrompt"]);
         $subagent = new self($this->client, $this->toolRegistry, self::subagentMaxIterations, false, $this->remainingTime());
-        return $subagent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, $content)]), $systemPrompt === "" ? $parentSystemPrompt : $systemPrompt);
+        return $subagent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, $content)]), $parentSystemPrompt);
     }
 
     /**
@@ -243,6 +251,8 @@ final class LLMAgent
             LLMRunStopReason::providerFailure => $run->isRetryable === false ? self::subagentProviderRefused : self::subagentProviderFailure,
             LLMRunStopReason::iterationCap => self::subagentIncomplete,
             LLMRunStopReason::deadline => self::subagentDeadline,
+            LLMRunStopReason::outputLimit => self::subagentOutputLimit,
+            LLMRunStopReason::refusal => self::subagentRefusal,
             LLMRunStopReason::done => self::subagentNoAnswer,
         };
     }
@@ -257,7 +267,6 @@ final class LLMAgent
                 "properties" => [
                     "task" => ["type" => "string", "description" => "The focused task the subagent should complete."],
                     "context" => ["type" => "string", "description" => "Optional context the subagent needs to complete the task."],
-                    "systemPrompt" => ["type" => "string", "description" => "Optional system prompt override for the subagent. Omit to inherit the parent system prompt."],
                 ],
                 "required" => ["task"],
                 "additionalProperties" => false,

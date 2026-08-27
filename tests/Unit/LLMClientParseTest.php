@@ -8,11 +8,11 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 use Sabatier\Foundation\Dictionary;
-use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Service\LLM\LLMProviderException;
 use Sabatier\Service\LLM\AnthropicClient;
 use Sabatier\Service\LLM\LLMClient;
 use Sabatier\Service\LLM\LLMTurn;
+use Sabatier\Service\LLM\LLMTurnStopReason;
 use Sabatier\Service\LLM\OllamaClient;
 use Sabatier\Service\LLM\StandardLLMClient;
 
@@ -44,9 +44,29 @@ final class LLMClientParseTest extends TestCase
     #[Test]
     public function standardClientReportsTheProviderErrorBody(): void
     {
-        $this->expectException(InternalInconsistencyException::class);
+        $this->expectException(LLMProviderException::class);
 
         $this->parse(new StandardLLMClient(), '{"error":{"message":"model not found","type":"invalid_request_error"}}');
+    }
+
+    #[Test]
+    public function standardClientDistinguishesCompletionOutputLimitAndRefusal(): void
+    {
+        $completed = $this->parse(new StandardLLMClient(), '{"choices":[{"finish_reason":"stop","message":{"content":"done"}}]}');
+        $limited = $this->parse(new StandardLLMClient(), '{"choices":[{"finish_reason":"length","message":{"content":"partial"}}]}');
+        $refused = $this->parse(new StandardLLMClient(), '{"choices":[{"finish_reason":"content_filter","message":{"content":null}}]}');
+
+        $this->assertSame(LLMTurnStopReason::completed, $completed->stopReason);
+        $this->assertSame(LLMTurnStopReason::outputLimit, $limited->stopReason);
+        $this->assertSame(LLMTurnStopReason::refusal, $refused->stopReason);
+    }
+
+    #[Test]
+    public function standardClientRejectsAnEmptySuccessfulResponse(): void
+    {
+        $this->expectException(LLMProviderException::class);
+
+        $this->parse(new StandardLLMClient(), '{}');
     }
 
     #[Test]
@@ -89,6 +109,18 @@ final class LLMClientParseTest extends TestCase
     }
 
     #[Test]
+    public function anthropicClientDistinguishesCompletionOutputLimitAndRefusal(): void
+    {
+        $completed = $this->parse(new AnthropicClient(), '{"stop_reason":"end_turn","content":[{"type":"text","text":"done"}]}');
+        $limited = $this->parse(new AnthropicClient(), '{"stop_reason":"max_tokens","content":[{"type":"text","text":"partial"}]}');
+        $refused = $this->parse(new AnthropicClient(), '{"stop_reason":"refusal","content":[]}');
+
+        $this->assertSame(LLMTurnStopReason::completed, $completed->stopReason);
+        $this->assertSame(LLMTurnStopReason::outputLimit, $limited->stopReason);
+        $this->assertSame(LLMTurnStopReason::refusal, $refused->stopReason);
+    }
+
+    #[Test]
     public function ollamaUsageIsCountedUnderItsOwnKeys(): void
     {
         $turn = $this->parse(new OllamaClient(), '{"message":{"content":"hi"},"prompt_eval_count":64,"eval_count":8}');
@@ -111,9 +143,19 @@ final class LLMClientParseTest extends TestCase
     #[Test]
     public function ollamaReportsTheProviderErrorBody(): void
     {
-        $this->expectException(InternalInconsistencyException::class);
+        $this->expectException(LLMProviderException::class);
 
         $this->parse(new OllamaClient(), '{"error":"model \"nope\" not found"}');
+    }
+
+    #[Test]
+    public function ollamaClientDistinguishesCompletionAndOutputLimit(): void
+    {
+        $completed = $this->parse(new OllamaClient(), '{"done":true,"done_reason":"stop","message":{"content":"done"}}');
+        $limited = $this->parse(new OllamaClient(), '{"done":true,"done_reason":"length","message":{"content":"partial"}}');
+
+        $this->assertSame(LLMTurnStopReason::completed, $completed->stopReason);
+        $this->assertSame(LLMTurnStopReason::outputLimit, $limited->stopReason);
     }
 
     private function parse(LLMClient $client, string $json): LLMTurn

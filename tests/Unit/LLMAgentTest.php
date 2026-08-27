@@ -21,6 +21,7 @@ use Sabatier\Service\LLM\LLMProviderException;
 use Sabatier\Service\LLM\LLMRunStopReason;
 use Sabatier\Service\LLM\LLMToolCall;
 use Sabatier\Service\LLM\LLMTurn;
+use Sabatier\Service\LLM\LLMTurnStopReason;
 use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
 use Sabatier\Service\MCP\Tools\AbstractTool;
@@ -37,6 +38,8 @@ final class LLMAgentTest extends TestCase
         $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "parent task")]), "system");
 
         $this->assertSame([["probe_tool", "run_subagent"], ["probe_tool"], ["probe_tool"], ["probe_tool", "run_subagent"]], $client->toolNamesByCall);
+        $this->assertSame(["system", "system", "system", "system"], $client->systemPromptsByCall);
+        $this->assertSame(["task", "context"], array_keys($client->subagentInputSchema["properties"]));
         $this->assertSame(28, $run->inputTokens);
         $this->assertSame(10, $run->outputTokens);
         $this->assertSame("parent done", $run->messages->last->content);
@@ -235,6 +238,30 @@ final class LLMAgentTest extends TestCase
     }
 
     #[Test]
+    public function outputLimitedTurnIsNotReportedAsACompletedRun(): void
+    {
+        $agent = new LLMAgent(new ScriptedTerminalTurnClient(LLMTurnStopReason::outputLimit), new ToolRegistry(new ArrayClass()), canSpawnSubagents: false);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        $this->assertSame(LLMRunStopReason::outputLimit, $run->stopReason);
+        $this->assertFalse($run->isComplete);
+        $this->assertTrue($run->isRetryable);
+    }
+
+    #[Test]
+    public function refusedTurnIsNotReportedAsACompletedRun(): void
+    {
+        $agent = new LLMAgent(new ScriptedTerminalTurnClient(LLMTurnStopReason::refusal), new ToolRegistry(new ArrayClass()), canSpawnSubagents: false);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        $this->assertSame(LLMRunStopReason::refusal, $run->stopReason);
+        $this->assertFalse($run->isComplete);
+        $this->assertFalse($run->isRetryable);
+    }
+
+    #[Test]
     public function subagentProviderFailureIsReportedAsRetryable(): void
     {
         $client = new ScriptedFailingSubagentClient();
@@ -334,6 +361,50 @@ final class LLMAgentTest extends TestCase
     }
 }
 
+final class ScriptedTerminalTurnClient extends LLMClient
+{
+    #[Override]
+    public string $version {
+        get => "test";
+    }
+    #[Override]
+    public int $maxTokens {
+        get => 1024;
+    }
+
+    public function __construct(private readonly LLMTurnStopReason $turnStopReason)
+    {
+        parent::__construct();
+    }
+
+    /**
+     * @param ArrayClass<LLMMessage> $messages
+     * @param ArrayClass<ToolDescriptor> $tools
+     */
+    #[Override]
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    {
+        return new LLMTurn("partial", new ArrayClass(), 3, 4, stopReason: $this->turnStopReason);
+    }
+
+    /**
+     * @param ArrayClass<LLMMessage> $messages
+     * @param ArrayClass<ToolDescriptor> $tools
+     */
+    #[Override]
+    protected function buildRequest(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): URLRequest
+    {
+        throw new LogicException("Scripted client does not build requests.");
+    }
+
+    /** @param Dictionary<mixed> $body */
+    #[Override]
+    protected function parse(Dictionary $body): LLMTurn
+    {
+        throw new LogicException("Scripted client does not parse responses.");
+    }
+}
+
 final class ScriptedSubagentClient extends LLMClient
 {
     #[\Override]
@@ -347,6 +418,10 @@ final class ScriptedSubagentClient extends LLMClient
 
     /** @var list<list<string>> */
     public array $toolNamesByCall = [];
+    /** @var list<string|null> */
+    public array $systemPromptsByCall = [];
+    /** @var array<string, mixed> */
+    public array $subagentInputSchema = [];
     private int $call = 0;
 
     /**
@@ -357,8 +432,14 @@ final class ScriptedSubagentClient extends LLMClient
     public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
     {
         $this->toolNamesByCall[] = $tools->map(fn(ToolDescriptor $tool): string => $tool->name)->array;
+        $this->systemPromptsByCall[] = $systemPrompt;
+        foreach ($tools as $tool) {
+            if ($tool->name === "run_subagent") {
+                $this->subagentInputSchema = $tool->inputSchema;
+            }
+        }
         return match ($this->call++) {
-            0 => new LLMTurn(null, new ArrayClass([new LLMToolCall("parent-subagent", "run_subagent", new Dictionary(["task" => "inspect one thing"]))]), 10, 2),
+            0 => new LLMTurn(null, new ArrayClass([new LLMToolCall("parent-subagent", "run_subagent", new Dictionary(["task" => "inspect one thing", "systemPrompt" => "replace the parent policy"]))]), 10, 2),
             1 => new LLMTurn(null, new ArrayClass([new LLMToolCall("sub-tool", "probe_tool", new Dictionary())]), 7, 3),
             2 => new LLMTurn("sub answer", new ArrayClass(), 5, 4),
             3 => new LLMTurn("parent done", new ArrayClass(), 6, 1),

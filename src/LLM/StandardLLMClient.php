@@ -158,9 +158,11 @@ final class StandardLLMClient extends LLMClient
     {
         /** @var Dictionary<mixed>|null $error */
         $error = $body["error"];
-        !$error instanceof Dictionary ?: fatal_error($error["message"] ?? "Unknown API error");
+        !$error instanceof Dictionary ?: throw new LLMProviderException($error["message"] ?? "Unknown API error");
         $text = null;
         $reasoningContent = null;
+        $finishReason = null;
+        $refusal = null;
         /** @var ArrayClass<LLMToolCall> $toolCalls */
         $toolCalls = new ArrayClass();
         /** @var ArrayClass<Dictionary<mixed>> $choices */
@@ -169,6 +171,8 @@ final class StandardLLMClient extends LLMClient
             /** @var Dictionary<mixed> $message */
             $message = $choice["message"] ?? new Dictionary();
             $text = $message["content"];
+            $finishReason = is_string($choice["finish_reason"]) ? $choice["finish_reason"] : null;
+            $refusal = $message["refusal"];
             /** @var string|null $reasoningContent */
             $reasoningContent = $message["reasoning_content"];
             /** @var ArrayClass<Dictionary<mixed>> $calls */
@@ -190,6 +194,27 @@ final class StandardLLMClient extends LLMClient
         $inputTokens = (int)($usage["prompt_tokens"] ?? $usage["input_tokens"] ?? 0);
         /** @var int<0, max> $outputTokens */
         $outputTokens = (int)($usage["completion_tokens"] ?? $usage["output_tokens"] ?? 0);
-        return new LLMTurn($text, $toolCalls, $inputTokens, $outputTokens, reasoningContent: $reasoningContent);
+        return new LLMTurn($text, $toolCalls, $inputTokens, $outputTokens, reasoningContent: $reasoningContent, stopReason: self::stopReason($finishReason, $refusal, $text, $toolCalls));
+    }
+
+    /** @param ArrayClass<LLMToolCall> $toolCalls */
+    private static function stopReason(?string $finishReason, mixed $refusal, ?string $text, ArrayClass $toolCalls): LLMTurnStopReason
+    {
+        if (!$toolCalls->isEmpty) {
+            return LLMTurnStopReason::toolUse;
+        }
+        if ((is_string($refusal) && trim($refusal) !== "") || in_array($finishReason, ["content_filter", "refusal"], true)) {
+            return LLMTurnStopReason::refusal;
+        }
+        if (in_array($finishReason, ["length", "max_tokens"], true)) {
+            return LLMTurnStopReason::outputLimit;
+        }
+        if ($text !== null && ($finishReason === null || in_array($finishReason, ["stop", "end_turn", "stop_sequence"], true))) {
+            return LLMTurnStopReason::completed;
+        }
+        if ($finishReason !== null) {
+            throw new LLMProviderException("The LLM provider returned an unsupported finish reason: $finishReason");
+        }
+        throw new LLMProviderException("The LLM provider returned a successful response without a message.", true);
     }
 }

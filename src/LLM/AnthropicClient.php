@@ -182,6 +182,22 @@ final class AnthropicClient extends LLMClient
         $inputTokens = (int)($usage["input_tokens"] ?? 0);
         /** @var int<0, max> $outputTokens */
         $outputTokens = (int)($usage["output_tokens"] ?? 0);
-        return new LLMTurn($text, $toolCalls, $inputTokens, $outputTokens, $thinkingBlocks->isEmpty ? null : $thinkingBlocks);
+        $finishReason = is_string($body["stop_reason"]) ? $body["stop_reason"] : null;
+        return new LLMTurn($text, $toolCalls, $inputTokens, $outputTokens, $thinkingBlocks->isEmpty ? null : $thinkingBlocks, stopReason: self::stopReason($finishReason, $text, $toolCalls));
+    }
+
+    /** @param ArrayClass<LLMToolCall> $toolCalls */
+    private static function stopReason(?string $finishReason, ?string $text, ArrayClass $toolCalls): LLMTurnStopReason
+    {
+        if (!$toolCalls->isEmpty) {
+            return LLMTurnStopReason::toolUse;
+        }
+        return match ($finishReason) {
+            "max_tokens", "pause_turn" => LLMTurnStopReason::outputLimit,
+            "refusal" => LLMTurnStopReason::refusal,
+            "end_turn", "stop_sequence" => $text !== null ? LLMTurnStopReason::completed : throw new LLMProviderException("The LLM provider ended the turn without a message.", true),
+            null => $text !== null ? LLMTurnStopReason::completed : throw new LLMProviderException("The LLM provider returned a successful response without content.", true),
+            default => throw new LLMProviderException("The LLM provider returned an unsupported stop reason: $finishReason"),
+        };
     }
 }

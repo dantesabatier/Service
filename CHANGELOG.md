@@ -12,6 +12,9 @@ free to change. This section collects what will become the 1.0.0 notes.
 
 ### Security
 
+- The synthetic `run_subagent` tool let the model replace the inherited system
+  prompt while keeping the parent's real tool catalogue. Subagents now inherit
+  the parent prompt exactly; the override is no longer advertised or read.
 - An upload's filename reached the filesystem unchecked. `appendingPathComponent`
   does not canonicalize, so a name carrying `..` was written outside the
   subdirectory `Uploader` had validated — and where the destination fell inside a
@@ -61,7 +64,9 @@ free to change. This section collects what will become the 1.0.0 notes.
   worth the tokens — a question `$stopReason` cannot express on its own.
 - `LLMRun::$stopReason` and `LLMRunStopReason`, telling apart a run the model
   concluded from one stopped by the iteration cap, the time limit, or a
-  provider failure.
+  provider failure, output limit or refusal.
+- `LLMTurnStopReason`, normalizing provider-specific completion, tool-use,
+  output-limit and refusal reasons before the agent loop acts on them.
 - `LLMRun::$toolCallResults`, rejoining every tool call with the result that
   came back for it.
 - A time limit on an agentic run, bounding the wall clock that the iteration
@@ -78,7 +83,9 @@ free to change. This section collects what will become the 1.0.0 notes.
 - Nothing reaches `parse` as an empty body any more, which used to produce a
   turn with no text and no tool calls — the same shape as a model that decided
   to stop — so a failed run was reported as complete. Both doors are closed: a
-  failing status, and a success whose body does not decode into one.
+  failing status, and a success whose body does not decode into one. A decoded
+  success that carries no message is now rejected too, and provider output
+  limits and refusals no longer count as completed runs.
 - `get_server_time` was cached for the length of a run. It takes no arguments,
   so every call shared one cache key and the first answer stood as the time for
   the rest of the run. Caching now asks `isCacheable`, which a tool reading

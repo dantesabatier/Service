@@ -10,7 +10,7 @@ use Sabatier\Foundation\Dictionary;
 /**
  * The aggregate result of a complete agentic run: all messages generated after the initial input, and the total tokens consumed across every turn.
  *
- * `$isComplete` answers the one question most callers have — is this an answer or not — and `$stopReason` says which ending produced it, because the three call for different corrections: retry, narrow the task, or fix the configuration.
+ * `$isComplete` answers the one question most callers have — is this an answer or not — and `$stopReason` says which ending produced it, because a provider failure, output limit, refusal, deadline and iteration cap call for different corrections.
  *
  * `$isRetryable` answers a separate question the stop reason cannot: whether running the same thing again is worth the tokens. The two are deliberately apart. They vary independently — a provider failure is worth retrying when it was a 429 and pointless when it was a bad API key, and the same split will apply to a deadline the caller can afford to raise. Folding the answer into `$stopReason` would double its cases for every ending that gains the distinction.
  *

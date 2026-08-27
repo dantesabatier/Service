@@ -142,7 +142,7 @@ final class OllamaClient extends LLMClient
     {
         /** @var string|null $error */
         $error = $body["error"];
-        $error === null ?: fatal_error($error);
+        $error === null ?: throw new LLMProviderException($error);
         /** @var Dictionary<mixed> $message */
         $message = $body["message"] ?? new Dictionary();
         /** @var string|null $text */
@@ -168,6 +168,29 @@ final class OllamaClient extends LLMClient
         $inputTokens = (int)($body["prompt_eval_count"] ?? 0);
         /** @var int<0, max> $outputTokens */
         $outputTokens = (int)($body["eval_count"] ?? 0);
-        return new LLMTurn($text, $toolCalls, $inputTokens, $outputTokens);
+        $finishReason = is_string($body["done_reason"]) ? $body["done_reason"] : null;
+        $done = $body["done"];
+        return new LLMTurn($text, $toolCalls, $inputTokens, $outputTokens, stopReason: self::stopReason($finishReason, $done, $text, $toolCalls));
+    }
+
+    /** @param ArrayClass<LLMToolCall> $toolCalls */
+    private static function stopReason(?string $finishReason, mixed $done, ?string $text, ArrayClass $toolCalls): LLMTurnStopReason
+    {
+        if (!$toolCalls->isEmpty) {
+            return LLMTurnStopReason::toolUse;
+        }
+        if (in_array($finishReason, ["length", "max_tokens"], true)) {
+            return LLMTurnStopReason::outputLimit;
+        }
+        if ($done === false) {
+            throw new LLMProviderException("The LLM provider returned an incomplete non-streaming response.", true);
+        }
+        if ($text !== null && ($finishReason === null || $finishReason === "stop")) {
+            return LLMTurnStopReason::completed;
+        }
+        if ($finishReason !== null) {
+            throw new LLMProviderException("The LLM provider returned an unsupported done reason: $finishReason");
+        }
+        throw new LLMProviderException("The LLM provider returned a successful response without a message.", true);
     }
 }

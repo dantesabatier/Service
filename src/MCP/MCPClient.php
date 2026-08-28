@@ -12,6 +12,7 @@ use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\Response\ToolCallResult;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
 use stdClass;
+use function Sabatier\Foundation\in_range;
 use const Sabatier\Service\MCPProtocolVersionHeader;
 use const Sabatier\Service\MCPProtocolVersionLatestStable;
 use const Sabatier\Service\MCPSessionHeader;
@@ -29,20 +30,6 @@ final class MCPClient
     /** @var ArrayClass<ToolDescriptor> The remote catalogue, initialized and fetched once on first access. */
     public ArrayClass $tools {
         get => $this->cachedTools ??= $this->loadTools();
-    }
-    /** @var Dictionary<string> */
-    private Dictionary $headers {
-        get {
-            /** @var Dictionary<string> $headers */
-            $headers = new Dictionary();
-            if ($this->sessionIdentifier !== null) {
-                $headers[MCPSessionHeader] = $this->sessionIdentifier;
-            }
-            if ($this->protocolVersion !== null) {
-                $headers[MCPProtocolVersionHeader] = $this->protocolVersion;
-            }
-            return $headers;
-        }
     }
 
     /**
@@ -134,7 +121,7 @@ final class MCPClient
         $this->protocolVersion = $version;
         $this->sessionIdentifier = $sessionIdentifier;
         $message = new Dictionary(["jsonrpc" => "2.0", "method" => MCPMethod::initialized]);
-        $this->validateTransportResponse($this->transport->send($message, $this->headers, $this->catalogTimeout));
+        $this->validateTransportResponse($this->transport->send($message, $this->headers(), $this->catalogTimeout));
     }
 
     /** @return array<string, mixed> */
@@ -153,7 +140,7 @@ final class MCPClient
         if ($params !== null && !$params->isEmpty) {
             $message["params"] = $params;
         }
-        $response = $this->transport->send($message, $this->headers, $timeout);
+        $response = $this->transport->send($message, $this->headers(), $timeout);
         $this->validateTransportResponse($response);
         $body = trim($response->body);
         if ($body === "") {
@@ -187,7 +174,7 @@ final class MCPClient
 
     private function validateTransportResponse(MCPClientResponse $response): void
     {
-        if ($response->statusCode >= 200 && $response->statusCode < 300) {
+        if (in_range($response->statusCode, 200, 300)) {
             return;
         }
         if ($response->statusCode === 404) {
@@ -199,6 +186,13 @@ final class MCPClient
         $message = "The MCP server returned HTTP $response->statusCode";
         $isTransient = $response->statusCode === 404 || $response->statusCode === 408 || $response->statusCode === 429 || $response->statusCode >= 500;
         throw new MCPClientException($body === "" ? "$message." : "$message: $body", $isTransient);
+    }
+
+    /** @return Dictionary<string> */
+    private function headers(): Dictionary
+    {
+        /** @var Dictionary<string> */
+        return new Dictionary([MCPSessionHeader => $this->sessionIdentifier, MCPProtocolVersionHeader => $this->protocolVersion]);
     }
 
 }

@@ -41,6 +41,8 @@ final class ReActLLMAgentLoop implements LLMAgentLoop
     private const string subagentIncomplete = "The subagent ran out of iterations before finishing. Narrow the task and try again.";
     private const string subagentProviderFailure = "The subagent could not reach the model provider. Retrying may work.";
     private const string subagentProviderRefused = "The subagent could not reach the model provider, and the failure will repeat: it needs the server's configuration fixed, not another attempt. Report it rather than retrying.";
+    private const string subagentToolProviderFailure = "The subagent could not reach its tool provider. Retrying may work.";
+    private const string subagentToolProviderRefused = "The subagent's tool provider rejected or could not understand the request, and retrying it unchanged will repeat the failure.";
     private const string subagentDeadline = "The subagent ran out of time before finishing. Narrow the task and try again.";
     private const string subagentOutputLimit = "The subagent ran out of output tokens before finishing. Narrow the task and try again.";
     private const string subagentRefusal = "The subagent refused the task. Do not present its partial output as an answer.";
@@ -86,7 +88,6 @@ final class ReActLLMAgentLoop implements LLMAgentLoop
         $runStartedAt = $environment->clock->monotonicTime;
         $messages = $request->messages;
         $systemPrompt = $request->systemPrompt;
-        $toolList = $this->toolList($environment);
         /** @var ArrayClass<LLMMessage> $newMessages */
         $newMessages = new ArrayClass();
         /** @var int<0, max> $totalInputTokens */
@@ -100,6 +101,7 @@ final class ReActLLMAgentLoop implements LLMAgentLoop
         $isRetryable = true;
         try {
             $this->emit(new LLMRunStartedEvent($runContext, $environment->clock->timestamp, $messages->count, $systemPrompt !== null), $environment);
+            $toolList = $this->toolList($environment);
             $history = $messages;
             while ($iterations++ < $environment->maxIterations) {
                 if (($tokenStopReason = $executionState->tokenStopReason($environment->executionPolicy, true)) !== null) {
@@ -229,6 +231,11 @@ final class ReActLLMAgentLoop implements LLMAgentLoop
                             $isError = true;
                             $propagatedStopReason = LLMRunStopReason::deadline;
                             $propagatedRetryable = true;
+                        } catch (LLMToolProviderException $exception) {
+                            $this->emit(new LLMToolCallFinishedEvent($runContext, $environment->clock->timestamp, $iterations, $toolCall->id, $toolCall->name, LLMToolCallDisposition::providerFailure, 0, $environment->clock->monotonicTime - $toolStartedAt), $environment);
+                            $stopReason = LLMRunStopReason::toolProviderFailure;
+                            $isRetryable = $exception->isTransient;
+                            break 2;
                         } catch (Throwable $exception) {
                             $this->emit(new LLMToolCallFinishedEvent($runContext, $environment->clock->timestamp, $iterations, $toolCall->id, $toolCall->name, LLMToolCallDisposition::failed, 0, $environment->clock->monotonicTime - $toolStartedAt), $environment);
                             throw $exception;
@@ -255,6 +262,10 @@ final class ReActLLMAgentLoop implements LLMAgentLoop
                 }
             }
             $run = new LLMRun($newMessages, $totalInputTokens, $totalOutputTokens, $stopReason, $isRetryable);
+            $this->emit(new LLMRunFinishedEvent($runContext, $environment->clock->timestamp, $run->stopReason, $run->isComplete, $run->isRetryable, $run->messages->count, $run->inputTokens, $run->outputTokens, $environment->clock->monotonicTime - $runStartedAt), $environment);
+            return $run;
+        } catch (LLMToolProviderException $exception) {
+            $run = new LLMRun($newMessages, $totalInputTokens, $totalOutputTokens, LLMRunStopReason::toolProviderFailure, $exception->isTransient);
             $this->emit(new LLMRunFinishedEvent($runContext, $environment->clock->timestamp, $run->stopReason, $run->isComplete, $run->isRetryable, $run->messages->count, $run->inputTokens, $run->outputTokens, $environment->clock->monotonicTime - $runStartedAt), $environment);
             return $run;
         } catch (Throwable $exception) {
@@ -375,6 +386,7 @@ final class ReActLLMAgentLoop implements LLMAgentLoop
         }
         return match ($run->stopReason) {
             LLMRunStopReason::providerFailure => $run->isRetryable === false ? self::subagentProviderRefused : self::subagentProviderFailure,
+            LLMRunStopReason::toolProviderFailure => $run->isRetryable === false ? self::subagentToolProviderRefused : self::subagentToolProviderFailure,
             LLMRunStopReason::iterationCap => self::subagentIncomplete,
             LLMRunStopReason::deadline => self::subagentDeadline,
             LLMRunStopReason::outputLimit => self::subagentOutputLimit,
@@ -398,14 +410,14 @@ final class ReActLLMAgentLoop implements LLMAgentLoop
             LLMRunStopReason::inputTokenLimit => self::inputTokenLimit,
             LLMRunStopReason::outputTokenLimit => self::outputTokenLimit,
             LLMRunStopReason::totalTokenLimit => self::totalTokenLimit,
-            LLMRunStopReason::done, LLMRunStopReason::iterationCap, LLMRunStopReason::deadline, LLMRunStopReason::providerFailure, LLMRunStopReason::outputLimit, LLMRunStopReason::refusal, LLMRunStopReason::writeApprovalRequired, LLMRunStopReason::contextLimit => "The agent run stopped before this tool could execute.",
+            LLMRunStopReason::done, LLMRunStopReason::iterationCap, LLMRunStopReason::deadline, LLMRunStopReason::providerFailure, LLMRunStopReason::toolProviderFailure, LLMRunStopReason::outputLimit, LLMRunStopReason::refusal, LLMRunStopReason::writeApprovalRequired, LLMRunStopReason::contextLimit => "The agent run stopped before this tool could execute.",
         };
     }
 
     private function propagatedStopReason(LLMRunStopReason $stopReason): ?LLMRunStopReason
     {
         return match ($stopReason) {
-            LLMRunStopReason::toolCallLimit, LLMRunStopReason::subagentCallLimit, LLMRunStopReason::inputTokenLimit, LLMRunStopReason::outputTokenLimit, LLMRunStopReason::totalTokenLimit, LLMRunStopReason::writeApprovalRequired, LLMRunStopReason::contextLimit, LLMRunStopReason::deadline => $stopReason,
+            LLMRunStopReason::toolCallLimit, LLMRunStopReason::subagentCallLimit, LLMRunStopReason::inputTokenLimit, LLMRunStopReason::outputTokenLimit, LLMRunStopReason::totalTokenLimit, LLMRunStopReason::writeApprovalRequired, LLMRunStopReason::contextLimit, LLMRunStopReason::deadline, LLMRunStopReason::toolProviderFailure => $stopReason,
             LLMRunStopReason::done, LLMRunStopReason::iterationCap, LLMRunStopReason::providerFailure, LLMRunStopReason::outputLimit, LLMRunStopReason::refusal => null,
         };
     }

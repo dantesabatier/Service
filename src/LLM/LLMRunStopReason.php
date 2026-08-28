@@ -11,6 +11,7 @@ enum LLMRunStopReason: string
     case iterationCap = "iterationCap";
     case deadline = "deadline";
     case providerFailure = "providerFailure";
+    case toolProviderFailure = "toolProviderFailure";
     case outputLimit = "outputLimit";
     case refusal = "refusal";
     case toolCallLimit = "toolCallLimit";

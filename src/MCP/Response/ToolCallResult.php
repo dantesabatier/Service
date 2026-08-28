@@ -8,14 +8,19 @@ use JsonSerializable;
 use Override;
 use Sabatier\Foundation\ArrayClass;
 
-/** @internal */
-final readonly class ToolCallResult implements JsonSerializable
+/** The MCP wire result of one tool call, usable by both the server handler and a remote client. */
+final class ToolCallResult implements JsonSerializable
 {
+    /** @var string The text content joined for an agent that consumes a single tool-result string. */
+    public string $text {
+        get => $this->content->map(fn(ContentItem $item): string => $item->text)->join("\n");
+    }
+
     /**
      * @param ArrayClass<ContentItem> $content The content items returned by the tool.
      * @param bool $isError Whether the call failed; serialized as the MCP `isError` flag so the model is told.
      */
-    public function __construct(public ArrayClass $content, public bool $isError = false)
+    public function __construct(public readonly ArrayClass $content, public readonly bool $isError = false)
     {
     }
 

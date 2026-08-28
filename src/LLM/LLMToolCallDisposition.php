@@ -12,5 +12,6 @@ enum LLMToolCallDisposition: string
     case denied = "denied";
     case budgetExceeded = "budgetExceeded";
     case deadlineExceeded = "deadlineExceeded";
+    case providerFailure = "providerFailure";
     case failed = "failed";
 }

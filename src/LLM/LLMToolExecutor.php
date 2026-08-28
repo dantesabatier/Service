@@ -44,6 +44,7 @@ interface LLMToolExecutor
      * @param LLMExecutionDeadline|null $deadline The shared run deadline, or `null` outside an agent run.
      * @return LLMToolExecutionResult Text to feed back to the model and whether it describes a correctable failure.
      * @throws LLMDeadlineExceededException The executor could not return a usable result before the deadline.
+     * @throws LLMToolProviderException An external provider failed before returning a tool result.
      * @throws Throwable A fatal executor or tool fault the model cannot correct.
      */
     public function execute(LLMToolCall $call, ?LLMExecutionDeadline $deadline = null): LLMToolExecutionResult;

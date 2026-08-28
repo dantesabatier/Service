@@ -20,9 +20,14 @@ use Sabatier\Service\LLM\LLMExecutionDeadline;
 use Sabatier\Service\LLM\LLMMessage;
 use Sabatier\Service\LLM\LLMMessageRole;
 use Sabatier\Service\LLM\LLMRunStopReason;
+use Sabatier\Service\LLM\LLMRunEvent;
+use Sabatier\Service\LLM\LLMRunObserver;
 use Sabatier\Service\LLM\LLMToolCall;
+use Sabatier\Service\LLM\LLMToolCallDisposition;
+use Sabatier\Service\LLM\LLMToolCallFinishedEvent;
 use Sabatier\Service\LLM\LLMToolExecutionResult;
 use Sabatier\Service\LLM\LLMToolExecutor;
+use Sabatier\Service\LLM\LLMToolProviderException;
 use Sabatier\Service\LLM\LLMTurn;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
 
@@ -77,6 +82,94 @@ final class LLMToolExecutorTest extends TestCase
 
         $this->assertSame(LLMRunStopReason::writeApprovalRequired, $run->stopReason);
         $this->assertTrue($executor->calls->isEmpty);
+    }
+
+    #[Test]
+    public function transientToolProviderFailureReturnsARetryableRunAndClosesTheToolSpan(): void
+    {
+        $observer = new ToolExecutorRecordingObserver();
+        $agent = new LLMAgent(new SingleExecutorCallClient(), new ProviderFailingLLMToolExecutor(true), canSpawnSubagents: false, observer: $observer);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        /** @var LLMToolCallFinishedEvent $event */
+        $event = $observer->events->first(fn(LLMRunEvent $candidate): bool => $candidate instanceof LLMToolCallFinishedEvent);
+        $this->assertSame(LLMRunStopReason::toolProviderFailure, $run->stopReason);
+        $this->assertTrue($run->isRetryable);
+        $this->assertSame(LLMToolCallDisposition::providerFailure, $event->disposition);
+        $this->assertNull($run->toolCallResults[0]->content);
+    }
+
+    #[Test]
+    public function catalogueProviderFailureStopsBeforeTheFirstModelTurn(): void
+    {
+        $client = new SingleExecutorCallClient();
+        $agent = new LLMAgent($client, new ProviderFailingLLMToolExecutor(false, true), canSpawnSubagents: false);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        $this->assertSame(LLMRunStopReason::toolProviderFailure, $run->stopReason);
+        $this->assertFalse($run->isRetryable);
+        $this->assertTrue($run->messages->isEmpty);
+        $this->assertSame([], $client->toolNamesByCall);
+    }
+}
+
+final class ToolExecutorRecordingObserver implements LLMRunObserver
+{
+    /** @var ArrayClass<LLMRunEvent> */
+    public readonly ArrayClass $events;
+
+    public function __construct()
+    {
+        $this->events = new ArrayClass();
+    }
+
+    #[Override]
+    public function observe(LLMRunEvent $event): void
+    {
+        $this->events->append($event);
+    }
+}
+
+final class ProviderFailingLLMToolExecutor implements LLMToolExecutor
+{
+    /** @var ArrayClass<ToolDescriptor> */
+    #[Override]
+    public ArrayClass $tools {
+        get => $this->failOnCatalogue ? throw new LLMToolProviderException("catalogue unavailable", $this->isTransient) : new ArrayClass([new ToolDescriptor("external_tool", "Execute outside the process.", ["type" => "object", "properties" => []])]);
+    }
+
+    /**
+     * @param bool $isTransient Whether the simulated provider failure is retryable.
+     * @param bool $failOnCatalogue Whether failure occurs while loading descriptors instead of executing.
+     */
+    public function __construct(private readonly bool $isTransient, private readonly bool $failOnCatalogue = false)
+    {
+    }
+
+    #[Override]
+    public function contains(LLMToolCall $call): bool
+    {
+        return true;
+    }
+
+    #[Override]
+    public function isReadOnly(LLMToolCall $call): bool
+    {
+        return true;
+    }
+
+    #[Override]
+    public function isCacheable(LLMToolCall $call): bool
+    {
+        return false;
+    }
+
+    #[Override]
+    public function execute(LLMToolCall $call, ?LLMExecutionDeadline $deadline = null): LLMToolExecutionResult
+    {
+        throw new LLMToolProviderException("tool provider unavailable", $this->isTransient);
     }
 }
 

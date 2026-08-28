@@ -54,6 +54,16 @@ free to change. This section collects what will become the 1.0.0 notes.
 
 ### Added
 
+- `MCPClient`, `MCPTransport`, `StreamableHTTPMCPTransport` and
+  `MCPToolExecutor`, providing a concrete remote implementation of the agent's
+  tool-executor boundary. The client negotiates and retains an MCP session,
+  caches `tools/list`, normalizes `tools/call`, applies the shared run deadline
+  to remote calls and never retries a call whose write may already have
+  happened. Remote calls are state-changing and non-cacheable by default;
+  applications may opt trusted concrete calls into read and cache semantics.
+- `LLMToolProviderException`, `LLMRunStopReason::toolProviderFailure` and the
+  matching trace disposition, distinguishing an unavailable remote tool
+  service from a correctable tool result and from a local program fault.
 - `LLMAgentLoop`, `LLMAgentRunRequest` and `LLMAgentEnvironment`, separating
   orchestration strategy from the `LLMAgent` facade. Existing agents keep the
   extracted `ReActLLMAgentLoop` by default, while an application may inject a

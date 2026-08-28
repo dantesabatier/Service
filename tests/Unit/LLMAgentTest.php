@@ -15,6 +15,9 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Service\LLM\LLMAgent;
+use Sabatier\Service\LLM\LLMAgentEnvironment;
+use Sabatier\Service\LLM\LLMAgentLoop;
+use Sabatier\Service\LLM\LLMAgentRunRequest;
 use Sabatier\Service\LLM\LLMClient;
 use Sabatier\Service\LLM\LLMExecutionPolicy;
 use Sabatier\Service\LLM\LLMMessage;
@@ -25,6 +28,7 @@ use Sabatier\Service\LLM\LLMRunStopReason;
 use Sabatier\Service\LLM\LLMToolCall;
 use Sabatier\Service\LLM\LLMTurn;
 use Sabatier\Service\LLM\LLMTurnStopReason;
+use Sabatier\Service\LLM\ReActLLMAgentLoop;
 use Sabatier\Service\LLM\WindowedLLMContextAssembler;
 use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
@@ -33,6 +37,24 @@ use Sabatier\Service\MCP\Tools\ToolRegistry;
 
 final class LLMAgentTest extends TestCase
 {
+    #[Test]
+    public function delegatesToAReplaceableLoopWithAnIsolatedRequestAndTheConfiguredEnvironment(): void
+    {
+        $messages = new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]);
+        $loop = new RecordingAgentLoop();
+        $agent = new LLMAgent(new ScriptedTerminalTurnClient(LLMTurnStopReason::completed), new ToolRegistry(new ArrayClass([$this->tool()])), maxIterations: 7, canSpawnSubagents: false, loop: $loop);
+
+        $run = $agent->run($messages, "policy");
+
+        $this->assertSame(1, $messages->count);
+        $this->assertSame("task", $loop->query);
+        $this->assertSame("policy", $loop->systemPrompt);
+        $this->assertSame(7, $loop->maxIterations);
+        $this->assertFalse($loop->canSpawnSubagents);
+        $this->assertSame(["probe_tool"], $loop->toolNames);
+        $this->assertSame("custom loop", $run->messages->last->content);
+    }
+
     #[Test]
     public function subagentUsesSameRealToolsWithoutRecursiveSubagentToolAndChargesParentRun(): void
     {
@@ -116,12 +138,12 @@ final class LLMAgentTest extends TestCase
     #[Test]
     public function everyRunStopReasonHasSubagentFailureGuidance(): void
     {
-        $agent = new LLMAgent(new ScriptedTerminalTurnClient(LLMTurnStopReason::completed), new ToolRegistry(new ArrayClass()));
-        $method = new ReflectionMethod($agent, "subagentFailureText");
+        $loop = new ReActLLMAgentLoop();
+        $method = new ReflectionMethod($loop, "subagentFailureText");
 
         foreach (LLMRunStopReason::cases() as $stopReason) {
             $run = new LLMRun(new ArrayClass([new LLMMessage(LLMMessageRole::assistant, "partial")]), stopReason: $stopReason);
-            $this->assertNotSame("", $method->invoke($agent, $run), "Missing subagent guidance for $stopReason->value.");
+            $this->assertNotSame("", $method->invoke($loop, $run), "Missing subagent guidance for $stopReason->value.");
         }
     }
 
@@ -457,6 +479,28 @@ final class LLMAgentTest extends TestCase
     {
         /** @var AbstractTool */
         return new ReflectionClass(LLMAgentMovingTool::class)->newInstanceWithoutConstructor();
+    }
+}
+
+final class RecordingAgentLoop implements LLMAgentLoop
+{
+    public string $query = "";
+    public ?string $systemPrompt = null;
+    public int $maxIterations = 0;
+    public bool $canSpawnSubagents = true;
+    /** @var array<string> */
+    public array $toolNames = [];
+
+    #[Override]
+    public function run(LLMAgentRunRequest $request, LLMAgentEnvironment $environment): LLMRun
+    {
+        $this->query = (string)$request->messages->first->content;
+        $this->systemPrompt = $request->systemPrompt;
+        $this->maxIterations = $environment->maxIterations;
+        $this->canSpawnSubagents = $environment->canSpawnSubagents;
+        $this->toolNames = $environment->toolExecutor->tools->map(fn(ToolDescriptor $tool): string => $tool->name)->array;
+        $request->messages->append(new LLMMessage(LLMMessageRole::assistant, "mutated snapshot"));
+        return new LLMRun(new ArrayClass([new LLMMessage(LLMMessageRole::assistant, "custom loop")]));
     }
 }
 

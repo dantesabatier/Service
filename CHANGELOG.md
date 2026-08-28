@@ -54,6 +54,12 @@ free to change. This section collects what will become the 1.0.0 notes.
 
 ### Added
 
+- `LLMAgentLoop`, `LLMAgentRunRequest` and `LLMAgentEnvironment`, separating
+  orchestration strategy from the `LLMAgent` facade. Existing agents keep the
+  extracted `ReActLLMAgentLoop` by default, while an application may inject a
+  planning or domain-specific loop without replacing its provider, tool
+  executor, context assembler, execution policy, observer or clock. The facade
+  gives every strategy an isolated conversation snapshot.
 - `LLMRetriever`, `LLMRetrievalRequest`, `LLMRetrievedDocument` and
   `RetrievalAugmentedLLMContextAssembler`, providing backend-neutral RAG and
   long-term-memory retrieval without coupling the loop to a vector database.

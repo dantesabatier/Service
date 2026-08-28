@@ -93,6 +93,11 @@ free to change. This section collects what will become the 1.0.0 notes.
   before.
 - `LLMClock`, separating Unix event timestamps from monotonic durations and
   deadlines and making both replaceable in deterministic tests.
+- `LLMExecutionDeadline`, the monotonic deadline shared unchanged by a root
+  run, its provider turns, tools and subagents. Provider transports and retry
+  waits are capped by the remaining time; executors receive the same value so a
+  remote or isolated implementation can enforce its own timeout. The
+  in-process adapter checks cooperatively before and after dispatch.
 - `LLMContext`, reporting how many messages were omitted, whether a compacted
   summary was inserted and whether the newest safe context fits its limit.
 - `LLMExecutionPolicy`, the application-supplied boundary for shared agent

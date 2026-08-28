@@ -1,5 +1,8 @@
 <?php
 
+// PHPUnit intentionally owns the exception boundary for this test file.
+/** @noinspection PhpUnhandledExceptionInspection */
+
 declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
@@ -14,6 +17,7 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Service\LLM\LLMAgent;
 use Sabatier\Service\LLM\LLMClient;
+use Sabatier\Service\LLM\LLMExecutionDeadline;
 use Sabatier\Service\LLM\LLMMessage;
 use Sabatier\Service\LLM\LLMMessageRole;
 use Sabatier\Service\LLM\LLMRetrievedDocument;
@@ -196,6 +200,7 @@ final class RetrievalAugmentedLLMContextAssemblerTest extends TestCase
     }
 }
 
+/** @noinspection PhpClassCanBeReadonlyInspection */
 final class RecordingRAGRetriever implements LLMRetriever
 {
     /** @var ArrayClass<string> */
@@ -255,7 +260,7 @@ final class RAGSubagentClient extends LLMClient
      * @param ArrayClass<ToolDescriptor> $tools
      */
     #[Override]
-    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null, ?LLMExecutionDeadline $deadline = null): LLMTurn
     {
         return match ($this->call++) {
             0 => new LLMTurn(null, new ArrayClass([new LLMToolCall("parent-subagent", "run_subagent", new Dictionary(["task" => "child task"]))])),

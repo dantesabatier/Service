@@ -88,12 +88,20 @@ abstract class LLMClient
      * @param ArrayClass<LLMMessage> $messages
      * @param ArrayClass<ToolDescriptor> $tools
      * @param string|null $systemPrompt
+     * @param LLMExecutionDeadline|null $deadline The shared run deadline, or `null` outside an agent run.
+     * @return LLMTurn The normalized provider turn.
+     * @throws LLMDeadlineExceededException When the shared execution window expires.
+     * @throws LLMProviderException When the provider cannot return a usable turn.
      */
-    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null, ?LLMExecutionDeadline $deadline = null): LLMTurn
     {
+        $deadline?->enforce();
         $request = $this->buildRequest($messages, $tools, $systemPrompt);
-        $body = $this->send($request);
-        return $this->parse($body);
+        $deadline?->enforce();
+        $body = $this->send($request, $deadline);
+        $turn = $this->parse($body);
+        $deadline?->enforce();
+        return $turn;
     }
 
     /**
@@ -101,20 +109,37 @@ abstract class LLMClient
      *
      * Nothing must reach `parse` as an empty body: a turn parsed from `[]` carries no text and no tool calls, which is exactly the shape of a model that decided to stop, so the run would be reported as complete when nothing answered it. A failing status throws, and so does a success whose body will not decode into one — a `200` carrying a truncated or non-JSON payload is a provider that failed to answer, however it labelled the response, and it is worth another attempt.
      *
+     * @param URLRequest $request The provider request to send.
+     * @param LLMExecutionDeadline|null $deadline The shared run deadline, or `null` outside an agent run.
+     * @throws LLMDeadlineExceededException The operation exhausted the agent's remaining time.
      * @throws LLMProviderException The provider failed: a status retrying cannot fix, a transport that never delivered the request, or every attempt exhausted. Carries whether a later attempt is worth making.
      */
-    protected function send(URLRequest $request): Dictionary
+    protected function send(URLRequest $request, ?LLMExecutionDeadline $deadline = null): Dictionary
     {
         $attempt = 0;
         while (true) {
+            $deadline?->enforce();
             $data = null;
             $error = null;
             $response = null;
-            $this->session->dataTaskWithRequest($request, function (?string $responseData, ?URLResponse $urlResponse, ?Error $err) use (&$data, &$error, &$response): void {
+            $attemptRequest = $request;
+            $session = $this->session;
+            $remainingTime = $deadline?->remainingTime;
+            if ($remainingTime !== null) {
+                // The cURL protocol rounds timeouts to integer seconds and treats zero as unbounded, so a sub-second remainder uses one second and the post-call check rejects a late response.
+                $timeout = max(1.0, min((float)$this->timeoutIntervalForRequest, $remainingTime));
+                /** @psalm-var URLRequest $attemptRequest */
+                $attemptRequest = clone($request, ["timeoutInterval" => min($request->timeoutInterval, $timeout)]);
+                /** @psalm-var URLSessionConfiguration $configuration */
+                $configuration = clone(URLSessionConfiguration::default(), ["timeoutIntervalForRequest" => $timeout]);
+                $session = new URLSession($configuration);
+            }
+            $session->dataTaskWithRequest($attemptRequest, function (?string $responseData, ?URLResponse $urlResponse, ?Error $err) use (&$data, &$error, &$response): void {
                 $data = $responseData;
                 $error = $err;
                 $response = $urlResponse;
             })->resume();
+            $deadline?->enforce();
             $statusCode = $response instanceof HTTPURLResponse ? $response->statusCode : null;
             if (!($error instanceof Error) && $statusCode !== null && !$this->isRetryable($statusCode)) {
                 $statusCode < HTTPStatusCode::badRequest ?: throw new LLMProviderException($this->failureReason($statusCode, $data));
@@ -125,7 +150,12 @@ abstract class LLMClient
             if ($attempt >= $this->maximumRetryCount) {
                 $error instanceof Error ? throw new LLMProviderException((string)$error->localizedFailureReason ?: $this->failureReason($statusCode, $data), true, $error) : throw new LLMProviderException($this->failureReason($statusCode, $data), true);
             }
-            usleep((int)round($this->retryDelay($attempt++, $response) * 1_000_000.0));
+            $delay = $this->retryDelay($attempt++, $response);
+            $remainingTime = $deadline?->remainingTime;
+            if ($remainingTime !== null && $delay >= $remainingTime) {
+                throw new LLMDeadlineExceededException();
+            }
+            usleep((int)round($delay * 1_000_000.0));
         }
     }
 

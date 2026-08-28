@@ -1,9 +1,13 @@
 <?php
 
+// PHPUnit intentionally owns the exception boundary for this test file.
+/** @noinspection PhpUnhandledExceptionInspection */
+
 declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
 
+use Closure;
 use LogicException;
 use Override;
 use PHPUnit\Framework\Attributes\Test;
@@ -14,12 +18,14 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Service\LLM\LLMAgent;
 use Sabatier\Service\LLM\LLMClient;
+use Sabatier\Service\LLM\LLMExecutionDeadline;
 use Sabatier\Service\LLM\LLMClock;
 use Sabatier\Service\LLM\LLMContext;
 use Sabatier\Service\LLM\LLMContextAssembler;
 use Sabatier\Service\LLM\LLMContextAssemblyFailedEvent;
 use Sabatier\Service\LLM\LLMContextAssemblyFinishedEvent;
 use Sabatier\Service\LLM\LLMContextAssemblyStartedEvent;
+use Sabatier\Service\LLM\LLMDeadlineExceededException;
 use Sabatier\Service\LLM\LLMExecutionPolicy;
 use Sabatier\Service\LLM\LLMMessage;
 use Sabatier\Service\LLM\LLMMessageRole;
@@ -38,6 +44,8 @@ use Sabatier\Service\LLM\LLMToolCall;
 use Sabatier\Service\LLM\LLMToolCallDisposition;
 use Sabatier\Service\LLM\LLMToolCallFinishedEvent;
 use Sabatier\Service\LLM\LLMToolCallStartedEvent;
+use Sabatier\Service\LLM\LLMToolExecutionResult;
+use Sabatier\Service\LLM\LLMToolExecutor;
 use Sabatier\Service\LLM\LLMTurn;
 use Sabatier\Service\LLM\WindowedLLMContextAssembler;
 use Sabatier\Service\MCP\Response\ContentItem;
@@ -114,7 +122,7 @@ final class LLMRunObserverTest extends TestCase
         $observer = new RecordingRunObserver();
         $agent = new LLMAgent(new ScriptedRepeatingClient(), new ToolRegistry(new ArrayClass([$this->tool()])), canSpawnSubagents: false, observer: $observer);
 
-        $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]), null);
+        $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
 
         /** @var list<LLMToolCallFinishedEvent> $events */
         $events = $observer->eventsOf(LLMToolCallFinishedEvent::class);
@@ -231,7 +239,7 @@ final class LLMRunObserverTest extends TestCase
         $policy = new LLMExecutionPolicy(maxToolCalls: 0);
         $agent = new LLMAgent(new ScriptedObservedClient(), new ToolRegistry(new ArrayClass([$this->tool()])), canSpawnSubagents: false, executionPolicy: $policy, observer: $observer);
 
-        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]), null);
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
 
         /** @var LLMToolCallFinishedEvent $toolEvent */
         $toolEvent = $observer->eventsOf(LLMToolCallFinishedEvent::class)[0];
@@ -269,6 +277,66 @@ final class LLMRunObserverTest extends TestCase
         $this->assertCount(1, $observer->eventsOf(LLMModelTurnFailedEvent::class));
         $this->assertCount(1, $observer->eventsOf(LLMRunFinishedEvent::class));
         $this->assertCount(0, $observer->eventsOf(LLMRunFailedEvent::class));
+    }
+
+    #[Test]
+    public function modelCallThatReturnsAfterTheDeadlineClosesAsATimedOutRun(): void
+    {
+        $observer = new RecordingRunObserver();
+        $clock = new MutableRunClock();
+        $agent = new LLMAgent(new DeadlineIgnoringClient($clock), new ToolRegistry(new ArrayClass()), canSpawnSubagents: false, timeLimit: 1.0, observer: $observer, clock: $clock);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        /** @var LLMModelTurnFailedEvent $turnEvent */
+        $turnEvent = $observer->eventsOf(LLMModelTurnFailedEvent::class)[0];
+        $this->assertSame(LLMRunStopReason::deadline, $run->stopReason);
+        $this->assertTrue($run->isRetryable);
+        $this->assertSame(LLMDeadlineExceededException::class, $turnEvent->errorType);
+        $this->assertCount(0, $observer->eventsOf(LLMModelTurnFinishedEvent::class));
+        $this->assertCount(1, $observer->eventsOf(LLMRunFinishedEvent::class));
+        $this->assertCount(0, $observer->eventsOf(LLMRunFailedEvent::class));
+    }
+
+    #[Test]
+    public function toolCallThatCrossesTheDeadlineHasItsOwnTraceDisposition(): void
+    {
+        $observer = new RecordingRunObserver();
+        $clock = new MutableRunClock();
+        $agent = new LLMAgent(new ScriptedObservedClient(), new DeadlineCrossingToolExecutor($clock), canSpawnSubagents: false, timeLimit: 1.0, observer: $observer, clock: $clock);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        /** @var LLMToolCallFinishedEvent $toolEvent */
+        $toolEvent = $observer->eventsOf(LLMToolCallFinishedEvent::class)[0];
+        $this->assertSame(LLMRunStopReason::deadline, $run->stopReason);
+        $this->assertTrue($run->isRetryable);
+        $this->assertSame(LLMToolCallDisposition::deadlineExceeded, $toolEvent->disposition);
+        $this->assertTrue($run->messages[1]->isError);
+        $this->assertStringContainsString("deadline expired", (string)$run->messages[1]->content);
+        $this->assertCount(1, $observer->eventsOf(LLMRunFinishedEvent::class));
+        $this->assertCount(0, $observer->eventsOf(LLMRunFailedEvent::class));
+    }
+
+    #[Test]
+    public function toolIsNotDispatchedWhenTracingConsumesTheRemainingTime(): void
+    {
+        $clock = new MutableRunClock();
+        $observer = new RecordingRunObserver(function (LLMRunEvent $event) use ($clock): void {
+            if ($event instanceof LLMToolCallStartedEvent) {
+                $clock->time = 2.0;
+            }
+        });
+        $executor = new DeadlineCrossingToolExecutor($clock);
+        $agent = new LLMAgent(new ScriptedObservedClient(), $executor, canSpawnSubagents: false, timeLimit: 1.0, observer: $observer, clock: $clock);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        /** @var LLMToolCallFinishedEvent $toolEvent */
+        $toolEvent = $observer->eventsOf(LLMToolCallFinishedEvent::class)[0];
+        $this->assertSame(LLMRunStopReason::deadline, $run->stopReason);
+        $this->assertSame(LLMToolCallDisposition::deadlineExceeded, $toolEvent->disposition);
+        $this->assertSame(0, $executor->calls);
     }
 
     #[Test]
@@ -454,10 +522,18 @@ final class RecordingRunObserver implements LLMRunObserver
     /** @var list<LLMRunEvent> */
     public array $events = [];
 
+    /** @param Closure(LLMRunEvent): void|null $onEvent Additional observation performed after recording, or `null` for none. */
+    public function __construct(private readonly ?Closure $onEvent = null)
+    {
+    }
+
     #[Override]
     public function observe(LLMRunEvent $event): void
     {
         $this->events[] = $event;
+        if ($this->onEvent !== null) {
+            ($this->onEvent)($event);
+        }
     }
 
     /**
@@ -517,6 +593,20 @@ final class AdvancingRunClock implements LLMClock
     }
 }
 
+final class MutableRunClock implements LLMClock
+{
+    public float $time = 0.0;
+
+    #[Override]
+    public float $timestamp {
+        get => $this->time;
+    }
+    #[Override]
+    public float $monotonicTime {
+        get => $this->time;
+    }
+}
+
 abstract class ScriptedObserverClient extends LLMClient
 {
     #[Override]
@@ -546,6 +636,68 @@ abstract class ScriptedObserverClient extends LLMClient
     }
 }
 
+final class DeadlineIgnoringClient extends ScriptedObserverClient
+{
+    /** @param MutableRunClock $clock The controllable clock advanced across the deadline. */
+    public function __construct(private readonly MutableRunClock $clock)
+    {
+        parent::__construct();
+    }
+
+    /**
+     * @param ArrayClass<LLMMessage> $messages
+     * @param ArrayClass<ToolDescriptor> $tools
+     */
+    #[Override]
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null, ?LLMExecutionDeadline $deadline = null): LLMTurn
+    {
+        $this->clock->time = 2.0;
+        return new LLMTurn("late answer", new ArrayClass());
+    }
+}
+
+final class DeadlineCrossingToolExecutor implements LLMToolExecutor
+{
+    /** @var ArrayClass<ToolDescriptor> */
+    #[Override]
+    public ArrayClass $tools {
+        get => $this->tools ??= new ArrayClass([new ToolDescriptor("probe_tool", "Probe tool.", ["type" => "object", "properties" => []])]);
+    }
+    /** @var int Number of calls that reached the executor. */
+    public int $calls = 0;
+
+    /** @param MutableRunClock $clock The controllable clock advanced by tool execution. */
+    public function __construct(private readonly MutableRunClock $clock)
+    {
+    }
+
+    #[Override]
+    public function contains(LLMToolCall $call): bool
+    {
+        return $call->name === "probe_tool";
+    }
+
+    #[Override]
+    public function isReadOnly(LLMToolCall $call): bool
+    {
+        return true;
+    }
+
+    #[Override]
+    public function isCacheable(LLMToolCall $call): bool
+    {
+        return false;
+    }
+
+    #[Override]
+    public function execute(LLMToolCall $call, ?LLMExecutionDeadline $deadline = null): LLMToolExecutionResult
+    {
+        $this->calls++;
+        $this->clock->time = 2.0;
+        return new LLMToolExecutionResult("late result");
+    }
+}
+
 final class ScriptedObservedClient extends ScriptedObserverClient
 {
     private int $call = 0;
@@ -555,7 +707,7 @@ final class ScriptedObservedClient extends ScriptedObserverClient
      * @param ArrayClass<ToolDescriptor> $tools
      */
     #[Override]
-    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null, ?LLMExecutionDeadline $deadline = null): LLMTurn
     {
         return match ($this->call++) {
             0 => new LLMTurn(null, new ArrayClass([new LLMToolCall("call-1", "probe_tool", new Dictionary())]), 5, 2),
@@ -572,7 +724,7 @@ final class ScriptedObservedWritingClient extends ScriptedObserverClient
      * @param ArrayClass<ToolDescriptor> $tools
      */
     #[Override]
-    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null, ?LLMExecutionDeadline $deadline = null): LLMTurn
     {
         return new LLMTurn(null, new ArrayClass([new LLMToolCall("write-1", "writing_tool", new Dictionary())]));
     }
@@ -585,7 +737,7 @@ final class ScriptedObservedExplodingToolClient extends ScriptedObserverClient
      * @param ArrayClass<ToolDescriptor> $tools
      */
     #[Override]
-    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null, ?LLMExecutionDeadline $deadline = null): LLMTurn
     {
         return new LLMTurn(null, new ArrayClass([new LLMToolCall("explode-1", "exploding_tool", new Dictionary())]));
     }
@@ -598,7 +750,7 @@ final class ScriptedObservedProviderFailureClient extends ScriptedObserverClient
      * @param ArrayClass<ToolDescriptor> $tools
      */
     #[Override]
-    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null, ?LLMExecutionDeadline $deadline = null): LLMTurn
     {
         throw new LLMProviderException("provider unavailable", true);
     }
@@ -613,7 +765,7 @@ final class ScriptedRepeatingClient extends ScriptedObserverClient
      * @param ArrayClass<ToolDescriptor> $tools
      */
     #[Override]
-    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null, ?LLMExecutionDeadline $deadline = null): LLMTurn
     {
         return match ($this->call++) {
             0 => new LLMTurn(null, new ArrayClass([new LLMToolCall("call-1", "probe_tool", new Dictionary(["a" => 1]))]), 5, 2),
@@ -633,7 +785,7 @@ final class ScriptedObservedSubagentClient extends ScriptedObserverClient
      * @param ArrayClass<ToolDescriptor> $tools
      */
     #[Override]
-    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null, ?LLMExecutionDeadline $deadline = null): LLMTurn
     {
         return match ($this->call++) {
             0 => new LLMTurn(null, new ArrayClass([new LLMToolCall("parent-subagent", "run_subagent", new Dictionary(["task" => "inspect one thing"]))]), 10, 2),

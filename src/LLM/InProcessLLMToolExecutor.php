@@ -8,7 +8,7 @@ use Override;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Service\MCP\Tools\ToolRegistry;
 
-/** Executes agent tools synchronously through the framework's MCP registry, without adding process isolation or interruption. */
+/** Executes agent tools synchronously through the framework's MCP registry, checking deadlines before and after calls without claiming it can interrupt arbitrary PHP code. */
 final class InProcessLLMToolExecutor implements LLMToolExecutor
 {
     #[Override]
@@ -40,9 +40,11 @@ final class InProcessLLMToolExecutor implements LLMToolExecutor
     }
 
     #[Override]
-    public function execute(LLMToolCall $call): LLMToolExecutionResult
+    public function execute(LLMToolCall $call, ?LLMExecutionDeadline $deadline = null): LLMToolExecutionResult
     {
+        $deadline?->enforce();
         $result = $this->registry->call($call->name, $call->arguments);
+        $deadline?->enforce();
         return new LLMToolExecutionResult($result->text, $result->isError);
     }
 }

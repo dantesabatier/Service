@@ -1,5 +1,8 @@
 <?php
 
+// PHPUnit intentionally owns the exception boundary for this test file.
+/** @noinspection PhpUnhandledExceptionInspection */
+
 declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
@@ -19,6 +22,7 @@ use Sabatier\Service\LLM\LLMAgentEnvironment;
 use Sabatier\Service\LLM\LLMAgentLoop;
 use Sabatier\Service\LLM\LLMAgentRunRequest;
 use Sabatier\Service\LLM\LLMClient;
+use Sabatier\Service\LLM\LLMExecutionDeadline;
 use Sabatier\Service\LLM\LLMExecutionPolicy;
 use Sabatier\Service\LLM\LLMMessage;
 use Sabatier\Service\LLM\LLMMessageRole;
@@ -525,7 +529,7 @@ final class ScriptedTerminalTurnClient extends LLMClient
      * @param ArrayClass<ToolDescriptor> $tools
      */
     #[Override]
-    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null, ?LLMExecutionDeadline $deadline = null): LLMTurn
     {
         return new LLMTurn("partial", new ArrayClass(), 3, 4, stopReason: $this->turnStopReason);
     }
@@ -550,11 +554,11 @@ final class ScriptedTerminalTurnClient extends LLMClient
 
 final class ScriptedSubagentClient extends LLMClient
 {
-    #[\Override]
+    #[Override]
     public string $version {
         get => "test";
     }
-    #[\Override]
+    #[Override]
     public int $maxTokens {
         get => 1024;
     }
@@ -572,7 +576,7 @@ final class ScriptedSubagentClient extends LLMClient
      * @param ArrayClass<ToolDescriptor> $tools
      */
     #[Override]
-    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null, ?LLMExecutionDeadline $deadline = null): LLMTurn
     {
         $this->toolNamesByCall[] = $tools->map(fn(ToolDescriptor $tool): string => $tool->name)->array;
         $this->systemPromptsByCall[] = $systemPrompt;
@@ -610,11 +614,11 @@ final class ScriptedSubagentClient extends LLMClient
 
 final class ScriptedNoAnswerSubagentClient extends LLMClient
 {
-    #[\Override]
+    #[Override]
     public string $version {
         get => "test";
     }
-    #[\Override]
+    #[Override]
     public int $maxTokens {
         get => 1024;
     }
@@ -626,7 +630,7 @@ final class ScriptedNoAnswerSubagentClient extends LLMClient
      * @param ArrayClass<ToolDescriptor> $tools
      */
     #[Override]
-    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null, ?LLMExecutionDeadline $deadline = null): LLMTurn
     {
         return match ($this->call++) {
             0 => new LLMTurn(null, new ArrayClass([new LLMToolCall("parent-subagent", "run_subagent", new Dictionary(["task" => "inspect one thing"]))]), 10, 2),
@@ -657,11 +661,11 @@ final class ScriptedNoAnswerSubagentClient extends LLMClient
 /** Never concludes: every turn asks for a tool again, so only the iteration cap can stop the loop. */
 final class ScriptedNeverDoneClient extends LLMClient
 {
-    #[\Override]
+    #[Override]
     public string $version {
         get => "test";
     }
-    #[\Override]
+    #[Override]
     public int $maxTokens {
         get => 1024;
     }
@@ -671,9 +675,10 @@ final class ScriptedNeverDoneClient extends LLMClient
     /**
      * @param ArrayClass<LLMMessage> $messages
      * @param ArrayClass<ToolDescriptor> $tools
+     * @noinspection PhpUnnecessaryCurlyVarSyntaxInspection
      */
     #[Override]
-    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null, ?LLMExecutionDeadline $deadline = null): LLMTurn
     {
         $this->calls++;
         return new LLMTurn(null, new ArrayClass([new LLMToolCall("call-{$this->calls}", "probe_tool", new Dictionary(["n" => $this->calls]))]));
@@ -703,11 +708,11 @@ final class ScriptedNeverDoneClient extends LLMClient
  */
 final class ScriptedExhaustedSubagentClient extends LLMClient
 {
-    #[\Override]
+    #[Override]
     public string $version {
         get => "test";
     }
-    #[\Override]
+    #[Override]
     public int $maxTokens {
         get => 1024;
     }
@@ -719,7 +724,7 @@ final class ScriptedExhaustedSubagentClient extends LLMClient
      * @param ArrayClass<ToolDescriptor> $tools
      */
     #[Override]
-    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null, ?LLMExecutionDeadline $deadline = null): LLMTurn
     {
         $call = $this->call++;
         if ($call === 0) {
@@ -755,11 +760,11 @@ final class ScriptedExhaustedSubagentClient extends LLMClient
 /** Calls the subagent tool with no `task`, the mis-call the parent must flag back to the model. */
 final class ScriptedTasklessSubagentClient extends LLMClient
 {
-    #[\Override]
+    #[Override]
     public string $version {
         get => "test";
     }
-    #[\Override]
+    #[Override]
     public int $maxTokens {
         get => 1024;
     }
@@ -771,7 +776,7 @@ final class ScriptedTasklessSubagentClient extends LLMClient
      * @param ArrayClass<ToolDescriptor> $tools
      */
     #[Override]
-    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null, ?LLMExecutionDeadline $deadline = null): LLMTurn
     {
         return match ($this->call++) {
             0 => new LLMTurn(null, new ArrayClass([new LLMToolCall("parent-subagent", "run_subagent", new Dictionary(["task" => "   "]))])),
@@ -801,11 +806,11 @@ final class ScriptedTasklessSubagentClient extends LLMClient
 /** Issues the same call twice with the argument order swapped; only the first should reach the tool. */
 final class ScriptedReorderedArgumentsClient extends LLMClient
 {
-    #[\Override]
+    #[Override]
     public string $version {
         get => "test";
     }
-    #[\Override]
+    #[Override]
     public int $maxTokens {
         get => 1024;
     }
@@ -822,7 +827,7 @@ final class ScriptedReorderedArgumentsClient extends LLMClient
      * @param ArrayClass<ToolDescriptor> $tools
      */
     #[Override]
-    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null, ?LLMExecutionDeadline $deadline = null): LLMTurn
     {
         return match ($this->call++) {
             0 => new LLMTurn(null, new ArrayClass([new LLMToolCall("c1", $this->toolName, new Dictionary(["a" => 1, "b" => "two"]))])),
@@ -853,11 +858,11 @@ final class ScriptedReorderedArgumentsClient extends LLMClient
 /** Same keys, different values: two genuinely distinct calls that must both reach the tool. */
 final class ScriptedDistinctArgumentsClient extends LLMClient
 {
-    #[\Override]
+    #[Override]
     public string $version {
         get => "test";
     }
-    #[\Override]
+    #[Override]
     public int $maxTokens {
         get => 1024;
     }
@@ -869,7 +874,7 @@ final class ScriptedDistinctArgumentsClient extends LLMClient
      * @param ArrayClass<ToolDescriptor> $tools
      */
     #[Override]
-    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null, ?LLMExecutionDeadline $deadline = null): LLMTurn
     {
         return match ($this->call++) {
             0 => new LLMTurn(null, new ArrayClass([new LLMToolCall("c1", "counting_tool", new Dictionary(["a" => 1, "b" => "two"]))])),
@@ -943,7 +948,7 @@ final class LLMAgentCountingTool extends AbstractTool
 {
     public static int $calls = 0;
 
-    #[\Override]
+    #[Override]
     public string $name {
         get => "counting_tool";
     }
@@ -951,11 +956,11 @@ final class LLMAgentCountingTool extends AbstractTool
     public bool $isReadOnly {
         get => true;
     }
-    #[\Override]
+    #[Override]
     public string $description {
         get => "Counting tool.";
     }
-    #[\Override]
+    #[Override]
     public array $inputSchema {
         get => ["type" => "object"];
     }
@@ -974,15 +979,15 @@ final class LLMAgentWritingTool extends AbstractTool
 {
     public static int $calls = 0;
 
-    #[\Override]
+    #[Override]
     public string $name {
         get => "writing_tool";
     }
-    #[\Override]
+    #[Override]
     public string $description {
         get => "Writing tool.";
     }
-    #[\Override]
+    #[Override]
     public array $inputSchema {
         get => ["type" => "object"];
     }
@@ -998,11 +1003,11 @@ final class LLMAgentWritingTool extends AbstractTool
 
 final class LLMAgentProbeTool extends AbstractTool
 {
-    #[\Override]
+    #[Override]
     public string $name {
         get => "probe_tool";
     }
-    #[\Override]
+    #[Override]
     public string $description {
         get => "Probe tool.";
     }
@@ -1010,7 +1015,7 @@ final class LLMAgentProbeTool extends AbstractTool
     public bool $isReadOnly {
         get => true;
     }
-    #[\Override]
+    #[Override]
     public array $inputSchema {
         get => ["type" => "object"];
     }
@@ -1026,11 +1031,11 @@ final class LLMAgentProbeTool extends AbstractTool
 /** Fails on its second turn the way a bug in a client's own deserialization does, rather than the way a provider does. */
 final class ScriptedFaultyClient extends LLMClient
 {
-    #[\Override]
+    #[Override]
     public string $version {
         get => "test";
     }
-    #[\Override]
+    #[Override]
     public int $maxTokens {
         get => 1024;
     }
@@ -1042,7 +1047,7 @@ final class ScriptedFaultyClient extends LLMClient
      * @param ArrayClass<ToolDescriptor> $tools
      */
     #[Override]
-    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null, ?LLMExecutionDeadline $deadline = null): LLMTurn
     {
         if ($this->call++ === 0) {
             return new LLMTurn(null, new ArrayClass([new LLMToolCall("c1", "probe_tool", new Dictionary())]), 9, 4);
@@ -1071,11 +1076,11 @@ final class ScriptedFaultyClient extends LLMClient
 /** Fails definitively on its second turn, the way a rejected key or an unknown model does. */
 final class ScriptedRefusingClient extends LLMClient
 {
-    #[\Override]
+    #[Override]
     public string $version {
         get => "test";
     }
-    #[\Override]
+    #[Override]
     public int $maxTokens {
         get => 1024;
     }
@@ -1087,7 +1092,7 @@ final class ScriptedRefusingClient extends LLMClient
      * @param ArrayClass<ToolDescriptor> $tools
      */
     #[Override]
-    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null, ?LLMExecutionDeadline $deadline = null): LLMTurn
     {
         if ($this->call++ === 0) {
             return new LLMTurn(null, new ArrayClass([new LLMToolCall("c1", "probe_tool", new Dictionary())]), 9, 4);
@@ -1116,11 +1121,11 @@ final class ScriptedRefusingClient extends LLMClient
 /** Fails on its second turn, after one turn has already been paid for and recorded. */
 final class ScriptedFailingClient extends LLMClient
 {
-    #[\Override]
+    #[Override]
     public string $version {
         get => "test";
     }
-    #[\Override]
+    #[Override]
     public int $maxTokens {
         get => 1024;
     }
@@ -1132,7 +1137,7 @@ final class ScriptedFailingClient extends LLMClient
      * @param ArrayClass<ToolDescriptor> $tools
      */
     #[Override]
-    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null, ?LLMExecutionDeadline $deadline = null): LLMTurn
     {
         if ($this->call++ === 0) {
             return new LLMTurn(null, new ArrayClass([new LLMToolCall("c1", "probe_tool", new Dictionary())]), 9, 4);
@@ -1162,11 +1167,11 @@ final class ScriptedFailingClient extends LLMClient
 /** Fails the sub-run the way a rejected key does: definitively, so another attempt would answer the same. */
 final class ScriptedRefusedSubagentClient extends LLMClient
 {
-    #[\Override]
+    #[Override]
     public string $version {
         get => "test";
     }
-    #[\Override]
+    #[Override]
     public int $maxTokens {
         get => 1024;
     }
@@ -1178,7 +1183,7 @@ final class ScriptedRefusedSubagentClient extends LLMClient
      * @param ArrayClass<ToolDescriptor> $tools
      */
     #[Override]
-    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null, ?LLMExecutionDeadline $deadline = null): LLMTurn
     {
         return match ($this->call++) {
             0 => new LLMTurn(null, new ArrayClass([new LLMToolCall("parent-subagent", "run_subagent", new Dictionary(["task" => "inspect one thing"]))])),
@@ -1207,11 +1212,11 @@ final class ScriptedRefusedSubagentClient extends LLMClient
 
 final class ScriptedFailingSubagentClient extends LLMClient
 {
-    #[\Override]
+    #[Override]
     public string $version {
         get => "test";
     }
-    #[\Override]
+    #[Override]
     public int $maxTokens {
         get => 1024;
     }
@@ -1223,7 +1228,7 @@ final class ScriptedFailingSubagentClient extends LLMClient
      * @param ArrayClass<ToolDescriptor> $tools
      */
     #[Override]
-    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null, ?LLMExecutionDeadline $deadline = null): LLMTurn
     {
         return match ($this->call++) {
             0 => new LLMTurn(null, new ArrayClass([new LLMToolCall("parent-subagent", "run_subagent", new Dictionary(["task" => "inspect one thing"]))])),

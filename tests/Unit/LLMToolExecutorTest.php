@@ -1,5 +1,8 @@
 <?php
 
+// PHPUnit intentionally owns the exception boundary for this test file.
+/** @noinspection PhpUnhandledExceptionInspection */
+
 declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
@@ -13,6 +16,7 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Service\LLM\LLMAgent;
 use Sabatier\Service\LLM\LLMClient;
+use Sabatier\Service\LLM\LLMExecutionDeadline;
 use Sabatier\Service\LLM\LLMMessage;
 use Sabatier\Service\LLM\LLMMessageRole;
 use Sabatier\Service\LLM\LLMRunStopReason;
@@ -55,6 +59,11 @@ final class LLMToolExecutorTest extends TestCase
             ["external_tool", "run_subagent"],
         ], $client->toolNamesByCall);
         $this->assertSame(1, $executor->calls->count);
+        $this->assertSame(4, $client->deadlines->count);
+        $this->assertSame($client->deadlines[0], $client->deadlines[1]);
+        $this->assertSame($client->deadlines[0], $client->deadlines[2]);
+        $this->assertSame($client->deadlines[0], $client->deadlines[3]);
+        $this->assertSame($client->deadlines[0], $executor->deadlines[0]);
         $this->assertSame("parent done", $run->messages->last->content);
     }
 
@@ -79,11 +88,14 @@ final class RecordingLLMToolExecutor implements LLMToolExecutor
     }
     /** @var ArrayClass<LLMToolCall> */
     public readonly ArrayClass $calls;
+    /** @var ArrayClass<LLMExecutionDeadline> */
+    public readonly ArrayClass $deadlines;
 
     /** @param bool $readOnly Whether calls should bypass write approval. */
     public function __construct(private readonly bool $readOnly = true)
     {
         $this->calls = new ArrayClass();
+        $this->deadlines = new ArrayClass();
     }
 
     #[Override]
@@ -105,9 +117,12 @@ final class RecordingLLMToolExecutor implements LLMToolExecutor
     }
 
     #[Override]
-    public function execute(LLMToolCall $call): LLMToolExecutionResult
+    public function execute(LLMToolCall $call, ?LLMExecutionDeadline $deadline = null): LLMToolExecutionResult
     {
         $this->calls->append($call);
+        if ($deadline !== null) {
+            $this->deadlines->append($deadline);
+        }
         return new LLMToolExecutionResult("executed externally");
     }
 }
@@ -116,6 +131,10 @@ abstract class ExecutorScriptedClient extends LLMClient
 {
     /** @var list<list<string>> */
     public array $toolNamesByCall = [];
+    /** @var ArrayClass<LLMExecutionDeadline> */
+    public ArrayClass $deadlines {
+        get => $this->deadlines ??= new ArrayClass();
+    }
 
     #[Override]
     public string $version {
@@ -130,6 +149,13 @@ abstract class ExecutorScriptedClient extends LLMClient
     protected function recordTools(ArrayClass $tools): void
     {
         $this->toolNamesByCall[] = $tools->map(fn(ToolDescriptor $tool): string => $tool->name)->array;
+    }
+
+    protected function recordDeadline(?LLMExecutionDeadline $deadline): void
+    {
+        if ($deadline !== null) {
+            $this->deadlines->append($deadline);
+        }
     }
 
     /**
@@ -159,9 +185,10 @@ final class SingleExecutorCallClient extends ExecutorScriptedClient
      * @param ArrayClass<ToolDescriptor> $tools
      */
     #[Override]
-    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null, ?LLMExecutionDeadline $deadline = null): LLMTurn
     {
         $this->recordTools($tools);
+        $this->recordDeadline($deadline);
         return match ($this->call++) {
             0 => new LLMTurn(null, new ArrayClass([new LLMToolCall("external-1", "external_tool", new Dictionary())])),
             1 => new LLMTurn("done", new ArrayClass()),
@@ -179,9 +206,10 @@ final class SubagentExecutorClient extends ExecutorScriptedClient
      * @param ArrayClass<ToolDescriptor> $tools
      */
     #[Override]
-    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMTurn
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null, ?LLMExecutionDeadline $deadline = null): LLMTurn
     {
         $this->recordTools($tools);
+        $this->recordDeadline($deadline);
         return match ($this->call++) {
             0 => new LLMTurn(null, new ArrayClass([new LLMToolCall("parent-subagent", "run_subagent", new Dictionary(["task" => "inspect one thing"]))])),
             1 => new LLMTurn(null, new ArrayClass([new LLMToolCall("child-external", "external_tool", new Dictionary())])),

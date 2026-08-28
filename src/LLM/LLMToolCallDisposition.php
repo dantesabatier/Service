@@ -11,5 +11,6 @@ enum LLMToolCallDisposition: string
     case cached = "cached";
     case denied = "denied";
     case budgetExceeded = "budgetExceeded";
+    case deadlineExceeded = "deadlineExceeded";
     case failed = "failed";
 }

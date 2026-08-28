@@ -110,7 +110,15 @@ final class ReActLLMAgentLoop implements LLMAgentLoop
                     $stopReason = LLMRunStopReason::deadline;
                     break;
                 }
-                $context = $environment->contextAssembler->assemble($history, $toolList, $systemPrompt);
+                $this->emit(new LLMContextAssemblyStartedEvent($runContext, $environment->clock->timestamp, $iterations, $history->count), $environment);
+                $contextStartedAt = $environment->clock->monotonicTime;
+                try {
+                    $context = $environment->contextAssembler->assemble($history, $toolList, $systemPrompt);
+                } catch (Throwable $exception) {
+                    $this->emit(new LLMContextAssemblyFailedEvent($runContext, $environment->clock->timestamp, $iterations, $exception::class, $exception->getMessage(), $environment->clock->monotonicTime - $contextStartedAt), $environment);
+                    throw $exception;
+                }
+                $this->emit(new LLMContextAssemblyFinishedEvent($runContext, $environment->clock->timestamp, $iterations, $context->messages->count, $context->omittedMessageCount, $context->wasCompacted, $context->isWithinLimit, $environment->clock->monotonicTime - $contextStartedAt), $environment);
                 if (!$context->isWithinLimit) {
                     $stopReason = LLMRunStopReason::contextLimit;
                     $isRetryable = false;

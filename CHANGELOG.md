@@ -82,11 +82,13 @@ free to change. This section collects what will become the 1.0.0 notes.
   strategy entirely without changing a provider client.
 - `LLMRunObserver`, immutable `LLMRunEvent` values and `LLMRunContext`, reporting
   the agentic loop's progress while it runs. Start and terminal events describe
-  run, model-turn and tool-call spans; tool outcomes distinguish execution,
-  cache hits, denials, exhausted budgets and failures. Events carry scalar
-  snapshots and deliberately omit prompts, arguments and results. Subagents
-  inherit the observer and report under their own identifier, naming the parent
-  that launched them. Delivery is best-effort by default, with an opt-in strict
+  run, context-assembly, model-turn and tool-call spans; context events expose
+  duration, truncation, compaction and limit outcomes without prompts or
+  retrieved documents, while tool outcomes distinguish execution, cache hits,
+  denials, exhausted budgets and failures. Events carry scalar snapshots and
+  deliberately omit prompts, arguments and results. Subagents inherit the
+  observer and report under their own identifier, naming the parent that
+  launched them. Delivery is best-effort by default, with an opt-in strict
   failure policy, and an agent built without an observer behaves exactly as
   before.
 - `LLMClock`, separating Unix event timestamps from monotonic durations and

@@ -15,6 +15,11 @@ use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Service\LLM\LLMAgent;
 use Sabatier\Service\LLM\LLMClient;
 use Sabatier\Service\LLM\LLMClock;
+use Sabatier\Service\LLM\LLMContext;
+use Sabatier\Service\LLM\LLMContextAssembler;
+use Sabatier\Service\LLM\LLMContextAssemblyFailedEvent;
+use Sabatier\Service\LLM\LLMContextAssemblyFinishedEvent;
+use Sabatier\Service\LLM\LLMContextAssemblyStartedEvent;
 use Sabatier\Service\LLM\LLMExecutionPolicy;
 use Sabatier\Service\LLM\LLMMessage;
 use Sabatier\Service\LLM\LLMMessageRole;
@@ -34,6 +39,7 @@ use Sabatier\Service\LLM\LLMToolCallDisposition;
 use Sabatier\Service\LLM\LLMToolCallFinishedEvent;
 use Sabatier\Service\LLM\LLMToolCallStartedEvent;
 use Sabatier\Service\LLM\LLMTurn;
+use Sabatier\Service\LLM\WindowedLLMContextAssembler;
 use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
 use Sabatier\Service\MCP\Tools\AbstractTool;
@@ -52,10 +58,14 @@ final class LLMRunObserverTest extends TestCase
         $this->assertSame(LLMRunStopReason::done, $run->stopReason);
         $this->assertSame([
             LLMRunStartedEvent::class,
+            LLMContextAssemblyStartedEvent::class,
+            LLMContextAssemblyFinishedEvent::class,
             LLMModelTurnStartedEvent::class,
             LLMModelTurnFinishedEvent::class,
             LLMToolCallStartedEvent::class,
             LLMToolCallFinishedEvent::class,
+            LLMContextAssemblyStartedEvent::class,
+            LLMContextAssemblyFinishedEvent::class,
             LLMModelTurnStartedEvent::class,
             LLMModelTurnFinishedEvent::class,
             LLMRunFinishedEvent::class,
@@ -72,12 +82,23 @@ final class LLMRunObserverTest extends TestCase
 
         /** @var LLMRunStartedEvent $started */
         $started = $observer->eventsOf(LLMRunStartedEvent::class)[0];
+        /** @var LLMContextAssemblyStartedEvent $contextStarted */
+        $contextStarted = $observer->eventsOf(LLMContextAssemblyStartedEvent::class)[0];
+        /** @var LLMContextAssemblyFinishedEvent $contextFinished */
+        $contextFinished = $observer->eventsOf(LLMContextAssemblyFinishedEvent::class)[0];
         /** @var LLMModelTurnStartedEvent $firstTurn */
         $firstTurn = $observer->eventsOf(LLMModelTurnStartedEvent::class)[0];
         /** @var LLMModelTurnFinishedEvent $finishedTurn */
         $finishedTurn = $observer->eventsOf(LLMModelTurnFinishedEvent::class)[0];
         $this->assertSame(1, $started->messageCount);
         $this->assertTrue($started->hasSystemPrompt);
+        $this->assertSame(1, $contextStarted->iteration);
+        $this->assertSame(1, $contextStarted->messageCount);
+        $this->assertSame(1, $contextFinished->messageCount);
+        $this->assertSame(0, $contextFinished->omittedMessageCount);
+        $this->assertFalse($contextFinished->wasCompacted);
+        $this->assertTrue($contextFinished->isWithinLimit);
+        $this->assertGreaterThanOrEqual(0.0, $contextFinished->duration);
         $this->assertSame(1, $firstTurn->messageCount);
         $this->assertSame(0, $firstTurn->omittedMessageCount);
         $this->assertFalse($firstTurn->wasCompacted);
@@ -113,11 +134,56 @@ final class LLMRunObserverTest extends TestCase
 
         /** @var LLMModelTurnFinishedEvent $turn */
         $turn = $observer->eventsOf(LLMModelTurnFinishedEvent::class)[0];
+        /** @var LLMContextAssemblyFinishedEvent $context */
+        $context = $observer->eventsOf(LLMContextAssemblyFinishedEvent::class)[0];
         /** @var LLMToolCallFinishedEvent $tool */
         $tool = $observer->eventsOf(LLMToolCallFinishedEvent::class)[0];
         $this->assertSame(1700000000.0, $observer->events[0]->timestamp);
+        $this->assertSame(0.25, $context->duration);
         $this->assertSame(0.25, $turn->duration);
         $this->assertSame(0.25, $tool->duration);
+    }
+
+    #[Test]
+    public function contextLimitClosesAssemblyWithoutOpeningAModelTurn(): void
+    {
+        $observer = new RecordingRunObserver();
+        $assembler = new WindowedLLMContextAssembler(maximumMessages: 0);
+        $agent = new LLMAgent(new ScriptedObservedClient(), new ToolRegistry(new ArrayClass()), canSpawnSubagents: false, contextAssembler: $assembler, observer: $observer);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        /** @var LLMContextAssemblyFinishedEvent $event */
+        $event = $observer->eventsOf(LLMContextAssemblyFinishedEvent::class)[0];
+        $this->assertSame(LLMRunStopReason::contextLimit, $run->stopReason);
+        $this->assertFalse($event->isWithinLimit);
+        $this->assertCount(0, $observer->eventsOf(LLMModelTurnStartedEvent::class));
+        $this->assertCount(1, $observer->eventsOf(LLMRunFinishedEvent::class));
+    }
+
+    #[Test]
+    public function contextFailureClosesAssemblyAndRunSpans(): void
+    {
+        $observer = new RecordingRunObserver();
+        $agent = new LLMAgent(new ScriptedObservedClient(), new ToolRegistry(new ArrayClass()), canSpawnSubagents: false, contextAssembler: new FailingObservedContextAssembler(), observer: $observer);
+
+        try {
+            $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+            $this->fail("The context failure should escape the run.");
+        } catch (LogicException $exception) {
+            $this->assertSame("context exploded", $exception->getMessage());
+        }
+
+        /** @var LLMContextAssemblyFailedEvent $contextEvent */
+        $contextEvent = $observer->eventsOf(LLMContextAssemblyFailedEvent::class)[0];
+        /** @var LLMRunFailedEvent $runEvent */
+        $runEvent = $observer->eventsOf(LLMRunFailedEvent::class)[0];
+        $this->assertSame(1, $contextEvent->iteration);
+        $this->assertSame(LogicException::class, $contextEvent->errorType);
+        $this->assertSame("context exploded", $contextEvent->errorMessage);
+        $this->assertGreaterThanOrEqual(0.0, $contextEvent->duration);
+        $this->assertSame(LogicException::class, $runEvent->errorType);
+        $this->assertCount(0, $observer->eventsOf(LLMModelTurnStartedEvent::class));
     }
 
     #[Test]
@@ -281,6 +347,19 @@ final class LLMRunObserverTest extends TestCase
     {
         /** @var AbstractTool */
         return new ReflectionClass(ObservedExplodingTool::class)->newInstanceWithoutConstructor();
+    }
+}
+
+final class FailingObservedContextAssembler implements LLMContextAssembler
+{
+    /**
+     * @param ArrayClass<LLMMessage> $messages
+     * @param ArrayClass<ToolDescriptor> $tools
+     */
+    #[Override]
+    public function assemble(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): LLMContext
+    {
+        throw new LogicException("context exploded");
     }
 }
 

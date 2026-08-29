@@ -79,7 +79,7 @@ final class UploadsEnumerator extends DirectoryEnumerator
             $fileManager = FileManager::default();
             $keys = $this->keys;
             foreach ($this->uploadedFiles() as $file) {
-                $failure = self::transportFailure((int)$file["error"]);
+                $failure = $this->transportFailure((int)$file["error"]);
                 if ($failure !== null) {
                     throw new BadRequestException($failure);
                 }
@@ -122,7 +122,7 @@ final class UploadsEnumerator extends DirectoryEnumerator
      *
      * @param int $error One of PHP's `UPLOAD_ERR_*` codes.
      */
-    private static function transportFailure(int $error): ?string
+    private function transportFailure(int $error): ?string
     {
         return match ($error) {
             UPLOAD_ERR_OK => null,

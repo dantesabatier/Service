@@ -143,7 +143,7 @@ final class FirstResponderResolver
             }
             $responder = $responder->nextResponder;
         }
-        throw new NotFoundException("The requested URL was not found on this server {$this->application->request->url}");
+        throw new NotFoundException("The requested URL was not found on this server");
     }
 
     private function resolveFirstResponder(): Responder

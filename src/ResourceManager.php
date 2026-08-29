@@ -74,7 +74,7 @@ final class ResourceManager extends Responder
             if ($fileManager->isReadableFile($path)) {
                 return $this->data = $fileManager->contents($path) ?? throw new InternalServerErrorException();
             }
-            $this->staticResourceDisposition->allowEmptyResponse ?: throw new NotFoundException("The requested URL was not found on this server $this->resourceURL");
+            $this->staticResourceDisposition->allowEmptyResponse ?: throw new NotFoundException("The requested URL was not found on this server");
             return $this->data = null;
         }
         set {

@@ -22,6 +22,30 @@ final class Downloader extends Responder
     protected ArrayClass $allowedMethods {
         get => new ArrayClass([HTTPRequestMethod::post]);
     }
+    private URL $downloadURL {
+        get {
+            if (isset($this->downloadURL)) {
+                return $this->downloadURL;
+            }
+            $parsedBody = $this->request->parameters;
+            /** @var string $urlString */
+            $urlString = $parsedBody["url"] ?? throw new BadRequestException();
+            return $this->downloadURL = new URL($urlString);
+        }
+    }
+    private URL $directoryURL {
+        get {
+            if (isset($this->directoryURL)) {
+                return $this->directoryURL;
+            }
+            $directoryURL = $this->downloadURL->deletingLastPathComponent();
+            $directoryURL->pathComponents->count === 2 ?: throw new BadRequestException("The requested location must name one directory and one file.");
+            return $this->directoryURL = $directoryURL;
+        }
+    }
+    private DownloadDisposition $downloadDisposition {
+        get => $this->downloadDisposition ??= Application::shared()->fileTransferPolicy->evaluateDownload($this->directoryURL->lastPathComponent, $this->downloadURL->lastPathComponent);
+    }
 
     /**
      * Serves one file the request names by subdirectory and filename.
@@ -37,13 +61,7 @@ final class Downloader extends Responder
     #[Action(transformers: [DownloadResponseTransformer::class, NoCacheHeaderTransformer::class])]
     public function download(): void
     {
-        $parsedBody = $this->request->parameters;
-        /** @var string $urlString */
-        $urlString = $parsedBody["url"] ?? throw new BadRequestException();
-        $attachmentURL = new URL($urlString);
-        $directoryURL = $attachmentURL->deletingLastPathComponent();
-        $directoryURL->pathComponents->count === 2 ?: throw new BadRequestException("The requested location must name one directory and one file.");
-        $disposition = Application::shared()->fileTransferPolicy->evaluateDownload($directoryURL->lastPathComponent, $attachmentURL->lastPathComponent);
+        $disposition = $this->downloadDisposition;
         /** @var URL $resourceURL */
         $resourceURL = $disposition->isAllowed ? $disposition->resourceURL : throw new NotFoundException($disposition->failureReason ?? "The requested file is not available.");
         $path = $resourceURL->path;

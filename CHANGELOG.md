@@ -64,14 +64,18 @@ free to change. This section collects what will become the 1.0.0 notes.
 - `LLMToolProviderException`, `LLMRunStopReason::toolProviderFailure` and the
   matching trace disposition, distinguishing an unavailable remote tool
   service from a correctable tool result and from a local program fault.
-- `LLMAgentLoop`, `LLMAgentRunRequest` and `LLMAgentRuntime`, separating
+- `LLMAgentLoop`, `LLMAgentSession`, `LLMAgentLoopOutcome`,
+  `LLMAgentRunRequest` and `LLMAgentRuntime`, separating
   orchestration strategy from the `LLMAgent` facade. Existing agents keep the
   extracted `ReActLLMAgentLoop` by default, while an application may inject a
   planning or domain-specific loop without replacing its provider, tool
   executor, context assembler, execution policy, observer or clock. The runtime
   gives every strategy an isolated conversation and makes context assembly,
   model turns and tool execution pass through the same deadlines, budgets,
-  write approvals, cache and trace boundaries ReAct uses.
+  write approvals, cache and trace boundaries ReAct uses. Strategies return
+  only a terminal decision; the runtime constructs the run from recorded state,
+  retains terminal guardrails even when a loop catches their interruption, and
+  exposes separate capabilities for real tools and bounded subagents.
 - `LLMRetriever`, `LLMRetrievalRequest`, `LLMRetrievedDocument` and
   `RetrievalAugmentedLLMContextAssembler`, providing backend-neutral RAG and
   long-term-memory retrieval without coupling the loop to a vector database.

@@ -46,6 +46,7 @@ use Sabatier\Service\LLM\LLMToolCallFinishedEvent;
 use Sabatier\Service\LLM\LLMToolCallStartedEvent;
 use Sabatier\Service\LLM\LLMToolExecutionResult;
 use Sabatier\Service\LLM\LLMToolExecutor;
+use Sabatier\Service\LLM\LLMToolProviderException;
 use Sabatier\Service\LLM\LLMTurn;
 use Sabatier\Service\LLM\WindowedLLMContextAssembler;
 use Sabatier\Service\MCP\Response\ContentItem;
@@ -266,6 +267,22 @@ final class LLMRunObserverTest extends TestCase
     }
 
     #[Test]
+    public function toolClassificationFailureClosesTheToolSpan(): void
+    {
+        $observer = new RecordingRunObserver();
+        $agent = new LLMAgent(new ScriptedObservedClient(), new FailingClassificationToolExecutor(), canSpawnSubagents: false, observer: $observer);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        /** @var LLMToolCallFinishedEvent $event */
+        $event = $observer->eventsOf(LLMToolCallFinishedEvent::class)[0];
+        $this->assertSame(LLMRunStopReason::toolProviderFailure, $run->stopReason);
+        $this->assertCount(1, $observer->eventsOf(LLMToolCallStartedEvent::class));
+        $this->assertCount(1, $observer->eventsOf(LLMToolCallFinishedEvent::class));
+        $this->assertSame(LLMToolCallDisposition::providerFailure, $event->disposition);
+    }
+
+    #[Test]
     public function providerFailureClosesTheTurnAndReturnsANormalFailedRun(): void
     {
         $observer = new RecordingRunObserver();
@@ -386,6 +403,31 @@ final class LLMRunObserverTest extends TestCase
         }
 
         $this->assertCount(1, $observer->eventsOf(LLMRunFailedEvent::class));
+    }
+
+    #[Test]
+    public function strictTerminalTurnObserverFailureKeepsConsumedTokensInTheFailedRunEvent(): void
+    {
+        $hasFailed = false;
+        $observer = new RecordingRunObserver(function (LLMRunEvent $event) use (&$hasFailed): void {
+            if (!$hasFailed && $event instanceof LLMModelTurnFinishedEvent) {
+                $hasFailed = true;
+                throw new LogicException("turn observer exploded");
+            }
+        });
+        $agent = new LLMAgent(new ScriptedObservedClient(), new ToolRegistry(new ArrayClass([$this->tool()])), canSpawnSubagents: false, observer: $observer, observerFailurePolicy: LLMRunObserverFailurePolicy::strict);
+
+        try {
+            $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+            $this->fail("Strict observer failure should escape the run.");
+        } catch (LogicException $exception) {
+            $this->assertSame("turn observer exploded", $exception->getMessage());
+        }
+
+        /** @var LLMRunFailedEvent $event */
+        $event = $observer->eventsOf(LLMRunFailedEvent::class)[0];
+        $this->assertSame(5, $event->inputTokens);
+        $this->assertSame(2, $event->outputTokens);
     }
 
     #[Test]
@@ -514,6 +556,38 @@ final class ObservedExplodingTool extends AbstractTool
     public function execute(Dictionary $arguments): ArrayClass
     {
         throw new LogicException("tool exploded");
+    }
+}
+
+final class FailingClassificationToolExecutor implements LLMToolExecutor
+{
+    #[Override]
+    public ArrayClass $tools {
+        get => new ArrayClass([new ToolDescriptor("probe_tool", "Probe tool.", ["type" => "object"])]);
+    }
+
+    #[Override]
+    public function contains(LLMToolCall $call): bool
+    {
+        throw new LLMToolProviderException("classification unavailable", true);
+    }
+
+    #[Override]
+    public function isReadOnly(LLMToolCall $call): bool
+    {
+        throw new LogicException("Classification should stop at contains.");
+    }
+
+    #[Override]
+    public function isCacheable(LLMToolCall $call): bool
+    {
+        throw new LogicException("The tool should not execute.");
+    }
+
+    #[Override]
+    public function execute(LLMToolCall $call, ?LLMExecutionDeadline $deadline = null): LLMToolExecutionResult
+    {
+        throw new LogicException("The tool should not execute.");
     }
 }
 

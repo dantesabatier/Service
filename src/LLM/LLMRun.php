@@ -10,13 +10,13 @@ use Sabatier\Foundation\Dictionary;
 /**
  * The aggregate result of a complete agentic run: all messages generated after the initial input, and the total tokens consumed across every turn.
  *
- * `$isComplete` answers the one question most callers have — is this an answer or not — and `$stopReason` says which ending produced it, because a model-provider failure, tool-provider failure, output limit, refusal, deadline, iteration cap, execution budget, context limit and write-approval boundary call for different corrections.
+ * `$isComplete` answers the one question most callers have — is this an answer or not — and `$stopReason` says which ending produced it, because a model-provider failure, tool-provider failure, output limit, refusal, deadline, iteration cap, execution budget, context limit, and write-approval boundary call for different corrections.
  *
  * `$isRetryable` answers a separate question the stop reason cannot: whether running the same thing again is worth the tokens. The two are deliberately apart. They vary independently — a provider failure is worth retrying when it was a 429 and pointless when it was a bad API key, and the same split will apply to a deadline the caller can afford to raise. Folding the answer into `$stopReason` would double its cases for every ending that gains the distinction.
  *
  * The class marks its properties `readonly` one by one rather than declaring itself `final readonly`, which would be shorter: a `readonly` class forbids property hooks, and `$toolCallResults` is one. Every stored property still carries the keyword, so the run is as immutable as the shorter form would have made it — only the computed property is exempt, and it has nothing to store.
  *
- * `$isComplete` stays derived rather than passed, so it cannot contradict the messages it summarizes: a run is complete when its last message is an assistant message carrying no tool calls — the same condition `LLMTurn::$isDone` expresses for a single turn — and only when the run also reached that point on its own. A capped run always ends on a tool message, because the loop executes every tool call of a turn before re-testing the cap. A failed run is never complete, however, it ends: the provider stopped answering partway, and the messages already collected are not a conclusion. An empty run is not complete either: nothing answered it.
+ * `$isComplete` stays derived rather than passed, so it cannot contradict the messages it summarizes: a run is complete when its last message is an assistant message carrying no tool calls — the same condition `LLMTurn::$isDone` expresses for a single turn — and only when the runtime retained `done` as its terminal outcome. A failed or capped run is never complete; however, its strategy left the conversation: the work did not reach a conclusion. An empty run is not complete either because nothing answered it.
  */
 final class LLMRun
 {

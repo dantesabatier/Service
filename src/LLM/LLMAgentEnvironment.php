@@ -10,7 +10,7 @@ final readonly class LLMAgentEnvironment
     /**
      * @param LLMClient $client The provider client available for model turns.
      * @param LLMToolExecutor $toolExecutor The catalogue and execution boundary for real tools.
-     * @param int $maxIterations The maximum model turns one root run may take.
+     * @param int $maxIterations The maximum model turns this run may take.
      * @param bool $canSpawnSubagents Whether a strategy may offer its delegation mechanism.
      * @param float|null $timeLimit The root run's wall-clock limit in seconds, or `null` for none.
      * @param LLMExecutionPolicy $executionPolicy The shared approval and consumption limits.
@@ -21,5 +21,22 @@ final readonly class LLMAgentEnvironment
      */
     public function __construct(public LLMClient $client, public LLMToolExecutor $toolExecutor, public int $maxIterations, public bool $canSpawnSubagents, public ?float $timeLimit, public LLMExecutionPolicy $executionPolicy, public LLMContextAssembler $contextAssembler, public ?LLMRunObserver $observer, public LLMRunObserverFailurePolicy $observerFailurePolicy, public LLMClock $clock)
     {
+    }
+
+    /** Derives the structurally non-recursive environment inherited by a child run. */
+    public function child(): self
+    {
+        return new self(
+            client: $this->client,
+            toolExecutor: $this->toolExecutor,
+            maxIterations: $this->executionPolicy->maxSubagentIterations,
+            canSpawnSubagents: false,
+            timeLimit: null,
+            executionPolicy: $this->executionPolicy,
+            contextAssembler: $this->contextAssembler,
+            observer: $this->observer,
+            observerFailurePolicy: $this->observerFailurePolicy,
+            clock: $this->clock
+        );
     }
 }

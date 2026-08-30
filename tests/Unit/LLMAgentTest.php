@@ -19,7 +19,9 @@ use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Service\LLM\LLMAgent;
 use Sabatier\Service\LLM\LLMAgentLoop;
+use Sabatier\Service\LLM\LLMAgentLoopOutcome;
 use Sabatier\Service\LLM\LLMAgentRuntime;
+use Sabatier\Service\LLM\LLMAgentSession;
 use Sabatier\Service\LLM\LLMClient;
 use Sabatier\Service\LLM\LLMExecutionDeadline;
 use Sabatier\Service\LLM\LLMExecutionPolicy;
@@ -37,6 +39,7 @@ use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
 use Sabatier\Service\MCP\Tools\AbstractTool;
 use Sabatier\Service\MCP\Tools\ToolRegistry;
+use Throwable;
 
 final class LLMAgentTest extends TestCase
 {
@@ -81,6 +84,63 @@ final class LLMAgentTest extends TestCase
 
         $this->assertSame(LLMRunStopReason::iterationCap, $run->stopReason);
         $this->assertSame(2, $run->messages->filter(fn(LLMMessage $message): bool => $message->role === LLMMessageRole::assistant)->count);
+    }
+
+    #[Test]
+    public function caughtRuntimeInterruptionCannotBeLaunderedIntoACompletedRun(): void
+    {
+        $agent = new LLMAgent(new ScriptedTerminalTurnClient(LLMTurnStopReason::outputLimit), new ToolRegistry(new ArrayClass()), canSpawnSubagents: false, loop: new SwallowingTerminalLoop());
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        $this->assertSame(LLMRunStopReason::outputLimit, $run->stopReason);
+        $this->assertFalse($run->isComplete);
+        $this->assertSame(3, $run->inputTokens);
+        $this->assertSame(4, $run->outputTokens);
+    }
+
+    #[Test]
+    public function loopCannotCompleteWithoutAConclusiveRuntimeRecordedTurn(): void
+    {
+        $agent = new LLMAgent(new ScriptedTerminalTurnClient(LLMTurnStopReason::completed), new ToolRegistry(new ArrayClass()), canSpawnSubagents: false, loop: new PrematureCompletionLoop());
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage("cannot complete without a conclusive assistant turn");
+
+        $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+    }
+
+    #[Test]
+    public function runtimeRejectsReentrantExecution(): void
+    {
+        $agent = new LLMAgent(new ScriptedTerminalTurnClient(LLMTurnStopReason::completed), new ToolRegistry(new ArrayClass()), canSpawnSubagents: false, loop: new ReentrantAgentLoop());
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage("can only be executed once");
+
+        $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+    }
+
+    #[Test]
+    public function loopCannotOpenAnotherTurnWhileToolResultsArePending(): void
+    {
+        $agent = new LLMAgent(new ScriptedNeverDoneClient(), new ToolRegistry(new ArrayClass([$this->tool()])), canSpawnSubagents: false, loop: new SkippingToolResultLoop());
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage("must receive a result before another turn");
+
+        $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+    }
+
+    #[Test]
+    public function loopCannotExecuteAToolCallTheModelDidNotRequest(): void
+    {
+        $agent = new LLMAgent(new ScriptedNeverDoneClient(), new ToolRegistry(new ArrayClass([$this->tool()])), canSpawnSubagents: false, loop: new FabricatingToolCallLoop());
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage("did not request this exact tool call");
+
+        $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
     }
 
     #[Test]
@@ -152,6 +212,20 @@ final class LLMAgentTest extends TestCase
     }
 
     #[Test]
+    public function executionPolicyBoundsEveryChildRun(): void
+    {
+        $client = new ScriptedBoundedSubagentClient();
+        $policy = new LLMExecutionPolicy(maxSubagentIterations: 1);
+        $agent = new LLMAgent($client, new ToolRegistry(new ArrayClass([$this->tool()])), executionPolicy: $policy);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "parent task")]));
+
+        $this->assertSame(3, $client->calls);
+        $this->assertSame("The subagent ran out of iterations before finishing. Narrow the task and try again.", $run->messages[1]->content);
+        $this->assertTrue($run->messages[1]->isError);
+    }
+
+    #[Test]
     public function subagentCalledWithoutTaskIsFlaggedAsToolError(): void
     {
         $client = new ScriptedTasklessSubagentClient();
@@ -189,6 +263,20 @@ final class LLMAgentTest extends TestCase
         $this->assertStringStartsWith("Do not call this tool with these arguments again", (string)$run->messages[3]->content);
         $this->assertStringContainsString("counted 1", (string)$run->messages[3]->content);
         $this->assertFalse($run->messages[3]->isError);
+    }
+
+    #[Test]
+    public function cacheIdentityPreservesArgumentStructureAndTypes(): void
+    {
+        $client = new ScriptedAmbiguousArgumentsClient();
+        LLMAgentCountingTool::$calls = 0;
+        $agent = new LLMAgent($client, new ToolRegistry(new ArrayClass([$this->countingTool()])), canSpawnSubagents: false);
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        $this->assertSame(2, LLMAgentCountingTool::$calls);
+        $this->assertSame("counted 1", $run->messages[1]->content);
+        $this->assertSame("counted 2", $run->messages[3]->content);
     }
 
     /**
@@ -520,34 +608,93 @@ final class RecordingAgentLoop implements LLMAgentLoop
     public array $toolNames = [];
 
     #[Override]
-    public function run(LLMAgentRuntime $runtime): LLMRun
+    public function run(LLMAgentSession $session): LLMAgentLoopOutcome
     {
-        $messages = $runtime->messages;
+        $messages = $session->messages;
         $this->query = (string)$messages->first->content;
-        $this->systemPrompt = $runtime->systemPrompt;
-        $this->maxIterations = $runtime->maxIterations;
-        $this->canSpawnSubagents = $runtime->canSpawnSubagents;
-        $this->toolNames = $runtime->tools->map(fn(ToolDescriptor $tool): string => $tool->name)->array;
+        $this->systemPrompt = $session->systemPrompt;
+        $this->maxIterations = $session->maxIterations;
+        $this->canSpawnSubagents = $session->canSpawnSubagents;
+        $this->toolNames = $session->tools->map(fn(ToolDescriptor $tool): string => $tool->name)->array;
         $messages->append(new LLMMessage(LLMMessageRole::assistant, "mutated snapshot"));
-        $runtime->completeTurn($runtime->tools);
-        return $runtime->finish();
+        $session->completeTurn();
+        return new LLMAgentLoopOutcome();
     }
 }
 
 final class RuntimeToolUsingLoop implements LLMAgentLoop
 {
     #[Override]
-    public function run(LLMAgentRuntime $runtime): LLMRun
+    public function run(LLMAgentSession $session): LLMAgentLoopOutcome
     {
         while (true) {
-            $turn = $runtime->completeTurn($runtime->tools);
-            if ($turn->stopReason !== LLMTurnStopReason::toolUse) {
-                return $runtime->finish();
+            $turn = $session->completeTurn();
+            if ($turn->stopReason === LLMTurnStopReason::completed) {
+                return new LLMAgentLoopOutcome();
             }
             foreach ($turn->toolCalls as $toolCall) {
-                $runtime->executeTool($toolCall);
+                $session->executeTool($toolCall);
             }
         }
+    }
+}
+
+final class SwallowingTerminalLoop implements LLMAgentLoop
+{
+    #[Override]
+    public function run(LLMAgentSession $session): LLMAgentLoopOutcome
+    {
+        try {
+            $session->completeTurn();
+        } catch (Throwable) {
+        }
+        return new LLMAgentLoopOutcome();
+    }
+}
+
+final class PrematureCompletionLoop implements LLMAgentLoop
+{
+    #[Override]
+    public function run(LLMAgentSession $session): LLMAgentLoopOutcome
+    {
+        return new LLMAgentLoopOutcome();
+    }
+}
+
+final class ReentrantAgentLoop implements LLMAgentLoop
+{
+    #[Override]
+    public function run(LLMAgentSession $session): LLMAgentLoopOutcome
+    {
+        if (!$session instanceof LLMAgentRuntime) {
+            throw new LogicException("The default agent did not supply its runtime implementation.");
+        }
+        $session->execute($this);
+        throw new LogicException("Reentrant execution unexpectedly returned.");
+    }
+}
+
+final class SkippingToolResultLoop implements LLMAgentLoop
+{
+    #[Override]
+    public function run(LLMAgentSession $session): LLMAgentLoopOutcome
+    {
+        $session->completeTurn();
+        $session->completeTurn();
+        throw new LogicException("A turn with pending tool calls unexpectedly completed.");
+    }
+}
+
+final class FabricatingToolCallLoop implements LLMAgentLoop
+{
+    #[Override]
+    public function run(LLMAgentSession $session): LLMAgentLoopOutcome
+    {
+        $turn = $session->completeTurn();
+        /** @var LLMToolCall $call */
+        $call = $turn->toolCalls->first;
+        $session->executeTool(new LLMToolCall($call->id, $call->name, new Dictionary(["n" => 999])));
+        throw new LogicException("A fabricated tool call unexpectedly executed.");
     }
 }
 
@@ -749,6 +896,54 @@ final class ScriptedNeverDoneClient extends LLMClient
  * The subagent emits text on its first turn and then never concludes, exhausting its cap. The
  * parent must report the cap rather than pass that intermediate text off as the answer.
  */
+final class ScriptedBoundedSubagentClient extends LLMClient
+{
+    #[Override]
+    public string $version {
+        get => "test";
+    }
+    #[Override]
+    public int $maxTokens {
+        get => 1024;
+    }
+
+    public int $calls = 0;
+
+    /**
+     * @param ArrayClass<LLMMessage> $messages
+     * @param ArrayClass<ToolDescriptor> $tools
+     */
+    #[Override]
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null, ?LLMExecutionDeadline $deadline = null): LLMTurn
+    {
+        $call = $this->calls++;
+        if ($call === 0) {
+            return new LLMTurn(null, new ArrayClass([new LLMToolCall("parent-subagent", "run_subagent", new Dictionary(["task" => "inspect one thing"]))]));
+        }
+        if ($tools->contains(fn(ToolDescriptor $tool): bool => $tool->name === "run_subagent")) {
+            return new LLMTurn("parent done", new ArrayClass());
+        }
+        return new LLMTurn(null, new ArrayClass([new LLMToolCall("child-$call", "probe_tool", new Dictionary())]));
+    }
+
+    /**
+     * @param ArrayClass<LLMMessage> $messages
+     * @param ArrayClass<ToolDescriptor> $tools
+     */
+    #[Override]
+    protected function buildRequest(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): URLRequest
+    {
+        throw new LogicException("Scripted client does not build requests.");
+    }
+
+    /** @param Dictionary<mixed> $body */
+    #[Override]
+    protected function parse(Dictionary $body): LLMTurn
+    {
+        throw new LogicException("Scripted client does not parse responses.");
+    }
+}
+
 final class ScriptedExhaustedSubagentClient extends LLMClient
 {
     #[Override]
@@ -899,6 +1094,52 @@ final class ScriptedReorderedArgumentsClient extends LLMClient
 }
 
 /** Same keys, different values: two genuinely distinct calls that must both reach the tool. */
+final class ScriptedAmbiguousArgumentsClient extends LLMClient
+{
+    #[Override]
+    public string $version {
+        get => "test";
+    }
+    #[Override]
+    public int $maxTokens {
+        get => 1024;
+    }
+
+    private int $call = 0;
+
+    /**
+     * @param ArrayClass<LLMMessage> $messages
+     * @param ArrayClass<ToolDescriptor> $tools
+     */
+    #[Override]
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null, ?LLMExecutionDeadline $deadline = null): LLMTurn
+    {
+        return match ($this->call++) {
+            0 => new LLMTurn(null, new ArrayClass([new LLMToolCall("c1", "counting_tool", new Dictionary(["a" => "1, b: 2"]))])),
+            1 => new LLMTurn(null, new ArrayClass([new LLMToolCall("c2", "counting_tool", new Dictionary(["a" => "1", "b" => 2]))])),
+            2 => new LLMTurn("done", new ArrayClass()),
+            default => throw new LogicException("Unexpected LLM call."),
+        };
+    }
+
+    /**
+     * @param ArrayClass<LLMMessage> $messages
+     * @param ArrayClass<ToolDescriptor> $tools
+     */
+    #[Override]
+    protected function buildRequest(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): URLRequest
+    {
+        throw new LogicException("Scripted client does not build requests.");
+    }
+
+    /** @param Dictionary<mixed> $body */
+    #[Override]
+    protected function parse(Dictionary $body): LLMTurn
+    {
+        throw new LogicException("Scripted client does not parse responses.");
+    }
+}
+
 final class ScriptedDistinctArgumentsClient extends LLMClient
 {
     #[Override]

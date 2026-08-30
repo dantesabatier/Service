@@ -11,7 +11,7 @@ use InvalidArgumentException;
  * Hard limits and write-approval policy applied to one agentic run and every subagent it launches.
  *
  * Token limits count the cumulative usage reported by providers, not the size of the latest
- * request. A write is denied by default; an application that has obtained user approval supplies
+ * request. A write is denied by default; an application that has got user approval supplies
  * a closure that accepts only the concrete calls covered by that approval.
  */
 final readonly class LLMExecutionPolicy
@@ -23,10 +23,11 @@ final readonly class LLMExecutionPolicy
      * @param int|null $maxOutputTokens Maximum cumulative provider output tokens, or `null` for no limit.
      * @param int|null $maxTotalTokens Maximum cumulative input plus output tokens, or `null` for no limit.
      * @param Closure(LLMToolCall): bool|null $writeApproval Returns true only for a state-changing call the user approved. Null denies every write.
+     * @param int $maxSubagentIterations Maximum model turns any one child run may open.
      */
-    public function __construct(public ?int $maxToolCalls = 64, public ?int $maxSubagentCalls = 8, public ?int $maxInputTokens = null, public ?int $maxOutputTokens = null, public ?int $maxTotalTokens = null, private ?Closure $writeApproval = null)
+    public function __construct(public ?int $maxToolCalls = 64, public ?int $maxSubagentCalls = 8, public ?int $maxInputTokens = null, public ?int $maxOutputTokens = null, public ?int $maxTotalTokens = null, private ?Closure $writeApproval = null, public int $maxSubagentIterations = 8)
     {
-        foreach (["maxToolCalls" => $maxToolCalls, "maxSubagentCalls" => $maxSubagentCalls, "maxInputTokens" => $maxInputTokens, "maxOutputTokens" => $maxOutputTokens, "maxTotalTokens" => $maxTotalTokens] as $name => $limit) {
+        foreach (["maxToolCalls" => $maxToolCalls, "maxSubagentCalls" => $maxSubagentCalls, "maxInputTokens" => $maxInputTokens, "maxOutputTokens" => $maxOutputTokens, "maxTotalTokens" => $maxTotalTokens, "maxSubagentIterations" => $maxSubagentIterations] as $name => $limit) {
             if ($limit !== null && $limit < 0) {
                 throw new InvalidArgumentException("$name cannot be negative.");
             }

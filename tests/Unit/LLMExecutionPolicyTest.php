@@ -33,6 +33,14 @@ final class LLMExecutionPolicyTest extends TestCase
     }
 
     #[Test]
+    public function negativeSubagentIterationLimitIsRejected(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        new LLMExecutionPolicy(maxSubagentIterations: -1);
+    }
+
+    #[Test]
     public function mixedToolsClassifyTheConcreteOperation(): void
     {
         /** @var PersistentHistoryTool $tool */

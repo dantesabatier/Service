@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\LLM;
 
+use InvalidArgumentException;
+
 /** A synthetic tool result produced by an agent loop under the runtime's execution boundary. */
 final readonly class LLMAgentToolResult
 {
@@ -15,5 +17,11 @@ final readonly class LLMAgentToolResult
      */
     public function __construct(public string $text, public bool $isError = false, public ?LLMRunStopReason $stopReason = null, public ?bool $isRetryable = null)
     {
+        if ($stopReason === LLMRunStopReason::done) {
+            throw new InvalidArgumentException("A tool result cannot complete an agent run before the model answers.");
+        }
+        if ($stopReason === null && $isRetryable !== null) {
+            throw new InvalidArgumentException("A tool result without a stop reason has nothing to retry.");
+        }
     }
 }

@@ -39,7 +39,6 @@ final class ReActLLMAgentLoop implements LLMAgentLoop
     private const string outputTokenLimit = "The shared output-token budget is exhausted.";
     private const string totalTokenLimit = "The shared total-token budget is exhausted.";
     private const string contextLimit = "The assembled context exceeds its configured limit without a safe turn left to remove.";
-    private const int subagentMaxIterations = 8;
     private ?ToolDescriptor $subagentToolDescriptor = null;
 
     private function subagentToolDescriptor(): ToolDescriptor
@@ -64,46 +63,50 @@ final class ReActLLMAgentLoop implements LLMAgentLoop
      * @throws Throwable
      */
     #[Override]
-    public function run(LLMAgentRuntime $runtime): LLMRun
+    public function run(LLMAgentSession $session): LLMAgentLoopOutcome
     {
-        $tools = $runtime->canSpawnSubagents ? $runtime->tools->appending($this->subagentToolDescriptor()) : $runtime->tools;
+        $syntheticTools = $session->canSpawnSubagents ? new ArrayClass([$this->subagentToolDescriptor()]) : null;
         while (true) {
-            $turn = $runtime->completeTurn($tools);
-            $ending = match ($turn->stopReason) {
-                LLMTurnStopReason::toolUse => null,
-                LLMTurnStopReason::completed => [LLMRunStopReason::done, null],
-                LLMTurnStopReason::outputLimit => [LLMRunStopReason::outputLimit, true],
-                LLMTurnStopReason::refusal => [LLMRunStopReason::refusal, false],
-            };
-            if ($ending !== null) {
-                [$stopReason, $isRetryable] = $ending;
-                return $runtime->finish($stopReason, $isRetryable);
+            $turn = $session->completeTurn($syntheticTools);
+            if ($turn->stopReason === LLMTurnStopReason::completed) {
+                return new LLMAgentLoopOutcome();
             }
             foreach ($turn->toolCalls as $toolCall) {
-                $isSubagent = $runtime->canSpawnSubagents && $toolCall->name === self::subagentToolName;
-                $runtime->executeTool($toolCall, $isSubagent, $isSubagent ? fn(): LLMAgentToolResult => $this->runSubagent($toolCall->arguments, $runtime) : null);
+                if (!$session->canSpawnSubagents || $toolCall->name !== self::subagentToolName) {
+                    $session->executeTool($toolCall);
+                    continue;
+                }
+                $request = $this->subagentRequest($toolCall->arguments, $session);
+                if ($request === null) {
+                    $session->rejectSyntheticToolCall($toolCall, self::subagentTaskRequired);
+                    continue;
+                }
+                $session->executeSubagent($toolCall, $request, $this, fn(LLMRun $run): LLMAgentToolResult => $this->subagentToolResult($run));
             }
         }
     }
 
     /**
      * @param Dictionary<mixed> $arguments
-     * @param LLMAgentRuntime $runtime
-     * @return LLMAgentToolResult
-     * @throws Throwable
+     * @param LLMAgentSession $session
+     * @return LLMAgentRunRequest|null
      */
-    private function runSubagent(Dictionary $arguments, LLMAgentRuntime $runtime): LLMAgentToolResult
+    private function subagentRequest(Dictionary $arguments, LLMAgentSession $session): ?LLMAgentRunRequest
     {
         $task = trim((string)$arguments["task"]);
         if ($task === "") {
-            return new LLMAgentToolResult(self::subagentTaskRequired, true);
+            return null;
         }
         $context = trim((string)$arguments["context"]);
         $content = $context === "" ? $task : "Task:\n$task\n\nContext:\n$context";
-        $request = new LLMAgentRunRequest(new ArrayClass([new LLMMessage(LLMMessageRole::user, $content)]), $runtime->systemPrompt);
-        $run = $runtime->child($request, self::subagentMaxIterations)->execute($this);
+        return new LLMAgentRunRequest(new ArrayClass([new LLMMessage(LLMMessageRole::user, $content)]), $session->systemPrompt);
+    }
+
+    private function subagentToolResult(LLMRun $run): LLMAgentToolResult
+    {
         $answer = $this->subagentResultText($run);
-        return new LLMAgentToolResult($answer ?? $this->subagentFailureText($run), $answer === null, $this->propagatedStopReason($run->stopReason), $run->isRetryable);
+        $stopReason = $this->propagatedStopReason($run->stopReason);
+        return new LLMAgentToolResult($answer ?? $this->subagentFailureText($run), $answer === null, $stopReason, $stopReason === null ? null : $run->isRetryable);
     }
 
     private function subagentResultText(LLMRun $run): ?string

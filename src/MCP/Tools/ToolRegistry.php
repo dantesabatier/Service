@@ -136,13 +136,13 @@ final class ToolRegistry
         $unknown = $arguments->keys->compactMap(fn(string $key): ?string => !array_key_exists($key, $properties) ? $key : null);
         if (!$unknown->isEmpty) {
             $accepted = implode(", ", array_keys($properties));
-            return sprintf(localized_string("%s does not accept %s. Accepted arguments: %s. Re-read the tool's schema and call it again."), $tool->name, implode(", ", $unknown->array), $accepted);
+            return sprintf(localized_string("%s does not accept %s. Accepted arguments: %s. Re-read the tool's schema and call it again."), $tool->name, $unknown->join(", "), $accepted);
         }
         /** @var list<string> $required */
         $required = is_array($schema["required"] ?? null) ? $schema["required"] : [];
         /** @var ArrayClass<string> $missing */
-        $missing = new ArrayClass($required)->compactMap(fn(string $key): ?string => $arguments[$key] === null ? $key : null);
-        return $missing->isEmpty ? null : sprintf(localized_string("%s requires %s. Supply it and call again."), $tool->name, implode(", ", $missing->array));
+        $missing = new ArrayClass($required)->filter(fn(string $key): bool => !$arguments->offsetExists($key));
+        return $missing->isEmpty ? null : sprintf(localized_string("%s requires %s. Supply it and call again."), $tool->name, $missing->join(", "));
     }
 
     private function reason(InternalInconsistencyException $exception): string

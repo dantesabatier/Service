@@ -41,9 +41,7 @@ rector --dry-run
 - **`phpunit` passes in full.** The suite runs in about a second; there is no
   excuse for pushing a red tree. If a change makes an existing test fail, say
   so in the pull request and explain why the old expectation was wrong.
-- **`psalm` reports no errors.** Psalm is the authority on static analysis
-  here. PHPStan is present because Rector needs it, and the two cannot both be
-  satisfied — do not change code to quiet PHPStan.
+- **`psalm` reports no errors.** Psalm is the project's static-analysis gate.
 - **`rector --dry-run` is clean for the files you touched.** It flags a handful
   of pre-existing files; leave those alone rather than folding an unrelated
   sweep into your change.
@@ -79,6 +77,10 @@ changes them will be asked to change back:
 Write a subject line that says what changed, then a body that says why it
 needed to. The failure a change prevents is more useful to the next reader
 than a restatement of the diff.
+
+Release managers should also follow [RELEASING.md](RELEASING.md); versioned
+changelog and support-policy edits happen only after the final tag version and
+date are known.
 
 ## Reporting bugs
 

@@ -1,8 +1,14 @@
 # MCP Tools
 
-The framework exposes the application's Core Data model to LLM agents as a JSON-RPC 2.0 tool catalogue at `/mcp`. This document is the per-tool reference: the input schema and behaviour of every built-in tool, and the contract a custom tool must honour.
+The framework exposes the generated application's Core Data model to LLM agents as a JSON-RPC 2.0 tool catalogue at `/mcp`. The built-in data tools are derived from that model without programmer-written tool definitions. This document is the per-tool reference and the contract for optional custom tools.
 
 For the transport, the JSON-RPC methods (`initialize`, `tools/list`, `tools/call`, …) and how the schema is built from the model, see [Section 12 of ARCHITECTURE.md](ARCHITECTURE.md#12-mcp-server).
+
+## Protocol compatibility
+
+This implementation serves the stateful, handshake-era MCP revisions `2025-03-26`, `2025-06-18` and `2025-11-25`. It negotiates through `initialize`, issues an `Mcp-Session-Id`, and defaults or falls back to `2025-11-25` when the client does not request one of those revisions.
+
+It does not yet implement the stateless `2026-07-28` lifecycle: there is no `server/discover`, per-request capability metadata, or `Mcp-Method`/`Mcp-Name` routing. A client that supports both eras must select its legacy or handshake mode, or explicitly request one of the supported revisions. See the [official 2026-07-28 release notes](https://blog.modelcontextprotocol.io/posts/2026-07-28/) for the lifecycle differences.
 
 ## Conventions
 
@@ -190,7 +196,7 @@ Returns the server's local time in its configured timezone:
 ```json
 {
   "iso8601": "2026-08-09T14:30:00-05:00",
-  "unix": 1754764200,
+  "unix": 1786303800,
   "timezone": "America/Mexico_City",
   "weekday": "Sunday",
   "date": "2026-08-09",

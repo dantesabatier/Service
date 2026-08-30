@@ -10,13 +10,10 @@
 ## Code quality commands
 
 ```bash
-phpstan analyse
+phpunit
 psalm
-php-cs-fixer fix --dry-run   # check
-php-cs-fixer fix             # apply
 rector --dry-run             # check
 rector                       # apply
-phpcs src/
 ```
 
 ## Rector constraints

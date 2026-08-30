@@ -11,26 +11,18 @@ The dev tools are installed **globally** (Composer global, on `PATH`) — `vendo
 phpunit                       # full suite (config: phpunit.xml)
 
 # Static analysis
-phpstan analyse
 psalm --show-info=false
-
-# Code style check and fix
-php-cs-fixer fix --dry-run    # check
-php-cs-fixer fix              # apply
 
 # Automated refactoring
 rector --dry-run              # check
 rector                        # apply
-
-# CodeSniffer
-phpcs src/
 ```
 
 The framework has a PHPUnit suite under `tests/` (`tests/Unit`, `tests/Integration`). Both directories pass in full (`phpunit tests/Unit`, `phpunit tests/Integration`).
 
 ## Architecture
 
-`sabatier/service` is an application framework for PHP 8.5+ built on two sibling libraries (`sabatier/foundation` and `sabatier/coredata`). Most source files live flat in `src/`. The exceptions are `src/MCP/`, a self-contained subsystem with its own subdirectories (`Tools/`, `Response/`, `Schema/`), and `src/Jobs/`, which holds the scheduled-job base class and its resolver/registry.
+`sabatier/service` is the application and HTTP layer of the PHP 8.5+ Sabatier SDK. The complete SDK is formed by Foundation, CoreData and Service. Most Service source files live flat in `src/`. The exceptions are `src/MCP/`, a self-contained subsystem with its own subdirectories (`Tools/`, `Response/`, `Schema/`), and `src/Jobs/`, which holds the scheduled-job base class and its resolver/registry.
 
 ### The `$data` pattern
 
@@ -86,7 +78,7 @@ It is only meaningful when persistent history tracking is enabled for the store.
 
 #### GET — fetch history
 
-Returns a JSON body with the history result. The result set is scoped by one of three optional query parameters; if none is provided, all history is returned.
+Returns a JSON body with the history result. The result set must be scoped by at least one of three query parameters; if none is provided, the responder returns `400 Bad Request`.
 
 | Parameter          | Type        | Description                                                                                    |
 |--------------------|-------------|------------------------------------------------------------------------------------------------|
@@ -98,7 +90,7 @@ Returns a JSON body with the history result. The result set is scoped by one of 
 
 #### DELETE — purge history
 
-Removes history from the store. Responds with `204 No Content`. Scoped by one optional parameter; if none is provided, all history is purged.
+Removes history from the store. Responds with `204 No Content`. The purge must be scoped by at least one of three query parameters; if none is provided, the responder returns `400 Bad Request`.
 
 | Parameter           | Type        | Description                                                                                                               |
 |---------------------|-------------|---------------------------------------------------------------------------------------------------------------------------|

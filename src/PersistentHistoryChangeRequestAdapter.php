@@ -20,8 +20,8 @@ use stdClass;
  * GET scoping parameters: {@code afterDate} (date string), {@code afterTransaction}
  * (int), {@code afterToken} (base64-encoded JSON), {@code resultType} (int raw value
  * of {@code PersistentHistoryResultType}). DELETE scoping parameters:
- * {@code beforeDate}, {@code beforeTransaction}, {@code beforeToken}. All parameters
- * are optional; omitting them targets the full history.
+ * {@code beforeDate}, {@code beforeTransaction}, {@code beforeToken}. At least one
+ * method-appropriate scoping parameter is required.
  *
  * @internal
  */

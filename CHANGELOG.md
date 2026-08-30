@@ -7,255 +7,144 @@ onward.
 
 ## [Unreleased]
 
-Nothing is released yet: `master` is pre-1.0 and its public surface is still
-free to change. This section collects what will become the 1.0.0 notes.
-
-### Security
-
-- Agent tool calls that may change state are now denied unless an
-  `LLMExecutionPolicy` approves that concrete call. The same policy applies to
-  subagents, and mixed tools such as persistent history classify the selected
-  operation rather than the tool as a whole.
-- Agent and subagent runs now share hard budgets for tool calls, subagent
-  launches, input tokens, output tokens and total tokens. Reaching a limit
-  produces a distinct `LLMRunStopReason` instead of relying on a prompt to make
-  the model stop.
-- The synthetic `run_subagent` tool let the model replace the inherited system
-  prompt while keeping the parent's real tool catalogue. Subagents now inherit
-  the parent prompt exactly; the override is no longer advertised or read.
-- An upload's filename reached the filesystem unchecked. `appendingPathComponent`
-  does not canonicalize, so a name carrying `..` was written outside the
-  subdirectory `Uploader` had validated — and where the destination fell inside a
-  directory `StaticResourcePolicy` calls public, the file was then served without
-  authentication and cached for a year.
-- A download validated its location by comparing the prefix of a string it had
-  not resolved, so the guard passed a path whose `..` the filesystem resolved
-  afterwards. It also bypassed the policy that already protects static reads,
-  serving what `ResourceManager` refuses: dotfiles, and without the public and
-  protected distinction.
-- An upload's temporary path was moved without `is_uploaded_file()`, so a
-  `tmp_name` naming some other file on the server was moved into the upload
-  directory rather than refused.
-- Rate limiting keyed its counter on the username the request claimed, which is
-  read before any credential is verified. Anyone could exhaust another subject's
-  quota by asserting their name, or escape the address limit entirely by
-  inventing a new name per request. Every counter now carries the address, and
-  the address counter applies to every request.
-- The MCP endpoint admitted any request carrying a valid token: it did not look
-  at the `Origin`, required no prior handshake, and always answered the oldest
-  protocol version regardless of the one the client asked for. A token pasted
-  into another program entered exactly as the client it was issued for.
-  `MCPTransportGuard` now applies the three Streamable HTTP rules before
-  dispatch — see **Changed** for what this breaks.
-- The `aud` claim was modelled but never verified. With `MCP_TOKEN_AUDIENCE`
-  set, `JSONWebTokenAudienceEvaluator` admits only tokens issued for `/mcp`, so
-  the credential a user receives by signing in no longer opens it as a side
-  effect. Unset, the evaluator is inert and nothing changes.
+This section contains the release notes being prepared for the initial `1.0.0`
+release. The final date will be assigned when the release tag is created.
 
 ### Added
 
-- `MCPClient`, `MCPTransport`, `StreamableHTTPMCPTransport` and
-  `MCPToolExecutor`, providing a concrete remote implementation of the agent's
-  tool-executor boundary. The client negotiates and retains an MCP session,
-  caches `tools/list`, normalizes `tools/call`, applies the shared run deadline
-  to remote calls and never retries a call whose write may already have
-  happened. Remote calls are state-changing and non-cacheable by default;
-  applications may opt trusted concrete calls into read and cache semantics.
-- `LLMToolProviderException`, `LLMRunStopReason::toolProviderFailure` and the
-  matching trace disposition, distinguishing an unavailable remote tool
-  service from a correctable tool result and from a local program fault.
-- `LLMAgentLoop`, `LLMAgentSession`, `LLMAgentLoopOutcome`,
-  `LLMAgentRunRequest` and `LLMAgentRuntime`, separating
-  orchestration strategy from the `LLMAgent` facade. Existing agents keep the
-  extracted `ReActLLMAgentLoop` by default, while an application may inject a
-  planning or domain-specific loop without replacing its provider, tool
-  executor, context assembler, execution policy, observer or clock. The runtime
-  gives every strategy an isolated conversation and makes context assembly,
-  model turns and tool execution pass through the same deadlines, budgets,
-  write approvals, cache and trace boundaries ReAct uses. Strategies return
-  only a terminal decision; the runtime constructs the run from recorded state,
-  retains terminal guardrails even when a loop catches their interruption, and
-  exposes separate capabilities for real tools and bounded subagents.
-- `LLMRetriever`, `LLMRetrievalRequest`, `LLMRetrievedDocument` and
-  `RetrievalAugmentedLLMContextAssembler`, providing backend-neutral RAG and
-  long-term-memory retrieval without coupling the loop to a vector database.
-  Retrieved documents retain provenance, are bounded independently, enter as
-  untrusted user data and remain subject to the wrapped context assembler's
-  final limits. Subagents retrieve independently for their own task. Each
-  document boundary carries an unguessable per-assembly token, so a document
-  whose text spells out a closing boundary cannot end its own block and continue
-  outside the frame the system rule declares as data; provenance fields are
-  flattened to one line each for the same reason.
-- `LLMToolExecutor`, separating the agent loop from the location and mechanism
-  that runs its real tools. `InProcessLLMToolExecutor` adapts the existing
-  `ToolRegistry`, while applications may supply a remote or process-isolated
-  implementation with the same descriptors, effect classification and result
-  contract. Subagents inherit the same executor; approval, shared budgets and
-  the run-local cache remain enforced by `LLMAgentRuntime` before execution.
-- `LLMContextAssembler` and `WindowedLLMContextAssembler`, separating context
-  construction from the agent loop. Applications may bound messages or a
-  custom-measured context size, summarize omitted turns, or replace the
-  strategy entirely without changing a provider client.
-- `LLMRunObserver`, immutable `LLMRunEvent` values and `LLMRunContext`, reporting
-  the agentic loop's progress while it runs. Start and terminal events describe
-  run, context-assembly, model-turn and tool-call spans; context events expose
-  duration, truncation, compaction and limit outcomes without prompts or
-  retrieved documents, while tool outcomes distinguish execution, cache hits,
-  denials, exhausted budgets and failures. Events carry scalar snapshots and
-  deliberately omit prompts, arguments and results. Subagents inherit the
-  observer and report under their own identifier, naming the parent that
-  launched them. Delivery is best-effort by default, with an opt-in strict
-  failure policy, and an agent built without an observer behaves exactly as
-  before.
-- `LLMClock`, separating Unix event timestamps from monotonic durations and
-  deadlines and making both replaceable in deterministic tests.
-- `LLMExecutionDeadline`, the monotonic deadline shared unchanged by a root
-  run, its provider turns, tools and subagents. Provider transports and retry
-  waits are capped by the remaining time; executors receive the same value so a
-  remote or isolated implementation can enforce its own timeout. The
-  in-process adapter checks cooperatively before and after dispatch.
-- `LLMContext`, reporting how many messages were omitted, whether a compacted
-  summary was inserted and whether the newest safe context fits its limit.
-- `LLMExecutionPolicy`, the application-supplied boundary for shared agent
-  budgets and per-call write approval.
-- `AbstractTool::isReadOnlyCall()`, allowing a tool whose arguments select
-  between reads and writes to classify the concrete invocation.
-- `FileTransferPolicy`, resolving where an upload may be written and which file a
-  download may read — the counterpart of `StaticResourcePolicy` for the transfer
-  surface, deferring to it on the read side. Configured through
-  `FILE_TRANSFER_DIRECTORIES`, `FILE_TRANSFER_ALLOWED_EXTENSIONS`,
-  `FILE_TRANSFER_MAXIMUM_SIZE` and `FILE_TRANSFER_FILE_PERMISSIONS`.
-- `FileTransferComponent`, which judges one name of a transfer location. Both
-  halves — the subdirectory and the filename — are held to the same shape, and an
-  invalid name is refused rather than rewritten.
-- `AbstractTool::$isCacheable`, separating "may a repeated call be served from
-  the run's cache" from "does this tool only read state". A tool reading
-  something that moves on its own is read-only and not cacheable.
-- `LLMProviderException`, distinguishing a provider that failed to answer from
-  a fault in the code that talks to it. It carries whether the failure is worth
-  retrying, and the transport error when the request never arrived.
-- `LLMRun::$isRetryable`, answering whether running the same thing again is
-  worth the tokens — a question `$stopReason` cannot express on its own.
-- `LLMRun::$stopReason` and `LLMRunStopReason`, telling apart a run the model
-  concluded from one stopped by the iteration cap, the time limit, or a
-  provider failure, output limit, refusal, execution budget or context limit.
-- `LLMTurnStopReason`, normalizing provider-specific completion, tool-use,
-  output-limit and refusal reasons before the agent loop acts on them.
-- `LLMRun::$toolCallResults`, rejoining every tool call with the result that
-  came back for it.
-- A time limit on an agentic run, bounding the wall clock that the iteration
-  cap cannot: a turn waiting out a provider's backoff costs time without
-  costing an iteration.
-- Retry of transient provider failures in `LLMClient`, with exponential
-  backoff that honours a numeric `Retry-After`.
-- `AbstractTool::$isReadOnly`, declaring which MCP tools may have a repeated
-  call served from the run's cache.
-- `SECURITY.md`, `CONTRIBUTING.md`, `CHANGELOG.md` and `.env.example`.
-
-### Fixed
-
-- Standard treated malformed JSON tool arguments as an empty object, allowing a
-  different call from the one the model emitted to reach the registry. Tool
-  calls from every provider now pass through `LLMToolCallParser`, which requires
-  a non-empty identity and an argument object while leaving domain value
-  validation to the tool.
-- Nothing reaches `parse` as an empty body any more, which used to produce a
-  turn with no text and no tool calls — the same shape as a model that decided
-  to stop — so a failed run was reported as complete. Both doors are closed: a
-  failing status, and a success whose body does not decode into one. A decoded
-  success that carries no message is now rejected too, and provider output
-  limits and refusals no longer count as completed runs.
-- `get_server_time` was cached for the length of a run. It takes no arguments,
-  so every call shared one cache key and the first answer stood as the time for
-  the rest of the run. Caching now asks `isCacheable`, which a tool reading
-  something that moves on its own declines while staying read-only.
-- A subagent inherited no time limit, and its own time did not count against
-  the parent's. It now inherits what is left of the parent's window.
-- An upload that the transport rejected was not detected: a file over
-  `upload_max_filesize` arrives with a size of zero and an empty temporary path,
-  passed the size check, and failed to move — a `500` where the caller deserved
-  `400` and the reason. `$_FILES["error"]` is now read per file.
-- `StandardLLMClient` read `input_tokens`/`output_tokens` from a Chat
-  Completions body, which reports `prompt_tokens`/`completion_tokens`. Every
-  run through that client counted zero tokens.
-- `AnthropicClient` assigned each `text` block instead of concatenating, so a
-  response carrying several blocks kept only the last.
-- `AnthropicClient` ignored `extraBody`, leaving no way to send `temperature`
-  or `thinking` through that client.
-- A failed tool result reached OpenAI- and Ollama-shaped providers
-  indistinguishable from a successful one, so the model took the error message
-  for the answer instead of correcting the call.
-- The agentic run cached calls to every tool, so two identical `create` calls
-  the model made on purpose became one and a write was silently dropped.
-- A tool call carrying an argument its schema does not declare ran anyway: the
-  tool read the keys it knew and ignored the rest, so `filter` where `predicate`
-  was meant produced a fetch with no filter — every row, returned as though it
-  were the answer. `ToolRegistry::call()` now names the unknown key and lists the
-  accepted ones, and reports a missing required argument the same way.
-- `$restrictedTools` only filtered `LLMResponder::callTool()`, leaving a
-  restricted tool listed by the catalogue and reachable through the agent loop.
-  It now narrows the registry itself, so every reader sees the same tools.
-- `POST /logout` answered `200` in session mode and `204` in JWT mode: the status
-  was assigned after the branch that drops the session returned. Both modes now
-  answer `204`, which is what a logout with no body should be either way.
-- `fetch` and `group_by` returned their summary ahead of the rows, which put the
-  "this is the whole answer" instruction in the middle of the result — the one
-  position a model attends to least, and where a long result set buries it.
-- `count` and `aggregate` passed temporal predicate tokens such as `$WEEK_START`
-  to Core Data as literal strings, despite the MCP instructions promising that
-  every predicate tool resolves them. A matching query therefore returned zero
-  without telling the model that its filter had not been understood.
+- The Service application framework, providing the HTTP and application layer
+  of the Sabatier SDK alongside Foundation and CoreData.
+- A responder chain with attribute-based endpoints, actions, response
+  transformers, built-in authentication routes and automatic responder
+  discovery.
+- `PersistentSpace`, exposing model entities as REST resources with automatic
+  fetch, count, create, update and delete operations.
+- Integrated authentication and authorization with Basic, Bearer/JWT and Digest
+  strategies, session fallback, role and scope evaluation, ownership rules, and
+  field- and resource-level access controls.
+- Infrastructure response processing for cache policy, conditional requests,
+  rate-limit headers, security headers, CORS and response-header sanitization.
+- Configurable rate limiting and idempotency with APCu, Redis, Memcached and
+  process-local store implementations.
+- Static-resource, upload and download handling governed by explicit resource
+  and file-transfer policies.
+- Server-side rendering through `ViewController`, `View`, `Renderer` and
+  `#[Outlet]`, plus Server-Sent Events through `EventStreamResponse`.
+- A CLI job runtime with automatic discovery from `src/Jobs/`, shared Core Data
+  context configuration and consistent transaction authorship.
+- A stateful MCP server at `/mcp` supporting protocol revisions `2025-03-26`,
+  `2025-06-18` and `2025-11-25`.
+- Twelve built-in MCP tools: `describe_model`, `fetch`, `count`, `aggregate`,
+  `group_by`, `create`, `update`, `delete`, `persistent_history`, `run_job`,
+  `get_server_time` and `web_search`.
+- Automatic MCP tool discovery from `src/MCPTools/`, model-derived JSON Schema,
+  localized vocabulary and predicate guidance.
+- `MCPClient`, `StreamableHTTPMCPTransport` and `MCPToolExecutor` for using a
+  remote MCP catalogue through the same agent tool boundary as in-process tools.
+- Provider-neutral LLM clients for OpenAI-compatible Chat Completions,
+  Anthropic Messages and native Ollama chat APIs.
+- `LLMAgent` with a replaceable orchestration loop, in-process or remote tool
+  execution, shared deadlines, bounded subagents and normalized run outcomes.
+- `LLMExecutionPolicy` for tool, subagent and token budgets and per-call approval
+  of state-changing tools.
+- Replaceable context assembly through `LLMContextAssembler` and
+  `WindowedLLMContextAssembler`, including complete-turn truncation and optional
+  summaries.
+- Backend-neutral retrieval through `LLMRetriever` and
+  `RetrievalAugmentedLLMContextAssembler`, with bounded documents and preserved
+  provenance.
+- Structured agent observability through `LLMRunObserver`, immutable run events,
+  hierarchical run contexts and injectable clocks.
+- Public documentation for architecture, HTTP clients, MCP tools, LLM agents,
+  security reporting, contribution and release preparation, plus a complete
+  `.env.example` configuration reference.
 
 ### Changed
 
-- **Breaking.** An `LLMAgent` constructed without an `LLMExecutionPolicy` now
-  denies every state-changing tool call. The run stops at the first one with
-  `LLMRunStopReason::writeApprovalRequired`, so an application whose agent wrote
-  through a tool keeps compiling and stops writing. Pass a policy whose
-  `writeApproval` accepts the calls the user approved:
+- `LLMAgent` now denies state-changing tool calls by default. Applications must
+  provide an `LLMExecutionPolicy` whose approval closure accepts the concrete
+  calls authorized by the user. A denied call stops with
+  `LLMRunStopReason::writeApprovalRequired`.
+- Agent limits now apply across the complete run tree. Provider turns, tools,
+  retries and subagents share one monotonic deadline and cumulative tool,
+  subagent and token budgets.
+- Remote MCP tools are considered state-changing and non-cacheable unless the
+  application supplies trusted classifiers for the concrete call.
+- `/mcp` now requires the stateful initialization lifecycle. Calls after
+  `initialize` carry the issued `Mcp-Session-Id`; `DELETE /mcp` ends the
+  session, and active sessions refresh their configured idle lifetime.
+- `POST /download` requires its `url` to resolve to exactly one allowed
+  directory and one filename. Deeper, malformed or disallowed paths return
+  `400 Bad Request`.
+- Store implementations are explicit application choices. The default
+  rate-limit, idempotency and MCP session stores use APCu; Redis, Memcached and
+  process-local alternatives are selected in application configuration.
+- Tool result caching now depends on `AbstractTool::$isCacheable`, independently
+  of whether a tool is read-only. Mixed tools can classify each invocation with
+  `isReadOnlyCall()`.
 
-  ```php
-  new LLMAgent($client, $registry, executionPolicy: new LLMExecutionPolicy(
-      writeApproval: fn(LLMToolCall $call): bool => $call->name === "save_widget",
-  ));
-  ```
+### Removed
 
-  A tool counts as state-changing unless it declares `$isReadOnly`, so a custom
-  tool that only reads should declare it rather than be approved. The same
-  policy bounds tool calls, subagent launches and tokens; its defaults cap calls
-  and subagents but leave tokens unlimited.
-- **Breaking.** `POST /download` still takes the same `url` field, but its path
-  must now name exactly one directory and one file — the single level `POST
-  /upload` writes to. A deeper or shallower location is refused with `400`, where
-  it was previously resolved against the document root. `API.md` had documented a
-  path without a scheme, which the endpoint has never accepted: `url` is a full
-  URL and only its path is read.
-- **Breaking.** `/mcp` now enforces the Streamable HTTP transport rules. A
-  method other than `initialize` must carry the `Mcp-Session-Id` the handshake
-  issued — missing is `400`, unknown or expired is `404` so the client
-  reinitializes — an `Origin` outside `MCP_ALLOWED_ORIGINS` is refused, and an
-  unsupported `MCP-Protocol-Version` is `400` (absent means the legacy version).
-  A client that previously reached the endpoint with only a bearer token must
-  now handshake first. The endpoint also answers `DELETE`, which ends a session.
-- `MCPSessionStore` and `Application::$mcpSessionStore`, backing MCP sessions
-  with APCu, Redis or memory. The session does not authenticate — the
-  specification forbids it — and is keyed under the token's subject, so an
-  identifier guessed by one identity does not resolve under another. Its idle
-  lifetime is `MCP_SESSION_TTL` (default 3600s), refreshed on every request
-  carrying it, so only an abandoned session expires.
-- `ARCHITECTURE.md` corrected against the code in seven places it described
-  something the framework does not do: the JWT lifetime default, the MCP resource
-  filenames, a `fetch` page limit that does not exist, the head of the responder
-  chain, a `retry` field `ServerSentEvent` does not carry, `Preferences`' write
-  action, and `/Events` presented as though it were routed. §17 now defers to
-  `.env.example`, which is the complete reference under the real variable names.
-- Extensions that back interchangeable stores — `ext-apcu`, `ext-redis`,
-  `ext-memcached` — moved from `require` to `suggest`, and extensions used by
-  the sibling libraries are no longer re-declared here. Installing the
-  framework no longer requires all three cache backends.
-- Development files are excluded from the distributed package through
-  `export-ignore`.
-- Removed the unused `ChatInstructionsFilenameKey` and
-  `WidgetInstructionsFilenameKey` constants. No framework surface ever read
-  their environment variables; chat and widget callers pass the retained
-  conventional filename constants to `MCPInstructionsProvider` explicitly.
+- Unused chat and widget instruction environment-key constants that were never
+  read by a framework surface.
+
+### Fixed
+
+- Provider responses with malformed or missing messages can no longer be
+  mistaken for successful, empty assistant turns. Output limits and refusals
+  remain distinct incomplete outcomes.
+- OpenAI-compatible token usage is read from Chat Completions and Responses API
+  field names; Anthropic preserves every text block and accepts `extraBody`;
+  failed OpenAI- and Ollama-shaped tool results are marked clearly for the
+  model.
+- Tool calls from every provider now require a usable identifier, name and
+  argument object. Malformed JSON and list-shaped arguments fail instead of
+  becoming an empty dictionary.
+- Tool schemas now reject unknown and missing required arguments before
+  execution, preventing misspelled filters from silently producing unfiltered
+  reads.
+- Tool restrictions narrow the registry itself, so restricted tools are absent
+  from raw calls, model catalogues and agent execution consistently.
+- Repeated state-changing calls are no longer served from the agent's run-local
+  cache. Time-sensitive tools such as `get_server_time` can remain read-only
+  without becoming cacheable.
+- `count` and `aggregate` resolve temporal predicate variables consistently with
+  the other predicate tools, and result summaries follow rather than interrupt
+  returned rows.
+- Agent run results now distinguish provider failure, tool-provider failure,
+  deadline, iteration cap, refusal, output limit, context limit, approval and
+  every execution-budget boundary. `LLMRun::$isRetryable` reports whether a
+  later attempt is meaningful.
+- Subagents inherit the remaining root deadline and the exact parent system
+  prompt; they cannot replace policy or reset resource limits.
+- Session and JWT logout both return `204 No Content`.
+- Upload transport errors such as exceeding `upload_max_filesize` return a
+  client error with the actual reason instead of failing later as a server
+  error.
+- HTTP history documentation, aggregate expression types, error envelopes,
+  lifecycle timing, store defaults, MCP defaults and tool names now match the
+  implemented runtime.
+
+### Security
+
+- State-changing agent tools require explicit approval, and coercive budgets
+  bound parent and subagent activity independently of model instructions.
+- Subagents inherit the parent's system prompt exactly, closing a path where a
+  delegated task could replace policy while retaining real tools.
+- Retrieved documents are framed as untrusted evidence with per-assembly
+  unguessable boundaries and single-line provenance, preventing document text
+  from escaping its declared data boundary.
+- Upload directory and filename components are validated before filesystem use;
+  traversal components are rejected, temporary files must be genuine HTTP
+  uploads, and transport-level upload failures are enforced.
+- Download paths are resolved before authorization and pass through the same
+  public/protected and dotfile policy used by static resources.
+- Rate-limit keys always include the remote address, preventing an
+  unauthenticated caller from exhausting another subject's quota or evading the
+  anonymous limit by rotating claimed usernames.
+- `MCPTransportGuard` enforces allowed browser origins, supported protocol
+  versions and the session established by initialization before dispatch.
+- MCP sessions are scoped to the authenticated subject, so an identifier issued
+  to one identity cannot be used by another.
+- `JSONWebTokenAudienceEvaluator` enforces `MCP_TOKEN_AUDIENCE` when configured,
+  allowing deployments to issue credentials specifically for the MCP endpoint.

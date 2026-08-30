@@ -27,7 +27,7 @@ final readonly class PredicateGuideFactory
             [
                 "%K" => "Key path — use dot notation to traverse relationships (e.g. \"area.name\", \"category.name\")",
                 "%s" => "String, boolean, string enum value, or array (for IN and BETWEEN). For BETWEEN pass a two-element array: predicate=\"%K BETWEEN %s\", arguments=[\"creationDate\", [\"2025-01-01\", \"2025-01-31\"]]",
-                "%@" => "Alias of %s (object placeholder, kept for visual parity with Apple Foundation).",
+                "%@" => "Alias of %s (object placeholder retained for format-string compatibility).",
                 "%d" => "Integer or integer enum value",
                 "%f" => "Float",
             ],

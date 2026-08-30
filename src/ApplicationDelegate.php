@@ -13,11 +13,12 @@ use Throwable;
  * bundle's `Info.plist`. The `Application` singleton discovers and instantiates it automatically.
  *
  * ## Lifecycle order
- * 1. `applicationWillFinishLaunching` — called after the persistent container is ready but before
- *    access control is enforced. Use this to register defaults, configure services, or override
- *    framework-level policies (e.g. `PersistentStore::$rowCacheClass`, `Application::$cachePolicy`).
- * 2. `applicationDidFinishLaunching` — called after the response has been produced and is about to
- *    be sent. Use this for post-response bookkeeping.
+ * 1. `applicationWillFinishLaunching` — called before the persistent container is created and
+ *    before rate limiting or access control is enforced. Use this to register defaults, configure
+ *    services, or override framework-level policies (e.g. `PersistentStore::$rowCacheClass`,
+ *    `Application::$cachePolicy`).
+ * 2. `applicationDidFinishLaunching` — called after the response has been produced and immediately
+ *    before it is sent. Use this for final bookkeeping that does not require client delivery.
  * 3. `applicationWillTerminate` — called during the PHP shutdown sequence when no fatal error
  *    was detected.
  * 4. `applicationDidCrash` — called during the PHP shutdown sequence when a fatal error is
@@ -34,7 +35,7 @@ interface ApplicationDelegate
     public function applicationWillFinishLaunching(Application $application): void;
 
     /**
-     * Tells the delegate that the app's initialization is complete but, before it generates the response.
+     * Tells the delegate that the app has generated its response and is about to send it.
      * @param Application $application The app object associated with the delegate.
      */
     public function applicationDidFinishLaunching(Application $application): void;

@@ -1,34 +1,34 @@
 # Sabatier Service
 
-**Service** is a PHP 8.5+ application framework built on two sibling libraries — [Foundation](https://github.com/dantesabatier/Foundation) and [CoreData](https://github.com/dantesabatier/CoreData) — that brings the architectural patterns of Apple's AppKit and Core Data to server-side PHP development.
+**Service** is the application and HTTP layer of the PHP 8.5+ **Sabatier SDK**. The SDK is formed by three sibling frameworks — [Foundation](https://github.com/dantesabatier/Foundation), [CoreData](https://github.com/dantesabatier/CoreData) and Service — combining system primitives, managed persistence and application infrastructure for server-side PHP development.
 
-It covers the full spectrum from zero-boilerplate REST APIs to server-rendered web applications, with a consistent request pipeline, layered security, and a built-in MCP server for LLM tool access — all without routing tables or code generation. Scheduled and one-shot background work runs through a parallel CLI entry point that shares the same Core Data stack.
+It covers the full spectrum from REST APIs that require no programmer-written code to complex server-rendered applications, with a consistent request pipeline, layered security, and a built-in MCP server for LLM tool access. Scheduled and one-shot background work runs through a parallel CLI entry point that shares the same Core Data stack.
 
 ---
 
 ## What makes it different
 
-**The model is the API.** Define your data model with Core Data entities, and Service automatically exposes a fully functional, secured REST endpoint for each one. No controller, no serializer, no route to register.
+**The model is the API.** Define the data model in Singularity, and the generated Service application automatically exposes a fully functional, secured REST endpoint for every Core Data entity. That baseline API needs no controller, serializer, route registration or programmer-written code.
 
 **Security is structural, not optional.** Authentication, authorization, field-level read/write control, rate limiting, idempotency, CORS, and security headers are wired into the framework's pipeline. You opt out of restrictions rather than opting in.
 
 **The responder chain routes requests.** There are no routing tables. Every request walks a chain of `Responder` objects; the first one that recognizes the URL handles it. Custom endpoints extend `Responder` (or `ViewController` for HTML) and declare their route with a single `#[Endpoint]` attribute.
 
-**It self-adapts to the environment.** JWT mode activates automatically when `JWTPrivateKey` is present; session-based auth is the fallback. Rate limiting, idempotency, and CORS are configured through environment variables, not code.
+**It self-adapts to the environment.** JWT mode activates automatically when `JWT_PRIVATE_KEY` is present; session-based auth is the fallback. Rate limiting, idempotency, and CORS policies are configured through environment variables, while their storage backends remain explicit application choices.
 
 ---
 
 ## Core capabilities
 
-| Capability                | Description                                                                                                                                                                                 |
-|---------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **PersistentSpace**       | Automatic CRUD REST API over every Core Data entity. Field-level security and ownership scoping included.                                                                                   |
-| **Responder Chain**       | AppKit-style request routing. Built-in responders cover static files, uploads, downloads, preferences, and an MCP endpoint.                                                                 |
-| **Security Pipeline**     | Basic, Bearer (JWT), and Digest authentication. Role-based authorization. Per-field read/write access control. Rate limiting with APCu, Redis, or Memcached backends.                       |
-| **MCP Server**            | Exposes the full data model to LLM agents as JSON-RPC 2.0 tools — describe-model, fetch, count, aggregate, group-by, create, update, delete, persistent-history, run-jobs, get-server-time, and web-search — the first nine auto-derived from the Core Data schema; run-jobs drives the domain job catalogue, get-server-time is an app-agnostic utility, and web-search delegates to a pluggable provider the application picks by identifier in its `.env`. |
-| **Server-Side Rendering** | `ViewController` manages a template lifecycle (`viewWillLoad` / `viewDidLoad`) with `#[Outlet]` properties reflected into the rendering context. Pluggable renderer engine.                 |
-| **Event Streaming**       | First-class Server-Sent Events support. A responder returns an `EventStreamResponse` of `ServerSentEvent` objects, streamed through an `EventStreamEmitter`.                                 |
-| **Scheduled Jobs**        | `Job` subclasses in `src/Jobs/`, auto-discovered and keyed by a `name` hook, run through a CLI entry point for cron and one-shot provisioning — same Core Data stack, and invocable over MCP via the `run_job` tool.               |
+| Capability                | Description                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+|---------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **PersistentSpace**       | Automatic CRUD REST API over every Core Data entity. Field-level security and ownership scoping included.                                                                                                                                                                                                                                                                                                                                     |
+| **Responder Chain**       | Chain-of-responsibility request routing. Built-in responders cover static files, uploads, downloads, preferences, and an MCP endpoint.                                                                                                                                                                                                                                                                                                        |
+| **Security Pipeline**     | Basic, Bearer (JWT), and Digest authentication. Role-based authorization. Per-field read/write access control. Rate limiting with APCu, Redis, or Memcached backends.                                                                                                                                                                                                                                                                         |
+| **MCP Server**            | Exposes the application to LLM agents as JSON-RPC 2.0 tools — `describe_model`, `fetch`, `count`, `aggregate`, `group_by`, `create`, `update`, `delete`, `persistent_history`, `run_job`, `get_server_time`, and `web_search`. The data catalogue is generated from the Core Data model; the remaining tools cover history, domain jobs, server time and provider-backed web search. |
+| **Server-Side Rendering** | `ViewController` manages a template lifecycle (`viewWillLoad` / `viewDidLoad`) with `#[Outlet]` properties reflected into the rendering context. Pluggable renderer engine.                                                                                                                                                                                                                                                                   |
+| **Event Streaming**       | First-class Server-Sent Events support. A responder returns an `EventStreamResponse` of `ServerSentEvent` objects, streamed through an `EventStreamEmitter`.                                                                                                                                                                                                                                                                                  |
+| **Scheduled Jobs**        | `Job` subclasses in `src/Jobs/`, auto-discovered and keyed by a `name` hook, run through a CLI entry point for cron and one-shot provisioning — same Core Data stack, and invocable over MCP via the `run_job` tool.                                                                                                                                                                                                                          |
 
 ---
 
@@ -69,9 +69,15 @@ Custom responders are discovered automatically from `src/Responders/` and `src/V
 
 ---
 
-## Quick orientation
+## Role in the Sabatier SDK
 
-A minimal application needs one entry point that boots the singleton and calls `run()`:
+The Sabatier SDK is the complete Foundation + CoreData + Service stack. Foundation supplies the object and system primitives, CoreData supplies modeling and persistence, and Service supplies the HTTP runtime, responder pipeline, security, MCP server and agent infrastructure. Service is therefore one framework within the SDK, not the SDK by itself or a standalone application template.
+
+**Singularity is the supported application-authoring surface for the SDK.** It designs the Core Data model and generates every file and directory the project needs, including `Info.plist`, the `.mom` model, managed-object subclasses, application delegate and entry points. At that point the model already operates through Service as a REST API without the programmer writing application code.
+
+The generated project is a starting point, not a ceiling. A programmer can add responders, view controllers, domain services, MCP tools, jobs, custom policies and frontend integration until the same foundation supports an application of any required complexity.
+
+The generated HTTP entry point remains intentionally thin:
 
 ```php
 Application::shared()->run();
@@ -89,9 +95,12 @@ Application::shared()->run();
   [`sabatier/coredata`](https://github.com/dantesabatier/CoreData).
 
 Rate limiting, idempotency, the authorization cache and MCP session storage
-each run over a pluggable store. Installing `ext-apcu`, `ext-redis` or
-`ext-memcached` selects a shared backend; with none of them, an in-memory store
-applies per process.
+each have pluggable stores, but extensions are not selected automatically. The
+default rate-limit, idempotency and MCP session stores use APCu, so the standard
+configuration requires `ext-apcu`. An application can explicitly replace those
+properties with the supplied Redis, Memcached or in-memory implementations where
+available; the authorization cache is in-memory per request unless the application
+configures its optional persistent cache.
 
 Configuration is by environment variable — see [.env.example](.env.example) for
 every variable the framework reads, with its default.
@@ -100,14 +109,16 @@ every variable the framework reads, with its default.
 
 ## Documentation
 
-| Document                             | Covers                                                    |
-|--------------------------------------|-----------------------------------------------------------|
-| [ARCHITECTURE.md](ARCHITECTURE.md)   | The design, subsystem by subsystem                        |
-| [API.md](API.md)                     | How a client talks to a Service application over HTTP     |
-| [MCP.md](MCP.md)                     | The MCP tool catalogue and the contract a custom tool honours |
-| [CONTRIBUTING.md](CONTRIBUTING.md)   | Setting up, the checks to pass, the conventions to keep   |
-| [SECURITY.md](SECURITY.md)           | Reporting a vulnerability, and what is in scope           |
-| [CHANGELOG.md](CHANGELOG.md)         | What changed between versions                             |
+| Document                           | Covers                                                        |
+|------------------------------------|---------------------------------------------------------------|
+| [ARCHITECTURE.md](ARCHITECTURE.md) | The design, subsystem by subsystem                            |
+| [API.md](API.md)                   | How a client talks to a Service application over HTTP         |
+| [MCP.md](MCP.md)                   | The MCP tool catalogue and the contract a custom tool honours |
+| [LLM.md](LLM.md)                   | Configuring providers, agents, budgets, tools and retrieval   |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Setting up, the checks to pass, the conventions to keep       |
+| [RELEASING.md](RELEASING.md)       | Pre-release verification and version-cut checklist            |
+| [SECURITY.md](SECURITY.md)         | Reporting a vulnerability, and what is in scope               |
+| [CHANGELOG.md](CHANGELOG.md)       | What changed between versions                                 |
 
 ---
 

@@ -49,7 +49,6 @@ final class TavilySearchProviderTest extends TestCase
     private function invokeParse(TavilySearchProvider $provider, Dictionary $body): WebSearchResult
     {
         $method = new ReflectionMethod(TavilySearchProvider::class, "parse");
-        $method->setAccessible(true);
         /** @var WebSearchResult $result */
         $result = $method->invoke($provider, $body);
         return $result;

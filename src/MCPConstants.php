@@ -8,13 +8,14 @@ declare(strict_types=1);
  * These constants configure the default behavior and filenames used by the
  * MCP subsystem and are part of the public MCP protocol surface.
  */
+
 namespace Sabatier\Service;
 
 /** @var string Earliest MCP protocol version supported for backwards compatibility. */
 const MCPProtocolVersionLegacy = "2025-03-26";
 /** @var string First stable MCP protocol version. */
 const MCPProtocolVersionStable = "2025-06-18";
-/** @var string Latest stable MCP protocol version. */
+/** @var string Latest handshake-era MCP protocol revision implemented by this framework. */
 const MCPProtocolVersionLatestStable = "2025-11-25";
 /** @var string Name of the directory under src/ where the app's MCP tool classes are discovered. */
 const MCPToolsDirectory = "MCPTools";

@@ -2,6 +2,8 @@
 
 This document describes the internal architecture of the Service framework: how requests are received, routed, secured, and answered; how persistence integrates into that pipeline; and how the built-in subsystems — REST automation, MCP, event streaming, and server-side rendering — fit together.
 
+Service is the application layer of the Sabatier SDK, alongside Foundation and CoreData. This guide begins at the generated application boundary: Singularity owns model and project generation, while Service owns execution and the extension points available after generation.
+
 ---
 
 ## Table of Contents
@@ -109,7 +111,7 @@ The responder chain is an ordered linked list of `Responder` objects. The framew
 
 The framework walks this chain and calls `isFirstResponder` on each node. The first node that returns `true` for the current request URL becomes the active responder. If no node matches, a `NotFoundException` is thrown.
 
-Each responder holds a reference to the next one via `$nextResponder`. This structure mirrors AppKit's responder chain: a responder that does not handle a request can forward it down the chain, and the chain itself is a first-class object that can be inspected.
+Each responder holds a reference to the next one via `$nextResponder`. A responder that does not handle a request can forward it down the chain, and the chain itself is a first-class object that can be inspected.
 
 `Responder` is the base class. It exposes:
 - The current `Request` and `Session` as shared, lazily-initialised properties.
@@ -137,7 +139,7 @@ The effect is that routing is co-located with the handler code. Every `Responder
 
 These responders are always present in the chain, in this order of priority after custom responders:
 
-**`PersistentHistoryResponder`** exposes the Core Data persistent history log at `/history`. It accepts `GET` (fetch transactions) and `DELETE` (purge transactions). Both verbs accept an optional scoping parameter: fetch uses `afterDate`, `afterTransaction`, or `afterToken`; delete uses `beforeDate`, `beforeTransaction`, or `beforeToken`. Omitting the parameter targets the full history. `GET` returns a JSON payload; `DELETE` returns `204 No Content`. Tokens are passed as base64-encoded JSON. This responder requires persistent history tracking to be enabled via `PersistentHistoryTrackingKey` in `UserDefaults`; `Application` sets that option automatically when configured. It overrides `$response` directly because `GET` and `DELETE` produce fundamentally different response shapes (body vs. bodyless) that cannot be unified through the `$data` hook.
+**`PersistentHistoryResponder`** exposes the Core Data persistent history log at `/history`. It accepts `GET` (fetch transactions) and `DELETE` (purge transactions). Both verbs require a scoping parameter: fetch uses `afterDate`, `afterTransaction`, or `afterToken`; delete uses `beforeDate`, `beforeTransaction`, or `beforeToken`. Omitting all scope parameters returns `400 Bad Request`. When several are present, date takes precedence over transaction, which takes precedence over token. `GET` returns a JSON payload; `DELETE` returns `204 No Content`. Tokens are passed as base64-encoded JSON. This responder requires persistent history tracking to be enabled via `PersistentHistoryTrackingKey` in `UserDefaults`; `Application` sets that option automatically when configured. It overrides `$response` directly because `GET` and `DELETE` produce fundamentally different response shapes (body vs. bodyless) that cannot be unified through the `$data` hook.
 
 **`ResourceManager`** serves static files. It delegates the decision to `StaticResourcePolicy`, which determines whether the URL maps to a physical file in a public directory and how it should be cached. The `StaticResourceDisposition` it returns carries a `maxAge` and an `immutable` flag, which `ResourceManager` emits through `StaticCacheHeaderTransformer` in the user pipeline — independently of the application's `HTTPCachePolicy` (which targets dynamic API responses). Public bundle resources (`Resources`, `vendor`, `node_modules`, …) get `public, max-age=N, immutable` with `N` defaulting to one year and overridable via `STATIC_RESOURCE_MAX_AGE`; optional browser files like `favicon.ico` and `robots.txt` get a shorter `public, max-age`; everything else gets `no-cache`. Extra public directories — typically a bundler's output directory such as Vite's `Build` or `dist` — are declared through the `STATIC_PUBLIC_DIRECTORIES` environment variable (comma-separated, relative to the bundle root); their fingerprinted contents are then served with the same long-lived `immutable` policy. Because the user pipeline writes `Cache-Control` first, the downstream `CacheHeaderTransformer` leaves it untouched. Only `GET` and `HEAD` are accepted.
 
@@ -374,6 +376,8 @@ The MCP (Model Context Protocol) server exposes the application's data model as 
 
 ### Protocol
 
+The server implements the stateful, handshake-era protocol revisions `2025-03-26`, `2025-06-18` and `2025-11-25`; `2025-11-25` is its default and fallback. It does not yet implement the stateless `2026-07-28` lifecycle, `server/discover`, per-request capability metadata, or the `Mcp-Method`/`Mcp-Name` routing headers. Dual-era clients must use their legacy or handshake mode, or pin one of the supported revisions. The [official 2026-07-28 release notes](https://blog.modelcontextprotocol.io/posts/2026-07-28/) describe the breaking lifecycle change.
+
 Every request is parsed as a JSON-RPC 2.0 message. Notifications (messages without an `id` field) are silently ignored. The response is always wrapped in the standard envelope `{"jsonrpc":"2.0","id":...,"result":...,"error":...}`. Any uncaught exception inside the handler is converted to a `JSONRPCError` with code `−32603 Internal Error`; the MCP server never leaks an HTTP 500.
 
 ### Transport
@@ -446,6 +450,8 @@ A custom tool must also apply the same security helpers the built-in tools use �
 - **`applySecureRead` / `applySecureUpdate` / `enforceOwnership`** — field-level read filtering, field-level write filtering, and `#[Owner]` enforcement, respectively.
 
 ### In-process agents and subagents
+
+For copyable setup examples and caller-facing guidance, see [LLM.md](LLM.md). This section describes the runtime boundaries and invariants in detail.
 
 The JSON-RPC server is one face of the tool catalogue. `LLMAgent` drives tools through an `LLMToolExecutor`: the executor supplies the descriptors advertised to the model, classifies concrete calls for approval and caching, and executes calls that passed the runtime's policy checks. Passing a `ToolRegistry` to the agent remains the convenient in-process path; it is adapted automatically through `InProcessLLMToolExecutor`. `MCPToolExecutor` is the remote path: an `MCPClient` initializes one stateful session over an `MCPTransport`, caches the normalized `tools/list` catalogue and maps each `tools/call` result back into the same provider-neutral result used in-process. `StreamableHTTPMCPTransport` supplies the concrete HTTP transport and accepts arbitrary authentication headers. The model client and loop do not change when the tool catalogue moves to another process or language.
 
@@ -592,12 +598,12 @@ The same catalogue is exposed to LLM agents as the `run_job` MCP tool (documente
 
 The delegate receives four lifecycle callbacks:
 
-- **`applicationWillFinishLaunching`** — called after the Core Data stack is loaded but before any request processing begins. The right place to configure policies, override `$rendererClass`, or perform one-time setup.
-- **`applicationDidFinishLaunching`** — called just before the response is sent. Useful for post-response hooks.
+- **`applicationWillFinishLaunching`** — called before the Core Data stack is loaded and before rate limiting, access enforcement and responder execution. It can configure persistent-store options, stores and policies used by ordinary requests, or perform one-time setup. Preflight exits earlier in the run loop, so a programmatic CORS policy that must affect `OPTIONS` needs to be installed during the delegate class's `initialize()`; environment-backed CORS configuration is already available then. `ViewController::$rendererClass` can also be replaced here.
+- **`applicationDidFinishLaunching`** — called after the response has been produced and immediately before it is sent. Useful for final bookkeeping that does not require the response to have reached the client.
 - **`applicationWillTerminate`** — called by the PHP shutdown handler on a clean exit.
 - **`applicationDidCrash`** — called when a fatal PHP error is caught by the shutdown handler, before the error response is emitted.
 
-Application-wide policies — `$corsPolicy`, `$accessPolicy`, `$securityHeadersPolicy`, `$cachePolicy`, `$rateLimitPolicy`, `$idempotencyPolicy`, `$staticResourcePolicy`, `$fileTransferPolicy`, `$rateLimitStore`, `$idempotencyStore`, `$authorizationCache` — are public properties on `Application` and can be reassigned in `applicationWillFinishLaunching` to replace any default.
+Application-wide policies and stores — `$corsPolicy`, `$accessPolicy`, `$securityHeadersPolicy`, `$cachePolicy`, `$rateLimitPolicy`, `$idempotencyPolicy`, `$staticResourcePolicy`, `$fileTransferPolicy`, `$rateLimitStore`, `$idempotencyStore`, `$mcpSessionStore`, `$authorizationCache` and `$authorizationPersistentCache` — are public properties on `Application`. They can be reassigned in `applicationWillFinishLaunching` to replace defaults used after that callback; CORS needed by preflight is the timing exception described above.
 
 ---
 
@@ -650,8 +656,8 @@ The tables below name the **PHP constants** the framework declares for each sett
 
 | Key                               | Default                   | Description                              |
 |-----------------------------------|---------------------------|------------------------------------------|
-| `MCPServerNameKey`                | bundle name               | Server name reported in `initialize`.    |
-| `MCPServerVersionKey`             | bundle version            | Server version reported in `initialize`. |
+| `MCPServerNameKey`                | `MCP Server`              | Server name reported in `initialize`.    |
+| `MCPServerVersionKey`             | `1.0.0`                   | Server version reported in `initialize`. |
 | `MCPInstructionsFilenameKey`      | `mcp_instructions.txt`    | Localised instructions file for the LLM. |
 | `MCPVocabularyFilenameKey`        | `mcp_vocabulary.json`     | Localised schema vocabulary file.        |
 | `MCPPredicateExamplesFilenameKey` | `mcp_predicate_examples.json` | Localised predicate examples file, supplied by the application. |

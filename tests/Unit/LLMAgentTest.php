@@ -18,9 +18,8 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Foundation\Networking\URLRequest;
 use Sabatier\Service\LLM\LLMAgent;
-use Sabatier\Service\LLM\LLMAgentEnvironment;
 use Sabatier\Service\LLM\LLMAgentLoop;
-use Sabatier\Service\LLM\LLMAgentRunRequest;
+use Sabatier\Service\LLM\LLMAgentRuntime;
 use Sabatier\Service\LLM\LLMClient;
 use Sabatier\Service\LLM\LLMExecutionDeadline;
 use Sabatier\Service\LLM\LLMExecutionPolicy;
@@ -42,7 +41,7 @@ use Sabatier\Service\MCP\Tools\ToolRegistry;
 final class LLMAgentTest extends TestCase
 {
     #[Test]
-    public function delegatesToAReplaceableLoopWithAnIsolatedRequestAndTheConfiguredEnvironment(): void
+    public function delegatesToAReplaceableLoopThroughAnIsolatedGuardedRuntime(): void
     {
         $messages = new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]);
         $loop = new RecordingAgentLoop();
@@ -56,7 +55,32 @@ final class LLMAgentTest extends TestCase
         $this->assertSame(7, $loop->maxIterations);
         $this->assertFalse($loop->canSpawnSubagents);
         $this->assertSame(["probe_tool"], $loop->toolNames);
-        $this->assertSame("custom loop", $run->messages->last->content);
+        $this->assertSame("partial", $run->messages->last->content);
+        $this->assertSame(3, $run->inputTokens);
+        $this->assertSame(4, $run->outputTokens);
+    }
+
+    #[Test]
+    public function replaceableLoopInheritsWriteApprovalWithoutReimplementingIt(): void
+    {
+        $agent = new LLMAgent(new ScriptedReorderedArgumentsClient("writing_tool"), new ToolRegistry(new ArrayClass([$this->writingTool()])), canSpawnSubagents: false, loop: new RuntimeToolUsingLoop());
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        $this->assertSame(LLMRunStopReason::writeApprovalRequired, $run->stopReason);
+        $this->assertTrue($run->messages->last->isError);
+        $this->assertStringContainsString("requires explicit user approval", (string)$run->messages->last->content);
+    }
+
+    #[Test]
+    public function replaceableLoopCannotExceedTheRuntimeIterationCap(): void
+    {
+        $agent = new LLMAgent(new ScriptedNeverDoneClient(), new ToolRegistry(new ArrayClass([$this->tool()])), maxIterations: 2, canSpawnSubagents: false, loop: new RuntimeToolUsingLoop());
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        $this->assertSame(LLMRunStopReason::iterationCap, $run->stopReason);
+        $this->assertSame(2, $run->messages->filter(fn(LLMMessage $message): bool => $message->role === LLMMessageRole::assistant)->count);
     }
 
     #[Test]
@@ -496,15 +520,34 @@ final class RecordingAgentLoop implements LLMAgentLoop
     public array $toolNames = [];
 
     #[Override]
-    public function run(LLMAgentRunRequest $request, LLMAgentEnvironment $environment): LLMRun
+    public function run(LLMAgentRuntime $runtime): LLMRun
     {
-        $this->query = (string)$request->messages->first->content;
-        $this->systemPrompt = $request->systemPrompt;
-        $this->maxIterations = $environment->maxIterations;
-        $this->canSpawnSubagents = $environment->canSpawnSubagents;
-        $this->toolNames = $environment->toolExecutor->tools->map(fn(ToolDescriptor $tool): string => $tool->name)->array;
-        $request->messages->append(new LLMMessage(LLMMessageRole::assistant, "mutated snapshot"));
-        return new LLMRun(new ArrayClass([new LLMMessage(LLMMessageRole::assistant, "custom loop")]));
+        $messages = $runtime->messages;
+        $this->query = (string)$messages->first->content;
+        $this->systemPrompt = $runtime->systemPrompt;
+        $this->maxIterations = $runtime->maxIterations;
+        $this->canSpawnSubagents = $runtime->canSpawnSubagents;
+        $this->toolNames = $runtime->tools->map(fn(ToolDescriptor $tool): string => $tool->name)->array;
+        $messages->append(new LLMMessage(LLMMessageRole::assistant, "mutated snapshot"));
+        $runtime->completeTurn($runtime->tools);
+        return $runtime->finish();
+    }
+}
+
+final class RuntimeToolUsingLoop implements LLMAgentLoop
+{
+    #[Override]
+    public function run(LLMAgentRuntime $runtime): LLMRun
+    {
+        while (true) {
+            $turn = $runtime->completeTurn($runtime->tools);
+            if ($turn->stopReason !== LLMTurnStopReason::toolUse) {
+                return $runtime->finish();
+            }
+            foreach ($turn->toolCalls as $toolCall) {
+                $runtime->executeTool($toolCall);
+            }
+        }
     }
 }
 

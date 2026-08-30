@@ -44,6 +44,7 @@ final readonly class LLMAgent
      */
     public function run(ArrayClass $messages, ?string $systemPrompt = null): LLMRun
     {
-        return $this->loop->run(new LLMAgentRunRequest(clone $messages, $systemPrompt), $this->environment);
+        $request = new LLMAgentRunRequest(clone $messages, $systemPrompt);
+        return new LLMAgentRuntime($request, $this->environment)->execute($this->loop);
     }
 }

@@ -64,12 +64,14 @@ free to change. This section collects what will become the 1.0.0 notes.
 - `LLMToolProviderException`, `LLMRunStopReason::toolProviderFailure` and the
   matching trace disposition, distinguishing an unavailable remote tool
   service from a correctable tool result and from a local program fault.
-- `LLMAgentLoop`, `LLMAgentRunRequest` and `LLMAgentEnvironment`, separating
+- `LLMAgentLoop`, `LLMAgentRunRequest` and `LLMAgentRuntime`, separating
   orchestration strategy from the `LLMAgent` facade. Existing agents keep the
   extracted `ReActLLMAgentLoop` by default, while an application may inject a
   planning or domain-specific loop without replacing its provider, tool
-  executor, context assembler, execution policy, observer or clock. The facade
-  gives every strategy an isolated conversation snapshot.
+  executor, context assembler, execution policy, observer or clock. The runtime
+  gives every strategy an isolated conversation and makes context assembly,
+  model turns and tool execution pass through the same deadlines, budgets,
+  write approvals, cache and trace boundaries ReAct uses.
 - `LLMRetriever`, `LLMRetrievalRequest`, `LLMRetrievedDocument` and
   `RetrievalAugmentedLLMContextAssembler`, providing backend-neutral RAG and
   long-term-memory retrieval without coupling the loop to a vector database.
@@ -85,7 +87,7 @@ free to change. This section collects what will become the 1.0.0 notes.
   `ToolRegistry`, while applications may supply a remote or process-isolated
   implementation with the same descriptors, effect classification and result
   contract. Subagents inherit the same executor; approval, shared budgets and
-  the run-local cache remain enforced by the loop before execution.
+  the run-local cache remain enforced by `LLMAgentRuntime` before execution.
 - `LLMContextAssembler` and `WindowedLLMContextAssembler`, separating context
   construction from the agent loop. Applications may bound messages or a
   custom-measured context size, summarize omitted turns, or replace the

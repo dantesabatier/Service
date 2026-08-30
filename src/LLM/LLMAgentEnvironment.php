@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\LLM;
 
-/** The provider-neutral services and limits made available to an agent-loop strategy. */
+/** Retains the provider-neutral services and limits from which protected agent runtimes are created. */
 final readonly class LLMAgentEnvironment
 {
     /**

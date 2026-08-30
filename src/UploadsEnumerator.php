@@ -12,6 +12,7 @@ use Sabatier\Foundation\DirectoryEnumerator;
 use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\Set;
 use Sabatier\Foundation\URL;
+use function Sabatier\Foundation\localized_string;
 use Traversable;
 
 /**
@@ -29,7 +30,7 @@ final class UploadsEnumerator extends DirectoryEnumerator
     private ?URL $currentURL = null;
     /** @var URL The directory uploads are written to, resolved by the policy from the subdirectory the request named. */
     public URL $directoryURL {
-        get => $this->directoryURL ??= Application::shared()->fileTransferPolicy->directoryURL($this->directory) ?? throw new BadRequestException("The upload directory is not accepted.");
+        get => $this->directoryURL ??= Application::shared()->fileTransferPolicy->directoryURL($this->directory) ?? throw new BadRequestException(localized_string("The upload directory is not accepted."));
     }
     #[Override]
     public ?Dictionary $directoryAttributes {
@@ -86,7 +87,7 @@ final class UploadsEnumerator extends DirectoryEnumerator
                 $disposition = $policy->evaluateUpload($this->directory, $file["name"], $file["size"]);
                 $url = $disposition->isAllowed ? $disposition->destinationURL : null;
                 if ($url === null) {
-                    throw new BadRequestException($disposition->failureReason ?? "The upload was not accepted.");
+                    throw new BadRequestException($disposition->failureReason ?? localized_string("The upload was not accepted."));
                 }
                 $attributes = $disposition->fileAttributes;
                 $directoryURL = $this->directoryURL;
@@ -98,7 +99,7 @@ final class UploadsEnumerator extends DirectoryEnumerator
                     $fileManager->removeItem($url);
                 }
                 $source = $file["tmp_name"];
-                $source !== "" && is_uploaded_file($source) ?: throw new BadRequestException("The file was not received as an upload.");
+                $source !== "" && is_uploaded_file($source) ?: throw new BadRequestException(localized_string("The file was not received as an upload."));
                 $fileManager->moveItem(URL::fileURL($source), $url) ?: throw new InternalServerErrorException();
                 if ($attributes !== null) {
                     $fileManager->setAttributes($attributes, $destination);

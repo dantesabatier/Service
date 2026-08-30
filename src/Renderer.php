@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sabatier\Service;
 
 use Sabatier\Foundation\Bundle;
+use function Sabatier\Foundation\localized_string;
 
 /**
  * The Renderer class is responsible for rendering views using a provided Bundle.
@@ -31,7 +32,7 @@ class Renderer
      */
     public function render(string $name, object|array $context): string
     {
-        $path = $this->bundle->url($name, "php")?->path ?? throw new NotFoundException("The view named \"$name\" does not exist");
+        $path = $this->bundle->url($name, "php")?->path ?? throw new NotFoundException(sprintf(localized_string("The view named \"%s\" does not exist"), $name));
         $context = (array)$context;
         $context["include_view"] = fn(string $viewName, array|object $subContext = []): string => $this->render($viewName, $subContext);
         ob_start();

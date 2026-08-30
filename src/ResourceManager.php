@@ -11,6 +11,7 @@ use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Set;
 use Sabatier\Foundation\URL;
+use function Sabatier\Foundation\localized_string;
 
 /** @internal */
 final class ResourceManager extends Responder
@@ -74,7 +75,7 @@ final class ResourceManager extends Responder
             if ($fileManager->isReadableFile($path)) {
                 return $this->data = $fileManager->contents($path) ?? throw new InternalServerErrorException();
             }
-            $this->staticResourceDisposition->allowEmptyResponse ?: throw new NotFoundException("The requested URL was not found on this server");
+            $this->staticResourceDisposition->allowEmptyResponse ?: throw new NotFoundException(localized_string("The requested URL was not found on this server"));
             return $this->data = null;
         }
         set {

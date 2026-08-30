@@ -12,6 +12,7 @@ use Sabatier\Foundation\DirectoryEnumerationOptions;
 use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\FlattenSequence;
 use Sabatier\Foundation\URL;
+use function Sabatier\Foundation\localized_string;
 use function Sabatier\Foundation\string_is_equal;
 
 /** @internal */
@@ -143,7 +144,7 @@ final class FirstResponderResolver
             }
             $responder = $responder->nextResponder;
         }
-        throw new NotFoundException("The requested URL was not found on this server");
+        throw new NotFoundException(localized_string("The requested URL was not found on this server"));
     }
 
     private function resolveFirstResponder(): Responder

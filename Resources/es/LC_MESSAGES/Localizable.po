@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-02 05:57-0600\n"
+"POT-Creation-Date: 2026-08-30 09:38-0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -43,3 +43,68 @@ msgstr "Acceso denegado: el evaluador %s rechazó la solicitud."
 
 msgid "Access denied: no evaluator allowed access."
 msgstr "Acceso denegado: ningún evaluador permitió el acceso."
+
+msgid "The requested location must name one directory and one file."
+msgstr "La ubicación solicitada debe nombrar un directorio y un archivo."
+
+msgid "The requested file is not available."
+msgstr "El archivo solicitado no está disponible."
+
+#, php-format
+msgid "You don't have permission to read \"%s\"."
+msgstr "No tienes permiso para leer \"%s\"."
+
+#, php-format
+msgid "You don't have permission to modify this \"%s\" resource."
+msgstr "No tienes permiso para modificar este recurso \"%s\"."
+
+#, php-format
+msgid "You don't have permission to modify this \"%s\" row: it belongs to another user."
+msgstr "No tienes permiso para modificar esta fila \"%s\": pertenece a otro usuario."
+
+msgid "The requested URL was not found on this server"
+msgstr "La URL solicitada no se encontró en este servidor"
+
+msgid "Invalid Request: The JSON sent is not a valid Request object."
+msgstr "Solicitud no válida: el JSON enviado no es un objeto de Solicitud válido."
+
+msgid "Method not found: The method does not exist / is not available."
+msgstr "Método no encontrado: el método no existe / no está disponible."
+
+msgid "Invalid params: Invalid method parameter(s)."
+msgstr "Parámetros no válidos: parámetro(s) de método no válido(s)."
+
+msgid "Internal error: Internal JSON-RPC error."
+msgstr "Error interno: error interno de JSON-RPC."
+
+msgid "Parse error: Invalid JSON was received by the server."
+msgstr "Error de análisis: el servidor recibió un JSON no válido."
+
+msgid "The origin of this request is not allowed to reach the MCP endpoint."
+msgstr "El origen de esta solicitud no tiene permitido acceder al endpoint MCP."
+
+#, php-format
+msgid "Unsupported MCP protocol version: %s."
+msgstr "Versión de protocolo MCP no compatible: %s."
+
+msgid "This request must carry the session identifier issued during initialization."
+msgstr "Esta solicitud debe incluir el identificador de sesión emitido durante la inicialización."
+
+msgid "This MCP session has expired. Initialize again to establish a new one."
+msgstr "Esta sesión MCP ha expirado. Inicializa de nuevo para establecer una nueva."
+
+msgid "Missing scoping parameter"
+msgstr "Falta el parámetro de alcance"
+
+#, php-format
+msgid "The view named \"%s\" does not exist"
+msgstr "La vista llamada \"%s\" no existe"
+
+msgid "The upload directory is not accepted."
+msgstr "El directorio de subida no está aceptado."
+
+msgid "The upload was not accepted."
+msgstr "La subida no fue aceptada."
+
+msgid "The file was not received as an upload."
+msgstr "El archivo no se recibió como una subida."

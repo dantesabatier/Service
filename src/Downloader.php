@@ -13,6 +13,7 @@ use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\URL;
 use Sabatier\Foundation\URLFileTypeMappings;
+use function Sabatier\Foundation\localized_string;
 
 /** @internal */
 final class Downloader extends Responder
@@ -39,7 +40,7 @@ final class Downloader extends Responder
                 return $this->directoryURL;
             }
             $directoryURL = $this->downloadURL->deletingLastPathComponent();
-            $directoryURL->pathComponents->count === 2 ?: throw new BadRequestException("The requested location must name one directory and one file.");
+            $directoryURL->pathComponents->count === 2 ?: throw new BadRequestException(localized_string("The requested location must name one directory and one file."));
             return $this->directoryURL = $directoryURL;
         }
     }
@@ -63,7 +64,7 @@ final class Downloader extends Responder
     {
         $disposition = $this->downloadDisposition;
         /** @var URL $resourceURL */
-        $resourceURL = $disposition->isAllowed ? $disposition->resourceURL : throw new NotFoundException($disposition->failureReason ?? "The requested file is not available.");
+        $resourceURL = $disposition->isAllowed ? $disposition->resourceURL : throw new NotFoundException($disposition->failureReason ?? localized_string("The requested file is not available."));
         $path = $resourceURL->path;
         $fileManager = FileManager::default();
         $fileManager->isReadableFile($path) ?: throw new MethodNotAllowedException();

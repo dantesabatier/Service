@@ -12,6 +12,7 @@ use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\Number;
+use function Sabatier\Foundation\localized_string;
 use stdClass;
 
 /**
@@ -34,7 +35,7 @@ final class PersistentHistoryChangeRequestAdapter
                 $parameters->contains(fn(mixed $value, string $key): bool => match ($key) {
                     PersistentHistoryBeforeDateKey, PersistentHistoryBeforeTransactionKey, PersistentHistoryBeforeTokenKey => true,
                     default => false
-                }) ?: throw new BadRequestException("Missing scoping parameter");
+                }) ?: throw new BadRequestException(localized_string("Missing scoping parameter"));
                 if ($date = $parameters[PersistentHistoryBeforeDateKey]) {
                     return PersistentHistoryChangeRequest::deleteHistoryBeforeDate(Date::dateWithTimeIntervalSince1970((float)strtotime((string)$date)));
                 }
@@ -49,7 +50,7 @@ final class PersistentHistoryChangeRequestAdapter
             $parameters->contains(fn(mixed $value, string $key): bool => match ($key) {
                 PersistentHistoryAfterDateKey, PersistentHistoryAfterTransactionKey, PersistentHistoryAfterTokenKey => true,
                 default => false
-            }) ?: throw new BadRequestException("Missing scoping parameter");
+            }) ?: throw new BadRequestException(localized_string("Missing scoping parameter"));
             if ($date = $parameters[PersistentHistoryAfterDateKey]) {
                 $changeRequest = PersistentHistoryChangeRequest::fetchHistoryAfterDate(Date::dateWithTimeIntervalSince1970((float)strtotime((string)$date)));
             } elseif ($transactionNumber = $parameters[PersistentHistoryAfterTransactionKey]) {

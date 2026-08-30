@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-02 05:57-0600\n"
+"POT-Creation-Date: 2026-08-30 09:38-0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -39,4 +39,69 @@ msgid "Access token issuer is invalid."
 msgstr ""
 
 msgid "Access denied: no evaluator allowed access."
+msgstr ""
+
+msgid "The requested location must name one directory and one file."
+msgstr ""
+
+msgid "The requested file is not available."
+msgstr ""
+
+#, php-format
+msgid "You don't have permission to read \"%s\"."
+msgstr ""
+
+#, php-format
+msgid "You don't have permission to modify this \"%s\" resource."
+msgstr ""
+
+#, php-format
+msgid "You don't have permission to modify this \"%s\" row: it belongs to another user."
+msgstr ""
+
+msgid "The requested URL was not found on this server"
+msgstr ""
+
+msgid "Invalid Request: The JSON sent is not a valid Request object."
+msgstr ""
+
+msgid "Method not found: The method does not exist / is not available."
+msgstr ""
+
+msgid "Invalid params: Invalid method parameter(s)."
+msgstr ""
+
+msgid "Internal error: Internal JSON-RPC error."
+msgstr ""
+
+msgid "Parse error: Invalid JSON was received by the server."
+msgstr ""
+
+msgid "The origin of this request is not allowed to reach the MCP endpoint."
+msgstr ""
+
+#, php-format
+msgid "Unsupported MCP protocol version: %s."
+msgstr ""
+
+msgid "This request must carry the session identifier issued during initialization."
+msgstr ""
+
+msgid "This MCP session has expired. Initialize again to establish a new one."
+msgstr ""
+
+msgid "Missing scoping parameter"
+msgstr ""
+
+#, php-format
+msgid "The view named \"%s\" does not exist"
+msgstr ""
+
+msgid "The upload directory is not accepted."
+msgstr ""
+
+msgid "The upload was not accepted."
+msgstr ""
+
+msgid "The file was not received as an upload."
 msgstr ""

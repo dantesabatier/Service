@@ -39,11 +39,8 @@ final class ReActLLMAgentLoop implements LLMAgentLoop
     private const string outputTokenLimit = "The shared output-token budget is exhausted.";
     private const string totalTokenLimit = "The shared total-token budget is exhausted.";
     private const string contextLimit = "The assembled context exceeds its configured limit without a safe turn left to remove.";
-    private ?ToolDescriptor $subagentToolDescriptor = null;
-
-    private function subagentToolDescriptor(): ToolDescriptor
-    {
-        return $this->subagentToolDescriptor ??= new ToolDescriptor(
+    private ToolDescriptor $subagentToolDescriptor {
+        get => $this->subagentToolDescriptor ??= $this->subagentToolDescriptor ??= new ToolDescriptor(
             self::subagentToolName,
             "Launch a focused subagent with the same tool catalogue to complete one bounded task. The subagent cannot launch further subagents.",
             [
@@ -65,7 +62,7 @@ final class ReActLLMAgentLoop implements LLMAgentLoop
     #[Override]
     public function run(LLMAgentSession $session): LLMAgentLoopOutcome
     {
-        $syntheticTools = $session->canSpawnSubagents ? new ArrayClass([$this->subagentToolDescriptor()]) : null;
+        $syntheticTools = $session->canSpawnSubagents ? new ArrayClass([$this->subagentToolDescriptor]) : null;
         while (true) {
             $turn = $session->completeTurn($syntheticTools);
             if ($turn->stopReason === LLMTurnStopReason::completed) {

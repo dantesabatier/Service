@@ -121,6 +121,9 @@ release. The final date will be assigned when the release tag is created.
 - Upload transport errors such as exceeding `upload_max_filesize` return a
   client error with the actual reason instead of failing later as a server
   error.
+- HTTP persistent-history reads and purges now reject absent or empty scope
+  values instead of constructing an unbounded request; transaction `0` remains
+  an explicit boundary rather than being mistaken for no value.
 - HTTP history documentation, aggregate expression types, error envelopes,
   lifecycle timing, store defaults, MCP defaults and tool names now match the
   implemented runtime.

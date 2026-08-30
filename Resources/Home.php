@@ -194,20 +194,20 @@
 <main>
     <div class="hero">
         <h2>Welcome to <?= htmlspecialchars($title) ?></h2>
-        <p>A multipurpose framework for the Singularity ecosystem, combining the architectural elegance of AppKit with the power of modern PHP 8.4.</p>
+        <p>An application generated with Singularity and running on the PHP 8.5+ Sabatier SDK.</p>
     </div>
     <div class="cards">
         <div class="card">
-            <h3>Dual-Core Architecture</h3>
-            <p>Build high-performance headless services with JWT or sophisticated stateful web applications with full ViewController support.</p>
+            <h3>Model-Driven REST</h3>
+            <p>The generated Core Data model is immediately available through a secured REST API, without handwritten controllers or route registration.</p>
         </div>
         <div class="card">
-            <h3>AppKit for the Web</h3>
-            <p>Leverage familiar metaphors like Outlets, Responders, and Bundles to build complex, desktop-grade software within the web stack.</p>
+            <h3>Extensible Application Runtime</h3>
+            <p>Add responders, views, policies, jobs and MCP tools when the application needs behavior beyond its generated API.</p>
         </div>
         <div class="card">
-            <h3>Core Data Persistence</h3>
-            <p>Industrial-grade data modeling using ManagedObjectContext and PersistentContainer for robust, stateful applications.</p>
+            <h3>Sabatier SDK Stack</h3>
+            <p>Foundation, CoreData and Service provide shared system primitives, managed persistence and application infrastructure.</p>
         </div>
     </div>
 </main>

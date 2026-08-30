@@ -291,7 +291,7 @@ GET /history?afterDate=<ISO-8601-date>
 Authorization: Bearer <jwt>
 ```
 
-Returns a JSON payload of history transactions. The request must include at least one of the following scope parameters; omitting all of them returns `400 Bad Request`:
+Returns a JSON payload of history transactions. The request must include a non-empty value for at least one of the following scope parameters; omitting them or sending only empty values returns `400 Bad Request`:
 
 | Parameter          | Type        | Description                                           |
 |--------------------|-------------|-------------------------------------------------------|
@@ -325,7 +325,7 @@ DELETE /history?beforeDate=<ISO-8601-date>
 Authorization: Bearer <jwt>
 ```
 
-Removes history records from the store and returns `204 No Content`. The request must include at least one of the following scope parameters; omitting all of them returns `400 Bad Request`:
+Removes history records from the store and returns `204 No Content`. The request must include a non-empty value for at least one of the following scope parameters; omitting them or sending only empty values returns `400 Bad Request`:
 
 | Parameter           | Type        | Description                                        |
 |---------------------|-------------|----------------------------------------------------|

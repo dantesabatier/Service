@@ -78,7 +78,7 @@ It is only meaningful when persistent history tracking is enabled for the store.
 
 #### GET — fetch history
 
-Returns a JSON body with the history result. The result set must be scoped by at least one of three query parameters; if none is provided, the responder returns `400 Bad Request`.
+Returns a JSON body with the history result. The result set must be scoped by a non-empty value for at least one of three query parameters; if none is provided, or every supplied scope is empty, the responder returns `400 Bad Request`.
 
 | Parameter          | Type        | Description                                                                                    |
 |--------------------|-------------|------------------------------------------------------------------------------------------------|
@@ -90,7 +90,7 @@ Returns a JSON body with the history result. The result set must be scoped by at
 
 #### DELETE — purge history
 
-Removes history from the store. Responds with `204 No Content`. The purge must be scoped by at least one of three query parameters; if none is provided, the responder returns `400 Bad Request`.
+Removes history from the store. Responds with `204 No Content`. The purge must be scoped by a non-empty value for at least one of three query parameters; if none is provided, or every supplied scope is empty, the responder returns `400 Bad Request`.
 
 | Parameter           | Type        | Description                                                                                                               |
 |---------------------|-------------|---------------------------------------------------------------------------------------------------------------------------|

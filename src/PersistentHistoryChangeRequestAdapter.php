@@ -22,7 +22,7 @@ use stdClass;
  * (int), {@code afterToken} (base64-encoded JSON), {@code resultType} (int raw value
  * of {@code PersistentHistoryResultType}). DELETE scoping parameters:
  * {@code beforeDate}, {@code beforeTransaction}, {@code beforeToken}. At least one
- * method-appropriate scoping parameter is required.
+ * method-appropriate scoping parameter must carry a non-empty value.
  *
  * @internal
  */
@@ -32,33 +32,25 @@ final class PersistentHistoryChangeRequestAdapter
         get {
             $parameters = $this->request->parameters;
             if ($this->request->httpMethod === HTTPRequestMethod::delete) {
-                $parameters->contains(fn(mixed $value, string $key): bool => match ($key) {
-                    PersistentHistoryBeforeDateKey, PersistentHistoryBeforeTransactionKey, PersistentHistoryBeforeTokenKey => true,
-                    default => false
-                }) ?: throw new BadRequestException(localized_string("Missing scoping parameter"));
-                if ($date = $parameters[PersistentHistoryBeforeDateKey]) {
+                if ($this->hasScopeValue($date = $parameters[PersistentHistoryBeforeDateKey])) {
                     return PersistentHistoryChangeRequest::deleteHistoryBeforeDate(Date::dateWithTimeIntervalSince1970((float)strtotime((string)$date)));
                 }
-                if ($transactionNumber = $parameters[PersistentHistoryBeforeTransactionKey]) {
+                if ($this->hasScopeValue($transactionNumber = $parameters[PersistentHistoryBeforeTransactionKey])) {
                     return PersistentHistoryChangeRequest::deleteHistoryBeforeTransaction(new PersistentHistoryTransaction(new Dictionary([PersistentHistoryTransactionNumberKey => (int)(string)$transactionNumber])));
                 }
-                if ($historyToken = $parameters[PersistentHistoryBeforeTokenKey]) {
+                if ($this->hasScopeValue($historyToken = $parameters[PersistentHistoryBeforeTokenKey])) {
                     return PersistentHistoryChangeRequest::deleteHistoryBeforeToken($this->tokenFromParameter((string)$historyToken));
                 }
-                return PersistentHistoryChangeRequest::deleteHistoryBeforeToken(null);
+                throw new BadRequestException(localized_string("Missing scoping parameter"));
             }
-            $parameters->contains(fn(mixed $value, string $key): bool => match ($key) {
-                PersistentHistoryAfterDateKey, PersistentHistoryAfterTransactionKey, PersistentHistoryAfterTokenKey => true,
-                default => false
-            }) ?: throw new BadRequestException(localized_string("Missing scoping parameter"));
-            if ($date = $parameters[PersistentHistoryAfterDateKey]) {
+            if ($this->hasScopeValue($date = $parameters[PersistentHistoryAfterDateKey])) {
                 $changeRequest = PersistentHistoryChangeRequest::fetchHistoryAfterDate(Date::dateWithTimeIntervalSince1970((float)strtotime((string)$date)));
-            } elseif ($transactionNumber = $parameters[PersistentHistoryAfterTransactionKey]) {
+            } elseif ($this->hasScopeValue($transactionNumber = $parameters[PersistentHistoryAfterTransactionKey])) {
                 $changeRequest = PersistentHistoryChangeRequest::fetchHistoryAfterTransaction(new PersistentHistoryTransaction(new Dictionary([PersistentHistoryTransactionNumberKey => (int)(string)$transactionNumber])));
-            } elseif ($historyToken = $parameters[PersistentHistoryAfterTokenKey]) {
+            } elseif ($this->hasScopeValue($historyToken = $parameters[PersistentHistoryAfterTokenKey])) {
                 $changeRequest = PersistentHistoryChangeRequest::fetchHistoryAfterToken($this->tokenFromParameter((string)$historyToken));
             } else {
-                $changeRequest = PersistentHistoryChangeRequest::fetchHistoryAfterToken(null);
+                throw new BadRequestException(localized_string("Missing scoping parameter"));
             }
             if ($resultType = $parameters[PersistentHistoryResultTypeKey]) {
                 $changeRequest->resultType = PersistentHistoryResultType::from((int)(string)$resultType);
@@ -69,6 +61,11 @@ final class PersistentHistoryChangeRequestAdapter
 
     public function __construct(private readonly Request $request)
     {
+    }
+
+    private function hasScopeValue(mixed $value): bool
+    {
+        return $value !== null && (!is_string($value) || trim($value) !== "");
     }
 
     private function tokenFromParameter(string $raw): PersistentHistoryToken

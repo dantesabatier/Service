@@ -20,6 +20,6 @@ final class JSONWebTokenRefreshTimeEvaluator implements AuthenticationAccessEval
         if (!($payload = $authentication->token?->payload)) {
             return false;
         }
-        return !($payload->notBefore && $payload->notBefore > new Date()->timeIntervalSinceReferenceDate);
+        return !$payload->notBefore || $payload->notBefore <= new Date()->timeIntervalSinceReferenceDate;
     }
 }

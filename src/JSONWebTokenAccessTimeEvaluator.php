@@ -24,6 +24,6 @@ final class JSONWebTokenAccessTimeEvaluator implements AuthenticationAccessEvalu
         if ($payload->notBefore && $payload->notBefore > $now) {
             return false;
         }
-        return !($payload->expiration && $payload->expiration < $now);
+        return !$payload->expiration || $payload->expiration >= $now;
     }
 }

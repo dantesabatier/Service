@@ -444,10 +444,10 @@ final class LLMAgentRuntime implements LLMAgentSession
         }
         if (is_array($value)) {
             if (array_is_list($value)) {
-                return ["array", array_map(fn(mixed $element): array => $this->canonicalToolValue($element), $value)];
+                return ["array", array_map($this->canonicalToolValue(...), $value)];
             }
             ksort($value);
-            return ["dictionary", array_map(fn(mixed $element): array => $this->canonicalToolValue($element), $value)];
+            return ["dictionary", array_map($this->canonicalToolValue(...), $value)];
         }
         return [get_debug_type($value), $value];
     }

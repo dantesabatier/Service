@@ -323,7 +323,6 @@ class Application extends Responder
             $limits["rate_limit:ip:$address:user:$username"] = $policy->maxRequestsUser;
         }
         foreach ($limits as $key => $limit) {
-            /** @var int $limit */
             $count = $this->rateLimitStore->increment($key, $policy->windowSeconds);
             $ttl = $this->rateLimitStore->ttl($key);
             $remaining = max(0, $limit - $count);

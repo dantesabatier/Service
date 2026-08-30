@@ -47,7 +47,7 @@ final readonly class StreamableHTTPMCPTransport implements MCPTransport
         $request->setValueForHttpHeaderField("application/json", "Content-Type");
         $headers->forEach(fn(string $value, string $field) => $request->setValueForHttpHeaderField($value, $field));
         try {
-            $request->httpBody = (string)json_encode($message, JSON_THROW_ON_ERROR);
+            $request->httpBody = json_encode($message, JSON_THROW_ON_ERROR);
         } catch (JsonException $exception) {
             throw new MCPClientException("The MCP message could not be encoded: {$exception->getMessage()}", false, $exception);
         }

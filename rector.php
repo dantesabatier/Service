@@ -13,7 +13,10 @@ use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPrivateMethodParameterRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPublicMethodParameterRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessParamTagRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessReturnTagRector;
+use Rector\DeadCode\Rector\ClassMethod\RemoveUselessUnionReturnDocblockRector;
 use Rector\DeadCode\Rector\Node\RemoveNonExistingVarAnnotationRector;
+use Rector\DeadCode\Rector\Property\RemoveDefaultValueFromAssignedPropertyRector;
+use Rector\DeadCode\Rector\StmtsAwareInterface\RemoveDeadInstanceOfAssertRector;
 use Rector\Exception\Configuration\InvalidConfigurationException;
 use Rector\Php73\Rector\ConstFetch\SensitiveConstantNameRector;
 use Rector\Php74\Rector\Property\RestoreDefaultNullToNullableTypePropertyRector;
@@ -42,6 +45,7 @@ try {
             RemoveNonExistingVarAnnotationRector::class => [
                 __DIR__ . "/src/FirstResponderResolver.php",
                 __DIR__ . "/src/MCP/Tools/AbstractTool.php",
+                __DIR__ . "/src/MCP/MCPClient.php",
             ],
             ConvertStaticToSelfRector::class => [
                 __DIR__ . "/src/Application.php"
@@ -56,6 +60,10 @@ try {
                 __DIR__ . "/src/MCP/InitializeHandler.php",
                 __DIR__ . "/src/MCP/ToolsListHandler.php",
             ],
+            RemoveMixedDocblockOverruledByNativeTypeRector::class,
+            RemoveUselessUnionReturnDocblockRector::class,
+            RemoveDeadInstanceOfAssertRector::class,
+            RemoveDefaultValueFromAssignedPropertyRector::class,
         ])->withPreparedSets(deadCode: true, codeQuality: true, earlyReturn: true);
 } catch (InvalidConfigurationException $e) {
     error_log($e->getMessage());

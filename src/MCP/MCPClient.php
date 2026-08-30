@@ -184,7 +184,7 @@ final class MCPClient
         }
         $body = trim($response->body);
         $message = "The MCP server returned HTTP $response->statusCode";
-        $isTransient = $response->statusCode === 404 || $response->statusCode === 408 || $response->statusCode === 429 || $response->statusCode >= 500;
+        $isTransient = in_array($response->statusCode, [404, 408, 429], true) || $response->statusCode >= 500;
         throw new MCPClientException($body === "" ? "$message." : "$message: $body", $isTransient);
     }
 

@@ -28,6 +28,6 @@ final readonly class MCPMethod
      */
     public static function isAllowedWithoutSession(?string $method): bool
     {
-        return $method === null || $method === self::initialize || $method === self::ping;
+        return in_array($method, [null, self::initialize, self::ping], true);
     }
 }

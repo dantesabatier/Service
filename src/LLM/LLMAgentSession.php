@@ -52,6 +52,30 @@ interface LLMAgentSession
     public function executeTool(LLMToolCall $call): LLMToolExecutionResult;
 
     /**
+     * Records a successful result for a strategy-owned synthetic tool without executing application code.
+     *
+     * @param LLMToolCall $call The synthetic invocation requested by the model.
+     * @param string $message The result the strategy should feed back to the model.
+     * @return LLMToolExecutionResult The successful result already appended to the run history.
+     * @throws Throwable An unexpected trace fault.
+     */
+    public function completeSyntheticToolCall(LLMToolCall $call, string $message): LLMToolExecutionResult;
+
+    /**
+     * Records a correctable rejection for any pending tool call without executing application code.
+     *
+     * A strategy may use this to enforce an orchestration phase, such as requiring a plan before
+     * real tools execute. The runtime still verifies the exact model call, consumes the shared
+     * tool-call budget, appends the result, and closes its trace span.
+     *
+     * @param LLMToolCall $call The invocation the strategy refuses to execute in its current phase.
+     * @param string $message The correction the model should receive.
+     * @return LLMToolExecutionResult The failed result already appended to the run history.
+     * @throws Throwable An unexpected trace fault.
+     */
+    public function rejectToolCall(LLMToolCall $call, string $message): LLMToolExecutionResult;
+
+    /**
      * Records a correctable validation failure for a strategy-owned synthetic tool without executing application code.
      *
      * @param LLMToolCall $call The invalid synthetic invocation.

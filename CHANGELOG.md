@@ -45,6 +45,8 @@ release. The final date will be assigned when the release tag is created.
   Anthropic Messages and native Ollama chat APIs.
 - `LLMAgent` with a replaceable orchestration loop, in-process or remote tool
   execution, shared deadlines, bounded subagents and normalized run outcomes.
+- `PlanExecuteLLMAgentLoop` for tasks that must submit an ordered plan before
+  real tools execute, plus a reusable runtime-backed loop conformance suite.
 - `LLMExecutionPolicy` for tool, subagent and token budgets and per-call approval
   of state-changing tools.
 - Replaceable context assembly through `LLMContextAssembler` and

@@ -202,10 +202,23 @@ final class LLMAgentRuntime implements LLMAgentSession
     }
 
     #[Override]
+    public function completeSyntheticToolCall(LLMToolCall $call, string $message): LLMToolExecutionResult
+    {
+        $this->enforceSyntheticCall($call);
+        return $this->performToolCall($call, false, false, fn(): LLMAgentToolResult => new LLMAgentToolResult($message));
+    }
+
+    #[Override]
+    public function rejectToolCall(LLMToolCall $call, string $message): LLMToolExecutionResult
+    {
+        return $this->performToolCall($call, false, false, fn(): LLMAgentToolResult => new LLMAgentToolResult($message, true));
+    }
+
+    #[Override]
     public function rejectSyntheticToolCall(LLMToolCall $call, string $message): LLMToolExecutionResult
     {
         $this->enforceSyntheticCall($call);
-        return $this->performToolCall($call, false, false, fn(): LLMAgentToolResult => new LLMAgentToolResult($message, true));
+        return $this->rejectToolCall($call, $message);
     }
 
     #[Override]

@@ -25,7 +25,8 @@
   "suggest": {
     "ext-apcu": "Backs rate limiting, idempotency, the authorization cache and MCP session storage on a single server, with no external service to run.",
     "ext-redis": "Backs rate limiting, idempotency, the authorization cache and MCP session storage across several servers.",
-    "ext-memcached": "Alternative shared backend for rate limiting, idempotency and the authorization cache."
+    "ext-memcached": "Alternative shared backend for rate limiting, idempotency and the authorization cache.",
+    "phpunit/phpunit": "Runs the optional agent-loop conformance test kit when developing a custom orchestration strategy."
   },
   "config": {
     "platform": {
@@ -35,7 +36,8 @@
   },
   "autoload": {
     "psr-4": {
-      "Sabatier\\Service\\": "src"
+      "Sabatier\\Service\\": "src",
+      "Sabatier\\Service\\Testing\\": "tests/Contract"
     },
     "files": [
       "src/AuthenticationConstants.php",

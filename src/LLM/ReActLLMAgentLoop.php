@@ -40,7 +40,7 @@ final class ReActLLMAgentLoop implements LLMAgentLoop
     private const string totalTokenLimit = "The shared total-token budget is exhausted.";
     private const string contextLimit = "The assembled context exceeds its configured limit without a safe turn left to remove.";
     private ToolDescriptor $subagentToolDescriptor {
-        get => $this->subagentToolDescriptor ??= $this->subagentToolDescriptor ??= new ToolDescriptor(
+        get => $this->subagentToolDescriptor ??= new ToolDescriptor(
             self::subagentToolName,
             "Launch a focused subagent with the same tool catalogue to complete one bounded task. The subagent cannot launch further subagents.",
             [

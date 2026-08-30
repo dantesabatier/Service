@@ -73,6 +73,11 @@
         <InternalProperty errorLevel="suppress"/>
         <RiskyTruthyFalsyComparison errorLevel="suppress"/>
         <InvalidAttribute errorLevel="suppress"/>
+        <InvalidOperand>
+            <errorLevel type="suppress">
+                <file name="src/RedisAuthorizationCache.php"/>
+            </errorLevel>
+        </InvalidOperand>
     </issueHandlers>
     <plugins>
         <pluginClass class="Sabatier\Foundation\Plugins\Psalm\Plugin"/>

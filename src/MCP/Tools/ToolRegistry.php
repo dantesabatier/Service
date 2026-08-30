@@ -133,7 +133,7 @@ final class ToolRegistry
             return null;
         }
         /** @var ArrayClass<string> $unknown */
-        $unknown = new ArrayClass(array_keys($arguments->array))->compactMap(fn(mixed $key): ?string => is_string($key) && !array_key_exists($key, $properties) ? $key : null);
+        $unknown = $arguments->keys->compactMap(fn(string $key): ?string => !array_key_exists($key, $properties) ? $key : null);
         if (!$unknown->isEmpty) {
             $accepted = implode(", ", array_keys($properties));
             return sprintf(localized_string("%s does not accept %s. Accepted arguments: %s. Re-read the tool's schema and call it again."), $tool->name, implode(", ", $unknown->array), $accepted);

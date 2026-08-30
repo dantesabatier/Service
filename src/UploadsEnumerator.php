@@ -79,11 +79,11 @@ final class UploadsEnumerator extends DirectoryEnumerator
             $fileManager = FileManager::default();
             $keys = $this->keys;
             foreach ($this->uploadedFiles() as $file) {
-                $failure = $this->transportFailure((int)$file["error"]);
+                $failure = $this->transportFailure($file["error"]);
                 if ($failure !== null) {
                     throw new BadRequestException($failure);
                 }
-                $disposition = $policy->evaluateUpload($this->directory, (string)$file["name"], (int)$file["size"]);
+                $disposition = $policy->evaluateUpload($this->directory, $file["name"], $file["size"]);
                 $url = $disposition->isAllowed ? $disposition->destinationURL : null;
                 if ($url === null) {
                     throw new BadRequestException($disposition->failureReason ?? "The upload was not accepted.");
@@ -97,7 +97,7 @@ final class UploadsEnumerator extends DirectoryEnumerator
                 if ($fileManager->fileExists($destination)) {
                     $fileManager->removeItem($url);
                 }
-                $source = (string)$file["tmp_name"];
+                $source = $file["tmp_name"];
                 $source !== "" && is_uploaded_file($source) ?: throw new BadRequestException("The file was not received as an upload.");
                 $fileManager->moveItem(URL::fileURL($source), $url) ?: throw new InternalServerErrorException();
                 if ($attributes !== null) {
@@ -145,14 +145,14 @@ final class UploadsEnumerator extends DirectoryEnumerator
         foreach ($_FILES as $file) {
             $names = $file["name"];
             /** @var list<string> $nameList */
-            $nameList = is_array($names) ? $names : [(string)$names];
+            $nameList = is_array($names) ? $names : [$names];
             /** @var list<string> $tmpNames */
-            $tmpNames = is_array($file["tmp_name"]) ? $file["tmp_name"] : [(string)$file["tmp_name"]];
+            $tmpNames = is_array($file["tmp_name"]) ? $file["tmp_name"] : [$file["tmp_name"]];
             /** @var list<int> $sizes */
-            $sizes = is_array($file["size"]) ? $file["size"] : [(int)$file["size"]];
+            $sizes = is_array($file["size"]) ? $file["size"] : [$file["size"]];
             $error = $file["error"] ?? UPLOAD_ERR_OK;
             /** @var list<int> $errors */
-            $errors = is_array($error) ? $error : [(int)$error];
+            $errors = is_array($error) ? $error : [$error];
             foreach ($nameList as $index => $name) {
                 yield ["name" => $name, "tmp_name" => $tmpNames[$index] ?? "", "size" => $sizes[$index] ?? 0, "error" => $errors[$index] ?? UPLOAD_ERR_OK];
             }

@@ -114,15 +114,16 @@ final class UploadsEnumeratorFilesTest extends TestCase
     #[Test]
     public function everyTransportFailureHasItsOwnAnswer(): void
     {
-        $failure = new ReflectionMethod(UploadsEnumerator::class, "transportFailure");
+        $enumerator = new UploadsEnumerator("uploads");
+        $failure = new ReflectionMethod($enumerator, "transportFailure");
 
-        $this->assertNull($failure->invoke(null, UPLOAD_ERR_OK));
-        $this->assertStringContainsString("this server accepts", (string)$failure->invoke(null, UPLOAD_ERR_INI_SIZE));
-        $this->assertStringContainsString("the form allowed", (string)$failure->invoke(null, UPLOAD_ERR_FORM_SIZE));
-        $this->assertStringContainsString("incomplete", (string)$failure->invoke(null, UPLOAD_ERR_PARTIAL));
-        $this->assertStringContainsString("No file", (string)$failure->invoke(null, UPLOAD_ERR_NO_FILE));
+        $this->assertNull($failure->invoke($enumerator, UPLOAD_ERR_OK));
+        $this->assertStringContainsString("this server accepts", (string)$failure->invoke($enumerator, UPLOAD_ERR_INI_SIZE));
+        $this->assertStringContainsString("the form allowed", (string)$failure->invoke($enumerator, UPLOAD_ERR_FORM_SIZE));
+        $this->assertStringContainsString("incomplete", (string)$failure->invoke($enumerator, UPLOAD_ERR_PARTIAL));
+        $this->assertStringContainsString("No file", (string)$failure->invoke($enumerator, UPLOAD_ERR_NO_FILE));
         foreach ([UPLOAD_ERR_NO_TMP_DIR, UPLOAD_ERR_CANT_WRITE, UPLOAD_ERR_EXTENSION] as $error) {
-            $this->assertNotNull($failure->invoke(null, $error), "A server-side failure must still be answered.");
+            $this->assertNotNull($failure->invoke($enumerator, $error), "A server-side failure must still be answered.");
         }
     }
 

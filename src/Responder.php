@@ -168,6 +168,7 @@ abstract class Responder extends ObjectClass
                 }
                 if (match ($request->httpMethod) {
                         HTTPRequestMethod::post,
+                        HTTPRequestMethod::put,
                         HTTPRequestMethod::patch,
                         HTTPRequestMethod::delete => true,
                         default => false,

@@ -127,7 +127,7 @@ Routing is entirely attribute-driven. There are no routing tables, route registr
 
 **`#[Endpoint(path, transformers)]`** marks a class as a GET handler. The `path` is matched against the incoming URL. If omitted, the class name is used as the path. `transformers` is the ordered list of response transformer classes applied to every response from this endpoint.
 
-**`#[Action(method, path, transformers)]`** marks a method as handling a mutating request (POST, PATCH, DELETE, PUT). The `path` defaults to `/{methodName}`. When a mutating request arrives, the framework calls the matching action method, which sets `$this->data` and `$this->statusCode` as side effects, then passes the response through the action's own transformer chain.
+**`#[Action(method, path, transformers)]`** marks a method as handling a mutating request (POST, PATCH, DELETE, PUT). No built-in responder declares a `PUT` action — the dispatch accepts the verb so an application can, and the framework itself never routes through it. The `path` defaults to `/{methodName}`. When a mutating request arrives, the framework calls the matching action method, which sets `$this->data` and `$this->statusCode` as side effects, then passes the response through the action's own transformer chain.
 
 `ResponderResolution` handles the matching: it reads the `#[Endpoint]` and `#[Action]` attributes on the class at construction time, compares the URL path against the configured routes, and returns whether the responder claims the request and, if so, which action method to call.
 
@@ -495,9 +495,34 @@ The ReAct loop exposes one synthetic tool the executor never sees: **`run_subage
 
 ## 13. Event Streaming
 
-Server-Sent Events are how the framework holds a long-lived connection open, pushing real-time updates to browser clients without WebSockets. An application streams them from any responder by returning an `EventStreamResponse`.
+Server-Sent Events are how the framework holds a long-lived connection open, pushing real-time updates to browser clients without WebSockets. An application exposes them by subclassing `EventStreamResponder`, or returns an `EventStreamResponse` directly when it needs full control.
 
-`EventStreamResponder` is the framework's own example of that, marked `@internal` and carrying `#[Endpoint("Events")]`. It is **not** part of the built-in responder chain, so `/Events` answers nothing unless an application places a responder of its own there.
+`EventStreamResponder` is a public abstract base with no fixed route or event source. A concrete subclass in the application's `src/Responders/` declares its own `#[Endpoint]` and overrides the protected `$events` property hook, returning a `Closure(): Generator<int, ServerSentEvent>`. The base accepts GET by default, manages the session, builds the streaming response, and applies endpoint transformers followed by the infrastructure pipeline. It is **not** part of the built-in responder chain and does not automatically expose `/Events`.
+
+```php
+namespace App\Responders;
+
+use Closure;
+use Generator;
+use Override;
+use Sabatier\Service\Endpoint;
+use Sabatier\Service\EventStreamResponder;
+use Sabatier\Service\ServerSentEvent;
+
+#[Endpoint("/notifications")]
+final class NotificationsResponder extends EventStreamResponder
+{
+    /** @var Closure(): Generator<int, ServerSentEvent> */
+    #[Override]
+    protected Closure $events {
+        get => function (): Generator {
+            yield new ServerSentEvent(["status" => "ready"], event: "status");
+        };
+    }
+}
+```
+
+The `$events` hook runs once per response preparation, before the transformer context is assembled. Validate the request and capture required session values there; the returned closure is invoked only when the response is streamed, after the session has been committed. The base does not poll or add heartbeats: those are responsibilities of the event source. The existing internal `EventStream` remains a concrete Core Data polling source, separate from the responder base.
 
 Responses are produced by `EventStreamResponse`, which streams `ServerSentEvent` objects through an `EventStreamEmitter`. Each event carries a data payload, an optional ID and an optional event type.
 

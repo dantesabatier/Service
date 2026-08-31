@@ -65,6 +65,24 @@ release. The final date will be assigned when the release tag is created.
 
 ### Changed
 
+- **Breaking.** `EventStreamResponder` is now a public abstract base. Concrete
+  subclasses declare their own `#[Endpoint]` and provide a protected `$events`
+  hook returning a `Closure(): Generator<int, ServerSentEvent>`. The base keeps
+  GET handling, session management and response transformers, without depending
+  on Core Data polling or a fixed `/Events` route. Code directly instantiating
+  the former internal responder must provide a concrete subclass instead.
+- **Breaking.** `UploadsEnumerator::__construct()` takes the subdirectory as a
+  `string` where it took a resolved `URL $directoryURL`. The enumerator no
+  longer receives a location: it is handed the component the request named and
+  asks `FileTransferPolicy` where that resolves, which is what keeps the
+  destination out of reach of anything the client sends. `$directoryURL`
+  survives as a read-only property, so code reading it is unaffected; code
+  constructing the enumerator is not. The class is `@internal` and `Uploader` is
+  its only caller inside the framework.
+- `PUT` is dispatched as a mutation alongside `POST`, `PATCH` and `DELETE`, so a
+  responder declaring a `#[Action(method: HTTPRequestMethod::put)]` is now
+  routed to it. No built-in responder handles `PUT`; the framework opens the
+  path and leaves the verb to the application.
 - `LLMAgent` now denies state-changing tool calls by default. Applications must
   provide an `LLMExecutionPolicy` whose approval closure accepts the concrete
   calls authorized by the user. A denied call stops with

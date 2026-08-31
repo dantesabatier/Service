@@ -235,6 +235,27 @@ The Tavily provider reads its key from the `WEB_SEARCH_API_KEY` environment vari
 
 ---
 
+## Tool annotations
+
+`tools/list` includes advisory `annotations` built by `ToolRegistry` from each `AbstractTool`:
+
+| Property | MCP field | Default |
+|----------|-----------|---------|
+| `isReadOnly` | `readOnlyHint` | `false` |
+| `isDestructive` | `destructiveHint` | `true` |
+| `isIdempotent` | `idempotentHint` | `false` |
+| `isOpenWorld` | `openWorldHint` | `true` |
+
+Override these property hooks when the implementation can guarantee a narrower effect. `isReadOnly` describes **every** operation the tool exposes: `persistent_history` advertises `false` because it can purge, even though `isReadOnlyCall()` permits individual fetch calls as reads.
+
+Destructive includes overwriting, not just deleting. `create` can update existing objects inside a submitted graph, so it keeps the conservative destructive default. Idempotence concerns repeated effects, not identical results or cacheability; neither `isIdempotent` nor remote hints enable retries or result caching. The destructive and idempotent hints are meaningful for writing tools; their defaults do not make a read-only tool destructive.
+
+Built-in data tools and the server clock declare a closed domain (`isOpenWorld = false`). Web search and arbitrary app jobs retain the open-world default. Custom tools inherit the conservative defaults, so existing apps remain compatible; a tool limited to its application's data can override `isOpenWorld` to `false`.
+
+`ToolDescriptor::$annotations` is optional for manually supplied catalogues. Missing annotations stay absent; explicit `false` values and an empty object survive serialization. `MCPClient` retains remote hints and rejects malformed known fields without coercing strings to booleans. Provider formatters send only their tool schema fields, not MCP annotations.
+
+These are [MCP hints, not authorization](https://modelcontextprotocol.io/specification/2025-11-25/schema#toolannotations). `MCPToolExecutor` still requires application-supplied trusted classifiers for read approval and caching. Local authorization and the agent's write-approval policy remain unchanged.
+
 ## Custom Tools
 
 Drop a class extending `AbstractTool` in the application's `src/MCPTools/` directory and the framework discovers it at startup — no registration step. The constructor receives the `ManagedObjectContext` and the `ModelDescriptor`; the subclass supplies three members:

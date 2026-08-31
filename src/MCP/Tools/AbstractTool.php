@@ -66,13 +66,25 @@ abstract class AbstractTool
     abstract public array $inputSchema {
         get;
     }
-    /** @var bool Whether calling this tool only reads state. Defaults to `false`, so a tool that does not declare itself read-only is always executed; a tool that writes must never override this to `true`. */
+    /** @var bool Whether every call only reads state; also published as MCP readOnlyHint. Defaults to `false`; mixed tools classify individual calls through isReadOnlyCall() without advertising the whole tool as read-only. */
     public bool $isReadOnly {
         get => false;
     }
     /** @var bool Whether a repeated call with identical arguments may be served from the run's cache instead of executed again. Reading state is necessary but not sufficient: a tool that reads something which moves on its own — the clock, a queue depth — answers differently to the same arguments, and caching it would freeze the first answer for the rest of the run. Such a tool stays read-only and overrides this to `false`. */
     public bool $isCacheable {
         get => $this->isReadOnly;
+    }
+    /** @var bool MCP hint: a writing tool may overwrite or remove state. Defaults to `true`; meaningful only when `isReadOnly` is false. */
+    public bool $isDestructive {
+        get => true;
+    }
+    /** @var bool MCP hint: repeating identical arguments has no additional effects. Defaults to `false`; this does not authorize retries or imply cacheability. */
+    public bool $isIdempotent {
+        get => false;
+    }
+    /** @var bool MCP hint: the tool may interact with an open world of external entities. Override to `false` for a closed application domain. */
+    public bool $isOpenWorld {
+        get => true;
     }
 
     /** @var ToolVocabulary The vocabulary of the bundle that owns this concrete tool class. */
@@ -229,6 +241,7 @@ abstract class AbstractTool
     }
 
     /**
+     * @param ManagedObject $object
      * @param Dictionary<mixed> $body
      * @throws Exception
      */
@@ -238,6 +251,7 @@ abstract class AbstractTool
     }
 
     /**
+     * @param ManagedObject $object
      * @param Dictionary<mixed> $data
      * @return Dictionary<mixed>
      * @throws Exception
@@ -347,6 +361,7 @@ abstract class AbstractTool
     protected function fetchRequest(string $entityName): FetchRequest
     {
         $model = $this->context->persistentStoreCoordinator?->managedObjectModel ?? fatal_error("No managed object model");
+        /** @var EntityDescription $entity */
         $entity = $model->entitiesByName[$entityName] ?? fatal_error("Unknown entity: $entityName");
         $request = new FetchRequest();
         $request->entity = $entity;

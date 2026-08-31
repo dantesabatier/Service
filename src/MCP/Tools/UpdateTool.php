@@ -22,6 +22,10 @@ final class UpdateTool extends AbstractTool
         get => "update";
     }
     #[Override]
+    public bool $isOpenWorld {
+        get => false;
+    }
+    #[Override]
     public array $inputSchema {
         get => [
             "type" => "object",

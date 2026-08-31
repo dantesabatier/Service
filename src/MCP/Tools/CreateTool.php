@@ -23,6 +23,10 @@ final class CreateTool extends AbstractTool
         get => "create";
     }
     #[Override]
+    public bool $isOpenWorld {
+        get => false;
+    }
+    #[Override]
     public array $inputSchema {
         get => [
             "type" => "object",

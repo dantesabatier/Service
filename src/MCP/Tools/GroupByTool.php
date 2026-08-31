@@ -38,6 +38,10 @@ final class GroupByTool extends AbstractTool
     }
 
     #[Override]
+    public bool $isOpenWorld {
+        get => false;
+    }
+    #[Override]
     public array $inputSchema {
         get => [
             "type" => "object",
@@ -141,6 +145,7 @@ final class GroupByTool extends AbstractTool
         return $current;
     }
 
+    /** @throws Exception */
     private function groupKeys(string $entity, iterable $keys): ArrayClass
     {
         /** @var ArrayClass<string> $result */
@@ -153,6 +158,7 @@ final class GroupByTool extends AbstractTool
         return $result;
     }
 
+    /** @throws Exception */
     private function aggregateDescriptions(mixed $request, string $entity, iterable $items): ArrayClass
     {
         /** @var ArrayClass<ExpressionDescription> $result */

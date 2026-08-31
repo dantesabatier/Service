@@ -23,6 +23,10 @@ final class DeleteTool extends AbstractTool
         get => "delete";
     }
     #[Override]
+    public bool $isOpenWorld {
+        get => false;
+    }
+    #[Override]
     public array $inputSchema {
         get => [
             "type" => "object",

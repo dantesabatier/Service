@@ -24,6 +24,7 @@ final class ToolRegistry
         get => $this->tools ??= $this->toolList->reduce(new Dictionary(),
             /**
              * @param Dictionary<AbstractTool> $carry
+             * @param AbstractTool $tool
              * @return Dictionary<AbstractTool>
              */
             function (Dictionary $carry, AbstractTool $tool) {
@@ -33,7 +34,12 @@ final class ToolRegistry
     }
     /** @var ArrayClass<ToolDescriptor> Descriptors advertised to the model in registry order. */
     public ArrayClass $list {
-        get => $this->list ??= $this->tools->map(fn(AbstractTool $tool) => new ToolDescriptor($tool->name, $tool->description, $tool->inputSchema, $tool->title));
+        get => $this->list ??= $this->tools->map(fn(AbstractTool $tool) => new ToolDescriptor($tool->name, $tool->description, $tool->inputSchema, $tool->title, [
+            "readOnlyHint" => $tool->isReadOnly,
+            "destructiveHint" => $tool->isDestructive,
+            "idempotentHint" => $tool->isIdempotent,
+            "openWorldHint" => $tool->isOpenWorld,
+        ]));
     }
 
     /** @param ArrayClass<AbstractTool> $toolList The resolved tool implementations to register by name. */

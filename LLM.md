@@ -226,7 +226,7 @@ A retrieval failure propagates by default. A product where retrieval is optional
 
 ## Remote MCP tools
 
-Pass an `MCPToolExecutor` instead of a `ToolRegistry` to keep the model loop unchanged while tools execute in another process. Remote descriptions are not trusted effect metadata: every call is treated as state-changing and non-cacheable unless the application supplies concrete `readOnly` and `cacheable` classifiers.
+Pass an `MCPToolExecutor` instead of a `ToolRegistry` to keep the model loop unchanged while tools execute in another process. Remote descriptions and MCP annotations are not trusted effect metadata: every call is treated as state-changing and non-cacheable unless the application supplies concrete `readOnly` and `cacheable` classifiers. `MCPClient` retains the optional annotations on `ToolDescriptor` for inspection, but `readOnlyHint` and `idempotentHint` never bypass those classifiers. See [Tool annotations](MCP.md#tool-annotations).
 
 The bundled `MCPClient` uses the stateful 2025 handshake lifecycle documented in [MCP.md](MCP.md#protocol-compatibility). The remote server must support one of those revisions.
 

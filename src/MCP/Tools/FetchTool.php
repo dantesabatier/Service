@@ -29,6 +29,10 @@ final class FetchTool extends AbstractTool
     }
 
     #[Override]
+    public bool $isOpenWorld {
+        get => false;
+    }
+    #[Override]
     public array $inputSchema {
         get => [
             "type" => "object",
@@ -139,6 +143,7 @@ final class FetchTool extends AbstractTool
      * a relationship of the current entity; nested objects are only valid on relationships and are
      * validated recursively against the relationship target.
      *
+     * @param string $entity
      * @param Dictionary<mixed> $shape
      */
     private function validateShape(string $entity, Dictionary $shape): void

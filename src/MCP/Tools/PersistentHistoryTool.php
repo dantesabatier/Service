@@ -49,6 +49,10 @@ final class PersistentHistoryTool extends AbstractTool
         get => "persistent_history";
     }
     #[Override]
+    public bool $isOpenWorld {
+        get => false;
+    }
+    #[Override]
     public array $inputSchema {
         get => [
             "type" => "object",

@@ -95,10 +95,21 @@ final class MCPClient
             $description = $value["description"] ?? null;
             $title = $value["title"] ?? null;
             $schema = $value["inputSchema"] ?? null;
+            $annotations = $value["annotations"] ?? null;
             if (($description !== null && !is_string($description)) || ($title !== null && !is_string($title)) || !is_array($schema)) {
                 throw new MCPClientException("The MCP server returned an invalid descriptor for $name.", false);
             }
-            return new ToolDescriptor($name, (string)$description, $schema, $title);
+            if ($annotations !== null) {
+                if (!is_array($annotations) || ($annotations !== [] && array_is_list($annotations))) {
+                    throw new MCPClientException("The MCP server returned invalid annotations for $name.", false);
+                }
+                foreach ($annotations as $key => $hint) {
+                    if (($key === "title" && !is_string($hint)) || (in_array($key, ["readOnlyHint", "destructiveHint", "idempotentHint", "openWorldHint"], true) && !is_bool($hint))) {
+                        throw new MCPClientException("The MCP server returned an invalid $key annotation for $name.", false);
+                    }
+                }
+            }
+            return new ToolDescriptor($name, (string)$description, $schema, $title, $annotations);
         });
     }
 

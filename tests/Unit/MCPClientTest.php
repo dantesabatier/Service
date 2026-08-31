@@ -10,6 +10,7 @@ namespace Sabatier\Service\Tests\Unit;
 use InvalidArgumentException;
 use JsonException;
 use Override;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Sabatier\Foundation\ArrayClass;
@@ -18,7 +19,13 @@ use Sabatier\Foundation\Error;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\URL;
 use Sabatier\Service\LLM\LLMClock;
+use Sabatier\Service\LLM\LLMAgent;
+use Sabatier\Service\LLM\LLMClient;
 use Sabatier\Service\LLM\LLMExecutionDeadline;
+use Sabatier\Service\LLM\LLMMessage;
+use Sabatier\Service\LLM\LLMMessageRole;
+use Sabatier\Service\LLM\LLMRunStopReason;
+use Sabatier\Service\LLM\LLMTurn;
 use Sabatier\Service\LLM\LLMToolCall;
 use Sabatier\Service\LLM\LLMToolProviderException;
 use Sabatier\Service\LLM\MCPToolExecutor;
@@ -27,6 +34,7 @@ use Sabatier\Service\MCP\MCPClientException;
 use Sabatier\Service\MCP\MCPClientResponse;
 use Sabatier\Service\MCP\MCPTransport;
 use Sabatier\Service\MCP\StreamableHTTPMCPTransport;
+use stdClass;
 use const Sabatier\Service\MCPProtocolVersionHeader;
 use const Sabatier\Service\MCPSessionHeader;
 
@@ -52,6 +60,7 @@ final class MCPClientTest extends TestCase
         $this->assertSame("search", $tools[0]->name);
         $this->assertSame("Search records.", $tools[0]->description);
         $this->assertSame("Search", $tools[0]->title);
+        $this->assertNull($tools[0]->annotations);
         $this->assertIsArray($tools[0]->inputSchema["properties"]);
         $this->assertIsArray($tools[0]->inputSchema["properties"]["query"]);
         $this->assertSame("string", $tools[0]->inputSchema["properties"]["query"]["type"]);
@@ -147,26 +156,74 @@ final class MCPClientTest extends TestCase
     #[Test]
     public function remoteExecutorIsConservativeUntilTrustedClassifiersOptIn(): void
     {
-        $transport = new RecordingMCPTransport(new ArrayClass([
-            $this->response(1, ["protocolVersion" => "2025-11-25"], new Dictionary([MCPSessionHeader => "session-4"])),
-            new MCPClientResponse(202),
-            $this->response(2, ["tools" => [["name" => "search", "inputSchema" => ["type" => "object"]]]]),
-        ]));
+        $annotations = ["title" => "Search", "readOnlyHint" => true, "destructiveHint" => false, "idempotentHint" => true, "openWorldHint" => false];
+        $client = $this->catalogueClient($annotations);
         $call = new LLMToolCall("call-1", "search", new Dictionary(["query" => "term"]));
-        $conservative = new MCPToolExecutor(new MCPClient($transport));
+        $conservative = new MCPToolExecutor($client);
 
         $this->assertTrue($conservative->contains($call));
+        $descriptor = $conservative->tools->first;
+        $this->assertNotNull($descriptor);
+        $this->assertSame($annotations, $descriptor->annotations);
         $this->assertFalse($conservative->isReadOnly($call));
         $this->assertFalse($conservative->isCacheable($call));
 
-        $trusted = new MCPToolExecutor(new MCPClient(new RecordingMCPTransport(new ArrayClass([
-            $this->response(1, ["protocolVersion" => "2025-11-25"], new Dictionary([MCPSessionHeader => "session-5"])),
-            new MCPClientResponse(202),
-            $this->response(2, ["tools" => [["name" => "search", "inputSchema" => ["type" => "object"]]]]),
-        ]))), fn(LLMToolCall $candidate): bool => $candidate->name === "search", fn(LLMToolCall $candidate): bool => $candidate->arguments["query"] === "term");
+        $trusted = new MCPToolExecutor($client, fn(LLMToolCall $candidate): bool => $candidate->name === "search", fn(LLMToolCall $candidate): bool => $candidate->arguments["query"] === "term");
 
         $this->assertTrue($trusted->isReadOnly($call));
         $this->assertTrue($trusted->isCacheable($call));
+    }
+
+    #[Test]
+    public function remoteReadOnlyHintDoesNotBypassAgentWriteApproval(): void
+    {
+        $executor = new MCPToolExecutor($this->catalogueClient(["readOnlyHint" => true, "idempotentHint" => true]));
+        $call = new LLMToolCall("remote-call", "search", new Dictionary());
+        $model = $this->createMock(LLMClient::class);
+        $model->expects($this->once())->method("complete")->willReturn(new LLMTurn(null, new ArrayClass([$call])));
+
+        $run = new LLMAgent($model, $executor, canSpawnSubagents: false)->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "Search records.")]));
+
+        $this->assertSame(LLMRunStopReason::writeApprovalRequired, $run->stopReason);
+    }
+
+    #[Test]
+    public function remoteEmptyAndPartialAnnotationsAreNotFilledWithDefaults(): void
+    {
+        foreach ([[], ["openWorldHint" => false], ["title" => "Legacy title"]] as $annotations) {
+            $descriptor = $this->catalogueClient($annotations)->tools->first;
+            $this->assertNotNull($descriptor);
+            $this->assertSame($annotations, $descriptor->annotations);
+        }
+    }
+
+    /**
+     * @param mixed $annotations The malformed wire value to reject without coercion.
+     * @throws JsonException
+     * @throws MCPClientException
+     */
+    #[Test]
+    #[DataProvider("invalidAnnotations")]
+    public function malformedAnnotationValuesAreProtocolFailures(mixed $annotations): void
+    {
+        $this->expectException(MCPClientException::class);
+        $this->expectExceptionMessage("annotation");
+
+        $this->catalogueClient($annotations)->tools;
+    }
+
+    /** @return array<string, array{mixed}> */
+    public static function invalidAnnotations(): array
+    {
+        return [
+            "scalar" => [true],
+            "list" => [[true]],
+            "readOnly string" => [["readOnlyHint" => "false"]],
+            "destructive number" => [["destructiveHint" => 0]],
+            "idempotent null" => [["idempotentHint" => null]],
+            "openWorld string" => [["openWorldHint" => "true"]],
+            "title boolean" => [["title" => false]],
+        ];
     }
 
     #[Test]
@@ -230,13 +287,29 @@ final class MCPClientTest extends TestCase
     }
 
     /**
+     * @param mixed $annotations
+     * @return MCPClient
+     * @throws JsonException
+     */
+    private function catalogueClient(mixed $annotations): MCPClient
+    {
+        return new MCPClient(new RecordingMCPTransport(new ArrayClass([
+            $this->response(1, ["protocolVersion" => "2025-11-25"], new Dictionary([MCPSessionHeader => "annotations-session"])),
+            new MCPClientResponse(202),
+            $this->response(2, ["tools" => [["name" => "search", "inputSchema" => ["type" => "object"], "annotations" => $annotations === [] ? new stdClass() : $annotations]]]),
+        ])));
+    }
+
+    /**
+     * @param int $identifier
      * @param array<string, mixed> $result
      * @param Dictionary<mixed> $headers
+     * @return MCPClientResponse
      * @throws JsonException
      */
     private function response(int $identifier, array $result, Dictionary $headers = new Dictionary()): MCPClientResponse
     {
-        return new MCPClientResponse(200, $headers, (string)json_encode(["jsonrpc" => "2.0", "id" => $identifier, "result" => $result], JSON_THROW_ON_ERROR));
+        return new MCPClientResponse(200, $headers, json_encode(["jsonrpc" => "2.0", "id" => $identifier, "result" => $result], JSON_THROW_ON_ERROR));
     }
 }
 

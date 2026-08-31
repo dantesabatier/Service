@@ -25,6 +25,10 @@ final class CountTool extends AbstractTool
     }
 
     #[Override]
+    public bool $isOpenWorld {
+        get => false;
+    }
+    #[Override]
     public array $inputSchema {
         get => [
             "type" => "object",

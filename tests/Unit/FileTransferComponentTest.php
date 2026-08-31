@@ -12,13 +12,16 @@ use Sabatier\Service\FileTransferComponent;
 /**
  * A component is the whole of the containment the transfer surface relies on: `documentRoot/{directory}/{filename}`
  * stays inside the document root only because neither name can name a location. These cases are the invariant.
+ *
+ * A name is refused for what it could reach, never for how it reads, so the second set is as important as the
+ * first: spaces, accents and second dots all name a file inside the directory like any other character.
  */
 final class FileTransferComponentTest extends TestCase
 {
     /** @return list<array{string}> */
     public static function namesThatCouldDescribeAnotherLocation(): array
     {
-        return [["../afuera.txt"], ["../../etc/passwd"], ["sub/../../afuera.txt"], ["dir/file.txt"], ["..\\afuera.txt"], ["/etc/passwd"], ["."], [".."], [".htaccess"], [".hidden.txt"], ["a..b"], ["a.b.c"], ["invoice . pdf"], [""], ["   "], ["a\0b"]];
+        return [["../afuera.txt"], ["../../etc/passwd"], ["sub/../../afuera.txt"], ["dir/file.txt"], ["..\\afuera.txt"], ["/etc/passwd"], ["."], [".."], [".htaccess"], [".hidden.txt"], [""], ["   "], ["a\0b"]];
     }
 
     #[Test]
@@ -31,7 +34,7 @@ final class FileTransferComponentTest extends TestCase
     /** @return list<array{string}> */
     public static function plainNames(): array
     {
-        return [["invoice.pdf"], ["invoice"], ["report-2026.csv"], ["a_b-c.TXT"], ["uploads"], ["9"]];
+        return [["invoice.pdf"], ["invoice"], ["report-2026.csv"], ["a_b-c.TXT"], ["uploads"], ["9"], ["RAYA DOM_EL PALACIO DE HIERRO_6074_4519192040.csv"], ["Diseño.csv"], ["respaldo.tar.gz"], ["a..b"], ["a.b.c"], ["invoice . pdf"]];
     }
 
     #[Test]

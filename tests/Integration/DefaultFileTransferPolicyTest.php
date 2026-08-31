@@ -37,7 +37,7 @@ final class DefaultFileTransferPolicyTest extends TestCase
     /** @return list<array{string}> */
     public static function traversingNames(): array
     {
-        return [["../afuera.txt"], ["../../etc/passwd"], ["sub/../../afuera.txt"], ["dir/file.txt"], ["..\\afuera.txt"], [".htaccess"], ["."], [".."], ["a..b"], ["invoice . pdf"], [".hidden.txt"], ["a.b.c"]];
+        return [["../afuera.txt"], ["../../etc/passwd"], ["sub/../../afuera.txt"], ["dir/file.txt"], ["..\\afuera.txt"], [".htaccess"], ["."], [".."], [".hidden.txt"]];
     }
 
     #[Test]
@@ -48,6 +48,23 @@ final class DefaultFileTransferPolicyTest extends TestCase
 
         $this->assertFalse($disposition->isAllowed, "\"$filename\" must not be accepted as an upload name.");
         $this->assertNull($disposition->destinationURL);
+    }
+
+    /** @return list<array{string}> */
+    public static function namesThatReadUnusuallyButNameOneFile(): array
+    {
+        return [["RAYA DOM_EL PALACIO DE HIERRO_6074_4519192040.csv"], ["Diseño.csv"], ["respaldo.tar.gz"], ["a..b"], ["invoice . pdf"]];
+    }
+
+    /** A name is refused for what it could reach, never for how it reads: none of these can leave the directory, so each is stored under the name the client sent. */
+    #[Test]
+    #[DataProvider("namesThatReadUnusuallyButNameOneFile")]
+    public function aNameThatCannotLeaveTheDirectoryIsAcceptedAsItArrived(string $filename): void
+    {
+        $disposition = $this->policy->evaluateUpload("uploads", $filename, 10);
+
+        $this->assertTrue($disposition->isAllowed, "\"$filename\" must be accepted as an upload name.");
+        $this->assertSame($filename, $disposition->filename);
     }
 
     /** Rejecting beats taking the basename: an adjusted name stores a file the request never asked for. */

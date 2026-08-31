@@ -101,6 +101,27 @@ $client->maximumRetryCount = 2;
 
 `extraBody` overrides built-in body fields on collision. For `OllamaClient`, its entries are written inside the native `options` object, where runner settings such as `num_ctx` belong.
 
+### Anthropic prompt caching
+
+Prompt-prefix caching is opt-in and belongs to `AnthropicClient`, not the agent loop:
+
+```php
+/** @var AnthropicClient $client */
+$client->cachePromptPrefix = true;
+```
+
+The client adds a five-minute `ephemeral` breakpoint to the last generated tool descriptor and converts non-blank system text into a marked text block. The tools breakpoint allows that catalogue to be reused even when the system prompt changes. Tool order, schemas and message contents are preserved; messages are not marked by this option. Empty catalogues and blank or absent system prompts do not create cache blocks.
+
+`extraBody` remains authoritative. A supplied `system` or `tools` field replaces that generated field, including its cache markers, without being rewritten. For automatic caching of the growing conversation, leave `cachePromptPrefix` disabled and use the provider's top-level option instead:
+
+```php
+$client->extraBody["cache_control"] = ["type" => "ephemeral"];
+```
+
+The automatic option may also be combined with prefix breakpoints. Applications supplying custom block markers or TTLs must respect Anthropic's breakpoint count and TTL-ordering rules. Cache eligibility, minimum prompt size and expiry are provider-specific; a marker does not guarantee a hit. See [Anthropic prompt caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching).
+
+Anthropic input usage is normalized as `input_tokens + cache_creation_input_tokens + cache_read_input_tokens`, whether caching was enabled through this option or through `extraBody`. These tokens all count toward run budgets and trace totals. The nested `cache_creation` TTL breakdown is not added again. These totals measure tokens, not money: cached input has different billing rates, and the runtime does not calculate cost or expose separate cache-hit counters.
+
 ## Building the in-process tool catalogue
 
 `LLMResponder` already exposes protected `$descriptor` and `$registry` properties. A responder subclass can pass `$this->registry` directly to `LLMAgent`; override `$restrictedTools` to remove tools from every surface that reads that catalogue.

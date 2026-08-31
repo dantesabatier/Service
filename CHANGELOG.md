@@ -43,6 +43,8 @@ release. The final date will be assigned when the release tag is created.
   remote MCP catalogue through the same agent tool boundary as in-process tools.
 - Provider-neutral LLM clients for OpenAI-compatible Chat Completions,
   Anthropic Messages and native Ollama chat APIs.
+- Opt-in Anthropic prompt-prefix caching, preserving explicit request-body
+  overrides and including cached input in agent token budgets and trace totals.
 - `LLMAgent` with a replaceable orchestration loop, in-process or remote tool
   execution, shared deadlines, bounded subagents and normalized run outcomes.
 - `PlanExecuteLLMAgentLoop` for tasks that must submit an ordered plan before

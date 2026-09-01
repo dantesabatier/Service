@@ -90,14 +90,14 @@ final class AnthropicClient extends LLMClient
             $toolCalls = $message->toolCalls;
             if ($toolCalls && !$toolCalls->isEmpty && $message->role === LLMMessageRole::assistant) {
                 $content = $message->thinkingBlocks?->array ?? [];
-                if ($message->content !== null && $message->content !== "") {
+                if (!empty($message->content)) {
                     $content[] = ["type" => "text", "text" => $message->content];
                 }
                 $content = [...$content, ...$toolCalls->map(fn(LLMToolCall $call): array => [
                     "type" => "tool_use",
                     "id" => $call->id,
                     "name" => $call->name,
-                    "input" => $call->arguments->array,
+                    "input" => $this->toolArguments($call->arguments),
                 ])->array];
                 $result[] = ["role" => "assistant", "content" => $content];
             } elseif ($message->images && !$message->images->isEmpty) {
@@ -109,13 +109,13 @@ final class AnthropicClient extends LLMClient
                         "data" => $image["data"],
                     ],
                 ])->array;
-                if ($message->content !== null && $message->content !== "") {
+                if (!empty($message->content)) {
                     $content[] = ["type" => "text", "text" => $message->content];
                 }
                 $result[] = ["role" => $message->role, "content" => $content];
             } elseif ($message->thinkingBlocks && !$message->thinkingBlocks->isEmpty && $message->role === LLMMessageRole::assistant) {
                 $content = $message->thinkingBlocks->array;
-                if ($message->content !== null && $message->content !== "") {
+                if (!empty($message->content)) {
                     $content[] = ["type" => "text", "text" => $message->content];
                 }
                 $result[] = ["role" => "assistant", "content" => $content];

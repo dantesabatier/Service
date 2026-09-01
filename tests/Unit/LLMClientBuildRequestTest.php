@@ -4,19 +4,23 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
 
+use JsonException;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionException;
 use ReflectionMethod;
 use Sabatier\Foundation\ArrayClass;
+use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\URL;
 use Sabatier\Service\LLM\AnthropicClient;
 use Sabatier\Service\LLM\LLMClient;
 use Sabatier\Service\LLM\LLMMessage;
 use Sabatier\Service\LLM\LLMMessageRole;
+use Sabatier\Service\LLM\LLMToolCall;
 use Sabatier\Service\LLM\OllamaClient;
 use Sabatier\Service\LLM\StandardLLMClient;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
+use stdClass;
 
 /** Covers what each client puts on the wire: the per-provider fields a caller adds through `extraBody`, and how a failed tool result survives a format with no flag for one. */
 final class LLMClientBuildRequestTest extends TestCase
@@ -48,7 +52,10 @@ final class LLMClientBuildRequestTest extends TestCase
         $this->assertSame("user", $body["messages"][0]["role"]);
     }
 
-    /** @throws ReflectionException */
+    /**
+     * @throws JsonException
+     * @throws ReflectionException
+     */
     #[Test]
     public function extraBodyOverridesTheClientsOwnFieldOnCollision(): void
     {
@@ -109,6 +116,35 @@ final class LLMClientBuildRequestTest extends TestCase
         $this->assertSame("the query was malformed", $toolResult["content"]);
     }
 
+    /** @throws ReflectionException */
+    #[Test]
+    public function toolArgumentObjectsAndListsKeepTheirWireShapeAcrossProviders(): void
+    {
+        $calls = new ArrayClass([
+            new LLMToolCall("empty", "probe", new Dictionary()),
+            new LLMToolCall("nested", "probe", new Dictionary(["object" => new Dictionary(), "list" => new ArrayClass()])),
+        ]);
+        $messages = new ArrayClass([new LLMMessage(LLMMessageRole::assistant, null, $calls)]);
+
+        $anthropic = $this->buildRequestObject(new AnthropicClient(endpoint: new URL("https://example.test/v1/messages")), $messages);
+        $this->assertArgumentShapes($anthropic->messages[0]->content[0]->input, $anthropic->messages[0]->content[1]->input);
+
+        $standard = $this->buildRequestObject(new StandardLLMClient(endpoint: new URL("https://example.test/v1/chat/completions")), $messages);
+        $this->assertArgumentShapes(json_decode($standard->messages[0]->tool_calls[0]->function->arguments, flags: JSON_THROW_ON_ERROR), json_decode($standard->messages[0]->tool_calls[1]->function->arguments, flags: JSON_THROW_ON_ERROR));
+
+        $ollama = $this->buildRequestObject(new OllamaClient(endpoint: new URL("http://localhost:11434/api/chat")), $messages);
+        $this->assertArgumentShapes($ollama->messages[0]->tool_calls[0]->function->arguments, $ollama->messages[0]->tool_calls[1]->function->arguments);
+    }
+
+    private function assertArgumentShapes(mixed $empty, mixed $nested): void
+    {
+        $this->assertInstanceOf(stdClass::class, $empty);
+        $this->assertSame([], get_object_vars($empty));
+        $this->assertInstanceOf(stdClass::class, $nested);
+        $this->assertInstanceOf(stdClass::class, $nested->object);
+        $this->assertSame([], $nested->list);
+    }
+
     /**
      * @param LLMClient $client The provider whose request is inspected without sending it.
      * @param ArrayClass<LLMMessage>|null $messages The messages to format, or a minimal user message.
@@ -122,5 +158,18 @@ final class LLMClientBuildRequestTest extends TestCase
         $request = new ReflectionMethod($client, "buildRequest")->invoke($client, $messages, $tools, null);
         /** @var array<string, mixed> */
         return json_decode((string)$request->httpBody, true);
+    }
+
+    /**
+     * @param LLMClient $client The provider whose JSON object is inspected without losing empty object/list distinctions.
+     * @param ArrayClass<LLMMessage> $messages The messages to format.
+     * @throws JsonException
+     * @throws ReflectionException
+     */
+    private function buildRequestObject(LLMClient $client, ArrayClass $messages): stdClass
+    {
+        $request = new ReflectionMethod($client, "buildRequest")->invoke($client, $messages, new ArrayClass(), null);
+        /** @var stdClass */
+        return json_decode((string)$request->httpBody, flags: JSON_THROW_ON_ERROR);
     }
 }

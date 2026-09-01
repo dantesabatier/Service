@@ -85,7 +85,7 @@ final class StandardLLMClient extends LLMClient
                         "type" => "function",
                         "function" => [
                             "name" => $call->name,
-                            "arguments" => (string)json_encode($call->arguments->array),
+                            "arguments" => (string)json_encode($this->toolArguments($call->arguments)),
                         ],
                     ];
                 }
@@ -133,7 +133,6 @@ final class StandardLLMClient extends LLMClient
 
     /**
      * OpenAI requires array-typed properties to have an `items` field.
-     * Recursively adds `items: {}` where missing.
      *
      * @param array<string, mixed> $schema
      * @return array<string, mixed>

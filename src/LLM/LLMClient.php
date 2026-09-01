@@ -15,6 +15,7 @@ use Sabatier\Foundation\Networking\URLSession;
 use Sabatier\Foundation\Networking\URLSessionConfiguration;
 use Sabatier\Foundation\URL;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
+use stdClass;
 
 /**
  * Abstract base for LLM provider integrations.
@@ -105,9 +106,7 @@ abstract class LLMClient
     }
 
     /**
-     * Sends one request, retrying the failures that are worth retrying, and returns the decoded body.
-     *
-     * Nothing must reach `parse` as an empty body: a turn parsed from `[]` carries no text and no tool calls, which is exactly the shape of a model that decided to stop, so the run would be reported as complete when nothing answered it. A failing status throws, and so does a success whose body will not decode into one — a `200` carrying a truncated or non-JSON payload is a provider that failed to answer, however it labelled the response, and it is worth another attempt.
+     * Nothing must reach `parse` as an empty body: a turn parsed from `[]` carries no text and no tool calls, which is exactly the shape of a model that decided to stop, so the run would be reported as complete when nothing answered it. A failing status throws, and so does a success whose body will not decode into one — a `200` carrying a truncated or non-JSON payload is a provider that failed to answer, however, it labeled the response, and it is worth another attempt.
      *
      * @param URLRequest $request The provider request to send.
      * @param LLMExecutionDeadline|null $deadline The shared run deadline, or `null` outside an agent run.
@@ -126,7 +125,7 @@ abstract class LLMClient
             $session = $this->session;
             $remainingTime = $deadline?->remainingTime;
             if ($remainingTime !== null) {
-                // The cURL protocol rounds timeouts to integer seconds and treats zero as unbounded, so a sub-second remainder uses one second and the post-call check rejects a late response.
+                // The cURL protocol rounds timeouts to integer seconds and treats zero as unbounded, so a sub-second remainder uses one second, and the post-call check rejects a late response.
                 $timeout = max(1.0, min((float)$this->timeoutIntervalForRequest, $remainingTime));
                 /** @psalm-var URLRequest $attemptRequest */
                 $attemptRequest = clone($request, ["timeoutInterval" => min($request->timeoutInterval, $timeout)]);
@@ -160,9 +159,7 @@ abstract class LLMClient
     }
 
     /**
-     * Renders a tool result for a provider whose wire format has no failure flag of its own.
-     *
-     * Anthropic carries the distinction natively (`is_error`), so a failed result stays recognisable there. The OpenAI and Ollama tool messages have no such field, and without a marker in the text a failure reaches the model looking exactly like a successful result — so it treats the error message as the answer instead of correcting the call. The prefix restores what the format drops.
+     * Anthropic carries the distinction natively (`is_error`), so a failed result stays recognizable there. The OpenAI and Ollama tool messages have no such field, and without a marker in the text a failure reaches the model looking exactly like a successful result — so it treats the error message as the answer instead of correcting the call. The prefix restores what the format drops.
      *
      * @param string|null $content The tool result text, or `null` when the tool returned none.
      * @param bool $isError Whether the tool call this message reports failed.
@@ -174,8 +171,35 @@ abstract class LLMClient
     }
 
     /**
-     * Whether a status is worth sending the same request again for.
+     * A Dictionary represents a JSON object even when it is empty, whereas exposing its backing
+     * array would encode an empty one as `[]`. Providers require tool arguments to remain objects.
      *
+     * @param Dictionary<mixed> $arguments
+     * @return stdClass
+     */
+    protected function toolArguments(Dictionary $arguments): stdClass
+    {
+        return $arguments->reduce(new stdClass(), function (stdClass $carry, mixed $value, string $key): stdClass {
+            $carry->{$key} = $this->toolArgumentValue($value);
+            return $carry;
+        });
+    }
+
+    private function toolArgumentValue(mixed $value): mixed
+    {
+        if ($value instanceof Dictionary) {
+            return $this->toolArguments($value);
+        }
+        if ($value instanceof ArrayClass) {
+            return $value->map($this->toolArgumentValue(...))->array;
+        }
+        if (is_array($value)) {
+            return array_map($this->toolArgumentValue(...), $value);
+        }
+        return $value;
+    }
+
+    /**
      * Rate limiting and the 5xx family are transient by definition. A 4xx the caller caused — a bad key, an unknown model, a malformed body — returns the same answer however many times it is asked, so retrying it only delays the error. `requestTimeout` is the one 4xx that is about timing rather than the request's content.
      */
     private function isRetryable(int $statusCode): bool
@@ -191,9 +215,7 @@ abstract class LLMClient
     }
 
     /**
-     * Seconds to wait before the next attempt: the provider's own `Retry-After` when it sent one, and otherwise an exponentially growing delay.
-     *
-     * `Retry-After` is authoritative because the provider knows when its own limit resets; guessing shorter earns another 429 and guessing longer wastes the caller's time. The header comes as either a delay in seconds or an HTTP date, and only the numeric form is honoured here — a date needs a clock comparison that would make the wait depend on the skew between the two machines.
+     * `Retry-After` is authoritative because the provider knows when its own limit resets; guessing shorter earns another 429, and guessing longer wastes the caller's time. The header comes as either a delay in seconds or an HTTP date, and only the numeric form is honored here — a date needs a clock comparison that would make the wait depend on the skew between the two machines.
      */
     private function retryDelay(int $attempt, ?URLResponse $response): float
     {

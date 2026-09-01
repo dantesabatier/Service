@@ -91,7 +91,7 @@ final class OllamaClient extends LLMClient
                     $calls[] = [
                         "function" => [
                             "name" => $call->name,
-                            "arguments" => $call->arguments->array,
+                            "arguments" => $this->toolArguments($call->arguments),
                         ],
                     ];
                 }
@@ -153,10 +153,11 @@ final class OllamaClient extends LLMClient
         foreach ($calls as $tc) {
             /** @var Dictionary<mixed> $fn */
             $fn = $tc["function"] ?? new Dictionary();
+            /** @var string $name */
             $name = $fn["name"] ?? "";
-            // Ollama does not number the calls; the synthetic id only lets the agent loop pair this result with its call. `arguments` already arrives as an object, not a string, so the response decoding hands it over as a Dictionary and only its absence needs a default.
+            // Ollama does not number the calls; the synthetic id only lets the agent loop pair this result with its call. `arguments` already arrives as an object, not a string, so the response decoding hands it over as a Dictionary, and only its absence needs a default.
             $id = "call_" . $index++;
-            $arguments = array_key_exists("arguments", $fn->array) ? $fn["arguments"] : new Dictionary();
+            $arguments = $fn->offsetExists("arguments") ? $fn["arguments"] : new Dictionary();
             $toolCalls->append($this->toolCallParser->parseObject($id, $name, $arguments));
         }
         /** @var int<0, max> $inputTokens */

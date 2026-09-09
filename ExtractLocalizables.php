@@ -12,7 +12,7 @@ use Sabatier\Service\Responder;
 try {
     $bundle = Bundle::bundleForClass(Responder::class);
     $excludedFilenames = new ArrayClass(["DownloadResponseTransformer", "AbstractTool", "PersistentHistoryTool"]);
-    $extractor = new LocalizationExtractor($bundle, new ArrayClass(["en", "es"]), $excludedFilenames);
+    $extractor = new LocalizationExtractor($bundle, $bundle->localizations, $excludedFilenames);
     $extractor->extract();
 } catch (Exception $exception) {
     error_log("Exception raised $exception");

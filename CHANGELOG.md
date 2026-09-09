@@ -59,9 +59,51 @@ release. The final date will be assigned when the release tag is created.
   provenance.
 - Structured agent observability through `LLMRunObserver`, immutable run events,
   hierarchical run contexts and injectable clocks.
+- Advisory MCP tool annotations on `tools/list`, built by `ToolRegistry` from
+  four `AbstractTool` property hooks: `isReadOnly` publishes `readOnlyHint`,
+  `isDestructive` publishes `destructiveHint`, `isIdempotent` publishes
+  `idempotentHint` and `isOpenWorld` publishes `openWorldHint`. The defaults are
+  the conservative end of each — a tool says nothing about its effects unless it
+  overrides one — so an existing custom tool keeps its meaning. `isReadOnly`
+  describes every operation a tool exposes rather than one call, which is why
+  `persistent_history` advertises `false` while `isReadOnlyCall()` still admits
+  its fetches as reads. `ToolDescriptor::$annotations` is optional for a
+  hand-supplied catalogue, an empty object survives serialization as one, and
+  `MCPClient` keeps a remote server's hints while rejecting a malformed known
+  field instead of coercing it to a boolean. These are hints, not authorization:
+  `MCPToolExecutor` still requires application-supplied trusted classifiers, and
+  neither the annotations nor a remote hint enable retries or result caching.
 - Public documentation for architecture, HTTP clients, MCP tools, LLM agents,
   security reporting, contribution and release preparation, plus a complete
   `.env.example` configuration reference.
+- `CONTRIBUTING.md` now points at
+  [Foundation's `CONVENTIONS.md`](https://github.com/dantesabatier/Foundation/blob/master/CONVENTIONS.md)
+  for the mechanical conventions shared across the stack, by absolute URL rather
+  than as a vendored copy — four copies of one checklist drift, and then nobody
+  knows which is authoritative. The section also records the two places a reader
+  running its searches gets a hit that is not a defect: the MCP tools keep native
+  arrays for `$inputSchema` and `$outputFormat`, which are JSON Schema literals
+  serialized straight to the wire and read only by their known keys, while their
+  `execute()` surface does take a `Dictionary` and answer an `ArrayClass`; and
+  the classes that are not `final` — `Application`, `Emitter`, `Renderer`,
+  `Response`, `View`, `CacheHeaderTransformer`, `UnauthorizedException` — are
+  extension points for the applications built on the framework, so the "final
+  unless something extends it" search reports them whether or not anything in
+  this tree does. Two of the document's rules were not being held and are fixed
+  with it: `Endpoint.php` and the two MCP schema builders documented themselves
+  in Spanish, and six files carried comment prose hard-wrapped at a column the
+  editor then soft-wraps again.
+- `EventStreamResponderTest` asserts what it was written to assert. All eight of
+  its tests errored before reaching an assertion: the fixture reaches the
+  framework through `new Request()`, whose constructor calls `request_url()`,
+  which answers an empty string with no `$_SERVER` populated, and the `URL`
+  constructor rejects that. The helper does assign a real URL on the line after
+  the fixture is built, which is why the omission read as deliberate rather than
+  as a gap — but a constructor that has already failed is never reached. `setUp()`
+  supplies `HTTP_HOST` and `REQUEST_URI` the way the transport-guard, CORS and
+  conditional-GET suites already do, and `tearDown()` restores `$_SERVER` so the
+  suite stays independent of the ones around it. The thirty assertions that
+  appear with it are the ones these tests always meant to make.
 
 ### Changed
 
@@ -104,6 +146,9 @@ release. The final date will be assigned when the release tag is created.
 - Tool result caching now depends on `AbstractTool::$isCacheable`, independently
   of whether a tool is read-only. Mixed tools can classify each invocation with
   `isReadOnlyCall()`.
+- `ExtractLocalizables.php` extracts the localizations the bundle declares
+  rather than a hard-coded English and Spanish pair, so adding a locale to
+  `Info.plist` is enough for the extractor to pick it up.
 
 ### Removed
 
@@ -122,6 +167,15 @@ release. The final date will be assigned when the release tag is created.
 - Tool calls from every provider now require a usable identifier, name and
   argument object. Malformed JSON and list-shaped arguments fail instead of
   becoming an empty dictionary.
+- Tool arguments stay JSON objects on the wire, at every depth. A `Dictionary`
+  represents an object whether or not it holds anything, but its backing array
+  does not: an empty one encodes as `[]`, and so did an empty nested object
+  inside a populated call. Every provider requires an object there, so a tool
+  invoked with no arguments — or with an argument whose own object was empty —
+  sent a shape the provider rejects or misreads. `LLMClient::toolArguments()`
+  now converts a `Dictionary` to a `stdClass` recursively, keeping lists as
+  lists, and Anthropic, the OpenAI-compatible client and Ollama all render
+  through it.
 - Tool schemas now reject unknown and missing required arguments before
   execution, preventing misspelled filters from silently producing unfiltered
   reads.
@@ -143,6 +197,19 @@ release. The final date will be assigned when the release tag is created.
 - Upload transport errors such as exceeding `upload_max_filesize` return a
   client error with the actual reason instead of failing later as a server
   error.
+- A transfer component is judged by what it could reach, not by how it reads.
+  `FileTransferComponent` required `/^[A-Za-z0-9_-]+$/` of each piece, which
+  refused names that cannot name any other location: anything carrying a space,
+  an accent or an eñe — in a framework whose data is in Spanish — and
+  `respaldo.tar.gz` with them. The containment the transfer surface rests on is
+  that `documentRoot/{directory}/{filename}` is inside the document root by
+  construction, and that needs only that neither name can name a location: no
+  separators, no dot components, no NUL, not empty, and within the length of one
+  path component. That is the rule now. A leading dot stays refused, which
+  settles `.` and `..` along the way; for the remaining dotfiles the reason is
+  not traversal but that an upload has nothing behind it to mediate, and writing
+  `.htaccess` into a served directory has consequences. A valid name is stored
+  exactly as it arrived, with no rewriting.
 - HTTP persistent-history reads and purges now reject absent or empty scope
   values instead of constructing an unbounded request; transaction `0` remains
   an explicit boundary rather than being mistaken for no value.

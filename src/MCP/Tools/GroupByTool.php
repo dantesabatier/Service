@@ -117,8 +117,7 @@ final class GroupByTool extends AbstractTool
 
     private function normalizeRow(Dictionary $row, ArrayClass $groupByPaths): Dictionary
     {
-        // Exclude nested root segments (e.g. "seller") and literal dot-path keys (e.g. "seller.name")
-        // that CoreData may include, then re-add each path using its leaf segment as the key.
+        // Exclude nested root segments (e.g. "seller") and literal dot-path keys (e.g. "seller.name") that CoreData may include, then re-add each path using its leaf segment as the key.
         $pathSet = new Set($groupByPaths);
         $rootSet = new Set($groupByPaths->map(fn(string $path): string => /** @var string */ new ArrayClass(explode(".", $path))->first ?? $path));
         $result = $row->filter(fn(mixed $value, string $key): bool => !$rootSet->containsElement($key) && !$pathSet->containsElement($key));

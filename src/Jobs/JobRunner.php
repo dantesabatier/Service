@@ -70,9 +70,7 @@ final class JobRunner
         $time = ProcessInfo::processInfo()->systemUptime;
         $application = Application::shared();
         $delegate = $application->delegate ?? throw new RuntimeException("The application has no delegate.");
-        // The delegate is an ObjectClass (the generated delegate extends it); its
-        // class-level `initialize()` is declared there, not on the delegate interface —
-        // the same cast Application makes when it boots the delegate over HTTP.
+        // The delegate is an ObjectClass (the generated delegate extends it); its class-level `initialize()` is declared there, not on the delegate interface — the same cast Application makes when it boots the delegate over HTTP.
         /** @var class-string<ObjectClass> $delegateClass */
         $delegateClass = $delegate::class;
         $delegateClass::initialize();

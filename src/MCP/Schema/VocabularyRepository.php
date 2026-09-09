@@ -24,10 +24,7 @@ final class VocabularyRepository
     {
         $filename = ProcessInfo::processInfo()->environment[MCPVocabularyFilenameKey] ?? MCPVocabularyFilenameDefault;
         $bundle = Bundle::main();
-        // A localized lookup only ever looks inside that language's directory, so a locale
-        // with no directory of its own would leave the schema without aliases or descriptions,
-        // silently. Retrying without the localization keeps `Resources/<lang>/` as the
-        // preferred location and the bundle root as the fallback.
+        // A localized lookup only ever looks inside that language's directory, so a locale with no directory of its own would leave the schema without aliases or descriptions, silently. Retrying without the localization keeps `Resources/<lang>/` as the preferred location and the bundle root as the fallback.
         if (!($url = $bundle->url($filename, localization: Locale::getPrimaryLanguage(Locale::getDefault())) ?? $bundle->url($filename))) {
             return [];
         }

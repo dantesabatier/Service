@@ -72,6 +72,43 @@ changes them will be asked to change back:
   class, method or property. A `//` inside a method body is a sign the
   explanation is in the wrong place.
 
+## The shared conventions checklist
+
+The list above is what this project decided for itself. The mechanical
+conventions underneath it — file layout, class and property rules, the
+collection idioms, when a comment earns its place, what public API has to
+document — are shared with Foundation and maintained there, as a checklist
+with the shell search that finds each violation:
+
+**[Foundation's CONVENTIONS.md](https://github.com/dantesabatier/Foundation/blob/master/CONVENTIONS.md)**
+
+It is not vendored here on purpose. Four copies of one checklist drift, and
+then nobody knows which is authoritative; the link always resolves to the
+current version. Read it before opening a pull request — the static analysers
+catch almost none of it.
+
+Everything in that document applies to this repository, with two things worth
+knowing before you run its searches:
+
+- **Native arrays on the MCP surface are correct, not a lapse.** The
+  collections rule prefers `ArrayClass`/`Dictionary` on declared signatures,
+  and the tools in `src/MCP/Tools/` follow it where it counts —
+  `execute(Dictionary $arguments): ArrayClass`. Their `$inputSchema` and
+  `$outputFormat` stay native `array`, because those are JSON Schema literals
+  serialized straight to the wire and read only by their known keys. That is
+  the typed-shape exception the document already names. Do not "fix" them.
+- **Classes that are not `final` are extension points.** `Application`,
+  `Emitter`, `Renderer`, `Response`, `View`, `CacheHeaderTransformer` and
+  `UnauthorizedException` are meant to be subclassed by the applications built
+  on this framework, so the "final unless something extends it" search reports
+  them whether or not anything in this tree does.
+
+`src/` currently satisfies every mechanical rule the document can be searched
+for: each file declares `declare(strict_types=1)`, no constant is
+`UPPER_SNAKE_CASE`, no class is referenced by an inline `\Name`, comment prose
+sits on one line, and comments are in English throughout. Keep it that way —
+the searches in that document are the cheapest way to check before you push.
+
 ## Commit messages
 
 Write a subject line that says what changed, then a body that says why it

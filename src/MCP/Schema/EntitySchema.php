@@ -29,10 +29,7 @@ final readonly class EntitySchema implements JsonSerializable
     public function jsonSerialize(): array
     {
         $data = ["class" => $this->className, "es" => $this->label, "aliases" => $this->aliases];
-        // Solo se declara cuando lo es: una entidad abstracta no tiene tabla y no
-        // se puede instanciar, pero un fetch sobre ella sí alcanza las filas de
-        // todas sus sub-entidades concretas. Sin esto el cliente no distingue una
-        // de otra hasta que el intento de creación falla.
+        // Declared only when true: an abstract entity has no table and cannot be instantiated, but a fetch against it does reach the rows of every concrete sub-entity. Without this the client cannot tell one from the other until the attempt to create fails.
         if ($this->abstract) {
             $data["abstract"] = true;
         }

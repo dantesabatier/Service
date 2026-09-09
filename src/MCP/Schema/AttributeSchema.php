@@ -20,10 +20,7 @@ final readonly class AttributeSchema implements JsonSerializable
     public function jsonSerialize(): array
     {
         $data = ["type" => $this->type, "nullable" => $this->nullable];
-        // Solo se declara cuando lo es: un atributo transitorio no se puede usar
-        // en un predicado ni en un sort descriptor contra un store SQL, y el
-        // cliente no tiene otra forma de distinguirlo. Los persistidos son la
-        // mayoría, así que marcar solo la excepción mantiene el esquema corto.
+        // Declared only when true: a transient attribute cannot be used in a predicate or a sort descriptor against a SQL store, and the client has no other way to tell one apart. Persisted attributes are the majority, so marking only the exception keeps the schema short.
         if ($this->transient) {
             $data["transient"] = true;
         }

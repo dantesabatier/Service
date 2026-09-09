@@ -59,8 +59,30 @@ final class NotificationsStreamFixture extends EventStreamResponder
     }
 }
 
+/**
+ * Regressions this suite guards:
+ *
+ * The suite built its fixture through `new Request()` without populating `$_SERVER`, so `request_url()` answered with an empty string and the `URL` constructor raised "expecting url string". The helper below assigns the real URL, but a constructor cannot be reached after it has already failed, so every test in the file errored before asserting anything. `setUp()` now supplies the superglobals a request is built from, and `tearDown()` puts the originals back so the suite stays independent of the ones around it.
+ */
 final class EventStreamResponderTest extends TestCase
 {
+    /** @var array<string, mixed> The `$_SERVER` contents captured before the test replaced them. */
+    private array $originalServer;
+
+    #[Override]
+    protected function setUp(): void
+    {
+        $this->originalServer = $_SERVER;
+        $_SERVER["HTTP_HOST"] = "localhost";
+        $_SERVER["REQUEST_URI"] = "/notifications";
+    }
+
+    #[Override]
+    protected function tearDown(): void
+    {
+        $_SERVER = $this->originalServer;
+    }
+
     private function responder(string $method = HTTPRequestMethod::get): NotificationsStreamFixture
     {
         $responder = new NotificationsStreamFixture();

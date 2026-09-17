@@ -83,6 +83,43 @@ final class LLMClientRetryTest extends TestCase
         $this->assertSame(1.0, $this->retryDelay($client, 0, $this->responseRetryingAfter("Wed, 21 Oct 2015 07:28:00 GMT")));
     }
 
+    #[Test]
+    public function aFailureWithoutAStatusIsReportedAsNoResponseAtAll(): void
+    {
+        $this->assertSame("The LLM provider returned no response", $this->failureReason(null, null));
+    }
+
+    #[Test]
+    public function aFailingStatusIsNamedInTheFailureReason(): void
+    {
+        $this->assertSame("The LLM provider returned HTTP 503", $this->failureReason(HTTPStatusCode::serviceUnavailable, null));
+    }
+
+    #[Test]
+    public function theProvidersOwnBodyIsAppendedToTheFailureReason(): void
+    {
+        $this->assertSame("The LLM provider returned HTTP 400: {\"error\":\"unknown model\"}", $this->failureReason(HTTPStatusCode::badRequest, "{\"error\":\"unknown model\"}"));
+    }
+
+    #[Test]
+    public function aBlankBodyIsLeftOutOfTheFailureReason(): void
+    {
+        $this->assertSame("The LLM provider returned HTTP 500", $this->failureReason(HTTPStatusCode::internalServerError, "   \n  "));
+    }
+
+    #[Test]
+    public function aBodylessFailureWithoutAStatusStillReadsCleanly(): void
+    {
+        $this->assertSame("The LLM provider returned no response: timed out", $this->failureReason(null, "timed out"));
+    }
+
+    private function failureReason(?int $statusCode, ?string $data): string
+    {
+        $client = new StandardLLMClient();
+        /** @var string */
+        return new ReflectionMethod($client, "failureReason")->invoke($client, $statusCode, $data);
+    }
+
     private function isRetryable(int $statusCode): bool
     {
         $client = new StandardLLMClient();

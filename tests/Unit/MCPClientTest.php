@@ -13,6 +13,7 @@ use Override;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use ReflectionProperty;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Error;
@@ -286,6 +287,32 @@ final class MCPClientTest extends TestCase
         }
     }
 
+    /** @return iterable<string, array{float}> */
+    public static function nonPositiveTimeoutProvider(): iterable
+    {
+        yield "zero" => [0.0];
+        yield "negative" => [-1.0];
+    }
+
+    #[Test]
+    #[DataProvider("nonPositiveTimeoutProvider")]
+    public function theHttpTransportRefusesATimeoutThatCannotElapse(float $timeout): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        new StreamableHTTPMCPTransport(new URL("https://example.test/mcp"), timeoutInterval: $timeout);
+    }
+
+    #[Test]
+    public function theHttpTransportKeepsItsOwnCopyOfTheHeadersItWasGiven(): void
+    {
+        $headers = new Dictionary(["Authorization" => "Bearer one"]);
+        $transport = new StreamableHTTPMCPTransport(new URL("https://example.test/mcp"), $headers);
+        $headers["Authorization"] = "Bearer two";
+        /** @var Dictionary<string> $retained */
+        $retained = new ReflectionProperty(StreamableHTTPMCPTransport::class, "additionalHeaders")->getValue($transport);
+        $this->assertSame("Bearer one", $retained["Authorization"]);
+    }
+
     /**
      * @param mixed $annotations
      * @return MCPClient
@@ -298,6 +325,71 @@ final class MCPClientTest extends TestCase
             new MCPClientResponse(202),
             $this->response(2, ["tools" => [["name" => "search", "inputSchema" => ["type" => "object"], "annotations" => $annotations === [] ? new stdClass() : $annotations]]]),
         ])));
+    }
+
+    #[Test]
+    public function anEmptyBodyIsRefusedAndWorthRetrying(): void
+    {
+        $exception = $this->failureFor(new MCPClientResponse(200, new Dictionary(), "   "));
+        $this->assertStringContainsString("empty JSON-RPC response", $exception->getMessage());
+        $this->assertTrue($exception->isTransient);
+    }
+
+    #[Test]
+    public function malformedJSONIsRefusedAndWorthRetrying(): void
+    {
+        $exception = $this->failureFor(new MCPClientResponse(200, new Dictionary(), "{not json"));
+        $this->assertStringContainsString("malformed JSON", $exception->getMessage());
+        $this->assertTrue($exception->isTransient);
+    }
+
+    /** @return iterable<string, array{string, string}> */
+    public static function malformedEnvelopeProvider(): iterable
+    {
+        yield "a JSON array instead of an object" => ["[1, 2]", "not an object"];
+        yield "a JSON scalar" => ["17", "not an object"];
+        yield "a foreign protocol version" => ["{\"jsonrpc\": \"1.0\", \"id\": 1, \"result\": {}}", "mismatched"];
+        yield "an answer to another request" => ["{\"jsonrpc\": \"2.0\", \"id\": 99, \"result\": {}}", "mismatched"];
+        yield "no identifier at all" => ["{\"jsonrpc\": \"2.0\", \"result\": {}}", "mismatched"];
+        yield "a result that is not an object" => ["{\"jsonrpc\": \"2.0\", \"id\": 1, \"result\": [1, 2]}", "without an object result"];
+        yield "no result and no error" => ["{\"jsonrpc\": \"2.0\", \"id\": 1}", "without an object result"];
+        yield "an error that is not an object" => ["{\"jsonrpc\": \"2.0\", \"id\": 1, \"error\": [1]}", "invalid JSON-RPC error object"];
+    }
+
+    #[Test]
+    #[DataProvider("malformedEnvelopeProvider")]
+    public function aMalformedEnvelopeIsRefusedWithoutRetrying(string $body, string $expected): void
+    {
+        $exception = $this->failureFor(new MCPClientResponse(200, new Dictionary(), $body));
+        $this->assertStringContainsString($expected, $exception->getMessage());
+        $this->assertFalse($exception->isTransient);
+    }
+
+    #[Test]
+    public function aRemoteErrorIsReportedWithItsOwnMessage(): void
+    {
+        $exception = $this->failureFor(new MCPClientResponse(200, new Dictionary(), "{\"jsonrpc\": \"2.0\", \"id\": 1, \"error\": {\"code\": -32601, \"message\": \"Method not found\"}}"));
+        $this->assertSame("Method not found", $exception->getMessage());
+        $this->assertFalse($exception->isTransient);
+    }
+
+    #[Test]
+    public function aRemoteErrorWithoutAMessageStillReadsAsOne(): void
+    {
+        $exception = $this->failureFor(new MCPClientResponse(200, new Dictionary(), "{\"jsonrpc\": \"2.0\", \"id\": 1, \"error\": {\"code\": -32601}}"));
+        $this->assertStringContainsString("returned a JSON-RPC error", $exception->getMessage());
+    }
+
+    /** The handshake is the first exchange, so a response to it is what the client validates. */
+    private function failureFor(MCPClientResponse $response): MCPClientException
+    {
+        $client = new MCPClient(new RecordingMCPTransport(new ArrayClass([$response])));
+        try {
+            $client->tools;
+        } catch (MCPClientException $exception) {
+            return $exception;
+        }
+        $this->fail("The client must refuse this response.");
     }
 
     /**

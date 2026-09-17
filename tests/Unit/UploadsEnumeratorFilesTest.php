@@ -7,6 +7,12 @@ namespace Sabatier\Service\Tests\Unit;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
+use ReflectionProperty;
+use Sabatier\Foundation\FileAttributeKey;
+use Sabatier\Foundation\FileManager;
+use Sabatier\Foundation\Set;
+use Sabatier\Foundation\URLResourceKey;
+use Sabatier\Foundation\UUID;
 use Sabatier\Service\UploadsEnumerator;
 
 /**
@@ -134,5 +140,71 @@ final class UploadsEnumeratorFilesTest extends TestCase
         $_FILES = [];
 
         $this->assertSame([], $this->uploadedFiles());
+    }
+
+    #[Test]
+    public function countsTheFieldsTheRequestCarries(): void
+    {
+        $_FILES = [];
+        $this->assertSame(0, new UploadsEnumerator("uploads")->count);
+        $_FILES = ["one" => [], "two" => []];
+        $this->assertSame(2, new UploadsEnumerator("uploads")->count);
+    }
+
+    #[Test]
+    public function itIsEmptyExactlyWhenNoFieldWasSent(): void
+    {
+        $_FILES = [];
+        $this->assertTrue(new UploadsEnumerator("uploads")->isEmpty);
+        $_FILES = ["one" => []];
+        $this->assertFalse(new UploadsEnumerator("uploads")->isEmpty);
+    }
+
+    #[Test]
+    public function carriesTheSubdirectoryAndKeysItWasBuiltWith(): void
+    {
+        $keys = new Set([URLResourceKey::nameKey]);
+        $enumerator = new UploadsEnumerator("invoices", $keys);
+        $this->assertSame("invoices", $enumerator->directory);
+        $this->assertSame($keys, $enumerator->keys);
+    }
+
+    #[Test]
+    public function theKeysAreOptional(): void
+    {
+        $this->assertNull(new UploadsEnumerator("uploads")->keys);
+    }
+
+    #[Test]
+    public function uploadsAreAFlatEnumerationInPreOrder(): void
+    {
+        $enumerator = new UploadsEnumerator("uploads");
+        $this->assertSame(0, $enumerator->level);
+        $this->assertFalse($enumerator->isEnumeratingDirectoryPostOrder);
+    }
+
+    #[Test]
+    public function thereAreNoFileAttributesBeforeAnythingHasBeenWritten(): void
+    {
+        $this->assertNull(new UploadsEnumerator("uploads")->fileAttributes);
+    }
+
+    #[Test]
+    public function theAttributesOfTheFileLastWrittenAreReported(): void
+    {
+        $url = FileManager::default()->temporaryDirectory->appendingPathComponent(new UUID()->uuidString);
+        FileManager::default()->createFile($url->path, "payload");
+        $enumerator = new UploadsEnumerator("uploads");
+        new ReflectionProperty(UploadsEnumerator::class, "currentURL")->setValue($enumerator, $url);
+        $this->assertSame(7, $enumerator->fileAttributes[FileAttributeKey::size]);
+        FileManager::default()->removeItem($url);
+    }
+
+    #[Test]
+    public function aFileThatIsGoneReportsNoAttributes(): void
+    {
+        $enumerator = new UploadsEnumerator("uploads");
+        new ReflectionProperty(UploadsEnumerator::class, "currentURL")->setValue($enumerator, FileManager::default()->temporaryDirectory->appendingPathComponent(new UUID()->uuidString));
+        $this->assertNull($enumerator->fileAttributes);
     }
 }

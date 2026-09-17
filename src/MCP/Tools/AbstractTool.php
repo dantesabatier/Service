@@ -328,13 +328,13 @@ abstract class AbstractTool
                 continue;
             }
             $value = $arguments[$index + 1];
-            /** @var ArrayClass<string|int> $cases */
+            /** @var Dictionary<string|int> $cases */
             $cases = $attribute?->enum->cases ?? new Dictionary();
             $invalid = $value instanceof ArrayClass ? $value->filter(fn(mixed $v): bool => !$cases->containsElement($v)) : ($cases->containsElement($value) ? new ArrayClass() : new ArrayClass([$value]));
             if ($invalid->isEmpty) {
                 continue;
             }
-            $map = $cases->map(fn(string|int $v, int $k): string => "\"$k\" → $v")->join(", ");
+            $map = $cases->map(fn(string|int $v, string $k): string => "\"$k\" → $v")->join(", ");
             fatal_error(sprintf("Invalid enum value for \"%s\": %s. Pass the mapped value, not the case name. Cases: %s", $keyPath, $invalid->description, $map));
         }
     }
@@ -424,7 +424,13 @@ abstract class AbstractTool
             }
             /** @var ArrayClass<mixed> $children */
             $children = $value instanceof Dictionary ? new ArrayClass([$value]) : ($value instanceof ArrayClass ? $value : new ArrayClass());
-            $subShape = $children->reduce(new Dictionary(), fn(Dictionary $carry, mixed $child): Dictionary => $child instanceof Dictionary ? $carry->merging($this->shapeFromValues($relationship->target, $child)) : $carry);
+            /** @var Dictionary<mixed> $subShape */
+            $subShape = new Dictionary();
+            $children->forEach(function (mixed $child) use ($relationship, $subShape): void {
+                if ($child instanceof Dictionary) {
+                    $subShape->merge($this->shapeFromValues($relationship->target, $child));
+                }
+            });
             $shape[$key] = $subShape->isEmpty ? true : $subShape;
         }
         return $shape;

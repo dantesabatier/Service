@@ -28,6 +28,7 @@
     "sabatier/coredata": "^1.0"
   },
   "require-dev": {
+    "jetbrains/phpstorm-attributes": "^1.1",
     "phpunit/phpunit": "^13.3",
     "vimeo/psalm": "^6.17",
     "rector/rector": "^2.6"

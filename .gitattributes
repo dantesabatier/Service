@@ -5,6 +5,7 @@
 # below is development apparatus: it belongs in the repository, not in the
 # vendor directory of every project that installs this framework.
 /.claude            export-ignore
+/.github            export-ignore
 /.gitattributes     export-ignore
 /.gitignore         export-ignore
 /.idea              export-ignore

@@ -5,7 +5,7 @@ All notable changes to this project are documented here. The format follows
 to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) from 1.0.0
 onward.
 
-## [Unreleased]
+## [1.0.0] - 2026-09-18
 
 This section contains the release notes being prepared for the initial `1.0.0`
 release. The final date will be assigned when the release tag is created.

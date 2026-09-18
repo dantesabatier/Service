@@ -127,6 +127,13 @@ Include the PHP version, the versions or commits of all three libraries, and
 the smallest case that reproduces the problem. For anything with a security
 dimension, do not open an issue — follow [SECURITY.md](SECURITY.md) instead.
 
+## Versioning
+
+This package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+What counts as the public API here, what a major release is for, and the checks
+that run before a tag are documented once for the whole stack in
+[Foundation's VERSIONING.md](https://github.com/dantesabatier/Foundation/blob/master/VERSIONING.md).
+
 ## Code of conduct
 
 This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md). By

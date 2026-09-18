@@ -187,7 +187,10 @@ final class JobsTest extends TestCase
         }
         $contents = (string)FileManager::default()->contents($url->path);
         FileManager::default()->removeItem($url);
-        // Writing to a file makes error_log prepend its own "[date timezone] " stamp, which is the logger's and not the line the framework composed.
-        return (string)preg_replace("/^\\[[^]]+ [A-Za-z]+\\/[^]]+] /", "", trim($contents));
+        // Writing to a file makes error_log prepend its own "[06-Oct-2026 21:33:19 UTC] " stamp,
+        // which is the logger's and not the line the framework composed. The zone is whatever the
+        // machine runs in — a region name, an abbreviation or an offset — so the stamp is matched
+        // by its fixed date shape rather than by what follows the time.
+        return (string)preg_replace("/^\\[\\d{2}-[A-Za-z]{3}-\\d{4} \\d{2}:\\d{2}:\\d{2} [^]]+] /", "", trim($contents));
     }
 }

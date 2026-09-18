@@ -6,13 +6,20 @@ namespace Sabatier\Service\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Override;
 use ReflectionMethod;
 use ReflectionProperty;
 use Sabatier\Foundation\FileAttributeKey;
 use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\Set;
+use Sabatier\Foundation\URL;
 use Sabatier\Foundation\URLResourceKey;
 use Sabatier\Foundation\UUID;
+use Sabatier\Service\Application;
+use Sabatier\Service\BadRequestException;
+use Sabatier\Service\DownloadDisposition;
+use Sabatier\Service\FileTransferPolicy;
+use Sabatier\Service\UploadDisposition;
 use Sabatier\Service\UploadsEnumerator;
 
 /**
@@ -140,6 +147,135 @@ final class UploadsEnumeratorFilesTest extends TestCase
         $_FILES = [];
 
         $this->assertSame([], $this->uploadedFiles());
+    }
+
+    #[Test]
+    public function aTransportFailureStopsTheUploadBeforeThePolicyIsConsulted(): void
+    {
+        $_FILES = ["file" => ["name" => "report.pdf", "tmp_name" => "", "size" => 0, "error" => UPLOAD_ERR_INI_SIZE]];
+        $policy = $this->policyAllowing(null);
+        try {
+            iterator_to_array(new UploadsEnumerator("uploads"));
+            $this->fail("A transport failure must stop the upload.");
+        } catch (BadRequestException $exception) {
+            $this->assertStringContainsString("larger than this server accepts", (string)$exception->error->localizedFailureReason);
+        }
+        $this->assertSame(0, $policy->evaluations);
+    }
+
+    #[Test]
+    public function aPolicyThatRefusesTheUploadStopsIt(): void
+    {
+        $_FILES = ["file" => ["name" => "report.exe", "tmp_name" => "C:/tmp/php1", "size" => 10, "error" => UPLOAD_ERR_OK]];
+        $this->policyAllowing(null, "Executables are not accepted.");
+        try {
+            iterator_to_array(new UploadsEnumerator("uploads"));
+            $this->fail("A refused upload must stop.");
+        } catch (BadRequestException $exception) {
+            $this->assertSame("Executables are not accepted.", $exception->error->localizedFailureReason);
+        }
+    }
+
+    #[Test]
+    public function aRefusalWithoutAReasonStillReadsAsOne(): void
+    {
+        $_FILES = ["file" => ["name" => "report.exe", "tmp_name" => "C:/tmp/php1", "size" => 10, "error" => UPLOAD_ERR_OK]];
+        $this->policyAllowing(null);
+        try {
+            iterator_to_array(new UploadsEnumerator("uploads"));
+            $this->fail("A refused upload must stop.");
+        } catch (BadRequestException $exception) {
+            $this->assertStringContainsString("was not accepted", (string)$exception->error->localizedFailureReason);
+        }
+    }
+
+    #[Test]
+    public function aRefusalIsHonouredEvenWhenThePolicyStillNamesADestination(): void
+    {
+        // isAllowed is what decides, not whether a destination happens to be filled in.
+        $_FILES = ["file" => ["name" => "report.exe", "tmp_name" => "C:/tmp/php1", "size" => 10, "error" => UPLOAD_ERR_OK]];
+        $this->policyRefusingWithDestination(FileManager::default()->temporaryDirectory->appendingPathComponent(new UUID()->uuidString));
+        try {
+            iterator_to_array(new UploadsEnumerator("uploads"));
+            $this->fail("A refused upload must stop even with a destination set.");
+        } catch (BadRequestException $exception) {
+            $this->assertStringContainsString("was not accepted", (string)$exception->error->localizedFailureReason);
+        }
+    }
+
+    private function policyRefusingWithDestination(URL $destinationURL): void
+    {
+        $policy = new class ($destinationURL) implements FileTransferPolicy {
+            public function __construct(private readonly URL $destination)
+            {
+            }
+
+            #[Override]
+            public function evaluateUpload(string $directory, string $filename, int $size): UploadDisposition
+            {
+                return new UploadDisposition(false, $this->destination);
+            }
+
+            #[Override]
+            public function evaluateDownload(string $directory, string $filename): DownloadDisposition
+            {
+                return new DownloadDisposition(false);
+            }
+
+            #[Override]
+            public function directoryURL(string $directory): ?URL
+            {
+                return FileManager::default()->temporaryDirectory;
+            }
+        };
+        new ReflectionProperty(Application::class, "fileTransferPolicy")->setRawValue(Application::shared(), $policy);
+    }
+
+    #[Test]
+    public function aFileThatDidNotArriveAsAnUploadIsRefused(): void
+    {
+        $url = FileManager::default()->temporaryDirectory->appendingPathComponent(new UUID()->uuidString);
+        $_FILES = ["file" => ["name" => "report.pdf", "tmp_name" => "C:/tmp/php1", "size" => 10, "error" => UPLOAD_ERR_OK]];
+        $this->policyAllowing($url);
+        try {
+            iterator_to_array(new UploadsEnumerator("uploads"));
+            $this->fail("A file that never arrived as an upload must be refused.");
+        } catch (BadRequestException $exception) {
+            $this->assertStringContainsString("not received as an upload", (string)$exception->error->localizedFailureReason);
+        }
+    }
+
+    /** Installs a policy on the shared application and hands it back so the test can count its calls. */
+    private function policyAllowing(?URL $destinationURL, ?string $failureReason = null): FileTransferPolicy
+    {
+        $policy = new class ($destinationURL, $failureReason) implements FileTransferPolicy {
+            public int $evaluations = 0;
+
+            public function __construct(private readonly ?URL $destination, private readonly ?string $reason)
+            {
+            }
+
+            #[Override]
+            public function evaluateUpload(string $directory, string $filename, int $size): UploadDisposition
+            {
+                $this->evaluations++;
+                return new UploadDisposition($this->destination !== null, $this->destination, failureReason: $this->reason);
+            }
+
+            #[Override]
+            public function evaluateDownload(string $directory, string $filename): DownloadDisposition
+            {
+                return new DownloadDisposition(false);
+            }
+
+            #[Override]
+            public function directoryURL(string $directory): ?URL
+            {
+                return FileManager::default()->temporaryDirectory;
+            }
+        };
+        new ReflectionProperty(Application::class, "fileTransferPolicy")->setRawValue(Application::shared(), $policy);
+        return $policy;
     }
 
     #[Test]

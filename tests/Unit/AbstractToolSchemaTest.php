@@ -8,8 +8,13 @@ use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionMethod;
 use ReflectionProperty;
+use Sabatier\CoreData\EntityDescription;
+use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObjectContext;
+use Sabatier\CoreData\ManagedObjectModel;
+use Sabatier\CoreData\PersistentStoreCoordinator;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\InternalInconsistencyException;
@@ -73,6 +78,17 @@ final class KeyPathProbeTool extends AbstractTool
     public function exposedShapeFromValues(string $entityName, Dictionary $values): Dictionary
     {
         return $this->shapeFromValues($entityName, $values);
+    }
+
+    public function exposedResolveAttribute(string $entityName, string $keyPath): ?AttributeSchema
+    {
+        /** @var AttributeSchema|null */
+        return new ReflectionMethod(AbstractTool::class, "resolveAttribute")->invoke($this, $entityName, $keyPath);
+    }
+
+    public function exposedFetchRequest(string $entityName): FetchRequest
+    {
+        return $this->fetchRequest($entityName);
     }
 }
 
@@ -273,11 +289,78 @@ final class AbstractToolSchemaTest extends TestCase
         $this->assertSame(["name" => true, "total" => true], $shape["lines"]->array);
     }
 
-    private function tool(): KeyPathProbeTool
+    #[Test]
+    public function anAttributeIsResolvedThroughItsKeyPath(): void
+    {
+        $this->assertSame("total", $this->tool()->exposedResolveAttribute("Order", "total")?->name);
+    }
+
+    #[Test]
+    public function anAttributeBeyondARelationshipIsResolvedToo(): void
+    {
+        $this->assertSame("name", $this->tool()->exposedResolveAttribute("Order", "customer.name")?->name);
+    }
+
+    #[Test]
+    public function aRelationshipIsNotAnAttribute(): void
+    {
+        $this->assertNull($this->tool()->exposedResolveAttribute("Order", "customer"));
+    }
+
+    #[Test]
+    public function anUnknownPropertyResolvesToNoAttribute(): void
+    {
+        $this->assertNull($this->tool()->exposedResolveAttribute("Order", "nope"));
+    }
+
+    #[Test]
+    public function traversingSomethingThatIsNotARelationshipResolvesToNothing(): void
+    {
+        $this->assertNull($this->tool()->exposedResolveAttribute("Order", "total.name"));
+    }
+
+    #[Test]
+    public function aFetchRequestIsScopedToTheNamedEntity(): void
+    {
+        $this->assertSame("Order", $this->toolWithModel()->exposedFetchRequest("Order")->entity?->name);
+    }
+
+    #[Test]
+    public function aFetchRequestForAnUnknownEntityIsRefused(): void
+    {
+        $this->expectException(InternalInconsistencyException::class);
+        $this->toolWithModel()->exposedFetchRequest("Ghost");
+    }
+
+    #[Test]
+    public function aFetchRequestWithoutAModelBehindTheContextIsRefused(): void
+    {
+        try {
+            $this->tool()->exposedFetchRequest("Order");
+            $this->fail("A context with no model must be refused.");
+        } catch (InternalInconsistencyException $exception) {
+            // A missing model and an unknown entity both raise, so the message is what tells them apart.
+            $this->assertStringContainsString("No managed object model", (string)$exception->error->localizedFailureReason);
+        }
+    }
+
+    private function toolWithModel(): KeyPathProbeTool
+    {
+        $entity = new EntityDescription();
+        $entity->name = "Order";
+        $entity->properties = new ArrayClass();
+        $model = new ManagedObjectModel();
+        $model->entities = new ArrayClass([$entity]);
+        $context = new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor();
+        $context->persistentStoreCoordinator = new PersistentStoreCoordinator($model);
+        return $this->tool($context);
+    }
+
+    private function tool(?ManagedObjectContext $context = null): KeyPathProbeTool
     {
         $descriptor = new ReflectionClass(ModelDescriptor::class)->newInstanceWithoutConstructor();
         new ReflectionProperty(ModelDescriptor::class, "schema")->setRawValue($descriptor, new ModelSchema($this->entities(), new PredicateGuideFactory()->make()));
-        return new KeyPathProbeTool(new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor(), $descriptor);
+        return new KeyPathProbeTool($context ?? new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor(), $descriptor);
     }
 
     /** @return Dictionary<EntitySchema> */

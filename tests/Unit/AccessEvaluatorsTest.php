@@ -8,14 +8,24 @@ use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionProperty;
 use Sabatier\Foundation\ArrayClass;
+use Sabatier\Foundation\Date;
+use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\URLCredential;
+use Sabatier\Foundation\Set;
 use Sabatier\Service\AccessEvaluationContext;
 use Sabatier\Service\Authentication;
 use Sabatier\Service\AuthenticationEvaluator;
 use Sabatier\Service\AuthenticationScheme;
+use Sabatier\Service\Authorizable;
+use Sabatier\Service\BearerAuthentication;
+use Sabatier\Service\JSONWebToken;
 use Sabatier\Service\JSONWebTokenAccessTimeEvaluator;
 use Sabatier\Service\JSONWebTokenEnabledEvaluator;
+use Sabatier\Service\JSONWebTokenHeader;
+use Sabatier\Service\JSONWebTokenPayload;
+use Sabatier\Service\JSONWebTokenRefreshTimeEvaluator;
 use Sabatier\Service\JSONWebTokenScopeEvaluator;
 use Sabatier\Service\JSONWebTokenVersionEvaluator;
 
@@ -119,5 +129,100 @@ final class AccessEvaluatorsTest extends TestCase
         $this->assertTrue(
             (new JSONWebTokenVersionEvaluator())->evaluate($this->contextWithAuth($this->makeAuth(true)))
         );
+    }
+
+    // --- bearer branches ---
+
+    #[Test]
+    public function aBearerWithoutATokenIsDeniedByEveryTokenEvaluator(): void
+    {
+        $context = $this->contextWithAuth($this->bearer(null));
+        $this->assertFalse(new JSONWebTokenVersionEvaluator()->evaluate($context));
+        $this->assertFalse(new JSONWebTokenRefreshTimeEvaluator()->evaluate($context));
+        $this->assertFalse(new JSONWebTokenAccessTimeEvaluator()->evaluate($context));
+    }
+
+    #[Test]
+    public function aRefreshTokenWithoutANotBeforeIsUsableAtOnce(): void
+    {
+        $this->assertTrue(new JSONWebTokenRefreshTimeEvaluator()->evaluate($this->contextWithAuth($this->bearer($this->payload()))));
+    }
+
+    #[Test]
+    public function aRefreshTokenIsUsableOnceItsNotBeforeHasPassed(): void
+    {
+        $payload = $this->payload(notBefore: new Date()->addingTimeInterval(-60.0));
+        $this->assertTrue(new JSONWebTokenRefreshTimeEvaluator()->evaluate($this->contextWithAuth($this->bearer($payload))));
+    }
+
+    #[Test]
+    public function aRefreshTokenIsRefusedUntilItsNotBeforeArrives(): void
+    {
+        $payload = $this->payload(notBefore: new Date()->addingTimeInterval(3600.0));
+        $this->assertFalse(new JSONWebTokenRefreshTimeEvaluator()->evaluate($this->contextWithAuth($this->bearer($payload))));
+    }
+
+    #[Test]
+    public function aBearerWhoseSubjectCannotBeResolvedFailsTheVersionCheck(): void
+    {
+        $this->assertFalse(new JSONWebTokenVersionEvaluator()->evaluate($this->contextWithAuth($this->bearer($this->payload(version: 1), null))));
+    }
+
+    #[Test]
+    public function aTokenIssuedForTheSubjectsCurrentVersionIsAccepted(): void
+    {
+        $bearer = $this->bearer($this->payload(version: 7), $this->userAtVersion(7));
+        $this->assertTrue(new JSONWebTokenVersionEvaluator()->evaluate($this->contextWithAuth($bearer)));
+    }
+
+    #[Test]
+    public function aTokenLeftBehindByAVersionBumpIsRefused(): void
+    {
+        $bearer = $this->bearer($this->payload(version: 6), $this->userAtVersion(7));
+        $this->assertFalse(new JSONWebTokenVersionEvaluator()->evaluate($this->contextWithAuth($bearer)));
+    }
+
+    private function payload(?Date $notBefore = null, ?int $version = null): JSONWebTokenPayload
+    {
+        return new JSONWebTokenPayload(notBefore: $notBefore, version: $version);
+    }
+
+    private function bearer(?JSONWebTokenPayload $payload, ?Authorizable $user = null): BearerAuthentication
+    {
+        $bearer = new ReflectionClass(BearerAuthentication::class)->newInstanceWithoutConstructor();
+        new ReflectionProperty(Authentication::class, "environment")->setValue($bearer, new Dictionary());
+        $token = $payload === null ? null : new JSONWebToken(new JSONWebTokenHeader(), $payload);
+        new ReflectionProperty(BearerAuthentication::class, "isTokenResolved")->setValue($bearer, true);
+        new ReflectionProperty(BearerAuthentication::class, "token")->setRawValue($bearer, $token);
+        new ReflectionProperty(Authentication::class, "isAuthenticatedUserResolved")->setValue($bearer, true);
+        new ReflectionProperty(Authentication::class, "authenticatedUser")->setRawValue($bearer, $user);
+        return $bearer;
+    }
+
+    private function userAtVersion(int $version): Authorizable
+    {
+        return new class ($version) implements Authorizable {
+            public function __construct(private readonly int $tokenVersion)
+            {
+            }
+
+            public string $username { get => "ada"; }
+            public ?string $password { get => null; }
+            public bool $isEnabled { get => true; }
+            public int $refreshTokenVersion { get => $this->tokenVersion; set {} }
+            public Set $roles { get => new Set(); }
+
+            #[Override]
+            public function isEqual(mixed $other): bool
+            {
+                return $this === $other;
+            }
+
+            #[Override]
+            public static function defaultRepresentation(): Dictionary
+            {
+                return new Dictionary();
+            }
+        };
     }
 }

@@ -30,6 +30,51 @@ use const Sabatier\Service\ServiceResponseStatusKey;
 final class PersistentHistoryToolRequestTest extends TestCase
 {
     #[Test]
+    public function anOperationIsRequiredBeforeAnythingElseHappens(): void
+    {
+        try {
+            $this->tool()->execute(new Dictionary(["date" => "2026-01-15"]));
+            $this->fail("A call without an operation must be refused.");
+        } catch (InternalInconsistencyException $exception) {
+            $this->assertStringContainsString("operation is required", (string)$exception->error->localizedFailureReason);
+        }
+    }
+
+    #[Test]
+    public function anUnknownOperationIsRefusedAndNamesTheAllowedOnes(): void
+    {
+        try {
+            $this->tool()->execute(new Dictionary(["operation" => "truncate"]));
+            $this->fail("An unknown operation must be refused.");
+        } catch (InternalInconsistencyException $exception) {
+            $reason = (string)$exception->error->localizedFailureReason;
+            $this->assertStringContainsString("truncate", $reason);
+            $this->assertStringContainsString("fetch, purge", $reason);
+        }
+    }
+
+    #[Test]
+    public function anOperationThatOnlyMatchesLooselyIsStillRefused(): void
+    {
+        try {
+            $this->tool()->execute(new Dictionary(["operation" => true]));
+            $this->fail("An operation that is not one of the two names must be refused.");
+        } catch (InternalInconsistencyException $exception) {
+            // `true` compares equal to any non-empty operation name under a loose in_array, and a
+            // looser check would let it through to fail later for an unrelated reason.
+            $this->assertStringContainsString("Invalid operation", (string)$exception->error->localizedFailureReason);
+        }
+    }
+
+    #[Test]
+    public function theToolAdvertisesItselfAsReadOnlyOnlyForAFetch(): void
+    {
+        $tool = $this->tool();
+        $this->assertTrue($tool->isReadOnlyCall(new Dictionary(["operation" => "fetch"])));
+        $this->assertFalse($tool->isReadOnlyCall(new Dictionary(["operation" => "purge"])));
+    }
+
+    #[Test]
     public function aPurgeScopedByDateDeletesBeforeThatDate(): void
     {
         $request = $this->purgeRequest(["date" => "2026-01-15"]);
@@ -201,9 +246,13 @@ final class PersistentHistoryToolRequestTest extends TestCase
         return $this->invoke("fetchRequestFor", new Dictionary($arguments));
     }
 
+    private function tool(): PersistentHistoryTool
+    {
+        return new PersistentHistoryTool(new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor(), new ReflectionClass(ModelDescriptor::class)->newInstanceWithoutConstructor());
+    }
+
     private function invoke(string $method, mixed ...$arguments): mixed
     {
-        $tool = new PersistentHistoryTool(new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor(), new ReflectionClass(ModelDescriptor::class)->newInstanceWithoutConstructor());
-        return new ReflectionMethod(PersistentHistoryTool::class, $method)->invoke($tool, ...$arguments);
+        return new ReflectionMethod(PersistentHistoryTool::class, $method)->invoke($this->tool(), ...$arguments);
     }
 }

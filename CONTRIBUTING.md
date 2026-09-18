@@ -21,30 +21,32 @@ Sabatier/
 └── Service/
 ```
 
-The dev tools are expected to be installed globally through Composer and on
-`PATH`; `vendor/bin` is empty by design. Invoke them by bare name:
+PHPUnit, Psalm and Rector are declared in `require-dev`, so `composer install`
+provides them under `vendor/bin`:
 
 ```bash
-phpunit
+vendor/bin/phpunit
 ```
 
 ```bash
-psalm --show-info=false
+vendor/bin/psalm --show-info=false
 ```
 
 ```bash
-rector --dry-run
+vendor/bin/rector process src --dry-run
 ```
 
 ## Before you open a pull request
 
-- **`phpunit` passes in full.** The suite runs in about a second; there is no
-  excuse for pushing a red tree. If a change makes an existing test fail, say
-  so in the pull request and explain why the old expectation was wrong.
-- **`psalm` reports no errors.** Psalm is the project's static-analysis gate.
-- **`rector --dry-run` is clean for the files you touched.** It flags a handful
-  of pre-existing files; leave those alone rather than folding an unrelated
-  sweep into your change.
+- **`vendor/bin/phpunit` passes in full.** The suite runs in about a second;
+  there is no excuse for pushing a red tree. If a change makes an existing test
+  fail, say so in the pull request and explain why the old expectation was
+  wrong.
+- **`vendor/bin/psalm` reports no errors.** Psalm is the project's
+  static-analysis gate.
+- **`vendor/bin/rector process src --dry-run` is clean for the files you
+  touched.** It flags a handful of pre-existing files; leave those alone rather
+  than folding an unrelated sweep into your change.
 - **A new behaviour comes with a test that fails without it.** Write the test,
   watch it fail, then make it pass. A test that passes before your change tests
   nothing.
@@ -124,3 +126,9 @@ date are known.
 Include the PHP version, the versions or commits of all three libraries, and
 the smallest case that reproduces the problem. For anything with a security
 dimension, do not open an issue — follow [SECURITY.md](SECURITY.md) instead.
+
+## Code of conduct
+
+This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md). By
+participating, you are expected to uphold it. Report unacceptable behavior to
+`dantesabatier@me.com`.

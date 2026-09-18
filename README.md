@@ -107,6 +107,23 @@ every variable the framework reads, with its default.
 
 ---
 
+## Installation
+
+```bash
+composer require sabatier/service
+```
+
+Foundation and CoreData come with it; they are declared dependencies rather
+than a separate step.
+
+Most applications do not start from an empty directory. [Singularity](https://github.com/dantesabatier/Singularity),
+the stack's authoring environment, generates the whole project — entry points,
+application delegate, model and `.env` — from a data model you design in it.
+Reach for `composer require` when you are adding Service to something that
+already exists.
+
+---
+
 ## Documentation
 
 | Document                           | Covers                                                        |

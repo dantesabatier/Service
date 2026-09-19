@@ -11,7 +11,7 @@ use Sabatier\Service\Responder;
 
 try {
     $bundle = Bundle::bundleForClass(Responder::class);
-    $excludedFilenames = new ArrayClass(["DownloadResponseTransformer", "AbstractTool", "PersistentHistoryTool"]);
+    $excludedFilenames = new ArrayClass(["DownloadResponseTransformer", "AbstractTool", "PersistentHistoryTool", "JobTool"]);
     $extractor = new LocalizationExtractor($bundle, $bundle->localizations, $excludedFilenames);
     $extractor->extract();
 } catch (Exception $exception) {

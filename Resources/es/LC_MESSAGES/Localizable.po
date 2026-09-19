@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-30 09:38-0600\n"
+"POT-Creation-Date: 2026-09-19 00:18-0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -108,3 +108,18 @@ msgstr "La subida no fue aceptada."
 
 msgid "The file was not received as an upload."
 msgstr "El archivo no se recibió como una subida."
+
+msgid "The file is larger than this server accepts."
+msgstr "El archivo es más grande de lo que este servidor acepta."
+
+msgid "The file is larger than the form allowed."
+msgstr "El archivo es más grande de lo que permitía el formulario."
+
+msgid "The file arrived incomplete. Send it again."
+msgstr "El archivo llegó incompleto. Envíalo de nuevo."
+
+msgid "No file was sent."
+msgstr "No se envió ningún archivo."
+
+msgid "The file could not be received."
+msgstr "No se pudo recibir el archivo."

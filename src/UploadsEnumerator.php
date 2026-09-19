@@ -127,11 +127,11 @@ final class UploadsEnumerator extends DirectoryEnumerator
     {
         return match ($error) {
             UPLOAD_ERR_OK => null,
-            UPLOAD_ERR_INI_SIZE => "The file is larger than this server accepts.",
-            UPLOAD_ERR_FORM_SIZE => "The file is larger than the form allowed.",
-            UPLOAD_ERR_PARTIAL => "The file arrived incomplete. Send it again.",
-            UPLOAD_ERR_NO_FILE => "No file was sent.",
-            default => "The file could not be received.",
+            UPLOAD_ERR_INI_SIZE => localized_string("The file is larger than this server accepts."),
+            UPLOAD_ERR_FORM_SIZE => localized_string("The file is larger than the form allowed."),
+            UPLOAD_ERR_PARTIAL => localized_string("The file arrived incomplete. Send it again."),
+            UPLOAD_ERR_NO_FILE => localized_string("No file was sent."),
+            default => localized_string("The file could not be received."),
         };
     }
 

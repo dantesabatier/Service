@@ -36,15 +36,6 @@
                 <file name="src/InterfaceImplementorResolver.php"/>
             </errorLevel>
         </NullableReturnStatement>
-        <!-- The closures validate `mixed` with is_array() before indexing it, but Psalm does not
-             carry that narrowing into the subscripts of the same condition. The checks are the
-             protocol validation this client exists to perform; rewriting them to satisfy the
-             inference would move where MCPClientException is thrown. -->
-        <InvalidArrayAccess>
-            <errorLevel type="suppress">
-                <file name="src/MCP/MCPClient.php"/>
-            </errorLevel>
-        </InvalidArrayAccess>
         <InvalidReturnType>
             <errorLevel type="suppress">
                 <file name="src/InterfaceImplementorResolver.php"/>
@@ -72,11 +63,6 @@
         <InternalProperty errorLevel="suppress"/>
         <RiskyTruthyFalsyComparison errorLevel="suppress"/>
         <InvalidAttribute errorLevel="suppress"/>
-        <InvalidOperand>
-            <errorLevel type="suppress">
-                <file name="src/RedisAuthorizationCache.php"/>
-            </errorLevel>
-        </InvalidOperand>
     </issueHandlers>
     <plugins>
         <pluginClass class="Sabatier\Foundation\Plugins\Psalm\Plugin"/>

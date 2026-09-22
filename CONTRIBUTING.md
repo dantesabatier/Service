@@ -47,6 +47,10 @@ vendor/bin/rector process src --dry-run
 - **`vendor/bin/rector process src --dry-run` is clean for the files you
   touched.** It flags a handful of pre-existing files; leave those alone rather
   than folding an unrelated sweep into your change.
+- **A change a consumer would notice is recorded in `CHANGELOG.md` under
+  `## [Unreleased]`, in the same commit.** Behaviour, a signature, a default, a
+  message they read — not test scaffolding, CI or analysis configuration. What
+  changed and why are known now and reconstructed badly later.
 - **A new behaviour comes with a test that fails without it.** Write the test,
   watch it fail, then make it pass. A test that passes before your change tests
   nothing.

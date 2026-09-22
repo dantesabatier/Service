@@ -5,10 +5,17 @@ All notable changes to this project are documented here. The format follows
 to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) from 1.0.0
 onward.
 
+## [Unreleased]
+
+### Changed
+
+- Upload failures are reported in the active language. The messages `UploadsEnumerator` produces bypassed `localized_string`, so they stayed in English under every locale; the English and Spanish catalogs carry them now. `JobTool`'s strings are excluded from extraction, so they no longer reach the application catalog.
+
 ## [1.0.0] - 2026-09-18
 
-This section contains the release notes being prepared for the initial `1.0.0`
-release. The final date will be assigned when the release tag is created.
+The initial public release. The framework had been in use in private projects
+before it; the entries below record what it does and the work that made it
+publishable.
 
 ### Added
 

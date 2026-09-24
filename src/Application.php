@@ -26,7 +26,6 @@ use function Sabatier\Foundation\fatal_error;
 use const Sabatier\CoreData\DeletedObjectsKey;
 use const Sabatier\CoreData\InsertedObjectsKey;
 use const Sabatier\CoreData\ManagedObjectContextDidSave;
-use const Sabatier\CoreData\ManagedObjectContextWillSave;
 use const Sabatier\CoreData\PersistentHistoryTrackingKey;
 use const Sabatier\CoreData\PersistentStoreRemoteChange;
 use const Sabatier\CoreData\PersistentStoreRemoteChangeNotificationPostOptionKey;
@@ -104,10 +103,6 @@ class Application extends Responder
     #[Override]
     public AuthorizationService $authorizationService {
         get => $this->authorizationService ??= new AuthorizationService($this->authorizationResolver, $this->authorizationCache, $this->authorizationPersistentCache);
-    }
-    /** @var WriteAuthorizationObserver Built on the first save, after the delegate may have replaced the authorization service. */
-    private WriteAuthorizationObserver $writeAuthorizationObserver {
-        get => $this->writeAuthorizationObserver ??= new WriteAuthorizationObserver($this->authorizationService);
     }
     /** @var AuthenticationManager The authentication manager for handling authentication processes. */
     private(set) AuthenticationManager $authenticationManager {
@@ -238,9 +233,6 @@ class Application extends Responder
         NotificationCenter::default()->addObserverForName(ManagedObjectContextDidSave, null, function (Notification $notification): void {
             $this->handleAuthorizationEntitiesDidSave($notification);
         });
-        NotificationCenter::default()->addObserverForName(ManagedObjectContextWillSave, null, function (Notification $notification): void {
-            $this->writeAuthorizationObserver->contextWillSave($notification);
-        });
     }
 
     /**
@@ -261,7 +253,7 @@ class Application extends Responder
      */
     private function invalidateAuthorizableTokens(): void
     {
-        RequestSecurityContext::performAsSystem(fn() => $this->authorizableTokenInvalidator->invalidate($this->persistentContainer->viewContext));
+        $this->authorizableTokenInvalidator->invalidate($this->persistentContainer->viewContext);
     }
 
     /**
@@ -354,24 +346,11 @@ class Application extends Responder
         $this->accessPolicy->setTransactionAuthor($this->firstResponder, $this->authenticationManager);
     }
 
-    private function makeSecurityContext(): RequestSecurityContext
-    {
-        $responder = $this->firstResponder;
-        $authentication = $this->authenticationManager->authentication;
-        return new RequestSecurityContext($authentication->authenticatedUser, $authentication->authorizationScopes, $responder->isSecurityEnabled, $responder->managedObjectContext, $responder->isProtectedContentAvailable);
-    }
-
-    /**
-     * The context covers the send too, since a streamed response runs its producer only then.
-     */
     private function processResponse(): never
     {
-        RequestSecurityContext::perform($this->makeSecurityContext(), function (): never {
-            $response = $this->firstResponder->response;
-            $this->delegate?->applicationDidFinishLaunching($this);
-            $response->send();
-        });
-        exit;
+        $response = $this->firstResponder->response;
+        $this->delegate?->applicationDidFinishLaunching($this);
+        $response->send();
     }
 
     private function handle(Throwable $throwable): never

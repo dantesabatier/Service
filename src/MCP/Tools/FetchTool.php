@@ -11,6 +11,7 @@ use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\SortDescriptor;
+use Sabatier\Service\AuthorizationType;
 use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\Schema\RelationshipSchema;
 use function Sabatier\Foundation\fatal_error;
@@ -51,21 +52,6 @@ final class FetchTool extends AbstractTool
     }
 
     /**
-     * @throws Exception
-     */
-    #[Override]
-    public function authorizationRequirements(Dictionary $arguments): ?AuthorizationRequirements
-    {
-        /** @var string $entity */
-        $entity = $arguments["entity"] ?? fatal_error("entity is required");
-        $shape = $this->resolveShape($arguments);
-        $keyPaths = ($shape !== null ? $this->shapeKeyPaths($shape) : new ArrayClass())
-            ->appendingContentsOf($this->predicateKeyPaths($arguments["predicate"], $arguments["arguments"]))
-            ->appendingContentsOf($this->sortKeyPaths($arguments["sort"]));
-        return AuthorizationRequirements::of($this->readRequirements($entity, $keyPaths));
-    }
-
-    /**
      * @return ArrayClass<ContentItem>
      * @throws Exception
      */
@@ -74,10 +60,11 @@ final class FetchTool extends AbstractTool
     {
         /** @var string $entity */
         $entity = $arguments["entity"] ?? fatal_error("entity is required");
+        $this->enforceEntityAuthorization($entity, AuthorizationType::read);
         $this->validateProjection($entity, $arguments);
         $this->validateSort($entity, $arguments["sort"]);
         $request = $this->fetchRequest($entity);
-        $request->predicate = $this->predicateFromArguments($entity, $arguments["predicate"], $arguments["arguments"]);
+        $this->applyPredicate($request, $entity, $arguments);
         $this->applySecurityScope($request);
         $this->applySort($request, $arguments["sort"]);
         $request->fetchLimit = (int)$arguments["limit"];
@@ -114,6 +101,17 @@ final class FetchTool extends AbstractTool
         }
         $parts->append("$rowCount row(s) returned — result is final, do not retry");
         return $parts->join(". ");
+    }
+
+    private function applyPredicate(mixed $request, string $entity, Dictionary $arguments): void
+    {
+        $predicate = $arguments["predicate"];
+        if (!$predicate) {
+            return;
+        }
+        $params = $this->resolveVariables($arguments["arguments"] ?? new ArrayClass());
+        $this->validatePredicateKeyPaths($entity, $predicate, $params);
+        $request->predicate = $this->buildPredicate($predicate, $params);
     }
 
     private function validateProjection(string $entity, Dictionary $arguments): void

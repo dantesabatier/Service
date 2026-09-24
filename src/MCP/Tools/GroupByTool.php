@@ -14,6 +14,7 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Foundation\Set;
 use Sabatier\Foundation\SortDescriptor;
+use Sabatier\Service\AuthorizationType;
 use Sabatier\Service\MCP\Response\ContentItem;
 use function Sabatier\Foundation\fatal_error;
 
@@ -61,26 +62,6 @@ final class GroupByTool extends AbstractTool
     }
 
     /**
-     * @throws Exception
-     */
-    #[Override]
-    public function authorizationRequirements(Dictionary $arguments): ?AuthorizationRequirements
-    {
-        /** @var string $entity */
-        $entity = $arguments["entity"] ?? fatal_error("entity is required");
-        /** @var ArrayClass<mixed> $groupBy */
-        $groupBy = $arguments["group_by"] ?? fatal_error("group_by is required");
-        /** @var ArrayClass<Dictionary<mixed>> $aggregates */
-        $aggregates = $arguments["aggregates"] ?? fatal_error("aggregates is required");
-        $keyPaths = $groupBy->map(fn(mixed $key): string => (string)$key)
-            ->appendingContentsOf($aggregates->map(fn(Dictionary $item): string => (string)($item["property"] ?? fatal_error("aggregate.property required"))));
-        $keyPaths = $keyPaths->appendingContentsOf($this->predicateKeyPaths($arguments["predicate"], $arguments["arguments"]))
-            ->appendingContentsOf($this->predicateKeyPaths($arguments["having_predicate"], $arguments["having_arguments"]))
-            ->appendingContentsOf($this->sortKeyPaths($arguments["sort"]));
-        return AuthorizationRequirements::of($this->readRequirements($entity, $keyPaths));
-    }
-
-    /**
      * @return ArrayClass<ContentItem>
      * @throws Exception
      */
@@ -89,13 +70,18 @@ final class GroupByTool extends AbstractTool
     {
         /** @var string $entity */
         $entity = $arguments["entity"] ?? fatal_error("entity is required");
+        $this->enforceEntityAuthorization($entity, AuthorizationType::read);
         $groupBy = $this->groupKeys($entity, $arguments["group_by"] ?? fatal_error("group_by is required"));
         $request = $this->fetchRequest($entity);
         $aggregates = $this->aggregateDescriptions($request, $entity, $arguments["aggregates"] ?? fatal_error("aggregates is required"));
         $request->propertiesToFetch = new ArrayClass([...$groupBy, ...$aggregates]);
         $request->propertiesToGroupBy = $groupBy;
         $request->resultType = FetchRequestResultType::dictionaryResultType;
-        $request->predicate = $this->predicateFromArguments($entity, $arguments["predicate"], $arguments["arguments"]);
+        if ($predicate = $arguments["predicate"]) {
+            $params = $this->resolveVariables($arguments["arguments"] ?? new ArrayClass());
+            $this->validatePredicateKeyPaths($entity, $predicate, $params);
+            $request->predicate = $this->buildPredicate($predicate, $params);
+        }
         $this->applySecurityScope($request);
         if ($having = $arguments["having_predicate"]) {
             $request->havingPredicate = $this->buildPredicate($having, $this->resolveVariables($arguments["having_arguments"] ?? new ArrayClass()));

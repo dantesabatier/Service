@@ -63,12 +63,6 @@ final class JobTool extends AbstractTool
         ];
     }
 
-    #[Override]
-    public function authorizationRequirements(Dictionary $arguments): ?AuthorizationRequirements
-    {
-        return AuthorizationRequirements::one(self::jobsResource, AuthorizationType::any);
-    }
-
     /**
      * @return ArrayClass<ContentItem>
      * @throws Exception
@@ -78,6 +72,7 @@ final class JobTool extends AbstractTool
     {
         /** @var string $name */
         $name = $arguments["job"] ?? fatal_error("job is required");
+        $this->enforceEntityAuthorization(self::jobsResource, AuthorizationType::any);
         $job = $this->registry->job($name) ?? fatal_error("Unknown job \"$name\". Available: {$this->registry->names->join(", ")}.");
         $this->context->transactionAuthor = $this->user?->username ?? "system";
         $job->run($this->context);

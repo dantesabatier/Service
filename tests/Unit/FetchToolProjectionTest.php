@@ -13,7 +13,6 @@ use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
-use Sabatier\Foundation\Predicates\Predicate;
 use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Foundation\SortDescriptor;
 use Sabatier\Service\MCP\Schema\AttributeSchema;
@@ -64,24 +63,27 @@ final class FetchToolProjectionTest extends TestCase
     }
 
     #[Test]
-    public function aCallWithoutAPredicateBuildsNone(): void
+    public function aRequestWithoutAPredicateIsNotNarrowed(): void
     {
-        $this->assertNull($this->invoke("predicateFromArguments", "Order", null, null));
+        $request = new FetchRequest();
+        $this->invoke("applyPredicate", $request, "Order", new Dictionary());
+        $this->assertNull($request->predicate);
     }
 
     #[Test]
-    public function aPredicateIsValidatedAndBuilt(): void
+    public function aPredicateIsValidatedAndBuiltOntoTheRequest(): void
     {
-        /** @var Predicate $predicate */
-        $predicate = $this->invoke("predicateFromArguments", "Order", "%K = %s", new ArrayClass(["total", "10"]));
-        $this->assertStringContainsString("total", $predicate->predicateFormat);
+        $request = new FetchRequest();
+        $this->invoke("applyPredicate", $request, "Order", new Dictionary(["predicate" => "%K = %s", "arguments" => new ArrayClass(["total", "10"])]));
+        $this->assertNotNull($request->predicate);
+        $this->assertStringContainsString("total", $request->predicate->predicateFormat);
     }
 
     #[Test]
     public function aPredicateNamingAnUnknownKeyPathIsRefused(): void
     {
         $this->expectException(InternalInconsistencyException::class);
-        $this->invoke("predicateFromArguments", "Order", "%K = %s", new ArrayClass(["nope", "10"]));
+        $this->invoke("applyPredicate", new FetchRequest(), "Order", new Dictionary(["predicate" => "%K = %s", "arguments" => new ArrayClass(["nope", "10"])]));
     }
 
     #[Test]

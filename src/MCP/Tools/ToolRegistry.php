@@ -4,15 +4,11 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\MCP\Tools;
 
-use Exception;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\InternalInconsistencyException;
-use Sabatier\Service\Application;
-use Sabatier\Service\DefaultAccessPolicy;
 use Sabatier\Service\ForbiddenException;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
-use Sabatier\Service\RequestSecurityContext;
 use Throwable;
 
 /**
@@ -116,9 +112,7 @@ final class ToolRegistry
             if ($complaint !== null) {
                 return ToolResult::failure($complaint);
             }
-            $this->authorize($tool, $arguments);
-            $context = RequestSecurityContext::current();
-            return ToolResult::success($context === null ? $tool->execute($arguments) : RequestSecurityContext::perform($context->enforcingWrites(), fn(): ArrayClass => $tool->execute($arguments)));
+            return ToolResult::success($tool->execute($arguments));
         } catch (InternalInconsistencyException $exception) {
             error_log((string)$exception);
             $reason = $this->reason($exception);
@@ -154,33 +148,6 @@ final class ToolRegistry
         /** @var ArrayClass<string> $missing */
         $missing = new ArrayClass($required)->filter(fn(string $key): bool => !$arguments->offsetExists($key));
         return $missing->isEmpty ? null : sprintf("%s requires %s. Supply it and call again.", $tool->name, $missing->join(", "));
-    }
-
-    /**
-     * @param AbstractTool $tool
-     * @param Dictionary<mixed> $arguments
-     * @throws ForbiddenException
-     * @throws Exception
-     */
-    private function authorize(AbstractTool $tool, Dictionary $arguments): void
-    {
-        $context = RequestSecurityContext::current();
-        if ($context === null) {
-            !Application::shared()->accessPolicy instanceof DefaultAccessPolicy ?: throw new ForbiddenException("No security context is in effect, so tools cannot be called.");
-            return;
-        }
-        if (!$context->isSecurityEnabled) {
-            return;
-        }
-        $declaration = $tool->authorizationRequirements($arguments) ?? throw new ForbiddenException(sprintf("%s does not declare what it must be authorized for, so it cannot be called.", $tool->name));
-        if ($declaration->isNone) {
-            return;
-        }
-        !$declaration->requirements->isEmpty ?: throw new ForbiddenException(sprintf("%s does not declare what it must be authorized for, so it cannot be called.", $tool->name));
-        $user = $context->user ?? throw new ForbiddenException("You must be authenticated to perform this action.");
-        foreach ($declaration->requirements as $requirement) {
-            Application::shared()->authorizationService->isAuthorized($user, $requirement->resource, $requirement->action, $context->scopes, $context->managedObjectContext) ?: throw new ForbiddenException(sprintf("You don't have permission to %s \"%s\".", $requirement->action->name, $requirement->resource));
-        }
     }
 
     private function reason(InternalInconsistencyException $exception): string

@@ -14,6 +14,7 @@ use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Predicates\Expression;
+use Sabatier\Service\AuthorizationType;
 use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\Schema\AttributeSchema;
 use function Sabatier\Foundation\fatal_error;
@@ -55,19 +56,6 @@ final class AggregateTool extends AbstractTool
     }
 
     /**
-     * @throws Exception
-     */
-    #[Override]
-    public function authorizationRequirements(Dictionary $arguments): ?AuthorizationRequirements
-    {
-        /** @var string $entity */
-        $entity = $arguments["entity"] ?? fatal_error("entity required");
-        /** @var string $property */
-        $property = $arguments["property"] ?? fatal_error("property required");
-        return AuthorizationRequirements::of($this->readRequirements($entity, $this->predicateKeyPaths($arguments["predicate"], $arguments["arguments"])->appendingContentsOf([$property])));
-    }
-
-    /**
      * @return ArrayClass<ContentItem>
      * @throws JsonException
      * @throws Exception
@@ -81,6 +69,7 @@ final class AggregateTool extends AbstractTool
         $function = $arguments["function"] ?? fatal_error("function required");
         /** @var string $property */
         $property = $arguments["property"] ?? fatal_error("property required");
+        $this->enforceEntityAuthorization($entity, AuthorizationType::read);
         in_array($function, self::allowedFunctions, true) ?: fatal_error("Invalid function");
         $this->validateKeyPath($entity, $property);
         $this->enforceFieldRead($entity, $property);
@@ -90,7 +79,12 @@ final class AggregateTool extends AbstractTool
             in_array($attribute->type, ["integer", "float", "enum"], true) ?: fatal_error("Property must be numeric type \"$attribute->type\" given");
         }
         $request = $this->fetchRequest($entity);
-        $request->predicate = $this->predicateFromArguments($entity, $arguments["predicate"], $arguments["arguments"]);
+        $predicate = $arguments["predicate"];
+        $params = $this->resolveVariables($arguments["arguments"] ?? new ArrayClass());
+        if ($predicate) {
+            $this->validatePredicateKeyPaths($entity, $predicate, $params);
+            $request->predicate = $this->buildPredicate($predicate, $params);
+        }
         $this->applySecurityScope($request);
         $result = in_array($function, self::inMemoryFunctions, true) ? $this->computeInMemory($request, $property, $function) : $this->computeDatabase($request, $property, $function);
         return $this->jsonResult(["entity" => $entity, "function" => $function, "property" => $property, "result" => round($result, 4)]);

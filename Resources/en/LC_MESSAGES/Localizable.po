@@ -120,19 +120,3 @@ msgstr ""
 
 msgid "The file could not be received."
 msgstr ""
-
-#, php-format
-msgid "You don't have permission to create \"%s\" rows."
-msgstr ""
-
-#, php-format
-msgid "You don't have permission to update \"%s\" rows."
-msgstr ""
-
-#, php-format
-msgid "You don't have permission to delete \"%s\" rows."
-msgstr ""
-
-#, php-format
-msgid "You don't have permission to modify \"%s\" on \"%s\"."
-msgstr ""

@@ -4,16 +4,12 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\MCP\Tools;
 
-use Exception;
 use JsonException;
 use Override;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
-use Sabatier\Service\Application;
-use Sabatier\Service\AuthorizationType;
 use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\Schema\EntitySchema;
-use Sabatier\Service\MCP\Schema\RelationshipSchema;
 use function Sabatier\Foundation\fatal_error;
 
 /**
@@ -60,7 +56,7 @@ final class DescribeModelTool extends AbstractTool
                 return $this->index;
             }
             $schema = $this->descriptor->schema;
-            $entities = $this->readableEntities->mapValues(fn(EntitySchema $entity): array => [
+            $entities = $schema->entities->mapValues(fn(EntitySchema $entity): array => [
                 "class" => $entity->className,
                 "es" => $entity->label,
                 "aliases" => $entity->aliases,
@@ -73,27 +69,6 @@ final class DescribeModelTool extends AbstractTool
                 "usage" => "Call describe_model with {\"entity\": [\"Order\"]} — or {\"entity\": [\"Order\", \"Customer\"]} for several — for the full attributes, relationships and enum cases of those entities. \"entity\" is always a JSON array of strings, never a bare string.",
             ];
         }
-    }
-
-    /** @var Dictionary<EntitySchema> The entities the caller may read. */
-    private Dictionary $readableEntities {
-        get {
-            if (isset($this->readableEntities)) {
-                return $this->readableEntities;
-            }
-            $entities = $this->descriptor->schema->entities;
-            if (!$this->isSecurityEnabled) {
-                return $this->readableEntities = $entities;
-            }
-            $readable = $entities->filter(fn(EntitySchema $entity, string $name): bool => $this->isReadable($name));
-            return $this->readableEntities = $readable->mapValues(fn(EntitySchema $entity): EntitySchema => new EntitySchema($entity->name, $entity->className, $entity->label, $entity->aliases, $entity->attributes, $entity->relationships->filter(fn(RelationshipSchema $relationship): bool => $readable->offsetExists($relationship->target)), $entity->abstract));
-        }
-    }
-
-    #[Override]
-    public function authorizationRequirements(Dictionary $arguments): ?AuthorizationRequirements
-    {
-        return AuthorizationRequirements::none();
     }
 
     /**
@@ -115,26 +90,16 @@ final class DescribeModelTool extends AbstractTool
     private function detail(ArrayClass $names): array
     {
         $schema = $this->descriptor->schema;
-        $readable = $this->readableEntities;
         $entities = $names->reduce(new Dictionary(),
             /**
              * @param Dictionary<EntitySchema> $carry
              * @param string $name
              * @return Dictionary<EntitySchema>
              */
-            function (Dictionary $carry, string $name) use ($readable): Dictionary {
-                $carry[$name] = $readable[$name] ?? fatal_error("Unknown entity: \"$name\". Call describe_model with no argument for the list of entities.");
+            function (Dictionary $carry, string $name) use ($schema): Dictionary {
+                $carry[$name] = $schema->entities[$name] ?? fatal_error("Unknown entity: \"$name\". Call describe_model with no argument for the list of entities.");
                 return $carry;
             });
         return ["entities" => $entities, "predicate_syntax" => $schema->predicateGuide];
-    }
-
-    /**
-     * @throws Exception
-     */
-    private function isReadable(string $entityName): bool
-    {
-        $user = $this->user;
-        return $user !== null && Application::shared()->authorizationService->isAuthorized($user, $entityName, AuthorizationType::read, $this->fieldSecurityPolicy->scopes, $this->context);
     }
 }

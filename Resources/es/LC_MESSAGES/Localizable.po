@@ -123,19 +123,3 @@ msgstr "No se envió ningún archivo."
 
 msgid "The file could not be received."
 msgstr "No se pudo recibir el archivo."
-
-#, php-format
-msgid "You don't have permission to create \"%s\" rows."
-msgstr "No tienes permiso para crear filas \"%s\"."
-
-#, php-format
-msgid "You don't have permission to update \"%s\" rows."
-msgstr "No tienes permiso para actualizar filas \"%s\"."
-
-#, php-format
-msgid "You don't have permission to delete \"%s\" rows."
-msgstr "No tienes permiso para eliminar filas \"%s\"."
-
-#, php-format
-msgid "You don't have permission to modify \"%s\" on \"%s\"."
-msgstr "No tienes permiso para modificar \"%s\" en \"%s\"."

@@ -7,20 +7,8 @@ onward.
 
 ## [Unreleased]
 
-### Added
-
-- `AbstractTool::authorizationRequirements()` and `AuthorizationRequirements`, through which a tool declares what each call must be authorized for: a set of `(resource, action)` permissions, or `AuthorizationRequirements::none()` for a call that touches no entity. The default is undeclared.
-- `RequestSecurityContext`, the policy, subject, scopes and managed object context of the request being served, fixed by `Application` once access is enforced. `RequestSecurityContext::perform()` fixes one for a body of work — a command-line job that uses tools needs it — and `RequestSecurityContext::performAsSystem()` marks writes as the system's bookkeeping rather than the subject's.
-- `Sabatier\Service\Testing\FixesRequestSecurityContext`, a test-case trait that fixes a context for the rest of a test.
-
 ### Changed
 
-- **Breaking:** `ToolRegistry` authorizes every tool call before running it, against the tool's declaration. With security enabled, a tool that declares nothing, or whose declaration comes out empty, is denied, so every custom tool in `src/MCPTools/` must implement `authorizationRequirements()` before it can be called. With no security context in effect — a command-line job — every call is denied, whatever the tool declares, unless the application's access policy is not `DefaultAccessPolicy`. The in-process agent goes through the same check. The `mcp:create` gate on the channel is unchanged.
-- **Breaking:** every save of the request's managed object context is held to the subject's permissions, whatever code made the changes — a custom responder, a custom tool, a job run through `run_job`. Each inserted, updated and deleted object needs `create`, `update` or `delete` on its entity, including rows a delete cascades to or a `nullify` rule unlinks; ownership and the resource-level `#[Writable]` are judged by the values the row had before the change; under `own`, a row must not belong to another user after the change either, so a new row cannot be assigned to someone else and an existing one cannot be handed over; every changed property is held to its field-level `#[Writable]`; and linking an existing row needs `read` on its entity and visibility of the row. A responder that declares its content public, a request with no authenticated subject, a command-line job, and writes inside `performAsSystem()` are not checked. A public responder's exemption covers its own writes only: the tools it runs are still authorized, and their writes checked.
-- The built-in tools declare every entity a call reaches — through a projection, a predicate (including functions, collection operators and nested `SUBQUERY`s), a having predicate, a sort, a grouping or nested values — instead of only the one they are named after, and no longer call `enforceEntityAuthorization()` themselves.
-- A nested row linked or updated through a relationship whose target is abstract must name its concrete entity with `entityName`; a bare identifier there is refused.
-- `describe_model` lists only the entities the caller may read, and each one only the relationships leading to another readable entity. A hidden entity reads as unknown.
-- A tool's security state comes from the request security context rather than from the application's access policy. A tool run outside any context fails closed under `DefaultAccessPolicy`; an application with no security keeps running its tools unchecked, as before.
 - Upload failures are reported in the active language. The messages `UploadsEnumerator` produces bypassed `localized_string`, so they stayed in English under every locale; the English and Spanish catalogs carry them now. `JobTool`'s strings are excluded from extraction, so they no longer reach the application catalog.
 
 ## [1.0.0] - 2026-09-18

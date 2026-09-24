@@ -30,7 +30,6 @@ use Sabatier\Service\MCP\Tools\AbstractTool;
 use Sabatier\Service\MCP\Tools\ToolRegistry;
 use Sabatier\Service\Owner;
 use Sabatier\Service\Readable;
-use Sabatier\Service\Testing\FixesRequestSecurityContext;
 
 // --- Fixtures ---
 
@@ -110,8 +109,6 @@ final class SecurityProbeTool extends AbstractTool
  */
 final class MCPToolSecurityTest extends TestCase
 {
-    use FixesRequestSecurityContext;
-
     private function makeRole(string $name): AuthorizableRole
     {
         return new class($name) implements AuthorizableRole {
@@ -363,7 +360,6 @@ final class MCPToolSecurityTest extends TestCase
     #[Test]
     public function toolRegistryAppendsRetryStopperToAuthorizationDenials(): void
     {
-        $this->fixRequestSecurityContext($this->unrestrictedRequestSecurityContext());
         $context = new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor();
         $descriptor = new ReflectionClass(ModelDescriptor::class)->newInstanceWithoutConstructor();
         $tool = new class($context, $descriptor) extends AbstractTool {

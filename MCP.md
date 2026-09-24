@@ -19,7 +19,7 @@ These hold across every tool:
 - **Predicates** use the `NSPredicate` format-string syntax: `%K` for a key path, `%@` for a string or object, `%d` for an integer, `%f` for a float. The `arguments` array supplies one value per placeholder, in order — the count must match exactly. Key paths traverse relationships with dot notation (`customer.area.name`). Enum-typed attributes take the integer backing value, never the case name.
 - **Enum values** are integers. `describe_model` reports each enum's `cases` map (case name → integer); pass the integer.
 - **Every key path and predicate placeholder is validated against the in-memory schema before the database is touched**, so an invalid field name produces a clear message rather than a SQL error.
-- **Security is enforced per call.** Because the request URL is always `/mcp`, the URL-driven guards that protect a regular REST endpoint never fire, and `mcp:create` only admits the caller to the channel. Entity-level RBAC is checked by the registry before a tool runs, against the permissions the tool declares for that call — every entity it reads or writes, not only the one it is named after. Each tool re-applies the row- and field-level checks itself (ownership scope, resource-level and field-level `#[Readable]`/`#[Writable]`), and every save is held to the caller's permissions by the write observer, cascades included. A tool returns only rows the caller may read and mutates only rows the caller may write; a denied write raises `ForbiddenException`.
+- **Security is enforced per call.** Because the request URL is always `/mcp`, the URL-driven guards that protect a regular REST endpoint never fire; each tool re-applies the equivalent checks itself (RBAC, ownership scope, resource-level and field-level `#[Readable]`/`#[Writable]`). A tool returns only rows the caller may read and mutates only rows the caller may write; a denied write raises `ForbiddenException`.
 
 ---
 
@@ -179,7 +179,7 @@ Run a named domain job in the current request — the MCP surface over the same 
 |-----------|--------|----------|-------------|
 | `job`     | string | yes      | Name of the job to run. Matches the job's class short name unless the job overrides its `name` hook. |
 
-The job runs against the request context, and its changes are saved in the same transaction boundary the CRUD tools keep. An unknown name comes back as a correctable failure listing the available jobs; a job that throws propagates its fault out of the registry funnel. Running a job is a coarse action that may read or write, so every call declares the `Jobs` resource with `AuthorizationType::any` — seed a `Jobs` permission of type `any` on the roles allowed to invoke jobs. What the job writes is still held to the caller's own permissions when the tool saves. Returns `{"status": "completed", "job": <name>}`.
+The job runs against the request context, and its changes are saved in the same transaction boundary the CRUD tools keep. An unknown name comes back as a correctable failure listing the available jobs; a job that throws propagates its fault out of the registry funnel. Running a job is a coarse action that may read or write, so authorization is enforced per call against the `Jobs` resource with `AuthorizationType::any` — seed a `Jobs` permission of type `any` on the roles allowed to invoke jobs. Returns `{"status": "completed", "job": <name>}`.
 
 ---
 
@@ -258,7 +258,7 @@ These are [MCP hints, not authorization](https://modelcontextprotocol.io/specifi
 
 ## Custom Tools
 
-Drop a class extending `AbstractTool` in the application's `src/MCPTools/` directory and the framework discovers it at startup — no registration step. The constructor receives the `ManagedObjectContext` and the `ModelDescriptor`; the subclass supplies three members, and declares what each call must be authorized for:
+Drop a class extending `AbstractTool` in the application's `src/MCPTools/` directory and the framework discovers it at startup — no registration step. The constructor receives the `ManagedObjectContext` and the `ModelDescriptor`; the subclass supplies three members:
 
 ```php
 final class MyTool extends AbstractTool
@@ -269,11 +269,6 @@ final class MyTool extends AbstractTool
         get => ["type" => "object", "properties" => [ /* … */ ], "required" => [ /* … */ ]];
     }
 
-    public function authorizationRequirements(Dictionary $arguments): ?AuthorizationRequirements
-    {
-        return AuthorizationRequirements::of($this->readRequirements("Order", new ArrayClass(["customer.name"])));
-    }
-
     public function execute(Dictionary $arguments): ArrayClass
     {
         // … build the result, then wrap it …
@@ -281,25 +276,6 @@ final class MyTool extends AbstractTool
     }
 }
 ```
-
-**Declaring authorization — mandatory**
-
-`ToolRegistry` checks the declaration after the arguments pass the input schema and before `execute()` runs. With security enabled, a tool that declares nothing — `authorizationRequirements()` returns `null` by default — is denied, and so is a declaration that comes out empty; an accidental empty set never reads as permission. Return one of:
-
-- `AuthorizationRequirements::none()` — the call touches no entity (a clock, a web search). The channel gate still applies.
-- `AuthorizationRequirements::one($resource, $action)` or `AuthorizationRequirements::of($requirements)` — every `(resource, action)` the call needs. Declare every entity the call reaches, not only the one it is named after: an entity it only filters or orders by is still read.
-
-Derive the declaration from the same functions `execute()` reads its arguments with, so the check and the work cannot read them differently. The helpers the built-in tools use are available:
-
-- `readRequirements(string $entityName, iterable $keyPaths)` — `read` on the entity and on every entity the key paths cross.
-- `predicateKeyPaths(?string $format, ?ArrayClass $arguments)` — the key paths the predicate a call names reads, `SUBQUERY` variables included. It builds the predicate without validating it against the schema: the declaration runs before the call is authorized, and the validation's messages would list the entity's structure to a caller without `read` on it.
-- `predicateFromArguments(string $entityName, ?string $format, ?ArrayClass $arguments): ?Predicate` — the validated predicate, for `execute()`.
-- `shapeKeyPaths(Dictionary $shape)` — the key paths a serialization shape reaches.
-- `writeRequirements(string $entityName, Dictionary $values)` — the related rows a create or update names: nested rows to create, existing rows to update, existing rows to link (`read`).
-
-A call made with no security context in effect — a tool run from a command-line job — is denied whatever it declares; fix one with `RequestSecurityContext::perform()`. An application whose access policy is not `DefaultAccessPolicy` has no security to enforce, so its tools run without a context too. Tests do the same through the `Sabatier\Service\Testing\FixesRequestSecurityContext` trait.
-
-What a declaration cannot know — rows a delete cascades to, rows a `nullify` rule unlinks — is checked when the save runs: the write observer holds every inserted, updated and deleted object to `create`, `update` or `delete` on its entity, judges ownership and the resource-level `#[Writable]` by the row's committed values, and requires `read` and visibility for every existing row a write links.
 
 `AbstractTool` provides the helpers the built-in tools are built from:
 
@@ -325,7 +301,7 @@ The URL is always `/mcp`, so the endpoint guards never fire. A custom tool that 
 |--------|----------|
 | `applySecurityScope(FetchRequest $request)` | on **every** `FetchRequest` before executing it — folds in the `own` ownership scope and the resource-level `#[Readable]`. |
 | `enforceFieldRead(string $entityName, string $keyPath)` | on every key path an aggregate computes over or groups by — a protected column stays protected even over permitted rows. |
-| `enforceEntityAuthorization(string $resource, AuthorizationType $action)` | only for a permission that cannot be known before `execute()` runs — anything that can belongs in the declaration. |
+| `enforceEntityAuthorization(string $resource, AuthorizationType $action)` | to check per-entity RBAC for the resource and action. |
 | `enforceResourceAccess(ManagedObject $object)` | on every object created, updated or deleted — enforces the resource-level `#[Writable]`. On create, call it *after* populating the object. |
 | `enforceOwnership(ManagedObject $object)` | on an object being updated or deleted — enforces the `#[Owner]` field. |
 | `applySecureRead(ManagedObject $object, Dictionary $data): Dictionary` | to filter a serialized object down to the fields the caller may read. |

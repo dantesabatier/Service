@@ -13,7 +13,6 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\Tools\AbstractTool;
 use Sabatier\Service\MCP\Tools\ToolRegistry;
-use Sabatier\Service\Testing\FixesRequestSecurityContext;
 
 /**
  * Fixes what the registry answers when the model calls a tool with arguments its schema does not declare.
@@ -25,15 +24,6 @@ use Sabatier\Service\Testing\FixesRequestSecurityContext;
  */
 final class ToolRegistrySchemaTest extends TestCase
 {
-    use FixesRequestSecurityContext;
-
-    #[Override]
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->fixRequestSecurityContext($this->unrestrictedRequestSecurityContext());
-    }
-
     private function registry(): ToolRegistry
     {
         /** @var AbstractTool $tool */

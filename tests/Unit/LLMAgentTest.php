@@ -39,20 +39,10 @@ use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
 use Sabatier\Service\MCP\Tools\AbstractTool;
 use Sabatier\Service\MCP\Tools\ToolRegistry;
-use Sabatier\Service\Testing\FixesRequestSecurityContext;
 use Throwable;
 
 final class LLMAgentTest extends TestCase
 {
-    use FixesRequestSecurityContext;
-
-    #[Override]
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->fixRequestSecurityContext($this->unrestrictedRequestSecurityContext());
-    }
-
     #[Test]
     public function delegatesToAReplaceableLoopThroughAnIsolatedGuardedRuntime(): void
     {

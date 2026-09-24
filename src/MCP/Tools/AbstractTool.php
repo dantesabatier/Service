@@ -34,7 +34,6 @@ use Sabatier\Service\MCP\Schema\EntitySchema;
 use Sabatier\Service\MCP\Schema\ModelDescriptor;
 use Sabatier\Service\MCP\Schema\RelationshipSchema;
 use Sabatier\Service\OwnerResolver;
-use Sabatier\Service\RequestSecurityContext;
 use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\human_readable_value;
 use function Sabatier\Foundation\localized_string;
@@ -92,13 +91,13 @@ abstract class AbstractTool
     private ToolVocabulary $vocabulary {
         get => $this->vocabulary ??= ToolVocabulary::forBundle(Bundle::bundleForClass(static::class));
     }
-    /** @var bool Whether security enforcement is enabled for this call. */
+    /** @var bool Whether security enforcement is enabled for this request. */
     protected bool $isSecurityEnabled {
-        get => RequestSecurityContext::current()?->isSecurityEnabled ?? Application::shared()->accessPolicy instanceof DefaultAccessPolicy;
+        get => Application::shared()->accessPolicy instanceof DefaultAccessPolicy;
     }
-    /** @var AuthorizationContext Authorization context derived from the request security context. */
+    /** @var AuthorizationContext Authorization context derived from the current authentication. */
     protected AuthorizationContext $authorizationContext {
-        get => $this->authorizationContext ??= new AuthorizationContext(RequestSecurityContext::current()?->user, RequestSecurityContext::current()?->scopes ?? new ArrayClass(), $this->isSecurityEnabled);
+        get => $this->authorizationContext ??= new AuthorizationContext(Application::shared()->authenticationManager->authentication->authenticatedUser, Application::shared()->authenticationManager->authentication->authorizationScopes, $this->isSecurityEnabled);
     }
     /** @var FieldSecurityPolicy Security policy used for field-level read/write enforcement. */
     protected FieldSecurityPolicy $fieldSecurityPolicy {
@@ -125,17 +124,6 @@ abstract class AbstractTool
     public function isReadOnlyCall(Dictionary $arguments): bool
     {
         return $this->isReadOnly;
-    }
-
-    /**
-     * Declares what this invocation must be authorized for; `ToolRegistry` denies an undeclared call when security is enabled.
-     *
-     * @param Dictionary<mixed> $arguments
-     * @throws Exception
-     */
-    public function authorizationRequirements(Dictionary $arguments): ?AuthorizationRequirements
-    {
-        return null;
     }
 
     /**
@@ -399,114 +387,6 @@ abstract class AbstractTool
     protected function buildPredicate(string $format, ArrayClass $arguments): Predicate
     {
         return Predicate::format($format, $arguments) ?? fatal_error("Invalid predicate format");
-    }
-
-    /**
-     * @param ArrayClass<mixed>|null $arguments
-     */
-    protected function predicateFromArguments(string $entityName, ?string $format, ?ArrayClass $arguments): ?Predicate
-    {
-        if (!$format) {
-            return null;
-        }
-        $params = $this->resolveVariables($arguments ?? new ArrayClass());
-        $this->validatePredicateKeyPaths($entityName, $format, $params);
-        return $this->buildPredicate($format, $params);
-    }
-
-    /**
-     * @param iterable<string> $keyPaths
-     * @return ArrayClass<AuthorizationRequirement>
-     */
-    protected function readRequirements(string $entityName, iterable $keyPaths = []): ArrayClass
-    {
-        $requirements = new ArrayClass([new AuthorizationRequirement($entityName, AuthorizationType::read)]);
-        foreach ($keyPaths as $keyPath) {
-            $schema = $this->entity($entityName);
-            foreach (explode(".", $keyPath) as $part) {
-                $relationship = $schema->relationships[$part];
-                $target = $relationship instanceof RelationshipSchema ? $this->descriptor->schema->entities[$relationship->target] : null;
-                if (!$relationship instanceof RelationshipSchema || !$target instanceof EntitySchema) {
-                    break;
-                }
-                $requirements->append(new AuthorizationRequirement($relationship->target, AuthorizationType::read));
-                $schema = $target;
-            }
-        }
-        return $requirements;
-    }
-
-    /**
-     * Not validated against the schema: this runs before authorization, and the validation's messages would list the entity's structure to a caller without `read` on it.
-     *
-     * @param ArrayClass<mixed>|null $arguments
-     * @return ArrayClass<string>
-     */
-    protected function predicateKeyPaths(?string $format, ?ArrayClass $arguments): ArrayClass
-    {
-        if (!$format) {
-            return new ArrayClass();
-        }
-        return new ArrayClass(PredicateKeyPathCollector::keyPaths($this->buildPredicate($format, $this->resolveVariables($arguments ?? new ArrayClass())))->array);
-    }
-
-    /**
-     * @param ArrayClass<Dictionary<mixed>>|null $sort
-     * @return ArrayClass<non-empty-string>
-     */
-    protected function sortKeyPaths(?ArrayClass $sort): ArrayClass
-    {
-        /** @var ArrayClass<Dictionary<mixed>> $items */
-        $items = $sort ?? new ArrayClass();
-        return $items->compactMap(fn(Dictionary $item): ?string => ($key = (string)$item["key"]) !== "" ? $key : null);
-    }
-
-    /**
-     * @param Dictionary<mixed> $shape
-     * @return ArrayClass<string>
-     */
-    protected function shapeKeyPaths(Dictionary $shape, string $prefix = ""): ArrayClass
-    {
-        return $shape->flatMap(fn(mixed $value, string $key): ArrayClass => new ArrayClass(["$prefix$key"])->appendingContentsOf($value instanceof Dictionary ? $this->shapeKeyPaths($value, "$prefix$key.") : []));
-    }
-
-    /**
-     * @param Dictionary<mixed> $values
-     * @return ArrayClass<AuthorizationRequirement>
-     */
-    protected function writeRequirements(string $entityName, Dictionary $values): ArrayClass
-    {
-        $schema = $this->entity($entityName);
-        return $values->flatMap(function (mixed $value, string $key) use ($schema): ArrayClass {
-            $relationship = $schema->relationships[$key];
-            if (!$relationship instanceof RelationshipSchema || $value === null) {
-                return new ArrayClass();
-            }
-            return ($value instanceof ArrayClass ? $value : new ArrayClass([$value]))->flatMap(fn(mixed $member): ArrayClass => $this->relatedRowRequirements($relationship->target, $member));
-        });
-    }
-
-    /**
-     * @param string $target
-     * @param mixed $member
-     * @return ArrayClass<AuthorizationRequirement>
-     */
-    private function relatedRowRequirements(string $target, mixed $member): ArrayClass
-    {
-        $concreteEntityName = $member instanceof Dictionary ? $member["entityName"] : null;
-        !$this->entity($target)->abstract || $concreteEntityName !== null ?: fatal_error("\"$target\" is an abstract entity: name the concrete sub-entity of every row it links with \"entityName\", e.g. {\"objectID\": 42, \"entityName\": \"…\"}.");
-        if (!$member instanceof Dictionary) {
-            return new ArrayClass([new AuthorizationRequirement($target, AuthorizationType::read)]);
-        }
-        /** @var string $entityName */
-        $entityName = $concreteEntityName ?? $target;
-        $fields = $member->filter(fn(mixed $value, string $key): bool => $key !== ManagedObjectObjectIDKey && $key !== "entityName");
-        $action = match (true) {
-            !$member->offsetExists(ManagedObjectObjectIDKey) => AuthorizationType::create,
-            $fields->isEmpty => AuthorizationType::read,
-            default => AuthorizationType::update,
-        };
-        return new ArrayClass([new AuthorizationRequirement($entityName, $action)])->appendingContentsOf($this->writeRequirements($entityName, $member));
     }
 
     protected function normalizeRelationships(string $entityName, Dictionary $values): Dictionary

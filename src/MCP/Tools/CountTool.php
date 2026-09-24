@@ -8,6 +8,7 @@ use Exception;
 use Override;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
+use Sabatier\Service\AuthorizationType;
 use Sabatier\Service\MCP\Response\ContentItem;
 use function Sabatier\Foundation\fatal_error;
 
@@ -41,17 +42,6 @@ final class CountTool extends AbstractTool
     }
 
     /**
-     * @throws Exception
-     */
-    #[Override]
-    public function authorizationRequirements(Dictionary $arguments): ?AuthorizationRequirements
-    {
-        /** @var string $entity */
-        $entity = $arguments["entity"] ?? fatal_error("entity is required");
-        return AuthorizationRequirements::of($this->readRequirements($entity, $this->predicateKeyPaths($arguments["predicate"], $arguments["arguments"])));
-    }
-
-    /**
      * @return ArrayClass<ContentItem>
      * @throws Exception
      */
@@ -60,8 +50,16 @@ final class CountTool extends AbstractTool
     {
         /** @var string $entity */
         $entity = $arguments["entity"] ?? fatal_error("entity is required");
+        $this->enforceEntityAuthorization($entity, AuthorizationType::read);
         $request = $this->fetchRequest($entity);
-        $request->predicate = $this->predicateFromArguments($entity, $arguments["predicate"], $arguments["arguments"]);
+        /** @var string|null $predicate */
+        $predicate = $arguments["predicate"];
+        /** @var ArrayClass<mixed> $params */
+        $params = $this->resolveVariables($arguments["arguments"] ?? new ArrayClass());
+        if ($predicate) {
+            $this->validatePredicateKeyPaths($entity, $predicate, $params);
+            $request->predicate = $this->buildPredicate($predicate, $params);
+        }
         $this->applySecurityScope($request);
         return $this->jsonResult(["count" => $this->context->count($request)]);
     }

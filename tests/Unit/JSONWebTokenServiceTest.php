@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
 
+use Exception;
 use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Sabatier\Foundation\ArrayClass;
+use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Service\JSONWebToken;
 use Sabatier\Service\JSONWebTokenCoderStrategyRegistrar;
 use Sabatier\Service\JSONWebTokenException;
@@ -16,14 +19,42 @@ use Sabatier\Service\JSONWebTokenRS256DecoderStrategy;
 use Sabatier\Service\JSONWebTokenRS256EncoderStrategy;
 use Sabatier\Service\JSONWebTokenService;
 use Sabatier\Service\JSONWebTokenSigningAlgorithm;
-use Sabatier\Foundation\ProcessInfo;
+use function Sabatier\Foundation\base64_url_encode;
+use function Sabatier\Foundation\string_split_trimmed;
 use const Sabatier\Service\JWTIssuerEnvironmentKey;
 use const Sabatier\Service\JWTIssuerKey;
 use const Sabatier\Service\JWTSubjectKey;
 
 final class JSONWebTokenServiceTest extends TestCase
 {
-    private const KEY = "test-hs256-secret";
+    private const string key = "test-hs256-secret";
+
+    private const string rsaPrivateKey = <<<PEM
+    -----BEGIN RSA PRIVATE KEY-----
+    MIICXQIBAAKBgQCuho711xur6hCtUmkfII3XY293L3sKAbd7Fo5WaheRwHaT6s0W
+    1AunAAI8yCiF9gZuoqh6BbXiIosoB7EverVJwHinirQ3pkfA+pvw6g/06e0yjNpq
+    nVHGNZngZunjF6qLpAZ6kzLuVN5IQzrmTkdFrMWy+DnPPDM1repZ5Eh+UQIDAQAB
+    AoGAAKOdgmj3QPnqdbgHioWj/1Xt4pHZ8X9wHJNIkihxTadWx9PkTGEaadImL/LL
+    szHjdCREWa4LrHhT6iGdFH9uioUNUt01cg3COA201mmbT9szUxTpt7FrUCrh2c0S
+    enDwlFjk/cqvZOWF/7FRFhW5adpdiLQJyG/nEhAt/UZCfAECQQDbYVnfJRUAxu4l
+    Rq0ciGXIr+Jl52kR7I4Ow8Ln2/UjAGhpYlDT/Ekc6+Z1/StQ8xNpwxkWr59B6CMl
+    lQGDaqkpAkEAy6h1orIOKXqftoQSQyghyINpf7JcELjcNcANlBb7YGA7Qb8qF4xs
+    xezRdxOzuZjp9t0xzdI2to09/751+rlI6QJBAL6GhLvUg7IiEm9TO0L9fpBVmGTy
+    HgFQFWvjPiGJmRMl5ognt5TzlTfF9GfiUL1D7kc7Bk36hnCBwAyCpUbR2kkCQBAQ
+    4AbPqRJYnBTX4mDt34xj4YSzW1PuYWDUH74Y+gemT8ZmADoPV91dS0DrivgPOhXB
+    aVZlSO+pwMRWEBSRXVECQQCiQWCTLWWDEl3wGaNNQ68YLRqnZ8ysHx3jF5MudO+Q
+    Ro2p+a0l4XY7mW+/KXu4KagewqWsbJIEENdbq+qBI4mq
+    -----END RSA PRIVATE KEY-----
+    PEM;
+
+    private const string rsaPublicKey = <<<PEM
+    -----BEGIN PUBLIC KEY-----
+    MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCuho711xur6hCtUmkfII3XY293
+    L3sKAbd7Fo5WaheRwHaT6s0W1AunAAI8yCiF9gZuoqh6BbXiIosoB7EverVJwHin
+    irQ3pkfA+pvw6g/06e0yjNpqnVHGNZngZunjF6qLpAZ6kzLuVN5IQzrmTkdFrMWy
+    +DnPPDM1repZ5Eh+UQIDAQAB
+    -----END PUBLIC KEY-----
+    PEM;
 
     private ?string $originalIssuer = null;
 
@@ -46,33 +77,6 @@ final class JSONWebTokenServiceTest extends TestCase
         }
     }
 
-    private const RSA_PRIVATE_KEY = <<<PEM
-    -----BEGIN RSA PRIVATE KEY-----
-    MIICXQIBAAKBgQCuho711xur6hCtUmkfII3XY293L3sKAbd7Fo5WaheRwHaT6s0W
-    1AunAAI8yCiF9gZuoqh6BbXiIosoB7EverVJwHinirQ3pkfA+pvw6g/06e0yjNpq
-    nVHGNZngZunjF6qLpAZ6kzLuVN5IQzrmTkdFrMWy+DnPPDM1repZ5Eh+UQIDAQAB
-    AoGAAKOdgmj3QPnqdbgHioWj/1Xt4pHZ8X9wHJNIkihxTadWx9PkTGEaadImL/LL
-    szHjdCREWa4LrHhT6iGdFH9uioUNUt01cg3COA201mmbT9szUxTpt7FrUCrh2c0S
-    enDwlFjk/cqvZOWF/7FRFhW5adpdiLQJyG/nEhAt/UZCfAECQQDbYVnfJRUAxu4l
-    Rq0ciGXIr+Jl52kR7I4Ow8Ln2/UjAGhpYlDT/Ekc6+Z1/StQ8xNpwxkWr59B6CMl
-    lQGDaqkpAkEAy6h1orIOKXqftoQSQyghyINpf7JcELjcNcANlBb7YGA7Qb8qF4xs
-    xezRdxOzuZjp9t0xzdI2to09/751+rlI6QJBAL6GhLvUg7IiEm9TO0L9fpBVmGTy
-    HgFQFWvjPiGJmRMl5ognt5TzlTfF9GfiUL1D7kc7Bk36hnCBwAyCpUbR2kkCQBAQ
-    4AbPqRJYnBTX4mDt34xj4YSzW1PuYWDUH74Y+gemT8ZmADoPV91dS0DrivgPOhXB
-    aVZlSO+pwMRWEBSRXVECQQCiQWCTLWWDEl3wGaNNQ68YLRqnZ8ysHx3jF5MudO+Q
-    Ro2p+a0l4XY7mW+/KXu4KagewqWsbJIEENdbq+qBI4mq
-    -----END RSA PRIVATE KEY-----
-    PEM;
-
-    private const RSA_PUBLIC_KEY = <<<PEM
-    -----BEGIN PUBLIC KEY-----
-    MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCuho711xur6hCtUmkfII3XY293
-    L3sKAbd7Fo5WaheRwHaT6s0W1AunAAI8yCiF9gZuoqh6BbXiIosoB7EverVJwHin
-    irQ3pkfA+pvw6g/06e0yjNpqnVHGNZngZunjF6qLpAZ6kzLuVN5IQzrmTkdFrMWy
-    +DnPPDM1repZ5Eh+UQIDAQAB
-    -----END PUBLIC KEY-----
-    PEM;
-
     #[Override]
     public static function setUpBeforeClass(): void
     {
@@ -81,15 +85,17 @@ final class JSONWebTokenServiceTest extends TestCase
 
     private function hs256(?string $issuer = null): JSONWebTokenService
     {
-        return new JSONWebTokenService(self::KEY, $issuer);
+        return new JSONWebTokenService(self::key, $issuer);
     }
 
+    /** @throws Exception */
     #[Test]
     public function encodeProducesThreeComponentToken(): void
     {
-        $this->assertCount(3, explode(".", $this->hs256()->encode([JWTSubjectKey => "u"])));
+        $this->assertCount(3, string_split_trimmed($this->hs256()->encode([JWTSubjectKey => "u"]), "."));
     }
 
+    /** @throws Exception */
     #[Test]
     public function decodeAfterEncodePreservesSubject(): void
     {
@@ -98,6 +104,7 @@ final class JSONWebTokenServiceTest extends TestCase
         $this->assertSame("user-42", $decoded->payload->subject);
     }
 
+    /** @throws Exception */
     #[Test]
     public function decodedTokenHasHs256AlgorithmHeader(): void
     {
@@ -106,6 +113,7 @@ final class JSONWebTokenServiceTest extends TestCase
         $this->assertSame(JSONWebTokenSigningAlgorithm::hs256->value, $decoded->header->alg);
     }
 
+    /** @throws Exception */
     #[Test]
     public function decodeAfterEncodePreservesAllClaims(): void
     {
@@ -115,25 +123,28 @@ final class JSONWebTokenServiceTest extends TestCase
         $this->assertSame("svc", $decoded->payload->issuer);
     }
 
+    /** @throws Exception */
     #[Test]
     public function tamperedSignatureThrowsException(): void
     {
-        $parts = explode(".", $this->hs256()->encode([JWTSubjectKey => "u"]));
+        $parts = new ArrayClass(string_split_trimmed($this->hs256()->encode([JWTSubjectKey => "u"]), "."));
         $parts[2] = "invalidsig";
         $this->expectException(JSONWebTokenException::class);
-        $this->hs256()->decode(implode(".", $parts));
+        $this->hs256()->decode($parts->join("."));
     }
 
+    /** @throws Exception */
     #[Test]
     public function tamperedPayloadThrowsException(): void
     {
         $svc = $this->hs256();
-        $parts = explode(".", $svc->encode([JWTSubjectKey => "u"]));
-        $parts[1] = rtrim(strtr(base64_encode(json_encode(["sub" => "hacker"])), "+/", "-_"), "=");
+        $parts = new ArrayClass(string_split_trimmed($svc->encode([JWTSubjectKey => "u"]), "."));
+        $parts[1] = base64_url_encode(json_encode(["sub" => "hacker"], JSON_THROW_ON_ERROR));
         $this->expectException(JSONWebTokenException::class);
-        $svc->decode(implode(".", $parts));
+        $svc->decode($parts->join("."));
     }
 
+    /** @throws Exception */
     #[Test]
     public function malformedTokenThrowsException(): void
     {
@@ -141,14 +152,16 @@ final class JSONWebTokenServiceTest extends TestCase
         $this->hs256()->decode("not.a.valid.jwt.with.too.many.parts");
     }
 
+    /** @throws Exception */
     #[Test]
     public function wrongKeyThrowsException(): void
     {
         $encoded = $this->hs256()->encode([JWTSubjectKey => "u"]);
         $this->expectException(JSONWebTokenException::class);
-        (new JSONWebTokenService("wrong-key"))->decode($encoded);
+        new JSONWebTokenService("wrong-key")->decode($encoded);
     }
 
+    /** @throws Exception */
     #[Test]
     public function issuerMismatchThrowsException(): void
     {
@@ -158,6 +171,7 @@ final class JSONWebTokenServiceTest extends TestCase
         $svc->decode($token);
     }
 
+    /** @throws Exception */
     #[Test]
     public function correctIssuerPasses(): void
     {
@@ -166,6 +180,7 @@ final class JSONWebTokenServiceTest extends TestCase
         $this->assertSame("my-svc", $decoded->payload->issuer);
     }
 
+    /** @throws Exception */
     #[Test]
     public function missingIssuerInPayloadPassesAlways(): void
     {
@@ -174,6 +189,7 @@ final class JSONWebTokenServiceTest extends TestCase
         $this->assertNull($decoded->payload->issuer);
     }
 
+    /** @throws Exception */
     #[Test]
     public function environmentIssuerIsUsedWhenNoExplicitIssuer(): void
     {
@@ -183,6 +199,7 @@ final class JSONWebTokenServiceTest extends TestCase
         $this->assertSame("env-issuer", $decoded->payload->issuer);
     }
 
+    /** @throws Exception */
     #[Test]
     public function environmentIssuerMismatchThrowsException(): void
     {
@@ -193,6 +210,7 @@ final class JSONWebTokenServiceTest extends TestCase
         $svc->decode($token);
     }
 
+    /** @throws Exception */
     #[Test]
     public function explicitIssuerTakesPrecedenceOverEnvironment(): void
     {
@@ -203,6 +221,7 @@ final class JSONWebTokenServiceTest extends TestCase
         $svc->decode($token);
     }
 
+    /** @throws Exception */
     #[Test]
     public function withoutEnvironmentIssuerValidationIsSkipped(): void
     {
@@ -211,11 +230,12 @@ final class JSONWebTokenServiceTest extends TestCase
         $this->assertSame("any-issuer", $decoded->payload->issuer);
     }
 
+    /** @throws Exception */
     #[Test]
     public function rs256RoundTripPreservesPayload(): void
     {
-        $encoder = new JSONWebTokenRS256EncoderStrategy(self::RSA_PRIVATE_KEY);
-        $decoder = new JSONWebTokenRS256DecoderStrategy(self::RSA_PUBLIC_KEY);
+        $encoder = new JSONWebTokenRS256EncoderStrategy(self::rsaPrivateKey);
+        $decoder = new JSONWebTokenRS256DecoderStrategy(self::rsaPublicKey);
         $token = new JSONWebToken(
             new JSONWebTokenHeader(JSONWebTokenSigningAlgorithm::rs256->value),
             JSONWebTokenPayload::payload([JWTSubjectKey => "rs256-user"])
@@ -224,18 +244,19 @@ final class JSONWebTokenServiceTest extends TestCase
         $this->assertSame("rs256-user", $decoded->payload->subject);
     }
 
+    /** @throws Exception */
     #[Test]
     public function rs256TamperedSignatureThrowsException(): void
     {
-        $encoder = new JSONWebTokenRS256EncoderStrategy(self::RSA_PRIVATE_KEY);
-        $decoder = new JSONWebTokenRS256DecoderStrategy(self::RSA_PUBLIC_KEY);
+        $encoder = new JSONWebTokenRS256EncoderStrategy(self::rsaPrivateKey);
+        $decoder = new JSONWebTokenRS256DecoderStrategy(self::rsaPublicKey);
         $token = new JSONWebToken(
             new JSONWebTokenHeader(JSONWebTokenSigningAlgorithm::rs256->value),
             JSONWebTokenPayload::payload([JWTSubjectKey => "u"])
         );
-        $parts = explode(".", $encoder->encode($token));
+        $parts = new ArrayClass(string_split_trimmed($encoder->encode($token), "."));
         $parts[2] = "tampered";
         $this->expectException(JSONWebTokenException::class);
-        $decoder->decode(implode(".", $parts));
+        $decoder->decode($parts->join("."));
     }
 }

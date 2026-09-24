@@ -142,6 +142,7 @@ final class AuthorizationEvaluatorTest extends TestCase
             public AuthenticationScheme $scheme { get => AuthenticationScheme::bearer; }
             public ?URLCredential $credential { get => null; }
             public bool $isValid { get => true; }
+            protected(set) ArrayClass $authorizationScopes { get => new ArrayClass(); }
 
             #[Override]
             public static function isSupported(AuthenticationScheme $scheme): bool

@@ -32,9 +32,12 @@ abstract class Authentication
     protected(set) ArrayClass $technicalScopes {
         get => $this->technicalScopes ??= new ArrayClass();
     }
-    /** @var ArrayClass<string> */
+    /** @var ArrayClass<string> The authenticated user's authorization scopes, read from the authorization service's cache; empty without a user or a service. */
     protected(set) ArrayClass $authorizationScopes {
-        get => $this->authorizationScopes ??= new ArrayClass();
+        /**
+         * @throws Exception
+         */
+        get => $this->authorizationScopes ??= ($user = $this->authenticatedUser) && ($service = $this->context->authorizationService) ? $service->authorizationScopes($user, $this->context->managedObjectContext) : new ArrayClass();
     }
     private bool $isAuthenticatedUserResolved = false;
     /** @var Authorizable|null Represents the authenticated user. */

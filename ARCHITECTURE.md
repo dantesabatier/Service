@@ -208,7 +208,7 @@ Field-level security is declared on the managed object class with two PHP attrib
 
 ### Ownership
 
-A single `#[Owner]` attribute on a managed object property designates it as the owner field. `OwnerResolver` discovers it by reflection (also cached), and `OwnershipService` checks equality between the current user and the field value. Ownership enforcement is applied on both reads (predicate injection) and writes (`enforceOwnership` throws `403` if the check fails). It applies to an action only when the token's scopes restrict that action to `own` — `Order:read:own` narrows reads, not deletes — and a scope granting the same action on `all` rows wins.
+A single `#[Owner]` attribute on a managed object property designates it as the owner field. `OwnerResolver` discovers it by reflection (also cached), and `OwnershipService` checks equality between the current user and the field value. Ownership enforcement is applied on both reads (predicate injection) and writes (`enforceOwnership` throws `403` if the check fails). It applies to an action only when the authorization scopes restrict that action to `own` (`Order:read:own` narrows reads, not deletes), and a scope granting the same action on `all` rows wins. A JSON Web Token carries those scopes; a user authenticated with Basic or Digest reads the same ones from `AuthorizationService`'s cache.
 
 ---
 

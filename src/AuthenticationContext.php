@@ -22,8 +22,9 @@ final readonly class AuthenticationContext
      * @param ManagedObjectContext $managedObjectContext The managed object context.
      * @param Dictionary<mixed>|null $serialization The serialization dictionary, if applicable.
      * @param AuthenticationService $authenticationService The authentication service.
+     * @param AuthorizationService|null $authorizationService The authorization service an identity without a token reads its authorization scopes from.
      */
-    public function __construct(public AuthorizationHeader $authorizationHeader, #[ExpectedValues(valuesFromClass: HTTPRequestMethod::class)] public string $httpMethod, public ManagedObjectContext $managedObjectContext, public ?Dictionary $serialization, public AuthenticationService $authenticationService)
+    public function __construct(public AuthorizationHeader $authorizationHeader, #[ExpectedValues(valuesFromClass: HTTPRequestMethod::class)] public string $httpMethod, public ManagedObjectContext $managedObjectContext, public ?Dictionary $serialization, public AuthenticationService $authenticationService, public ?AuthorizationService $authorizationService = null)
     {
     }
 }

@@ -11,6 +11,10 @@ onward.
 
 - `AuthorizationService::authorizations()`, the authorizations an entity holds through its roles, read from the in-request cache, the persistent cache or the database in that order, and `authorizationScopes()`, the same authorizations as the `resource:action:scope` strings a JSON Web Token carries. `isAuthorized()` resolves through the first, so its behaviour is unchanged.
 
+### Changed
+
+- **Breaking:** a user authenticated with Basic or Digest carries authorization scopes, so an `own` scope restricts them as it restricts a JSON Web Token's bearer. Their scopes were empty, which left `own` unenforced: a user granted `Order:read:own` read every order and could modify other users'. `Authentication::$authorizationScopes` now reads them from `AuthorizationService::authorizationScopes()`, the cache `isAuthorized()` already fills, so no query is added; `BearerAuthentication` keeps the scopes its token carries. `AuthenticationContext` takes the `AuthorizationService` as an optional last argument, which `AuthenticationManager` passes; without it the scopes stay empty.
+
 ## [1.2.0] - 2026-09-24
 
 ### Added

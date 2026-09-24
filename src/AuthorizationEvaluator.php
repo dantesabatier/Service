@@ -13,15 +13,12 @@ final class AuthorizationEvaluator implements AuthorizationAccessEvaluator
     #[Override]
     public function evaluate(AccessEvaluationContext $context): bool
     {
-        if (!($user = $context->authentication->authenticatedUser)) {
-            return false;
-        }
-        return $context->authorizationService->isAuthorized($user, ($pathComponents = $context->request->url->pathComponents)->count > 1 ? $pathComponents[1] : $context->request->url->lastPathComponent, match ($context->request->httpMethod) {
+        return Application::shared()->accessPolicy->allowsAccess(($pathComponents = $context->request->url->pathComponents)->count > 1 ? $pathComponents[1] : $context->request->url->lastPathComponent, match ($context->request->httpMethod) {
             HTTPRequestMethod::head, HTTPRequestMethod::get => AuthorizationType::read,
             HTTPRequestMethod::post => AuthorizationType::create,
             HTTPRequestMethod::put, HTTPRequestMethod::patch => AuthorizationType::update,
             HTTPRequestMethod::delete => AuthorizationType::delete,
             default => throw new MethodNotAllowedException()
-        }, $context->authentication->authorizationScopes, $context->managedObjectContext);
+        }, $context->authentication, $context->authorizationService, $context->managedObjectContext);
     }
 }

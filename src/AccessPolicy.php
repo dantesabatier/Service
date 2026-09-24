@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Sabatier\Service;
 
+use Exception;
+use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\ProcessInfo;
 
@@ -36,6 +38,21 @@ abstract class AccessPolicy
      * @param AuthenticationManager $authenticationManager The authentication manager responsible for user authentication.
      */
     abstract public function enforceAccess(Responder $responder, AuthenticationManager $authenticationManager): void;
+
+    /**
+     * Determines whether the authenticated user may perform an action on a resource.
+     *
+     * @param string $resource The resource on which the action is to be performed.
+     * @param AuthorizationType $action The type of action being requested.
+     * @param Authentication $authentication The authentication carrying the user and its authorization scopes.
+     * @param AuthorizationService $authorizationService The service that resolves the user's authorizations.
+     * @param ManagedObjectContext $managedObjectContext The context in which the authorization is being evaluated.
+     * @throws Exception
+     */
+    public function allowsAccess(string $resource, AuthorizationType $action, Authentication $authentication, AuthorizationService $authorizationService, ManagedObjectContext $managedObjectContext): bool
+    {
+        return ($user = $authentication->authenticatedUser) && $authorizationService->isAuthorized($user, $resource, $action, $authentication->authorizationScopes, $managedObjectContext);
+    }
 
     /**
      * Sets the transaction author based on the HTTP method of the request and user authentication context.

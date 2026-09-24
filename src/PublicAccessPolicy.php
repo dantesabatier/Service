@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sabatier\Service;
 
 use Override;
+use Sabatier\CoreData\ManagedObjectContext;
 
 /**
  * PublicAccessPolicy allows unconditional access to a resource.
@@ -17,5 +18,11 @@ final class PublicAccessPolicy extends AccessPolicy
     public function enforceAccess(Responder $responder, AuthenticationManager $authenticationManager): void
     {
         // No access enforcement for public access policy
+    }
+
+    #[Override]
+    public function allowsAccess(string $resource, AuthorizationType $action, Authentication $authentication, AuthorizationService $authorizationService, ManagedObjectContext $managedObjectContext): bool
+    {
+        return true;
     }
 }

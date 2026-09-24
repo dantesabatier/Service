@@ -24,9 +24,13 @@ use Sabatier\Service\AuthenticationScheme;
 use Sabatier\Service\Authorizable;
 use Sabatier\Service\AuthorizationEvaluator;
 use Sabatier\Service\AuthorizationResolver;
+use Sabatier\Service\AuthorizationScope;
 use Sabatier\Service\AuthorizationService;
+use Sabatier\Service\AuthorizationType;
+use Sabatier\Service\CachedAuthorization;
 use Sabatier\Service\InMemoryAuthorizationCache;
 use Sabatier\Service\MethodNotAllowedException;
+use Sabatier\Service\PublicAccessPolicy;
 use Sabatier\Service\Request;
 
 final class AuthorizationEvaluatorTest extends TestCase
@@ -77,6 +81,36 @@ final class AuthorizationEvaluatorTest extends TestCase
         } catch (InternalInconsistencyException $exception) {
             $this->assertStringContainsString("No implementor found", (string)$exception->error->localizedFailureReason);
         }
+    }
+
+    #[Test]
+    public function aUserHoldingThePermissionIsAuthorized(): void
+    {
+        $user = $this->user();
+        new InMemoryAuthorizationCache()->setAuthorizableAuthorizations($user, new ArrayClass([new CachedAuthorization("Order", AuthorizationType::read, AuthorizationScope::all)]));
+        $this->assertTrue(new AuthorizationEvaluator()->evaluate($this->context(HTTPRequestMethod::get, "/Order", $user)));
+    }
+
+    #[Test]
+    public function aUserLackingThePermissionIsDenied(): void
+    {
+        $user = $this->user();
+        new InMemoryAuthorizationCache()->setAuthorizableAuthorizations($user, new ArrayClass([new CachedAuthorization("Order", AuthorizationType::create, AuthorizationScope::all)]));
+        $this->assertFalse(new AuthorizationEvaluator()->evaluate($this->context(HTTPRequestMethod::get, "/Order", $user)));
+    }
+
+    #[Test]
+    public function thePublicPolicyAuthorizesWithoutAUser(): void
+    {
+        $context = $this->context(HTTPRequestMethod::get, "/Order", null);
+        $this->assertTrue(new PublicAccessPolicy()->allowsAccess("Order", AuthorizationType::delete, $context->authentication, $context->authorizationService, $context->managedObjectContext));
+    }
+
+    #[Override]
+    protected function tearDown(): void
+    {
+        new InMemoryAuthorizationCache()->invalidateAll();
+        parent::tearDown();
     }
 
     private function context(string $method, string $path, ?Authorizable $user): AccessEvaluationContext

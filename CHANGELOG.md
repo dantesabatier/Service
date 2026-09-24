@@ -7,6 +7,10 @@ onward.
 
 ## [Unreleased]
 
+### Added
+
+- `AccessPolicy::allowsAccess()`, the decision whether the authenticated user may perform an action on a resource. `AuthorizationEvaluator` asks it rather than `AuthorizationService` directly, and `PublicAccessPolicy` answers yes.
+
 ### Changed
 
 - Upload failures are reported in the active language. The messages `UploadsEnumerator` produces bypassed `localized_string`, so they stayed in English under every locale; the English and Spanish catalogs carry them now. `JobTool`'s strings are excluded from extraction, so they no longer reach the application catalog.

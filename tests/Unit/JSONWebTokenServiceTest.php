@@ -23,7 +23,7 @@ use const Sabatier\Service\JWTSubjectKey;
 
 final class JSONWebTokenServiceTest extends TestCase
 {
-    private const KEY = 'test-hs256-secret';
+    private const KEY = "test-hs256-secret";
 
     private ?string $originalIssuer = null;
 
@@ -84,29 +84,25 @@ final class JSONWebTokenServiceTest extends TestCase
         return new JSONWebTokenService(self::KEY, $issuer);
     }
 
-    // --- Encode format ---
-
     #[Test]
     public function encodeProducesThreeComponentToken(): void
     {
-        $this->assertCount(3, explode('.', $this->hs256()->encode([JWTSubjectKey => 'u'])));
+        $this->assertCount(3, explode(".", $this->hs256()->encode([JWTSubjectKey => "u"])));
     }
-
-    // --- HS256 round-trip ---
 
     #[Test]
     public function decodeAfterEncodePreservesSubject(): void
     {
         $svc = $this->hs256();
-        $decoded = $svc->decode($svc->encode([JWTSubjectKey => 'user-42']));
-        $this->assertSame('user-42', $decoded->payload->subject);
+        $decoded = $svc->decode($svc->encode([JWTSubjectKey => "user-42"]));
+        $this->assertSame("user-42", $decoded->payload->subject);
     }
 
     #[Test]
     public function decodedTokenHasHs256AlgorithmHeader(): void
     {
         $svc = $this->hs256();
-        $decoded = $svc->decode($svc->encode([JWTSubjectKey => 'u']));
+        $decoded = $svc->decode($svc->encode([JWTSubjectKey => "u"]));
         $this->assertSame(JSONWebTokenSigningAlgorithm::hs256->value, $decoded->header->alg);
     }
 
@@ -114,54 +110,50 @@ final class JSONWebTokenServiceTest extends TestCase
     public function decodeAfterEncodePreservesAllClaims(): void
     {
         $svc = $this->hs256();
-        $decoded = $svc->decode($svc->encode([JWTSubjectKey => 'u', JWTIssuerKey => 'svc']));
-        $this->assertSame('u', $decoded->payload->subject);
-        $this->assertSame('svc', $decoded->payload->issuer);
+        $decoded = $svc->decode($svc->encode([JWTSubjectKey => "u", JWTIssuerKey => "svc"]));
+        $this->assertSame("u", $decoded->payload->subject);
+        $this->assertSame("svc", $decoded->payload->issuer);
     }
-
-    // --- Tamper detection ---
 
     #[Test]
     public function tamperedSignatureThrowsException(): void
     {
-        $parts = explode('.', $this->hs256()->encode([JWTSubjectKey => 'u']));
-        $parts[2] = 'invalidsig';
+        $parts = explode(".", $this->hs256()->encode([JWTSubjectKey => "u"]));
+        $parts[2] = "invalidsig";
         $this->expectException(JSONWebTokenException::class);
-        $this->hs256()->decode(implode('.', $parts));
+        $this->hs256()->decode(implode(".", $parts));
     }
 
     #[Test]
     public function tamperedPayloadThrowsException(): void
     {
         $svc = $this->hs256();
-        $parts = explode('.', $svc->encode([JWTSubjectKey => 'u']));
-        $parts[1] = rtrim(strtr(base64_encode(json_encode(['sub' => 'hacker'])), '+/', '-_'), '=');
+        $parts = explode(".", $svc->encode([JWTSubjectKey => "u"]));
+        $parts[1] = rtrim(strtr(base64_encode(json_encode(["sub" => "hacker"])), "+/", "-_"), "=");
         $this->expectException(JSONWebTokenException::class);
-        $svc->decode(implode('.', $parts));
+        $svc->decode(implode(".", $parts));
     }
 
     #[Test]
     public function malformedTokenThrowsException(): void
     {
         $this->expectException(JSONWebTokenException::class);
-        $this->hs256()->decode('not.a.valid.jwt.with.too.many.parts');
+        $this->hs256()->decode("not.a.valid.jwt.with.too.many.parts");
     }
 
     #[Test]
     public function wrongKeyThrowsException(): void
     {
-        $encoded = $this->hs256()->encode([JWTSubjectKey => 'u']);
+        $encoded = $this->hs256()->encode([JWTSubjectKey => "u"]);
         $this->expectException(JSONWebTokenException::class);
-        (new JSONWebTokenService('wrong-key'))->decode($encoded);
+        (new JSONWebTokenService("wrong-key"))->decode($encoded);
     }
-
-    // --- Issuer validation ---
 
     #[Test]
     public function issuerMismatchThrowsException(): void
     {
-        $svc = $this->hs256('expected');
-        $token = $svc->encode([JWTSubjectKey => 'u', JWTIssuerKey => 'wrong']);
+        $svc = $this->hs256("expected");
+        $token = $svc->encode([JWTSubjectKey => "u", JWTIssuerKey => "wrong"]);
         $this->expectException(JSONWebTokenException::class);
         $svc->decode($token);
     }
@@ -169,20 +161,18 @@ final class JSONWebTokenServiceTest extends TestCase
     #[Test]
     public function correctIssuerPasses(): void
     {
-        $svc = $this->hs256('my-svc');
-        $decoded = $svc->decode($svc->encode([JWTSubjectKey => 'u', JWTIssuerKey => 'my-svc']));
-        $this->assertSame('my-svc', $decoded->payload->issuer);
+        $svc = $this->hs256("my-svc");
+        $decoded = $svc->decode($svc->encode([JWTSubjectKey => "u", JWTIssuerKey => "my-svc"]));
+        $this->assertSame("my-svc", $decoded->payload->issuer);
     }
 
     #[Test]
     public function missingIssuerInPayloadPassesAlways(): void
     {
-        $svc = $this->hs256('my-svc');
-        $decoded = $svc->decode($svc->encode([JWTSubjectKey => 'u']));
+        $svc = $this->hs256("my-svc");
+        $decoded = $svc->decode($svc->encode([JWTSubjectKey => "u"]));
         $this->assertNull($decoded->payload->issuer);
     }
-
-    // --- Issuer resolved from environment (JWT_ISSUER) ---
 
     #[Test]
     public function environmentIssuerIsUsedWhenNoExplicitIssuer(): void
@@ -221,8 +211,6 @@ final class JSONWebTokenServiceTest extends TestCase
         $this->assertSame("any-issuer", $decoded->payload->issuer);
     }
 
-    // --- RS256 ---
-
     #[Test]
     public function rs256RoundTripPreservesPayload(): void
     {
@@ -230,10 +218,10 @@ final class JSONWebTokenServiceTest extends TestCase
         $decoder = new JSONWebTokenRS256DecoderStrategy(self::RSA_PUBLIC_KEY);
         $token = new JSONWebToken(
             new JSONWebTokenHeader(JSONWebTokenSigningAlgorithm::rs256->value),
-            JSONWebTokenPayload::payload([JWTSubjectKey => 'rs256-user'])
+            JSONWebTokenPayload::payload([JWTSubjectKey => "rs256-user"])
         );
         $decoded = $decoder->decode($encoder->encode($token));
-        $this->assertSame('rs256-user', $decoded->payload->subject);
+        $this->assertSame("rs256-user", $decoded->payload->subject);
     }
 
     #[Test]
@@ -243,11 +231,11 @@ final class JSONWebTokenServiceTest extends TestCase
         $decoder = new JSONWebTokenRS256DecoderStrategy(self::RSA_PUBLIC_KEY);
         $token = new JSONWebToken(
             new JSONWebTokenHeader(JSONWebTokenSigningAlgorithm::rs256->value),
-            JSONWebTokenPayload::payload([JWTSubjectKey => 'u'])
+            JSONWebTokenPayload::payload([JWTSubjectKey => "u"])
         );
-        $parts = explode('.', $encoder->encode($token));
-        $parts[2] = 'tampered';
+        $parts = explode(".", $encoder->encode($token));
+        $parts[2] = "tampered";
         $this->expectException(JSONWebTokenException::class);
-        $decoder->decode(implode('.', $parts));
+        $decoder->decode(implode(".", $parts));
     }
 }

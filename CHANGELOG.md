@@ -7,6 +7,8 @@ onward.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-09-24
+
 ### Added
 
 - `AuthorizationType::forHTTPMethod()`, the action an HTTP method performs, shared by `AuthorizationEvaluator` and `PersistentSpace`.

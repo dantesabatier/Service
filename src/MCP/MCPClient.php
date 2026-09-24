@@ -15,6 +15,7 @@ use stdClass;
 use function Sabatier\Foundation\in_range;
 use const Sabatier\Service\MCPProtocolVersionHeader;
 use const Sabatier\Service\MCPProtocolVersionLatestStable;
+use const Sabatier\Service\MCPServerVersionDefault;
 use const Sabatier\Service\MCPSessionHeader;
 
 /** Maintains one stateful MCP session, normalizing its remote catalogue and tool results for framework callers. */
@@ -39,7 +40,7 @@ final class MCPClient
      * @param string $requestedProtocolVersion The MCP protocol version requested during initialization.
      * @param float $catalogTimeout Seconds available to initialize and fetch the catalogue per exchange.
      */
-    public function __construct(private readonly MCPTransport $transport, private readonly string $clientName = "Sabatier Service", private readonly string $clientVersion = "1.0.0", private readonly string $requestedProtocolVersion = MCPProtocolVersionLatestStable, private readonly float $catalogTimeout = 30.0)
+    public function __construct(private readonly MCPTransport $transport, private readonly string $clientName = "Sabatier Service", private readonly string $clientVersion = MCPServerVersionDefault, private readonly string $requestedProtocolVersion = MCPProtocolVersionLatestStable, private readonly float $catalogTimeout = 30.0)
     {
         if ($catalogTimeout <= 0.0) {
             throw new InvalidArgumentException("catalogTimeout must be greater than zero.");

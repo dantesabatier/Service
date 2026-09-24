@@ -7,6 +7,10 @@ onward.
 
 ## [Unreleased]
 
+### Fixed
+
+- The MCP server reports the release version during initialization, and `MCPClient` reports the same version by default. 1.1.0 was published still reporting 1.0.0, because `MCPServerVersionDefault` and the client's default are not derived from `Info.plist`.
+
 ## [1.1.0] - 2026-09-24
 
 ### Added

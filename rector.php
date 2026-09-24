@@ -15,6 +15,7 @@ use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPublicMethodParameterRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessParamTagRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessReturnTagRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessUnionReturnDocblockRector;
+use Rector\DeadCode\Rector\If_\RemoveAlwaysTrueIfConditionRector;
 use Rector\DeadCode\Rector\Node\RemoveNonExistingVarAnnotationRector;
 use Rector\DeadCode\Rector\Property\RemoveDefaultValueFromAssignedPropertyRector;
 use Rector\DeadCode\Rector\StmtsAwareInterface\RemoveDeadInstanceOfAssertRector;
@@ -56,6 +57,9 @@ try {
             ],
             RemoveUnusedConstructorParamRector::class => [
                 __DIR__ . "/src/ResponseTransformer.php"
+            ],
+            RemoveAlwaysTrueIfConditionRector::class => [
+                __DIR__ . "/src/LLM/LLMAgentRuntime.php",
             ],
             RemoveUnusedPublicMethodParameterRector::class => [
                 __DIR__ . "/src/MCP/InitializeHandler.php",

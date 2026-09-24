@@ -101,7 +101,7 @@ final class FetchTool extends AbstractTool
         return $parts->join(". ");
     }
 
-    private function applyPredicate(mixed $request, string $entity, Dictionary $arguments): void
+    private function applyPredicate(FetchRequest $request, string $entity, Dictionary $arguments): void
     {
         $predicate = $arguments["predicate"];
         if (!$predicate) {

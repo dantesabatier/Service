@@ -8,6 +8,7 @@ use Exception;
 use Override;
 use Sabatier\CoreData\AttributeType;
 use Sabatier\CoreData\ExpressionDescription;
+use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\FetchRequestResultType;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
@@ -162,7 +163,7 @@ final class GroupByTool extends AbstractTool
      * @return ArrayClass<ExpressionDescription>
      * @throws Exception
      */
-    private function aggregateDescriptions(mixed $request, string $entity, iterable $items): ArrayClass
+    private function aggregateDescriptions(FetchRequest $request, string $entity, iterable $items): ArrayClass
     {
         /** @var ArrayClass<ExpressionDescription> $result */
         $result = new ArrayClass();

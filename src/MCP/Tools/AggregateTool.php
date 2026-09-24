@@ -9,6 +9,7 @@ use JsonException;
 use Override;
 use Sabatier\CoreData\AttributeType;
 use Sabatier\CoreData\ExpressionDescription;
+use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\FetchRequestResultType;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
@@ -89,7 +90,7 @@ final class AggregateTool extends AbstractTool
     }
 
     /** @throws Exception */
-    private function computeInMemory(mixed $request, string $property, string $function): float
+    private function computeInMemory(FetchRequest $request, string $property, string $function): float
     {
         $request->resultType = FetchRequestResultType::managedObjectResultType;
         /** @var ArrayClass<ManagedObject> $objects */
@@ -99,7 +100,7 @@ final class AggregateTool extends AbstractTool
     }
 
     /** @throws Exception */
-    private function computeDatabase(mixed $request, string $property, string $function): float
+    private function computeDatabase(FetchRequest $request, string $property, string $function): float
     {
         $description = new ExpressionDescription();
         $description->entity = $request->entity ?? fatal_error("Missing entity");

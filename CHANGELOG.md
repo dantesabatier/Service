@@ -7,6 +7,8 @@ onward.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-24
+
 ### Added
 
 - `AccessPolicy::allowsAccess()`, the decision whether a user may perform an action on a resource. `AuthorizationEvaluator` asks it rather than `AuthorizationService` directly, and `PublicAccessPolicy` answers yes.

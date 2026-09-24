@@ -77,16 +77,30 @@ final class PersistentHistoryTool extends AbstractTool
     }
 
     /**
+     * @throws Exception
+     */
+    #[Override]
+    public function authorizationRequirements(Dictionary $arguments): ?AuthorizationRequirements
+    {
+        return AuthorizationRequirements::one("history", $this->operation($arguments) === "purge" ? AuthorizationType::delete : AuthorizationType::read);
+    }
+
+    private function operation(Dictionary $arguments): string
+    {
+        /** @var string $operation */
+        $operation = $arguments["operation"] ?? fatal_error("operation is required");
+        in_array($operation, self::operations, true) ?: fatal_error("Invalid operation \"$operation\". Allowed: " . new ArrayClass(self::operations)->join(", ") . ".");
+        return $operation;
+    }
+
+    /**
      * @return ArrayClass<ContentItem>
      * @throws Exception
      */
     #[Override]
     public function execute(Dictionary $arguments): ArrayClass
     {
-        /** @var string $operation */
-        $operation = $arguments["operation"] ?? fatal_error("operation is required");
-        in_array($operation, self::operations, true) ?: fatal_error("Invalid operation \"$operation\". Allowed: " . new ArrayClass(self::operations)->join(", ") . ".");
-        $this->enforceEntityAuthorization("history", $operation === "purge" ? AuthorizationType::delete : AuthorizationType::read);
+        $operation = $this->operation($arguments);
         $changeRequest = $operation === "purge" ? $this->purgeRequest($arguments) : $this->fetchRequestFor($arguments);
         if ($fetchRequest = $this->transactionFilter($arguments)) {
             $changeRequest->fetchRequest = $fetchRequest;

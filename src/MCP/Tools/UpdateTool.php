@@ -35,6 +35,19 @@ final class UpdateTool extends AbstractTool
     }
 
     /**
+     * @throws Exception
+     */
+    #[Override]
+    public function authorizationRequirements(Dictionary $arguments): ?AuthorizationRequirements
+    {
+        /** @var string $entity */
+        $entity = $arguments["entity"] ?? fatal_error("entity is required");
+        /** @var Dictionary<mixed> $values */
+        $values = $arguments["values"] ?? fatal_error("values is required");
+        return AuthorizationRequirements::of(new ArrayClass([new AuthorizationRequirement($entity, AuthorizationType::update)])->appendingContentsOf($this->writeRequirements($entity, $values)));
+    }
+
+    /**
      * @return ArrayClass<ContentItem>
      * @throws Exception
      */
@@ -45,7 +58,6 @@ final class UpdateTool extends AbstractTool
         $entity = $arguments["entity"] ?? fatal_error("entity is required");
         $objectID = $arguments["objectID"] ?? fatal_error("objectID is required");
         $values = $arguments["values"] ?? fatal_error("values is required");
-        $this->enforceEntityAuthorization($entity, AuthorizationType::update);
         $request = $this->fetchRequest($entity);
         $request->predicate = $this->buildPredicate("%K = %d", new ArrayClass([ManagedObjectObjectIDKey, $objectID]));
         $this->applySecurityScope($request);

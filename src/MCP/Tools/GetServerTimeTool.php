@@ -50,6 +50,12 @@ final class GetServerTimeTool extends AbstractTool
         ];
     }
 
+    #[Override]
+    public function authorizationRequirements(Dictionary $arguments): ?AuthorizationRequirements
+    {
+        return AuthorizationRequirements::none();
+    }
+
     /**
      * @return ArrayClass<ContentItem>
      * @throws JsonException

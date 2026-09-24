@@ -8,6 +8,7 @@ use Exception;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
+use Sabatier\Foundation\Nil;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\CompoundPredicate;
 use Sabatier\Foundation\Predicates\Expression;
@@ -181,6 +182,82 @@ abstract readonly class FieldSecurityPolicy
             && ($rule->where === null || $this->evaluateCondition($rule->where, $rule->arguments, $object))
             && (!$rule->requiresOwner || $this->ownsResource($object));
         $allowed ?: throw new ForbiddenException(sprintf(localized_string("You don't have permission to modify this \"%s\" resource."), $object->entity->name));
+    }
+
+    /**
+     * Enforces ownership and the resource-level `#[Writable]` against the object's committed values, so a write cannot pass by reassigning the owner or the fields a condition reads.
+     *
+     * @param ManagedObject $object
+     * @throws ForbiddenException
+     * @throws Exception
+     */
+    public function enforceCommittedWriteAccess(ManagedObject $object): void
+    {
+        if (!$this->isSecurityEnabled) {
+            return;
+        }
+        $committed = $object->committedValues(null)->mapValues(fn(mixed $value): mixed => $value instanceof Nil ? null : $value);
+        $ownerKey = OwnerResolver::getOwnerFieldName($object::class);
+        $owner = $ownerKey !== null ? $committed[$ownerKey] : null;
+        $owner = $owner instanceof Authorizable ? $owner : null;
+        if ($this->hasOwnScopeFor($object->entity->name) && $owner !== null && !$this->user?->isEqual($owner)) {
+            throw new ForbiddenException(sprintf(localized_string("You don't have permission to modify this \"%s\" row: it belongs to another user."), $object->entity->name));
+        }
+        $rule = ResourceRule::resolve($object::class, Writable::class);
+        if (!$rule) {
+            return;
+        }
+        $allowed = $rule->allowsRoles($this->userRoles)
+            && ($rule->where === null || $this->conditionResolver->predicate($rule->where, $rule->arguments)->evaluate($committed, $this->conditionResolver->variables))
+            && (!$rule->requiresOwner || ($owner !== null && $this->user?->isEqual($owner)));
+        $allowed ?: throw new ForbiddenException(sprintf(localized_string("You don't have permission to modify this \"%s\" resource."), $object->entity->name));
+    }
+
+    /**
+     * Enforces the field-level `#[Writable]` on every property the object changed, judged by its committed values unless it is new.
+     *
+     * @param ManagedObject $object
+     * @param bool $isNew
+     * @throws ForbiddenException
+     * @throws Exception
+     */
+    public function enforceFieldWriteAccess(ManagedObject $object, bool $isNew): void
+    {
+        if (!$this->isSecurityEnabled) {
+            return;
+        }
+        $state = $isNew ? $object : $object->committedValues(null)->mapValues(fn(mixed $value): mixed => $value instanceof Nil ? null : $value);
+        $ownerKey = OwnerResolver::getOwnerFieldName($object::class);
+        $owner = $ownerKey !== null ? $state->valueForKey($ownerKey) : null;
+        $isOwner = !$owner instanceof Authorizable || (bool)$this->user?->isEqual($owner);
+        foreach ($object->changedValues()->keys as $key) {
+            $rule = FieldSecurityFilter::rule($object::class, Writable::class, $key);
+            if (!$rule) {
+                continue;
+            }
+            $allowed = $rule->allowsRoles($this->userRoles) ? $rule->where === null || $this->conditionResolver->predicate($rule->where, $rule->arguments)->evaluate($state, $this->conditionResolver->variables) : $rule->requiresOwner && $isOwner;
+            $allowed ?: throw new ForbiddenException(sprintf(localized_string("You don't have permission to modify \"%s\" on \"%s\"."), $key, $object->entity->name));
+        }
+    }
+
+    /**
+     * Returns whether a fetch would return the row to the subject, under the `own` scope and the resource-level `#[Readable]`.
+     *
+     * @param ManagedObject $object
+     * @throws Exception
+     */
+    public function isRowReadable(ManagedObject $object): bool
+    {
+        if (!$this->isSecurityEnabled) {
+            return true;
+        }
+        if ($this->hasOwnScopeFor($object->entity->name) && ($ownerKey = OwnerResolver::getOwnerFieldName($object::class))) {
+            $owner = $object->valueForKey($ownerKey);
+            if (!$owner instanceof Authorizable || !$this->user?->isEqual($owner)) {
+                return false;
+            }
+        }
+        return $this->resourceReadPredicate($object::class)?->evaluate($object, $this->conditionResolver->variables) ?? true;
     }
 
     /**

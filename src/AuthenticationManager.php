@@ -93,7 +93,7 @@ final class AuthenticationManager extends Responder
         $user = $this->authentication->authenticatedUser ?? throw new UnauthorizedException();
         $user->refreshTokenVersion += 1;
         if ($this->managedObjectContext->hasChanges) {
-            $this->managedObjectContext->save();
+            RequestSecurityContext::performAsSystem(fn(): bool => $this->managedObjectContext->save());
         }
         $this->authorizationService->invalidateAuthorizable($user);
     }

@@ -52,6 +52,12 @@ final class WebSearchTool extends AbstractTool
         get => $this->provider ??= WebSearchProvider::provider();
     }
 
+    #[Override]
+    public function authorizationRequirements(Dictionary $arguments): ?AuthorizationRequirements
+    {
+        return AuthorizationRequirements::none();
+    }
+
     /**
      * @return ArrayClass<ContentItem>
      * @throws JsonException

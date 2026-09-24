@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
 
+use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
@@ -13,6 +14,7 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\MCP\Schema\ModelDescriptor;
 use Sabatier\Service\MCP\Tools\ToolRegistry;
 use Sabatier\Service\MCP\Tools\WebSearchTool;
+use Sabatier\Service\Testing\FixesRequestSecurityContext;
 
 /**
  * Exercises the correctable failure paths of web_search through the framework's built-in tool
@@ -22,6 +24,15 @@ use Sabatier\Service\MCP\Tools\WebSearchTool;
  */
 final class WebSearchToolTest extends TestCase
 {
+    use FixesRequestSecurityContext;
+
+    #[Override]
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->fixRequestSecurityContext($this->unrestrictedRequestSecurityContext());
+    }
+
     private function makeRegistry(): ToolRegistry
     {
         $context = new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor();

@@ -4,11 +4,20 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Integration;
 
+use Closure;
+use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionProperty;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\Dictionary;
+use Sabatier\Foundation\Set;
+use Sabatier\Service\Application;
+use Sabatier\Service\Authorizable;
+use Sabatier\Service\AuthorizationResolver;
+use Sabatier\Service\AuthorizationService;
+use Sabatier\Service\InMemoryAuthorizationCache;
 use Sabatier\Service\MCP\Schema\AttributeSchema;
 use Sabatier\Service\MCP\Schema\EntitySchema;
 use Sabatier\Service\MCP\Schema\ModelDescriptor;
@@ -17,6 +26,7 @@ use Sabatier\Service\MCP\Schema\PredicateGuide;
 use Sabatier\Service\MCP\Schema\RelationshipSchema;
 use Sabatier\Service\MCP\Tools\DescribeModelTool;
 use Sabatier\Service\MCP\Tools\ToolRegistry;
+use Sabatier\Service\Testing\FixesRequestSecurityContext;
 use Sabatier\Foundation\ArrayClass;
 
 /**
@@ -27,6 +37,15 @@ use Sabatier\Foundation\ArrayClass;
  */
 final class DescribeModelToolTest extends TestCase
 {
+    use FixesRequestSecurityContext;
+
+    #[Override]
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->fixRequestSecurityContext($this->unrestrictedRequestSecurityContext());
+    }
+
     private function makeEntity(string $name, int $attributeCount): EntitySchema
     {
         /** @var Dictionary<AttributeSchema> $attributes */
@@ -103,6 +122,75 @@ final class DescribeModelToolTest extends TestCase
         $this->assertSame(["Order", "Small"], array_keys($result["entities"]));
         $this->assertCount(40, $result["entities"]["Order"]["attributes"]);
         $this->assertCount(2, $result["entities"]["Small"]["attributes"]);
+    }
+
+    #[Test]
+    public function underSecurityOnlyReadableEntitiesAreDescribed(): void
+    {
+        $result = $this->underReadScopes(new ArrayClass(["Order:read"]), fn(): array => $this->decode($this->makeTool(), new Dictionary()));
+        $this->assertSame(["Order"], array_keys($result["entities"]));
+        $this->assertSame(0, $result["entities"]["Order"]["relationships"]);
+    }
+
+    #[Test]
+    public function underSecurityAHiddenEntityReadsAsUnknown(): void
+    {
+        $result = $this->underReadScopes(new ArrayClass(["Order:read"]), fn() => new ToolRegistry(new ArrayClass([$this->makeTool()]))->call("describe_model", new Dictionary(["entity" => "Small"])));
+        $this->assertTrue($result->isError);
+        $this->assertStringContainsString("Unknown entity: \"Small\"", $result->text);
+    }
+
+    /**
+     * @template T
+     * @param ArrayClass<string> $scopes
+     * @param Closure(): T $body
+     * @return T
+     */
+    private function underReadScopes(ArrayClass $scopes, Closure $body): mixed
+    {
+        $user = new class implements Authorizable {
+            public string $username {
+                get => "describer";
+            }
+            public ?string $password {
+                get => null;
+            }
+            public bool $isEnabled {
+                get => true;
+            }
+            public int $refreshTokenVersion {
+                get => 1;
+                set {
+                }
+            }
+            public Set $roles {
+                get => new Set();
+            }
+            #[Override]
+            public function isEqual(mixed $other): bool
+            {
+                return $this === $other;
+            }
+            #[Override]
+            public static function defaultRepresentation(): Dictionary
+            {
+                return new Dictionary();
+            }
+        };
+        $cache = new InMemoryAuthorizationCache();
+        $cache->setAuthorizableAuthorizations($user, new ArrayClass());
+        $property = new ReflectionProperty(Application::class, "authorizationService");
+        $previous = $property->isInitialized(Application::shared()) ? $property->getRawValue(Application::shared()) : null;
+        $property->setRawValue(Application::shared(), new AuthorizationService(new ReflectionClass(AuthorizationResolver::class)->newInstanceWithoutConstructor(), $cache));
+        $this->fixRequestSecurityContext($this->restrictedRequestSecurityContext($user, $scopes));
+        try {
+            return $body();
+        } finally {
+            $cache->invalidateAll();
+            if ($previous !== null) {
+                $property->setRawValue(Application::shared(), $previous);
+            }
+        }
     }
 
     #[Test]

@@ -36,6 +36,19 @@ final class CreateTool extends AbstractTool
     }
 
     /**
+     * @throws Exception
+     */
+    #[Override]
+    public function authorizationRequirements(Dictionary $arguments): ?AuthorizationRequirements
+    {
+        /** @var string $entity */
+        $entity = $arguments["entity"] ?? fatal_error("entity is required");
+        /** @var Dictionary<mixed> $values */
+        $values = $arguments["values"] ?? fatal_error("values is required");
+        return AuthorizationRequirements::of(new ArrayClass([new AuthorizationRequirement($entity, AuthorizationType::create)])->appendingContentsOf($this->writeRequirements($entity, $values)));
+    }
+
+    /**
      * @return ArrayClass<ContentItem>
      * @throws Exception
      */
@@ -46,7 +59,6 @@ final class CreateTool extends AbstractTool
         $entity = $arguments["entity"] ?? fatal_error("entity is required");
         /** @var Dictionary<mixed> $values */
         $values = $arguments["values"] ?? fatal_error("values is required");
-        $this->enforceEntityAuthorization($entity, AuthorizationType::create);
         $this->assertConcreteEntity($entity);
         $object = EntityDescription::insertNewObject($entity, $this->context);
         $this->applySecureUpdate($object, $this->normalizeRelationships($entity, $values));

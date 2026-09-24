@@ -7,6 +7,10 @@ onward.
 
 ## [Unreleased]
 
+### Added
+
+- `AuthorizationService::authorizations()`, the authorizations an entity holds through its roles, read from the in-request cache, the persistent cache or the database in that order, and `authorizationScopes()`, the same authorizations as the `resource:action:scope` strings a JSON Web Token carries. `isAuthorized()` resolves through the first, so its behaviour is unchanged.
+
 ## [1.2.0] - 2026-09-24
 
 ### Added

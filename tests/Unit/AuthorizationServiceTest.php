@@ -27,7 +27,7 @@ final class AuthorizationServiceTest extends TestCase
     private function makeUser(): Authorizable
     {
         return new class implements Authorizable {
-            public string $username { get => 'user'; }
+            public string $username { get => "user"; }
             public ?string $password { get => null; }
             public bool $isEnabled { get => true; }
             public int $refreshTokenVersion { get => 1; set {} }
@@ -102,15 +102,13 @@ final class AuthorizationServiceTest extends TestCase
         return new AuthorizationService($this->makeResolver(), $inRequest, $persistent);
     }
 
-    // --- Token scope fast-path ---
-
     #[Test]
     public function tokenScopeExactMatchGrantsAccessWithoutCacheLookup(): void
     {
         $service = $this->makeService($this->makeCache(null));
         $result = $service->isAuthorized(
-            $this->makeUser(), 'posts', AuthorizationType::read,
-            $this->makeScopes('posts:read'), $this->makeContext()
+            $this->makeUser(), "posts", AuthorizationType::read,
+            $this->makeScopes("posts:read"), $this->makeContext()
         );
         $this->assertTrue($result);
     }
@@ -120,8 +118,8 @@ final class AuthorizationServiceTest extends TestCase
     {
         $service = $this->makeService($this->makeCache(null));
         $result = $service->isAuthorized(
-            $this->makeUser(), 'posts', AuthorizationType::delete,
-            $this->makeScopes('posts:any'), $this->makeContext()
+            $this->makeUser(), "posts", AuthorizationType::delete,
+            $this->makeScopes("posts:any"), $this->makeContext()
         );
         $this->assertTrue($result);
     }
@@ -132,20 +130,18 @@ final class AuthorizationServiceTest extends TestCase
         $inRequest = $this->makeCache(new ArrayClass([]));
         $service = $this->makeService($inRequest);
         $result = $service->isAuthorized(
-            $this->makeUser(), 'posts', AuthorizationType::read,
-            $this->makeScopes('comments:read'), $this->makeContext()
+            $this->makeUser(), "posts", AuthorizationType::read,
+            $this->makeScopes("comments:read"), $this->makeContext()
         );
         $this->assertFalse($result);
     }
 
-    // --- In-request cache ---
-
     #[Test]
     public function inRequestCacheHitGrantsAccessWhenAuthorizationMatches(): void
     {
-        $inRequest = $this->makeCache(new ArrayClass([$this->makeAuth('posts', AuthorizationType::read)]));
+        $inRequest = $this->makeCache(new ArrayClass([$this->makeAuth("posts", AuthorizationType::read)]));
         $result = $this->makeService($inRequest)->isAuthorized(
-            $this->makeUser(), 'posts', AuthorizationType::read,
+            $this->makeUser(), "posts", AuthorizationType::read,
             $this->makeScopes(), $this->makeContext()
         );
         $this->assertTrue($result);
@@ -154,24 +150,22 @@ final class AuthorizationServiceTest extends TestCase
     #[Test]
     public function inRequestCacheHitDeniesAccessWhenAuthorizationDoesNotMatch(): void
     {
-        $inRequest = $this->makeCache(new ArrayClass([$this->makeAuth('posts', AuthorizationType::read)]));
+        $inRequest = $this->makeCache(new ArrayClass([$this->makeAuth("posts", AuthorizationType::read)]));
         $result = $this->makeService($inRequest)->isAuthorized(
-            $this->makeUser(), 'posts', AuthorizationType::delete,
+            $this->makeUser(), "posts", AuthorizationType::delete,
             $this->makeScopes(), $this->makeContext()
         );
         $this->assertFalse($result);
     }
 
-    // --- Persistent cache ---
-
     #[Test]
     public function persistentCacheHitIsPromotedToInRequestCache(): void
     {
-        $authorizations = new ArrayClass([$this->makeAuth('posts', AuthorizationType::read)]);
+        $authorizations = new ArrayClass([$this->makeAuth("posts", AuthorizationType::read)]);
         $inRequest = $this->makeCache(null);
         $persistent = $this->makeCache($authorizations);
         $this->makeService($inRequest, $persistent)->isAuthorized(
-            $this->makeUser(), 'posts', AuthorizationType::read,
+            $this->makeUser(), "posts", AuthorizationType::read,
             $this->makeScopes(), $this->makeContext()
         );
         $this->assertNotNull($inRequest->captured);
@@ -180,22 +174,20 @@ final class AuthorizationServiceTest extends TestCase
     #[Test]
     public function persistentCacheHitGrantsAccessWithoutResolver(): void
     {
-        $authorizations = new ArrayClass([$this->makeAuth('posts', AuthorizationType::read)]);
+        $authorizations = new ArrayClass([$this->makeAuth("posts", AuthorizationType::read)]);
         $result = $this->makeService($this->makeCache(null), $this->makeCache($authorizations))->isAuthorized(
-            $this->makeUser(), 'posts', AuthorizationType::read,
+            $this->makeUser(), "posts", AuthorizationType::read,
             $this->makeScopes(), $this->makeContext()
         );
         $this->assertTrue($result);
     }
 
-    // --- Authorization matching ---
-
     #[Test]
     public function authorizationTypeAnyGrantsAccessForSpecificAction(): void
     {
-        $inRequest = $this->makeCache(new ArrayClass([$this->makeAuth('posts', AuthorizationType::any)]));
+        $inRequest = $this->makeCache(new ArrayClass([$this->makeAuth("posts", AuthorizationType::any)]));
         $result = $this->makeService($inRequest)->isAuthorized(
-            $this->makeUser(), 'posts', AuthorizationType::update,
+            $this->makeUser(), "posts", AuthorizationType::update,
             $this->makeScopes(), $this->makeContext()
         );
         $this->assertTrue($result);
@@ -204,9 +196,9 @@ final class AuthorizationServiceTest extends TestCase
     #[Test]
     public function authorizationMatchIsCaseInsensitiveOnResourceName(): void
     {
-        $inRequest = $this->makeCache(new ArrayClass([$this->makeAuth('Posts', AuthorizationType::read)]));
+        $inRequest = $this->makeCache(new ArrayClass([$this->makeAuth("Posts", AuthorizationType::read)]));
         $result = $this->makeService($inRequest)->isAuthorized(
-            $this->makeUser(), 'posts', AuthorizationType::read,
+            $this->makeUser(), "posts", AuthorizationType::read,
             $this->makeScopes(), $this->makeContext()
         );
         $this->assertTrue($result);
@@ -215,15 +207,37 @@ final class AuthorizationServiceTest extends TestCase
     #[Test]
     public function wrongResourceNameDeniesAccess(): void
     {
-        $inRequest = $this->makeCache(new ArrayClass([$this->makeAuth('comments', AuthorizationType::read)]));
+        $inRequest = $this->makeCache(new ArrayClass([$this->makeAuth("comments", AuthorizationType::read)]));
         $result = $this->makeService($inRequest)->isAuthorized(
-            $this->makeUser(), 'posts', AuthorizationType::read,
+            $this->makeUser(), "posts", AuthorizationType::read,
             $this->makeScopes(), $this->makeContext()
         );
         $this->assertFalse($result);
     }
 
-    // --- invalidateAuthorizable ---
+    #[Test]
+    public function authorizationsComeFromTheInRequestCacheBeforeThePersistentOne(): void
+    {
+        $inRequest = new ArrayClass([$this->makeAuth("posts", AuthorizationType::read)]);
+        $persistent = new ArrayClass([$this->makeAuth("comments", AuthorizationType::read)]);
+        $this->assertSame($inRequest, $this->makeService($this->makeCache($inRequest), $this->makeCache($persistent))->authorizations($this->makeUser(), $this->makeContext()));
+    }
+
+    #[Test]
+    public function authorizationsFromThePersistentCacheArePromotedToTheInRequestOne(): void
+    {
+        $authorizations = new ArrayClass([$this->makeAuth("posts", AuthorizationType::read)]);
+        $inRequest = $this->makeCache(null);
+        $this->assertSame($authorizations, $this->makeService($inRequest, $this->makeCache($authorizations))->authorizations($this->makeUser(), $this->makeContext()));
+        $this->assertSame($authorizations, $inRequest->captured);
+    }
+
+    #[Test]
+    public function authorizationScopesTakeTheFormATokenCarries(): void
+    {
+        $inRequest = $this->makeCache(new ArrayClass([$this->makeAuth("Order", AuthorizationType::read, AuthorizationScope::own), $this->makeAuth("Order", AuthorizationType::any)]));
+        $this->assertSame(["Order:read:own", "Order:any:all"], $this->makeService($inRequest)->authorizationScopes($this->makeUser(), $this->makeContext())->array);
+    }
 
     #[Test]
     public function invalidateAuthorizableCallsBothCaches(): void

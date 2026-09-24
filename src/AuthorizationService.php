@@ -81,14 +81,43 @@ final readonly class AuthorizationService
         if ($authorizationScopes->contains(fn(string $authorizationScope): bool => str_starts_with($authorizationScope, $scopeToCheck) || str_starts_with($authorizationScope, $anyScope))) {
             return true;
         }
-        if (!($authorizations = $this->inRequestCache->getAuthorizableAuthorizations($entity)) && ($authorizations = $this->persistentCache?->getAuthorizableAuthorizations($entity))) {
-            $this->inRequestCache->setAuthorizableAuthorizations($entity, $authorizations);
+        return $this->authorizations($entity, $context)->contains(fn(Authorization $authorization): bool => string_is_equal($authorization->name, $resource, CompareOptions::caseInsensitive) && (($authorization->type === $action) || ($authorization->type === $anyAction)));
+    }
+
+    /**
+     * Returns the authorizations an entity holds through its roles, from the in-request cache, the persistent cache or the database, in that order, caching what it resolves.
+     *
+     * @param Authorizable $entity The entity whose authorizations are requested.
+     * @param ManagedObjectContext $context The context the authorizations are resolved in.
+     * @return ArrayClass<Authorization>
+     * @throws Exception
+     */
+    public function authorizations(Authorizable $entity, ManagedObjectContext $context): ArrayClass
+    {
+        if ($authorizations = $this->inRequestCache->getAuthorizableAuthorizations($entity)) {
+            return $authorizations;
         }
-        if (!$authorizations) {
-            $authorizations = $this->resolver->resolve($entity, $context)->map(fn(Authorization $authorization): CachedAuthorization => new CachedAuthorization($authorization->name, $authorization->type, $authorization->scope));
+        if ($authorizations = $this->persistentCache?->getAuthorizableAuthorizations($entity)) {
             $this->inRequestCache->setAuthorizableAuthorizations($entity, $authorizations);
-            $this->persistentCache?->setAuthorizableAuthorizations($entity, $authorizations);
+            return $authorizations;
         }
-        return $authorizations->contains(fn(Authorization $authorization): bool => string_is_equal($authorization->name, $resource, CompareOptions::caseInsensitive) && (($authorization->type === $action) || ($authorization->type === $anyAction)));
+        /** @var ArrayClass<Authorization> $authorizations */
+        $authorizations = $this->resolver->resolve($entity, $context)->map(fn(Authorization $authorization): CachedAuthorization => new CachedAuthorization($authorization->name, $authorization->type, $authorization->scope));
+        $this->inRequestCache->setAuthorizableAuthorizations($entity, $authorizations);
+        $this->persistentCache?->setAuthorizableAuthorizations($entity, $authorizations);
+        return $authorizations;
+    }
+
+    /**
+     * Returns an entity's authorizations as `resource:action:scope` strings, the form a JSON Web Token carries them in.
+     *
+     * @param Authorizable $entity The entity whose authorization scopes are requested.
+     * @param ManagedObjectContext $context The context the authorizations are resolved in.
+     * @return ArrayClass<non-empty-string>
+     * @throws Exception
+     */
+    public function authorizationScopes(Authorizable $entity, ManagedObjectContext $context): ArrayClass
+    {
+        return $this->authorizations($entity, $context)->map(fn(Authorization $authorization): string => "$authorization->name:{$authorization->type->name}:{$authorization->scope->name}");
     }
 }

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Integration;
 
+use Exception;
 use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObject;
@@ -34,8 +36,7 @@ use Sabatier\Service\MCP\Tools\AbstractTool;
 use Sabatier\Service\MCP\Tools\ToolRegistry;
 use Sabatier\Service\Owner;
 use Sabatier\Service\Readable;
-
-// --- Fixtures ---
+use Throwable;
 
 class OwnedToolEntityFixture extends ManagedObject
 {
@@ -71,6 +72,9 @@ final class SecurityProbeTool extends AbstractTool
     }
     #[Override]
     protected AuthorizationService $authorizationService {
+        /**
+         * @throws ReflectionException
+         */
         get => new AuthorizationService(new ReflectionClass(AuthorizationResolver::class)->newInstanceWithoutConstructor(), new InMemoryAuthorizationCache());
     }
 
@@ -95,34 +99,31 @@ final class SecurityProbeTool extends AbstractTool
         return $this->textResult("ok");
     }
 
+    /** @throws Exception */
     public function exposedOwnershipPredicate(EntityDescription $entity): ?Predicate
     {
         return $this->ownershipPredicate($entity);
     }
 
+    /** @throws Exception */
     public function exposedApplyOwnershipScope(FetchRequest $request): void
     {
         $this->applySecurityScope($request);
     }
 
+    /** @throws Exception */
     public function exposedEnforceOwnership(ManagedObject $object): void
     {
         $this->enforceOwnership($object);
     }
 
+    /** @throws Exception */
     public function exposedEnforceEntityAuthorization(string $resource, AuthorizationType $action): void
     {
         $this->enforceEntityAuthorization($resource, $action);
     }
 }
 
-// --- Tests ---
-
-/**
- * Exercises the security helpers `AbstractTool` inherits from the field security policy —
- * ownership predicate injection, ownership enforcement and the per-entity authorization
- * gate.
- */
 final class MCPToolSecurityTest extends TestCase
 {
     private function makeRole(string $name): AuthorizableRole
@@ -142,7 +143,7 @@ final class MCPToolSecurityTest extends TestCase
 
     private function makeUser(string ...$roleNames): Authorizable
     {
-        $roles = new Set(array_map(fn(string $n): AuthorizableRole => $this->makeRole($n), $roleNames));
+        $roles = new Set(new ArrayClass($roleNames)->map($this->makeRole(...))->array);
         return new class($roles) implements Authorizable {
             public function __construct(private readonly Set $userRoles)
             {
@@ -177,12 +178,14 @@ final class MCPToolSecurityTest extends TestCase
         };
     }
 
+    /** @throws ReflectionException */
     private function makeTool(?Authorizable $user, ArrayClass $scopes, bool $isSecurityEnabled = true): SecurityProbeTool
     {
         $policy = new FieldLevelSecurityPolicy(new AuthorizationContext($user, $scopes, $isSecurityEnabled));
         return $this->makeToolWithPolicy($policy);
     }
 
+    /** @throws ReflectionException */
     private function makeToolWithPolicy(FieldSecurityPolicy $policy): SecurityProbeTool
     {
         $context = new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor();
@@ -192,6 +195,7 @@ final class MCPToolSecurityTest extends TestCase
 
     /**
      * @param class-string<ManagedObject>|null $managedObjectClassName
+     * @throws ReflectionException
      */
     private function makeEntity(string $name, ?string $managedObjectClassName): EntityDescription
     {
@@ -201,16 +205,12 @@ final class MCPToolSecurityTest extends TestCase
         return $entity;
     }
 
-    /**
-     * Creates an OwnedToolEntityFixture with the minimal CoreData stubs needed so that
-     * ManagedObject::valueForKey() can fall through to ObjectClass::valueForKey(),
-     * which reads the PHP property directly.
-     */
-    private function makeOwnedResource(?Authorizable $owner, string $entityName): OwnedToolEntityFixture
+    /** @throws ReflectionException */
+    private function makeOwnedResource(?Authorizable $owner): OwnedToolEntityFixture
     {
         /** @var OwnedToolEntityFixture $resource */
         $resource = new ReflectionClass(OwnedToolEntityFixture::class)->newInstanceWithoutConstructor();
-        $entity = $this->makeEntity($entityName, OwnedToolEntityFixture::class);
+        $entity = $this->makeEntity("Ownable", OwnedToolEntityFixture::class);
         $context = new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor();
         new ReflectionClass(ManagedObject::class)->getProperty("entity")->setValue($resource, $entity);
         new ReflectionClass(ManagedObject::class)->getProperty("managedObjectContext")->setValue($resource, $context);
@@ -218,8 +218,7 @@ final class MCPToolSecurityTest extends TestCase
         return $resource;
     }
 
-    // --- ownershipPredicate / applySecurityScope ---
-
+    /** @throws Exception */
     #[Test]
     public function ownershipPredicateBuiltWhenOwnScopeAndOwnerFieldPresent(): void
     {
@@ -228,6 +227,7 @@ final class MCPToolSecurityTest extends TestCase
         $this->assertInstanceOf(ComparisonPredicate::class, $predicate);
     }
 
+    /** @throws Exception */
     #[Test]
     public function ownershipPredicateNullWhenSecurityDisabled(): void
     {
@@ -235,6 +235,7 @@ final class MCPToolSecurityTest extends TestCase
         $this->assertNull($tool->exposedOwnershipPredicate($this->makeEntity("Ownable", OwnedToolEntityFixture::class)));
     }
 
+    /** @throws Exception */
     #[Test]
     public function ownershipPredicateNullWithoutOwnScope(): void
     {
@@ -242,6 +243,7 @@ final class MCPToolSecurityTest extends TestCase
         $this->assertNull($tool->exposedOwnershipPredicate($this->makeEntity("Ownable", OwnedToolEntityFixture::class)));
     }
 
+    /** @throws Exception */
     #[Test]
     public function ownershipPredicateNullWithoutOwnerField(): void
     {
@@ -249,6 +251,7 @@ final class MCPToolSecurityTest extends TestCase
         $this->assertNull($tool->exposedOwnershipPredicate($this->makeEntity("Plain", UnownedToolEntityFixture::class)));
     }
 
+    /** @throws Exception */
     #[Test]
     public function applySecurityScopeSetsPredicateWhenRequestHasNone(): void
     {
@@ -259,6 +262,7 @@ final class MCPToolSecurityTest extends TestCase
         $this->assertInstanceOf(ComparisonPredicate::class, $request->predicate);
     }
 
+    /** @throws Exception */
     #[Test]
     public function applySecurityScopeAndCombinesWithExistingPredicate(): void
     {
@@ -270,6 +274,7 @@ final class MCPToolSecurityTest extends TestCase
         $this->assertInstanceOf(CompoundPredicate::class, $request->predicate);
     }
 
+    /** @throws Exception */
     #[Test]
     public function applySecurityScopeLeavesRequestUntouchedWhenSecurityDisabled(): void
     {
@@ -280,12 +285,9 @@ final class MCPToolSecurityTest extends TestCase
         $this->assertNull($request->predicate);
     }
 
-    // --- resource-level #[Readable] on a fetch by objectID ---
-
     /**
-     * The predicate `UpdateTool` and `DeleteTool` build to reach a single row by id. Both pass it
-     * through `applySecurityScope`, so a class-level `#[Readable]` that excludes the caller narrows
-     * the lookup to no rows and the tool raises `NotFoundException` instead of writing the row.
+     * @param class-string<ManagedObject> $className
+     * @throws ReflectionException
      */
     private function makeObjectIDRequest(string $entityName, string $className): FetchRequest
     {
@@ -295,6 +297,7 @@ final class MCPToolSecurityTest extends TestCase
         return $request;
     }
 
+    /** @throws Exception */
     #[Test]
     public function applySecurityScopeNarrowsObjectIDLookupWhenResourceReadExcludesTheSubject(): void
     {
@@ -302,9 +305,10 @@ final class MCPToolSecurityTest extends TestCase
         $request = $this->makeObjectIDRequest("Guarded", RoleGuardedReadToolEntityFixture::class);
         $tool->exposedApplyOwnershipScope($request);
         $this->assertInstanceOf(CompoundPredicate::class, $request->predicate);
-        $this->assertStringContainsStringIgnoringCase("FALSEPREDICATE", (string)$request->predicate->predicateFormat);
+        $this->assertStringContainsStringIgnoringCase("FALSEPREDICATE", $request->predicate->predicateFormat);
     }
 
+    /** @throws Exception */
     #[Test]
     public function applySecurityScopeLeavesObjectIDLookupIntactForAllowedRole(): void
     {
@@ -314,6 +318,7 @@ final class MCPToolSecurityTest extends TestCase
         $this->assertInstanceOf(ComparisonPredicate::class, $request->predicate);
     }
 
+    /** @throws Exception */
     #[Test]
     public function applySecurityScopeLeavesObjectIDLookupIntactForUnguardedClass(): void
     {
@@ -323,61 +328,64 @@ final class MCPToolSecurityTest extends TestCase
         $this->assertInstanceOf(ComparisonPredicate::class, $request->predicate);
     }
 
-    // --- enforceOwnership ---
-
+    /** @throws Throwable */
     #[Test]
     public function enforceOwnershipThrowsForNonOwnerWithOwnScope(): void
     {
         $tool = $this->makeTool($this->makeUser("User"), new ArrayClass(["Ownable:update:own"]));
-        $tool->target = $this->makeOwnedResource($this->makeUser("Other"), "Ownable");
+        $tool->target = $this->makeOwnedResource($this->makeUser("Other"));
         $result = new ToolRegistry(new ArrayClass([$tool]))->call("security_probe", new Dictionary());
         $this->assertTrue($result->isError);
         $this->assertStringContainsString("belongs to another user", $result->text);
     }
 
+    /** @throws Throwable */
     #[Test]
     public function enforceOwnershipPassesForOwner(): void
     {
         $user = $this->makeUser("User");
         $tool = $this->makeTool($user, new ArrayClass(["Ownable:update:own"]));
-        $tool->target = $this->makeOwnedResource($user, "Ownable");
+        $tool->target = $this->makeOwnedResource($user);
         $this->assertFalse(new ToolRegistry(new ArrayClass([$tool]))->call("security_probe", new Dictionary())->isError);
     }
 
+    /** @throws Throwable */
     #[Test]
     public function enforceOwnershipChecksTheActionTheCallWasAuthorizedFor(): void
     {
         $tool = $this->makeTool($this->makeUser("User"), new ArrayClass(["Ownable:read:own", "Ownable:delete:all"]));
-        $tool->target = $this->makeOwnedResource($this->makeUser("Other"), "Ownable");
+        $tool->target = $this->makeOwnedResource($this->makeUser("Other"));
         $this->assertFalse(new ToolRegistry(new ArrayClass([$tool]))->call("security_probe", new Dictionary(["action" => "delete"]))->isError);
     }
 
+    /** @throws Throwable */
     #[Test]
     public function enforceOwnershipRestrictsTheActionTheCallWasAuthorizedFor(): void
     {
         $tool = $this->makeTool($this->makeUser("User"), new ArrayClass(["Ownable:update:all", "Ownable:delete:own"]));
-        $tool->target = $this->makeOwnedResource($this->makeUser("Other"), "Ownable");
+        $tool->target = $this->makeOwnedResource($this->makeUser("Other"));
         $this->assertTrue(new ToolRegistry(new ArrayClass([$tool]))->call("security_probe", new Dictionary(["action" => "delete"]))->isError);
     }
 
+    /** @throws Exception */
     #[Test]
     public function enforceOwnershipOutsideAnAuthorizedCallIsAProgrammingError(): void
     {
         $tool = $this->makeTool($this->makeUser("User"), new ArrayClass(["Ownable:update:own"]));
         $this->expectException(InternalInconsistencyException::class);
-        $tool->exposedEnforceOwnership($this->makeOwnedResource($this->makeUser("Other"), "Ownable"));
+        $tool->exposedEnforceOwnership($this->makeOwnedResource($this->makeUser("Other")));
     }
 
+    /** @throws Exception */
     #[Test]
     public function enforceOwnershipPassesWhenSecurityDisabled(): void
     {
         $tool = $this->makeTool($this->makeUser(), new ArrayClass(["Ownable:update:own"]), false);
-        $tool->exposedEnforceOwnership($this->makeOwnedResource($this->makeUser("Other"), "Ownable"));
+        $tool->exposedEnforceOwnership($this->makeOwnedResource($this->makeUser("Other")));
         $this->assertTrue(true);
     }
 
-    // --- enforceEntityAuthorization ---
-
+    /** @throws Exception */
     #[Test]
     public function enforceEntityAuthorizationIsNoOpWhenSecurityDisabled(): void
     {
@@ -386,17 +394,17 @@ final class MCPToolSecurityTest extends TestCase
         $this->assertTrue(true);
     }
 
+    /** @throws Exception */
     #[Test]
     public function enforceEntityAuthorizationThrowsWithoutUser(): void
     {
         $tool = $this->makeTool(null, new ArrayClass(["Ownable:read"]));
         $this->expectException(ForbiddenException::class);
-        $this->expectExceptionMessage("must be authenticated");
+        $this->expectExceptionMessageIs("You must be authenticated to perform this action.");
         $tool->exposedEnforceEntityAuthorization("Ownable", AuthorizationType::read);
     }
 
-    // --- ToolRegistry denial funnel ---
-
+    /** @throws Throwable */
     #[Test]
     public function toolRegistryAppendsRetryStopperToAuthorizationDenials(): void
     {
@@ -423,6 +431,7 @@ final class MCPToolSecurityTest extends TestCase
         $this->assertSame("You don't have permission to delete \"Order\". Do not retry this call.", $result->text);
     }
 
+    /** @throws Throwable */
     #[Test]
     public function theRegistryAuthorizesTheEntityArgumentBeforeRunning(): void
     {
@@ -430,6 +439,7 @@ final class MCPToolSecurityTest extends TestCase
         $this->assertFalse(new ToolRegistry(new ArrayClass([$tool]))->call("security_probe", new Dictionary(["entity" => "Ownable"]))->isError);
     }
 
+    /** @throws Throwable */
     #[Test]
     public function theRegistryDeniesAnEntityTheUserMayNotWriteWithoutRunningTheTool(): void
     {
@@ -441,6 +451,7 @@ final class MCPToolSecurityTest extends TestCase
         $this->assertSame("You don't have permission to update \"Ownable\". Do not retry this call.", $result->text);
     }
 
+    /** @throws Throwable */
     #[Test]
     public function theRegistryRunsAToolThatNamesNoResourceUnchecked(): void
     {

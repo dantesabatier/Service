@@ -14,7 +14,6 @@ use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Predicates\Expression;
-use Sabatier\Service\AuthorizationType;
 use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\Schema\AttributeSchema;
 use function Sabatier\Foundation\fatal_error;
@@ -69,7 +68,6 @@ final class AggregateTool extends AbstractTool
         $function = $arguments["function"] ?? fatal_error("function required");
         /** @var string $property */
         $property = $arguments["property"] ?? fatal_error("property required");
-        $this->enforceEntityAuthorization($entity, AuthorizationType::read);
         in_array($function, self::allowedFunctions, true) ?: fatal_error("Invalid function");
         $this->validateKeyPath($entity, $property);
         $this->enforceFieldRead($entity, $property);

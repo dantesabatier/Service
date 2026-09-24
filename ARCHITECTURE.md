@@ -446,7 +446,7 @@ A custom tool must also apply the same security helpers the built-in tools use �
 - **`applySecurityScope($request)`** — call on every `FetchRequest` the tool builds, before executing it. AND-folds in the caller's `own` ownership scope and the resource-level `#[Readable]`.
 - **`enforceFieldRead($entityName, $keyPath)`** — call on every key path an aggregate computes over or groups by. `applySecurityScope` narrows which rows are read; this narrows which columns.
 - **`enforceResourceAccess($object)`** — call on every object the tool creates, updates or deletes (on create, after populating it). Enforces the resource-level `#[Writable]`; throws `ForbiddenException` on denial.
-- **`enforceEntityAuthorization($resource, $action)`** — call to check per-entity RBAC for the resource, the check `AuthorizationEvaluator` performs by URL for regular endpoints.
+- **`authorizationResource($arguments)` / `authorizationAction($arguments)`** — the resource and action `ToolRegistry` authorizes before `execute()`, through the same `AccessPolicy::allowsAccess()` that `AuthorizationEvaluator` asks by URL for regular endpoints. They default to the `entity` argument and to `read`, or `update` when the call is not read-only; override them only when the tool does not fit that default.
 - **`applySecureRead` / `applySecureUpdate` / `enforceOwnership`** — field-level read filtering, field-level write filtering, and `#[Owner]` enforcement, respectively.
 
 ### In-process agents and subagents

@@ -23,6 +23,7 @@ use Sabatier\Service\AccessConditionResolver;
 use Sabatier\Service\Application;
 use Sabatier\Service\Authorizable;
 use Sabatier\Service\AuthorizationContext;
+use Sabatier\Service\AuthorizationService;
 use Sabatier\Service\AuthorizationType;
 use Sabatier\Service\DefaultAccessPolicy;
 use Sabatier\Service\FieldLevelSecurityPolicy;
@@ -99,6 +100,10 @@ abstract class AbstractTool
     protected AuthorizationContext $authorizationContext {
         get => $this->authorizationContext ??= new AuthorizationContext(Application::shared()->authenticationManager->authentication->authenticatedUser, Application::shared()->authenticationManager->authentication->authorizationScopes, $this->isSecurityEnabled);
     }
+    /** @var AuthorizationService The service that resolves the user's authorizations. */
+    protected AuthorizationService $authorizationService {
+        get => Application::shared()->authorizationService;
+    }
     /** @var FieldSecurityPolicy Security policy used for field-level read/write enforcement. */
     protected FieldSecurityPolicy $fieldSecurityPolicy {
         get => $this->fieldSecurityPolicy ??= new FieldLevelSecurityPolicy($this->authorizationContext);
@@ -124,6 +129,39 @@ abstract class AbstractTool
     public function isReadOnlyCall(Dictionary $arguments): bool
     {
         return $this->isReadOnly;
+    }
+
+    /**
+     * The resource this invocation is authorized against, or null when it needs no authorization; the `entity` argument by default.
+     *
+     * @param Dictionary<mixed> $arguments The arguments selecting the concrete operation.
+     */
+    public function authorizationResource(Dictionary $arguments): ?string
+    {
+        return is_string($entity = $arguments["entity"]) ? $entity : null;
+    }
+
+    /**
+     * The action this invocation is authorized for; `read` for a read-only call and `update` otherwise by default.
+     *
+     * @param Dictionary<mixed> $arguments The arguments selecting the concrete operation.
+     */
+    public function authorizationAction(Dictionary $arguments): AuthorizationType
+    {
+        return $this->isReadOnlyCall($arguments) ? AuthorizationType::read : AuthorizationType::update;
+    }
+
+    /**
+     * Enforces the access policy on the resource and action this invocation declares; `ToolRegistry` calls it before `execute()`.
+     *
+     * @param Dictionary<mixed> $arguments The arguments selecting the concrete operation.
+     * @throws Exception
+     */
+    public function authorize(Dictionary $arguments): void
+    {
+        if ($resource = $this->authorizationResource($arguments)) {
+            $this->enforceEntityAuthorization($resource, $this->authorizationAction($arguments));
+        }
     }
 
     /**
@@ -264,8 +302,8 @@ abstract class AbstractTool
     /**
      * Enforces per-entity RBAC for the resource this tool call targets — the check
      * `AuthorizationEvaluator` performs by URL for regular endpoints, which never sees the
-     * entity an MCP tool operates on because the request URL is always `/mcp`. Consults the
-     * token scopes, the authorization caches and the database, in that order.
+     * entity an MCP tool operates on because the request URL is always `/mcp`. Both ask
+     * the application's access policy through `allowsAccess()`.
      * @throws Exception
      */
     protected function enforceEntityAuthorization(string $resource, AuthorizationType $action): void
@@ -274,7 +312,7 @@ abstract class AbstractTool
             return;
         }
         $user = $this->user ?? throw new ForbiddenException(localized_string("You must be authenticated to perform this action."));
-        Application::shared()->authorizationService->isAuthorized($user, $resource, $action, $this->fieldSecurityPolicy->scopes, $this->context) ?: throw new ForbiddenException(sprintf(localized_string("You don't have permission to %s \"%s\"."), $action->name, $resource));
+        Application::shared()->accessPolicy->allowsAccess($resource, $action, $user, $this->fieldSecurityPolicy->scopes, $this->authorizationService, $this->context) ?: throw new ForbiddenException(sprintf(localized_string("You don't have permission to %s \"%s\"."), $action->name, $resource));
     }
 
     protected function entity(string $name): EntitySchema

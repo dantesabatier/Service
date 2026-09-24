@@ -112,6 +112,7 @@ final class ToolRegistry
             if ($complaint !== null) {
                 return ToolResult::failure($complaint);
             }
+            $tool->authorize($arguments);
             return ToolResult::success($tool->execute($arguments));
         } catch (InternalInconsistencyException $exception) {
             error_log((string)$exception);

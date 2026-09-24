@@ -8,7 +8,6 @@ use Exception;
 use Override;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
-use Sabatier\Service\AuthorizationType;
 use Sabatier\Service\MCP\Response\ContentItem;
 use function Sabatier\Foundation\fatal_error;
 
@@ -50,7 +49,6 @@ final class CountTool extends AbstractTool
     {
         /** @var string $entity */
         $entity = $arguments["entity"] ?? fatal_error("entity is required");
-        $this->enforceEntityAuthorization($entity, AuthorizationType::read);
         $request = $this->fetchRequest($entity);
         /** @var string|null $predicate */
         $predicate = $arguments["predicate"];

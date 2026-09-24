@@ -165,7 +165,7 @@ That last point is intentionally asymmetric to `OwnershipService`/`enforceOwners
 
 #### MCP tools and row-level rules
 
-An MCP request URL is always `/mcp`, so none of the URL-driven guards protecting a regular endpoint apply. `AbstractTool` provides the equivalents, and a tool that skips them reads or writes rows the caller is not entitled to:
+An MCP request URL is always `/mcp`, so none of the URL-driven guards protecting a regular endpoint apply. Entity-level RBAC is enforced by `ToolRegistry` before `execute()`, against `AbstractTool::authorizationResource()` and `authorizationAction()` — the `entity` argument and `read`/`update` by default — through `AccessPolicy::allowsAccess()`, the same decision `AuthorizationEvaluator` asks for HTTP. One resource per call, as in HTTP. Row- and field-level rules stay in the tool, and a tool that skips them reads or writes rows the caller is not entitled to:
 
 - **`applySecurityScope($request)`** — call on **every** `FetchRequest` a tool builds, before executing it. Folds in both the ownership scope and the resource-level `#[Readable]`. Where a helper method returns the request, call it next to the `return` so every caller inherits it.
 - **`enforceResourceAccess($object)`** — call on every object a tool creates, updates or deletes. On create, call it *after* populating the object, so a `where` reading the row's own values sees the values being written.

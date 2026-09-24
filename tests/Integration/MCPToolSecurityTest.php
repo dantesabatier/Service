@@ -21,10 +21,13 @@ use Sabatier\Foundation\Set;
 use Sabatier\Service\Authorizable;
 use Sabatier\Service\AuthorizableRole;
 use Sabatier\Service\AuthorizationContext;
+use Sabatier\Service\AuthorizationResolver;
+use Sabatier\Service\AuthorizationService;
 use Sabatier\Service\AuthorizationType;
 use Sabatier\Service\FieldLevelSecurityPolicy;
 use Sabatier\Service\FieldSecurityPolicy;
 use Sabatier\Service\ForbiddenException;
+use Sabatier\Service\InMemoryAuthorizationCache;
 use Sabatier\Service\MCP\Schema\ModelDescriptor;
 use Sabatier\Service\MCP\Tools\AbstractTool;
 use Sabatier\Service\MCP\Tools\ToolRegistry;
@@ -63,6 +66,10 @@ final class SecurityProbeTool extends AbstractTool
     #[Override]
     protected bool $isSecurityEnabled {
         get => $this->fieldSecurityPolicy->isSecurityEnabled;
+    }
+    #[Override]
+    protected AuthorizationService $authorizationService {
+        get => new AuthorizationService(new ReflectionClass(AuthorizationResolver::class)->newInstanceWithoutConstructor(), new InMemoryAuthorizationCache());
     }
 
     public function __construct(ManagedObjectContext $context, ModelDescriptor $descriptor, FieldSecurityPolicy $fieldSecurityPolicy)
@@ -103,9 +110,7 @@ final class SecurityProbeTool extends AbstractTool
 /**
  * Exercises the security helpers `AbstractTool` inherits from the field security policy —
  * ownership predicate injection, ownership enforcement and the per-entity authorization
- * gate. The token-scope grant path of `enforceEntityAuthorization` is covered by
- * `AuthorizationServiceTest`; it is not repeated here because it requires the shared
- * application's persistent container.
+ * gate.
  */
 final class MCPToolSecurityTest extends TestCase
 {
@@ -381,5 +386,37 @@ final class MCPToolSecurityTest extends TestCase
         $result = new ToolRegistry(new ArrayClass([$tool]))->call("denying_tool", new Dictionary());
         $this->assertTrue($result->isError);
         $this->assertSame("You don't have permission to delete \"Order\". Do not retry this call.", $result->text);
+    }
+
+    #[Test]
+    public function theRegistryAuthorizesTheEntityArgumentBeforeRunning(): void
+    {
+        $tool = $this->makeTool($this->makeUser(), new ArrayClass(["Ownable:update"]));
+        $this->assertFalse(new ToolRegistry(new ArrayClass([$tool]))->call("security_probe", new Dictionary(["entity" => "Ownable"]))->isError);
+    }
+
+    #[Test]
+    public function theRegistryDeniesAnEntityTheUserMayNotWriteWithoutRunningTheTool(): void
+    {
+        $user = $this->makeUser();
+        new InMemoryAuthorizationCache()->setAuthorizableAuthorizations($user, new ArrayClass());
+        $tool = $this->makeTool($user, new ArrayClass(["Ownable:create"]));
+        $result = new ToolRegistry(new ArrayClass([$tool]))->call("security_probe", new Dictionary(["entity" => "Ownable"]));
+        $this->assertTrue($result->isError);
+        $this->assertSame("You don't have permission to update \"Ownable\". Do not retry this call.", $result->text);
+    }
+
+    #[Test]
+    public function theRegistryRunsAToolThatNamesNoResourceUnchecked(): void
+    {
+        $tool = $this->makeTool(null, new ArrayClass());
+        $this->assertFalse(new ToolRegistry(new ArrayClass([$tool]))->call("security_probe", new Dictionary())->isError);
+    }
+
+    #[Override]
+    protected function tearDown(): void
+    {
+        new InMemoryAuthorizationCache()->invalidateAll();
+        parent::tearDown();
     }
 }

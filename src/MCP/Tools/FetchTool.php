@@ -11,7 +11,6 @@ use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\SortDescriptor;
-use Sabatier\Service\AuthorizationType;
 use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\Schema\RelationshipSchema;
 use function Sabatier\Foundation\fatal_error;
@@ -60,7 +59,6 @@ final class FetchTool extends AbstractTool
     {
         /** @var string $entity */
         $entity = $arguments["entity"] ?? fatal_error("entity is required");
-        $this->enforceEntityAuthorization($entity, AuthorizationType::read);
         $this->validateProjection($entity, $arguments);
         $this->validateSort($entity, $arguments["sort"]);
         $request = $this->fetchRequest($entity);

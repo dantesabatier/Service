@@ -9,10 +9,12 @@ onward.
 
 ### Added
 
-- `AccessPolicy::allowsAccess()`, the decision whether the authenticated user may perform an action on a resource. `AuthorizationEvaluator` asks it rather than `AuthorizationService` directly, and `PublicAccessPolicy` answers yes.
+- `AccessPolicy::allowsAccess()`, the decision whether a user may perform an action on a resource. `AuthorizationEvaluator` asks it rather than `AuthorizationService` directly, and `PublicAccessPolicy` answers yes.
+- `AbstractTool::authorizationResource()` and `authorizationAction()`, the resource and action a tool call is authorized against, and `authorize()`, which asks `allowsAccess()` for them. They default to the `entity` argument and to `read`, or `update` when the call is not read-only.
 
 ### Changed
 
+- **Breaking:** `ToolRegistry` authorizes every tool call before running it, so entity-level RBAC no longer depends on each tool checking it inside `execute()`. A custom tool that takes an `entity` argument is now authorized against it without writing anything: `read` when the call is read-only, `update` otherwise. Override `authorizationResource()` or `authorizationAction()` when that default does not describe the call, and return a null resource when it needs no authorization. The built-in tools authorize exactly what they did before.
 - Upload failures are reported in the active language. The messages `UploadsEnumerator` produces bypassed `localized_string`, so they stayed in English under every locale; the English and Spanish catalogs carry them now. `JobTool`'s strings are excluded from extraction, so they no longer reach the application catalog.
 
 ## [1.0.0] - 2026-09-18

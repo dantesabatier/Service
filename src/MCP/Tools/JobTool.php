@@ -22,7 +22,7 @@ use function Sabatier\Foundation\fatal_error;
  * name against the discovered `Job` classes, runs it against the request
  * context, and persists its changes — the same transaction boundary the CRUD
  * tools keep, `save` here because this tool, not the responder, owns the job's
- * writes. The transaction author is stamped with the authenticated user so
+ * writes. The transaction author is stamped with the authenticated user, so
  * persistent history attributes the run to the agent's caller.
  *
  * Authorization is enforced per call since the MCP request URL never names the
@@ -63,6 +63,18 @@ final class JobTool extends AbstractTool
         ];
     }
 
+    #[Override]
+    public function authorizationResource(Dictionary $arguments): string
+    {
+        return self::jobsResource;
+    }
+
+    #[Override]
+    public function authorizationAction(Dictionary $arguments): AuthorizationType
+    {
+        return AuthorizationType::any;
+    }
+
     /**
      * @return ArrayClass<ContentItem>
      * @throws Exception
@@ -72,7 +84,6 @@ final class JobTool extends AbstractTool
     {
         /** @var string $name */
         $name = $arguments["job"] ?? fatal_error("job is required");
-        $this->enforceEntityAuthorization(self::jobsResource, AuthorizationType::any);
         $job = $this->registry->job($name) ?? fatal_error("Unknown job \"$name\". Available: {$this->registry->names->join(", ")}.");
         $this->context->transactionAuthor = $this->user?->username ?? "system";
         $job->run($this->context);

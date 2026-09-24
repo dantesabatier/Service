@@ -19,6 +19,6 @@ final class AuthorizationEvaluator implements AuthorizationAccessEvaluator
             HTTPRequestMethod::put, HTTPRequestMethod::patch => AuthorizationType::update,
             HTTPRequestMethod::delete => AuthorizationType::delete,
             default => throw new MethodNotAllowedException()
-        }, $context->authentication, $context->authorizationService, $context->managedObjectContext);
+        }, $context->authentication->authenticatedUser, $context->authentication->authorizationScopes, $context->authorizationService, $context->managedObjectContext);
     }
 }

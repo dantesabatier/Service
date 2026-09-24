@@ -76,6 +76,18 @@ final class PersistentHistoryTool extends AbstractTool
         return $arguments["operation"] === "fetch";
     }
 
+    #[Override]
+    public function authorizationResource(Dictionary $arguments): string
+    {
+        return "history";
+    }
+
+    #[Override]
+    public function authorizationAction(Dictionary $arguments): AuthorizationType
+    {
+        return $arguments["operation"] === "purge" ? AuthorizationType::delete : AuthorizationType::read;
+    }
+
     /**
      * @return ArrayClass<ContentItem>
      * @throws Exception
@@ -86,7 +98,6 @@ final class PersistentHistoryTool extends AbstractTool
         /** @var string $operation */
         $operation = $arguments["operation"] ?? fatal_error("operation is required");
         in_array($operation, self::operations, true) ?: fatal_error("Invalid operation \"$operation\". Allowed: " . new ArrayClass(self::operations)->join(", ") . ".");
-        $this->enforceEntityAuthorization("history", $operation === "purge" ? AuthorizationType::delete : AuthorizationType::read);
         $changeRequest = $operation === "purge" ? $this->purgeRequest($arguments) : $this->fetchRequestFor($arguments);
         if ($fetchRequest = $this->transactionFilter($arguments)) {
             $changeRequest->fetchRequest = $fetchRequest;
@@ -165,7 +176,7 @@ final class PersistentHistoryTool extends AbstractTool
         return new PersistentHistoryToken($token->mapValues(fn(int|string $value): Number => new Number($value)));
     }
 
-    private function shapeResult(PersistentHistoryResult $result): mixed
+    private function shapeResult(PersistentHistoryResult $result): Dictionary|ArrayClass|Number
     {
         return match ($result->resultType) {
             PersistentHistoryResultType::statusOnly => new Dictionary([ServiceResponseStatusKey => $result->result]),

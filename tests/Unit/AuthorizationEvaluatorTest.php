@@ -103,7 +103,7 @@ final class AuthorizationEvaluatorTest extends TestCase
     public function thePublicPolicyAuthorizesWithoutAUser(): void
     {
         $context = $this->context(HTTPRequestMethod::get, "/Order", null);
-        $this->assertTrue(new PublicAccessPolicy()->allowsAccess("Order", AuthorizationType::delete, $context->authentication, $context->authorizationService, $context->managedObjectContext));
+        $this->assertTrue(new PublicAccessPolicy()->allowsAccess("Order", AuthorizationType::delete, null, new ArrayClass(), $context->authorizationService, $context->managedObjectContext));
     }
 
     #[Override]

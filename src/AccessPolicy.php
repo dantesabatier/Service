@@ -6,6 +6,7 @@ namespace Sabatier\Service;
 
 use Exception;
 use Sabatier\CoreData\ManagedObjectContext;
+use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\ProcessInfo;
 
@@ -40,18 +41,19 @@ abstract class AccessPolicy
     abstract public function enforceAccess(Responder $responder, AuthenticationManager $authenticationManager): void;
 
     /**
-     * Determines whether the authenticated user may perform an action on a resource.
+     * Determines whether a user may perform an action on a resource.
      *
      * @param string $resource The resource on which the action is to be performed.
      * @param AuthorizationType $action The type of action being requested.
-     * @param Authentication $authentication The authentication carrying the user and its authorization scopes.
+     * @param Authorizable|null $user The authenticated user, or null when there is none.
+     * @param ArrayClass<string> $scopes The authorization scopes carried by the user's token.
      * @param AuthorizationService $authorizationService The service that resolves the user's authorizations.
      * @param ManagedObjectContext $managedObjectContext The context in which the authorization is being evaluated.
      * @throws Exception
      */
-    public function allowsAccess(string $resource, AuthorizationType $action, Authentication $authentication, AuthorizationService $authorizationService, ManagedObjectContext $managedObjectContext): bool
+    public function allowsAccess(string $resource, AuthorizationType $action, ?Authorizable $user, ArrayClass $scopes, AuthorizationService $authorizationService, ManagedObjectContext $managedObjectContext): bool
     {
-        return ($user = $authentication->authenticatedUser) && $authorizationService->isAuthorized($user, $resource, $action, $authentication->authorizationScopes, $managedObjectContext);
+        return $user && $authorizationService->isAuthorized($user, $resource, $action, $scopes, $managedObjectContext);
     }
 
     /**

@@ -109,6 +109,12 @@ final class SchemaProbeTool extends AbstractTool
         ];
     }
 
+    #[Override]
+    public function authorizationResource(Dictionary $arguments): ?string
+    {
+        return null;
+    }
+
     /** @return ArrayClass<ContentItem> */
     #[Override]
     public function execute(Dictionary $arguments): ArrayClass

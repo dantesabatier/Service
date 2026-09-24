@@ -301,7 +301,7 @@ The URL is always `/mcp`, so the endpoint guards never fire. A custom tool that 
 |--------|----------|
 | `applySecurityScope(FetchRequest $request)` | on **every** `FetchRequest` before executing it — folds in the `own` ownership scope and the resource-level `#[Readable]`. |
 | `enforceFieldRead(string $entityName, string $keyPath)` | on every key path an aggregate computes over or groups by — a protected column stays protected even over permitted rows. |
-| `enforceEntityAuthorization(string $resource, AuthorizationType $action)` | to check per-entity RBAC for the resource and action. |
+| `authorizationResource(Dictionary $arguments): ?string` / `authorizationAction(Dictionary $arguments): AuthorizationType` | to override the resource and action `ToolRegistry` authorizes before `execute()` — the `entity` argument and `read` (or `update` when the call is not read-only) by default. Return a null resource for a call that needs no authorization. |
 | `enforceResourceAccess(ManagedObject $object)` | on every object created, updated or deleted — enforces the resource-level `#[Writable]`. On create, call it *after* populating the object. |
 | `enforceOwnership(ManagedObject $object)` | on an object being updated or deleted — enforces the `#[Owner]` field. |
 | `applySecureRead(ManagedObject $object, Dictionary $data): Dictionary` | to filter a serialized object down to the fields the caller may read. |

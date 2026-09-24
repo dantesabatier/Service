@@ -71,6 +71,12 @@ final class DescribeModelTool extends AbstractTool
         }
     }
 
+    #[Override]
+    public function authorizationResource(Dictionary $arguments): ?string
+    {
+        return null;
+    }
+
     /**
      * @return ArrayClass<ContentItem>
      * @throws JsonException

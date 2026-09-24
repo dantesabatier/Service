@@ -35,6 +35,12 @@ final class DeleteTool extends AbstractTool
         ];
     }
 
+    #[Override]
+    public function authorizationAction(Dictionary $arguments): AuthorizationType
+    {
+        return AuthorizationType::delete;
+    }
+
     /**
      * @return ArrayClass<ContentItem>
      * @throws Exception
@@ -45,7 +51,6 @@ final class DeleteTool extends AbstractTool
         /** @var string $entity */
         $entity = $arguments["entity"] ?? fatal_error("entity is required");
         $objectID = $arguments["objectID"] ?? fatal_error("objectID is required");
-        $this->enforceEntityAuthorization($entity, AuthorizationType::delete);
         $request = $this->fetchRequest($entity);
         $request->predicate = $this->buildPredicate("%K = %d", new ArrayClass([ManagedObjectObjectIDKey, $objectID]));
         $this->applySecurityScope($request);

@@ -14,19 +14,30 @@ use Sabatier\CoreData\AttributeDescription;
 use Sabatier\CoreData\AttributeType;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
+use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\CoreData\ManagedObjectModel;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
+use Sabatier\Foundation\Networking\HTTPRequestMethod;
 use Sabatier\Foundation\ObjectClass;
 use Sabatier\Foundation\Set;
-use Sabatier\Service\AuthorizableRole;
 use Sabatier\Service\Authorizable;
+use Sabatier\Service\AuthorizableRole;
 use Sabatier\Service\AuthorizationContext;
+use Sabatier\Service\AuthorizationType;
 use Sabatier\Service\FieldLevelSecurityPolicy;
+use Sabatier\Service\ForbiddenException;
+use Sabatier\Service\Owner;
 use Sabatier\Service\PersistentSpaceResponseStrategy;
 use Sabatier\Service\ReadPersistentSpaceResponseStrategy;
 use Sabatier\Service\Request;
+
+class OwnedOrderStrategyFixture extends ManagedObject
+{
+    #[Owner]
+    public ?Authorizable $createdBy = null;
+}
 
 /**
  * Fixes the lookup every CRUD strategy inherits, and the policy values it exposes to its subclasses.
@@ -115,8 +126,70 @@ final class PersistentSpaceResponseStrategyTest extends TestCase
     {
         $strategy = $this->strategy($this->policy(true, $this->user(), new ArrayClass(["Order:read:own"])));
         $hasOwnScopeFor = new ReflectionMethod(PersistentSpaceResponseStrategy::class, "hasOwnScopeFor");
-        $this->assertTrue($hasOwnScopeFor->invoke($strategy, "Order"));
-        $this->assertFalse($hasOwnScopeFor->invoke($strategy, "Invoice"));
+        $this->assertTrue($hasOwnScopeFor->invoke($strategy, "Order", AuthorizationType::read));
+        $this->assertFalse($hasOwnScopeFor->invoke($strategy, "Invoice", AuthorizationType::read));
+    }
+
+    #[Test]
+    public function theOwnScopeIsAnsweredPerAction(): void
+    {
+        $policy = $this->policy(true, $this->user(), new ArrayClass(["Order:read:own", "Order:delete:all"]));
+        $this->assertTrue($policy->hasOwnScopeFor("Order", AuthorizationType::read));
+        $this->assertFalse($policy->hasOwnScopeFor("Order", AuthorizationType::delete));
+        $this->assertFalse($policy->hasOwnScopeFor("Order", AuthorizationType::update));
+    }
+
+    #[Test]
+    public function anOwnScopeOnAnyActionRestrictsEveryAction(): void
+    {
+        $policy = $this->policy(true, $this->user(), new ArrayClass(["Order:any:own"]));
+        $this->assertTrue($policy->hasOwnScopeFor("Order", AuthorizationType::read));
+        $this->assertTrue($policy->hasOwnScopeFor("Order", AuthorizationType::delete));
+    }
+
+    #[Test]
+    public function aScopeOnAllRowsWinsOverAnOwnScopeForTheSameAction(): void
+    {
+        $this->assertFalse($this->policy(true, $this->user(), new ArrayClass(["Order:read:own", "Order:read:all"]))->hasOwnScopeFor("Order", AuthorizationType::read));
+        $this->assertFalse($this->policy(true, $this->user(), new ArrayClass(["Order:read:own", "Order:any:all"]))->hasOwnScopeFor("Order", AuthorizationType::read));
+    }
+
+    #[Test]
+    public function aDeleteIsNotRestrictedByAnOwnScopeOnReads(): void
+    {
+        $this->enforceOwnership(HTTPRequestMethod::delete, new ArrayClass(["Order:read:own", "Order:delete:all"]));
+        $this->expectNotToPerformAssertions();
+    }
+
+    #[Test]
+    public function aDeleteIsRestrictedByAnOwnScopeOnDeletes(): void
+    {
+        $this->expectException(ForbiddenException::class);
+        $this->enforceOwnership(HTTPRequestMethod::delete, new ArrayClass(["Order:update:all", "Order:delete:own"]));
+    }
+
+    #[Test]
+    public function anUpdateIsRestrictedByAnOwnScopeOnUpdates(): void
+    {
+        $this->expectException(ForbiddenException::class);
+        $this->enforceOwnership(HTTPRequestMethod::patch, new ArrayClass(["Order:update:own", "Order:delete:all"]));
+    }
+
+    /** @param ArrayClass<string> $scopes */
+    private function enforceOwnership(string $method, ArrayClass $scopes): void
+    {
+        new ReflectionMethod(PersistentSpaceResponseStrategy::class, "enforceOwnership")->invoke($this->strategy($this->policy(true, $this->user(), $scopes), $method), $this->ownedOrder($this->user()));
+    }
+
+    private function ownedOrder(Authorizable $owner): OwnedOrderStrategyFixture
+    {
+        $order = new ReflectionClass(OwnedOrderStrategyFixture::class)->newInstanceWithoutConstructor();
+        $entity = new EntityDescription();
+        $entity->name = "Order";
+        new ReflectionProperty(ManagedObject::class, "entity")->setValue($order, $entity);
+        new ReflectionProperty(ManagedObject::class, "managedObjectContext")->setValue($order, new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor());
+        $order->createdBy = $owner;
+        return $order;
     }
 
     private function isSecurityEnabled(PersistentSpaceResponseStrategy $strategy): bool
@@ -137,8 +210,10 @@ final class PersistentSpaceResponseStrategyTest extends TestCase
         return new FieldLevelSecurityPolicy(new AuthorizationContext($user, $scopes ?? new ArrayClass(), $isSecurityEnabled));
     }
 
-    private function strategy(FieldLevelSecurityPolicy $policy): PersistentSpaceResponseStrategy
+    private function strategy(FieldLevelSecurityPolicy $policy, string $method = HTTPRequestMethod::get): PersistentSpaceResponseStrategy
     {
+        $request = new Request();
+        $request->httpMethod = $method;
         $total = new AttributeDescription();
         $total->name = "total";
         $total->type = AttributeType::decimal;
@@ -148,7 +223,7 @@ final class PersistentSpaceResponseStrategyTest extends TestCase
         // An entity stays editable — and refuses to derive attributesByName — until a model owns it.
         $model = new ManagedObjectModel();
         $model->entities = new ArrayClass([$entity]);
-        return new ReadPersistentSpaceResponseStrategy(new Request(), $entity, new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor(), $policy);
+        return new ReadPersistentSpaceResponseStrategy($request, $entity, new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor(), $policy);
     }
 
     private function user(string ...$roleNames): Authorizable

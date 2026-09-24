@@ -112,6 +112,8 @@ abstract class AbstractTool
     protected ?Authorizable $user {
         get => $this->fieldSecurityPolicy->user;
     }
+    /** @var AuthorizationType|null The action the call in progress was authorized for, recorded by {@see self::authorize()}. */
+    private ?AuthorizationType $authorizedAction = null;
 
     /**
      * @param ManagedObjectContext $context The context used to execute the tool's data operations.
@@ -159,8 +161,9 @@ abstract class AbstractTool
      */
     public function authorize(Dictionary $arguments): void
     {
+        $this->authorizedAction = $this->authorizationAction($arguments);
         if ($resource = $this->authorizationResource($arguments)) {
-            $this->enforceEntityAuthorization($resource, $this->authorizationAction($arguments));
+            $this->enforceEntityAuthorization($resource, $this->authorizedAction);
         }
     }
 
@@ -183,7 +186,7 @@ abstract class AbstractTool
     {
         /** @var class-string<ManagedObject> $entityClassName */
         $entityClassName = $entity->managedObjectClassName ?? $entity->name;
-        if ($this->isSecurityEnabled && $this->fieldSecurityPolicy->hasOwnScopeFor($entity->name) && class_exists($entityClassName) && ($ownerKey = OwnerResolver::getOwnerFieldName($entityClassName))) {
+        if ($this->isSecurityEnabled && $this->fieldSecurityPolicy->hasOwnScopeFor($entity->name, AuthorizationType::read) && class_exists($entityClassName) && ($ownerKey = OwnerResolver::getOwnerFieldName($entityClassName))) {
             return new ComparisonPredicate(Expression::expressionForKeyPath($ownerKey), Expression::expressionForConstantValue($this->user));
         }
         return null;
@@ -260,7 +263,9 @@ abstract class AbstractTool
      */
     protected function enforceOwnership(ManagedObject $object): void
     {
-        $this->fieldSecurityPolicy->enforceOwnership($object);
+        if ($this->isSecurityEnabled) {
+            $this->fieldSecurityPolicy->enforceOwnership($object, $this->authorizedAction ?? fatal_error("enforceOwnership() needs the action the call was authorized for; call authorize() first, as ToolRegistry does."));
+        }
     }
 
     /**

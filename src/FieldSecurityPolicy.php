@@ -199,22 +199,25 @@ abstract readonly class FieldSecurityPolicy
     }
 
     /**
-     * Returns whether the current authorization scopes include `own` for the given entity.
+     * Returns whether the authorization scopes restrict an action on the given entity to the user's own rows; a scope granting it on all rows wins.
      * @param string $entityName The entity name to check ownership scope for.
+     * @param AuthorizationType $action The action being performed.
      */
-    public function hasOwnScopeFor(string $entityName): bool
+    public function hasOwnScopeFor(string $entityName, AuthorizationType $action): bool
     {
-        $ownSuffix = ":" . AuthorizationScope::own->name;
-        return $this->scopes->contains(fn(string $scope): bool => str_starts_with($scope, "$entityName:") && str_ends_with($scope, $ownSuffix));
+        $any = AuthorizationType::any->name;
+        $isGranted = fn(AuthorizationScope $scope): bool => $this->scopes->containsElement("$entityName:$action->name:$scope->name") || $this->scopes->containsElement("$entityName:$any:$scope->name");
+        return $isGranted(AuthorizationScope::own) && !$isGranted(AuthorizationScope::all);
     }
 
     /**
-     * Enforces ownership rules for an object when `own` scope is present for its entity.
+     * Enforces ownership rules for an object when an `own` scope restricts the action on its entity.
      * @param ManagedObject $object The managed object to check for ownership.
+     * @param AuthorizationType $action The action being performed on the object.
      */
-    public function enforceOwnership(ManagedObject $object): void
+    public function enforceOwnership(ManagedObject $object, AuthorizationType $action): void
     {
-        if ($this->isSecurityEnabled && $this->hasOwnScopeFor($object->entity->name)) {
+        if ($this->isSecurityEnabled && $this->hasOwnScopeFor($object->entity->name, $action)) {
             $service = new OwnershipService(new OwnerResolver($object), $this->user ?? fatal_error());
             $service->isOwner ?: throw new ForbiddenException(sprintf(localized_string("You don't have permission to modify this \"%s\" row: it belongs to another user."), $object->entity->name));
         }

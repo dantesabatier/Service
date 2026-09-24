@@ -7,6 +7,14 @@ onward.
 
 ## [Unreleased]
 
+### Added
+
+- `AuthorizationType::forHTTPMethod()`, the action an HTTP method performs, shared by `AuthorizationEvaluator` and `PersistentSpace`.
+
+### Changed
+
+- **Breaking:** an `own` authorization scope restricts only the action it names. `FieldSecurityPolicy::hasOwnScopeFor()` and `enforceOwnership()` take the `AuthorizationType` being performed. Before, any `own` scope on an entity restricted every action on it, so `Order:read:own` also kept a user holding `Order:delete:all` from deleting another user's order. When the user's roles grant the same action on both `own` and `all` rows, `all` wins, as it already did for entity-level authorization. Neither `PersistentSpace` nor a tool passes the action: `PersistentSpace` takes it from the request method, and `AbstractTool::enforceOwnership()` from the action `authorize()` checked, so ownership is judged against the same action the call was authorized for. A tool that calls `enforceOwnership()` outside a call authorized through `ToolRegistry` now fails with an `InternalInconsistencyException` while security is enabled.
+
 ## [1.1.1] - 2026-09-24
 
 ### Fixed

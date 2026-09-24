@@ -14,6 +14,7 @@ use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
+use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\CompoundPredicate;
 use Sabatier\Foundation\Predicates\Predicate;
@@ -63,6 +64,7 @@ final class SecurityProbeTool extends AbstractTool
     public array $inputSchema {
         get => ["type" => "object"];
     }
+    public ?ManagedObject $target = null;
     #[Override]
     protected bool $isSecurityEnabled {
         get => $this->fieldSecurityPolicy->isSecurityEnabled;
@@ -79,8 +81,17 @@ final class SecurityProbeTool extends AbstractTool
     }
 
     #[Override]
+    public function authorizationAction(Dictionary $arguments): AuthorizationType
+    {
+        return $arguments["action"] === "delete" ? AuthorizationType::delete : parent::authorizationAction($arguments);
+    }
+
+    #[Override]
     public function execute(Dictionary $arguments): ArrayClass
     {
+        if ($this->target) {
+            $this->enforceOwnership($this->target);
+        }
         return $this->textResult("ok");
     }
 
@@ -317,11 +328,11 @@ final class MCPToolSecurityTest extends TestCase
     #[Test]
     public function enforceOwnershipThrowsForNonOwnerWithOwnScope(): void
     {
-        $user = $this->makeUser("User");
-        $tool = $this->makeTool($user, new ArrayClass(["Ownable:update:own"]));
-        $this->expectException(ForbiddenException::class);
-        $this->expectExceptionMessage("belongs to another user");
-        $tool->exposedEnforceOwnership($this->makeOwnedResource($this->makeUser("Other"), "Ownable"));
+        $tool = $this->makeTool($this->makeUser("User"), new ArrayClass(["Ownable:update:own"]));
+        $tool->target = $this->makeOwnedResource($this->makeUser("Other"), "Ownable");
+        $result = new ToolRegistry(new ArrayClass([$tool]))->call("security_probe", new Dictionary());
+        $this->assertTrue($result->isError);
+        $this->assertStringContainsString("belongs to another user", $result->text);
     }
 
     #[Test]
@@ -329,8 +340,32 @@ final class MCPToolSecurityTest extends TestCase
     {
         $user = $this->makeUser("User");
         $tool = $this->makeTool($user, new ArrayClass(["Ownable:update:own"]));
-        $tool->exposedEnforceOwnership($this->makeOwnedResource($user, "Ownable"));
-        $this->assertTrue(true);
+        $tool->target = $this->makeOwnedResource($user, "Ownable");
+        $this->assertFalse(new ToolRegistry(new ArrayClass([$tool]))->call("security_probe", new Dictionary())->isError);
+    }
+
+    #[Test]
+    public function enforceOwnershipChecksTheActionTheCallWasAuthorizedFor(): void
+    {
+        $tool = $this->makeTool($this->makeUser("User"), new ArrayClass(["Ownable:read:own", "Ownable:delete:all"]));
+        $tool->target = $this->makeOwnedResource($this->makeUser("Other"), "Ownable");
+        $this->assertFalse(new ToolRegistry(new ArrayClass([$tool]))->call("security_probe", new Dictionary(["action" => "delete"]))->isError);
+    }
+
+    #[Test]
+    public function enforceOwnershipRestrictsTheActionTheCallWasAuthorizedFor(): void
+    {
+        $tool = $this->makeTool($this->makeUser("User"), new ArrayClass(["Ownable:update:all", "Ownable:delete:own"]));
+        $tool->target = $this->makeOwnedResource($this->makeUser("Other"), "Ownable");
+        $this->assertTrue(new ToolRegistry(new ArrayClass([$tool]))->call("security_probe", new Dictionary(["action" => "delete"]))->isError);
+    }
+
+    #[Test]
+    public function enforceOwnershipOutsideAnAuthorizedCallIsAProgrammingError(): void
+    {
+        $tool = $this->makeTool($this->makeUser("User"), new ArrayClass(["Ownable:update:own"]));
+        $this->expectException(InternalInconsistencyException::class);
+        $tool->exposedEnforceOwnership($this->makeOwnedResource($this->makeUser("Other"), "Ownable"));
     }
 
     #[Test]

@@ -31,7 +31,7 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
 
     protected function hasOwnScopeFor(string $entityName): bool
     {
-        return $this->fieldSecurityPolicy->hasOwnScopeFor($entityName);
+        return $this->fieldSecurityPolicy->hasOwnScopeFor($entityName, AuthorizationType::forHTTPMethod($this->request->httpMethod));
     }
 
     public function __construct(Request $request, EntityDescription $entity, ManagedObjectContext $managedObjectContext, FieldSecurityPolicy $fieldSecurityPolicy)
@@ -69,7 +69,7 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
 
     protected function enforceOwnership(ManagedObject $object): void
     {
-        $this->fieldSecurityPolicy->enforceOwnership($object);
+        $this->fieldSecurityPolicy->enforceOwnership($object, AuthorizationType::forHTTPMethod($this->request->httpMethod));
     }
 
     /**

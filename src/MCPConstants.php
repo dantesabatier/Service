@@ -54,7 +54,7 @@ const MCPServerNameDefault = "MCP Server";
 /** @var string Environment variable key for the MCP server version returned during initialization. */
 const MCPServerVersionKey = "MCP_SERVER_VERSION";
 /** @var string Default MCP server version when the environment variable is not set. */
-const MCPServerVersionDefault = "1.2.0";
+const MCPServerVersionDefault = "1.3.0";
 /** @var string Environment variable key for the Tavily API key consumed by `Sabatier\Service\Search\TavilySearchProvider`; the application decides how it reads it. */
 const WebSearchApiKey = "WEB_SEARCH_API_KEY";
 /** @var string Environment variable key for the identifier of the `WebSearchProvider` the server uses to back `web_search`. */

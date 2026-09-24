@@ -142,7 +142,10 @@ final class GroupByTool extends AbstractTool
         return $current;
     }
 
-    /** @throws Exception */
+    /**
+     * @return ArrayClass<string>
+     * @throws Exception
+     */
     private function groupKeys(string $entity, iterable $keys): ArrayClass
     {
         /** @var ArrayClass<string> $result */
@@ -155,7 +158,10 @@ final class GroupByTool extends AbstractTool
         return $result;
     }
 
-    /** @throws Exception */
+    /**
+     * @return ArrayClass<ExpressionDescription>
+     * @throws Exception
+     */
     private function aggregateDescriptions(mixed $request, string $entity, iterable $items): ArrayClass
     {
         /** @var ArrayClass<ExpressionDescription> $result */

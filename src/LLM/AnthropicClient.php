@@ -42,11 +42,14 @@ final class AnthropicClient extends LLMClient
     {
         $request = new URLRequest($this->endpoint ?? fatal_error("Endpoint URL must be provided for AnthropicClient"));
         $request->httpMethod = HTTPRequestMethod::post;
-        $request->allHTTPHeaderFields = new Dictionary([
-            "x-api-key" => $this->key,
+        $headers = new Dictionary([
             "anthropic-version" => $this->version,
             "Content-Type" => "application/json",
         ]);
+        if ($this->key !== null) {
+            $headers["x-api-key"] = $this->key;
+        }
+        $request->allHTTPHeaderFields = $headers;
         $body = [
             "model" => $this->model,
             "max_tokens" => $this->maxTokens,

@@ -194,7 +194,7 @@ abstract class AbstractTool
      * with any predicate the tool already set: the `own` ownership scope, and the resource-level
      * `#[Readable]` declared on the entity's class.
      *
-     * Call this on every fetch request a tool builds, before executing it. A tool that skips it
+     * Call this on every fetch request a tool builds before executing it. A tool that skips it
      * reads rows the caller is not entitled to — the MCP request URL is always `/mcp`, so none of
      * the URL-driven guards that protect a regular endpoint apply here.
      *
@@ -212,7 +212,7 @@ abstract class AbstractTool
             $request->predicate,
             $this->ownershipPredicate($entity),
             class_exists($entityClassName) ? $this->fieldSecurityPolicy->resourceReadPredicate($entityClassName) : null,
-        ])->filter(fn(?Predicate $predicate): bool => $predicate !== null);
+        ])->compactMap(fn(?Predicate $predicate): ?Predicate => $predicate);
         if ($predicates->isEmpty) {
             return;
         }

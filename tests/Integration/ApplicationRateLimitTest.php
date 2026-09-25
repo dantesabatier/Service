@@ -18,7 +18,6 @@ use Sabatier\Service\Authentication;
 use Sabatier\Service\AuthenticationContext;
 use Sabatier\Service\AuthenticationManager;
 use Sabatier\Service\AuthenticationScheme;
-use Sabatier\Service\RateLimitInfo;
 use Sabatier\Service\RateLimitPolicy;
 use Sabatier\Service\RateLimitStore;
 use Sabatier\Service\TooManyRequestsException;

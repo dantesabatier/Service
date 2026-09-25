@@ -26,7 +26,6 @@ use Sabatier\Service\MCP\Schema\ModelSchema;
 use Sabatier\Service\MCP\Schema\PredicateGuideFactory;
 use Sabatier\Service\MCP\Schema\RelationshipSchema;
 use Sabatier\Service\MCP\Tools\AbstractTool;
-use TypeError;
 use const Sabatier\CoreData\ManagedObjectObjectIDKey;
 
 enum SchemaToolStatusFixture: int

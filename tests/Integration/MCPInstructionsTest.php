@@ -12,7 +12,6 @@ use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Foundation\URL;
-use Sabatier\Foundation\UUID;
 use Sabatier\Service\MCP\BaseInstructionsBuilder;
 use Sabatier\Service\MCP\MCPInstructionsProvider;
 

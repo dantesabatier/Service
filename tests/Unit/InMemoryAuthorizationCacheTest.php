@@ -10,7 +10,6 @@ use PHPUnit\Framework\TestCase;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Set;
-use Sabatier\Service\AuthorizableRole;
 use Sabatier\Service\AuthorizationScope;
 use Sabatier\Service\AuthorizationType;
 use Sabatier\Service\Authorizable;

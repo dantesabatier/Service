@@ -79,7 +79,7 @@ final class PersistentHistoryToolRequestTest extends TestCase
     {
         $request = $this->purgeRequest(["date" => "2026-01-15"]);
         $this->assertTrue($request->isDelete);
-        $this->assertSame("2026-01-15", $request->date?->description ? substr((string)$request->date->description, 0, 10) : null);
+        $this->assertSame("2026-01-15", $request->date?->description ? substr($request->date->description, 0, 10) : null);
     }
 
     #[Test]

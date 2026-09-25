@@ -72,7 +72,7 @@ final class WindowedLLMContextAssemblerTest extends TestCase
             new LLMMessage(LLMMessageRole::assistant, "old answer"),
             new LLMMessage(LLMMessageRole::user, "latest task"),
         ]);
-        $assembler = new WindowedLLMContextAssembler(maximumMessages: 2, compressor: fn(ArrayClass $omitted): string => "Compressed {$omitted->count} messages.");
+        $assembler = new WindowedLLMContextAssembler(maximumMessages: 2, compressor: fn(ArrayClass $omitted): string => "Compressed $omitted->count messages.");
 
         $context = $assembler->assemble($messages, new ArrayClass());
 

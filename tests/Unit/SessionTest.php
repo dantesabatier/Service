@@ -107,7 +107,7 @@ final class SessionTest extends TestCase
         $session->start();
         $session->setValueForKey("Ada", "user");
         $session->commit();
-        $this->assertTrue(FileManager::default()->fileExists($storageURL->appendingPathComponent("sess_{$session->id}")->path));
+        $this->assertTrue(FileManager::default()->fileExists($storageURL->appendingPathComponent("sess_$session->id")->path));
     }
 
     #[Test]
@@ -216,7 +216,7 @@ final class SessionTest extends TestCase
         $session = $this->sessionStoringAt($storageURL, new CookieParameters("example.test"));
         $session->start();
         $foreignURL = $storageURL->appendingPathComponent("sess_" . new UUID()->uuidString);
-        $ownURL = $storageURL->appendingPathComponent("sess_{$session->id}");
+        $ownURL = $storageURL->appendingPathComponent("sess_$session->id");
         $unrelatedURL = $storageURL->appendingPathComponent("notes.txt");
         new ArrayClass([$foreignURL, $ownURL, $unrelatedURL])->forEach(fn(URL $url) => FileManager::default()->createFile($url->path, ""));
         unset($session);
@@ -231,7 +231,7 @@ final class SessionTest extends TestCase
         $storageURL = $this->scratchStorage();
         $session = $this->sessionStoringAt($storageURL, new CookieParameters("example.test", lifetime: 3600));
         $session->start();
-        $ownURL = $storageURL->appendingPathComponent("sess_{$session->id}");
+        $ownURL = $storageURL->appendingPathComponent("sess_$session->id");
         FileManager::default()->createFile($ownURL->path, "");
         unset($session);
         $this->assertTrue(FileManager::default()->fileExists($ownURL->path));
@@ -243,7 +243,7 @@ final class SessionTest extends TestCase
         $storageURL = $this->scratchStorage();
         $session = $this->sessionStoringAt($storageURL, new CookieParameters("example.test", lifetime: 3600));
         $session->start();
-        $ownURL = $storageURL->appendingPathComponent("sess_{$session->id}");
+        $ownURL = $storageURL->appendingPathComponent("sess_$session->id");
         FileManager::default()->createFile($ownURL->path, "");
         // The file is created now, so only a negative lifetime puts its expiry in the past. It is swapped in after start() because session_set_cookie_params rejects one, and an antedated creation date is silently ignored on Windows.
         new ReflectionProperty(Session::class, "cookieParameters")->setRawValue($session, new CookieParameters("example.test", lifetime: -3600));

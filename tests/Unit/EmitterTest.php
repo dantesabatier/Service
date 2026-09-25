@@ -133,7 +133,7 @@ final class EmitterTest extends TestCase
         ob_start();
         $this->emitContent($emitter, $content, $useCompression);
         $inner = (string)ob_get_clean();
-        return (string)ob_get_clean() . $inner;
+        return ob_get_clean() . $inner;
     }
 
     private function emitContent(Emitter $emitter, mixed $content, bool $useCompression): void

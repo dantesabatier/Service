@@ -120,11 +120,11 @@ final class LLMAgentRuntimeCanonicalValueTest extends TestCase
         $this->assertSame(["dictionary", ["a" => ["int", 1]]], $this->canonical(["a" => 1]));
     }
 
-    /** @return array<mixed> */
+    /** @return array */
     private function canonical(mixed $value): array
     {
         $runtime = new ReflectionClass(LLMAgentRuntime::class)->newInstanceWithoutConstructor();
-        /** @var array<mixed> */
+        /** @var array */
         return new ReflectionMethod(LLMAgentRuntime::class, "canonicalToolValue")->invoke($runtime, $value);
     }
 }

@@ -53,7 +53,6 @@ final class LLMClientBuildRequestTest extends TestCase
     }
 
     /**
-     * @throws JsonException
      * @throws ReflectionException
      */
     #[Test]

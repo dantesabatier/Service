@@ -12,7 +12,6 @@ use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Set;
-use Sabatier\Service\AuthorizableRole;
 use Sabatier\Service\Authorization;
 use Sabatier\Service\AuthorizationCache;
 use Sabatier\Service\AuthorizationResolver;

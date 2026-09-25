@@ -23,10 +23,10 @@ final class ConditionalGetTransformerTest extends TestCase
     protected function setUp(): void
     {
         $this->originalServer = $_SERVER;
-        $_SERVER['HTTP_HOST'] = 'localhost';
-        $_SERVER['REQUEST_URI'] = '/';
-        $_SERVER['REQUEST_METHOD'] = 'GET';
-        unset($_SERVER['HTTPS'], $_SERVER['HTTP_IF_NONE_MATCH']);
+        $_SERVER["HTTP_HOST"] = "localhost";
+        $_SERVER["REQUEST_URI"] = "/";
+        $_SERVER["REQUEST_METHOD"] = "GET";
+        unset($_SERVER["HTTPS"], $_SERVER["HTTP_IF_NONE_MATCH"]);
     }
 
     #[Override]
@@ -35,22 +35,22 @@ final class ConditionalGetTransformerTest extends TestCase
         $_SERVER = $this->originalServer;
     }
 
-    private function request(string $ifNoneMatch = ''): Request
+    private function request(string $ifNoneMatch = ""): Request
     {
-        if ($ifNoneMatch !== '') {
-            $_SERVER['HTTP_IF_NONE_MATCH'] = $ifNoneMatch;
+        if ($ifNoneMatch !== "") {
+            $_SERVER["HTTP_IF_NONE_MATCH"] = $ifNoneMatch;
         } else {
-            unset($_SERVER['HTTP_IF_NONE_MATCH']);
+            unset($_SERVER["HTTP_IF_NONE_MATCH"]);
         }
         return new Request();
     }
 
-    private function response(string $body = 'hello', int $status = HTTPStatusCode::ok, string $cacheControl = 'public, max-age=3600'): Response
+    private function response(string $body = "hello", int $status = HTTPStatusCode::ok, string $cacheControl = "public, max-age=3600"): Response
     {
-        $response = new Response(new URL('http://localhost/'), $status);
+        $response = new Response(new URL("http://localhost/"), $status);
         $response->body = $body;
-        if ($cacheControl !== '') {
-            $response->allHeaderFields['Cache-Control'] = $cacheControl;
+        if ($cacheControl !== "") {
+            $response->allHeaderFields["Cache-Control"] = $cacheControl;
         }
         return $response;
     }
@@ -62,7 +62,7 @@ final class ConditionalGetTransformerTest extends TestCase
 
     private function etag(string $body): string
     {
-        return '"' . md5($body) . '"';
+        return "\"" . md5($body) . "\"";
     }
 
     // --- Condiciones que omiten ETag ---
@@ -70,31 +70,31 @@ final class ConditionalGetTransformerTest extends TestCase
     #[Test]
     public function noETagWhenNoCacheControlHeader(): void
     {
-        $response = new Response(new URL('http://localhost/'));
-        $response->body = 'hello';
+        $response = new Response(new URL("http://localhost/"));
+        $response->body = "hello";
         $result = $this->transform($response, $this->request());
-        $this->assertNull($result->allHeaderFields['ETag']);
+        $this->assertNull($result->allHeaderFields["ETag"]);
     }
 
     #[Test]
     public function noETagWhenCacheControlIsNoStore(): void
     {
-        $result = $this->transform($this->response(cacheControl: 'no-store'), $this->request());
-        $this->assertNull($result->allHeaderFields['ETag']);
+        $result = $this->transform($this->response(cacheControl: "no-store"), $this->request());
+        $this->assertNull($result->allHeaderFields["ETag"]);
     }
 
     #[Test]
     public function noETagWhenETagDisabledInPolicy(): void
     {
         $result = $this->transform($this->response(), $this->request(), new HTTPCachePolicy(etagEnabled: false));
-        $this->assertNull($result->allHeaderFields['ETag']);
+        $this->assertNull($result->allHeaderFields["ETag"]);
     }
 
     #[Test]
     public function noETagWhenResponseStatusIsNotSuccess(): void
     {
         $result = $this->transform($this->response(status: HTTPStatusCode::notFound), $this->request());
-        $this->assertNull($result->allHeaderFields['ETag']);
+        $this->assertNull($result->allHeaderFields["ETag"]);
     }
 
     #[Test]
@@ -102,16 +102,16 @@ final class ConditionalGetTransformerTest extends TestCase
     {
         $response = $this->response();
         $result = new ConditionalGetTransformer($response, new ResponseTransformerContext(cachePolicy: new HTTPCachePolicy()))->response;
-        $this->assertNull($result->allHeaderFields['ETag']);
+        $this->assertNull($result->allHeaderFields["ETag"]);
     }
 
     #[Test]
     public function noETagForNonGetRequest(): void
     {
-        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $_SERVER["REQUEST_METHOD"] = "POST";
         $result = $this->transform($this->response(), new Request());
-        $_SERVER['REQUEST_METHOD'] = 'GET';
-        $this->assertNull($result->allHeaderFields['ETag']);
+        $_SERVER["REQUEST_METHOD"] = "GET";
+        $this->assertNull($result->allHeaderFields["ETag"]);
     }
 
     // --- ETag generado ---
@@ -119,33 +119,33 @@ final class ConditionalGetTransformerTest extends TestCase
     #[Test]
     public function eTagAddedForCacheableGetResponse(): void
     {
-        $body = 'hello world';
+        $body = "hello world";
         $result = $this->transform($this->response($body), $this->request());
-        $this->assertSame($this->etag($body), $result->allHeaderFields['ETag']);
+        $this->assertSame($this->etag($body), $result->allHeaderFields["ETag"]);
     }
 
     #[Test]
     public function eTagIsDeterministic(): void
     {
-        $body = 'same body';
+        $body = "same body";
         $first = $this->transform($this->response($body), $this->request());
         $second = $this->transform($this->response($body), $this->request());
-        $this->assertSame($first->allHeaderFields['ETag'], $second->allHeaderFields['ETag']);
+        $this->assertSame($first->allHeaderFields["ETag"], $second->allHeaderFields["ETag"]);
     }
 
     #[Test]
     public function differentBodiesProduceDifferentETags(): void
     {
-        $a = $this->transform($this->response('body-a'), $this->request());
-        $b = $this->transform($this->response('body-b'), $this->request());
-        $this->assertNotSame($a->allHeaderFields['ETag'], $b->allHeaderFields['ETag']);
+        $a = $this->transform($this->response("body-a"), $this->request());
+        $b = $this->transform($this->response("body-b"), $this->request());
+        $this->assertNotSame($a->allHeaderFields["ETag"], $b->allHeaderFields["ETag"]);
     }
 
     #[Test]
     public function statusIs201ETagStillGenerated(): void
     {
         $result = $this->transform($this->response(status: HTTPStatusCode::created), $this->request());
-        $this->assertNotNull($result->allHeaderFields['ETag']);
+        $this->assertNotNull($result->allHeaderFields["ETag"]);
     }
 
     // --- 304 Not Modified ---
@@ -153,7 +153,7 @@ final class ConditionalGetTransformerTest extends TestCase
     #[Test]
     public function returns304WhenIfNoneMatchMatchesETag(): void
     {
-        $body = 'cached body';
+        $body = "cached body";
         $etag = $this->etag($body);
         $result = $this->transform($this->response($body), $this->request($etag));
         $this->assertSame(HTTPStatusCode::notModified, $result->statusCode);
@@ -162,23 +162,23 @@ final class ConditionalGetTransformerTest extends TestCase
     #[Test]
     public function returns304ForWildcardIfNoneMatch(): void
     {
-        $result = $this->transform($this->response('any body'), $this->request('*'));
+        $result = $this->transform($this->response("any body"), $this->request("*"));
         $this->assertSame(HTTPStatusCode::notModified, $result->statusCode);
     }
 
     #[Test]
     public function returns304WhenETagIsInCommaSeparatedList(): void
     {
-        $body = 'body';
+        $body = "body";
         $etag = $this->etag($body);
-        $result = $this->transform($this->response($body), $this->request('"stale-tag", ' . $etag . ', "other"'));
+        $result = $this->transform($this->response($body), $this->request("\"stale-tag\", " . $etag . ", \"other\""));
         $this->assertSame(HTTPStatusCode::notModified, $result->statusCode);
     }
 
     #[Test]
     public function returns200WhenIfNoneMatchDoesNotMatch(): void
     {
-        $result = $this->transform($this->response('body'), $this->request('"different-etag"'));
+        $result = $this->transform($this->response("body"), $this->request("\"different-etag\""));
         $this->assertSame(HTTPStatusCode::ok, $result->statusCode);
     }
 
@@ -187,36 +187,36 @@ final class ConditionalGetTransformerTest extends TestCase
     #[Test]
     public function notModifiedResponsePreservesETagHeader(): void
     {
-        $body = 'body';
+        $body = "body";
         $etag = $this->etag($body);
         $result = $this->transform($this->response($body), $this->request($etag));
-        $this->assertSame($etag, $result->allHeaderFields['ETag']);
+        $this->assertSame($etag, $result->allHeaderFields["ETag"]);
     }
 
     #[Test]
     public function notModifiedResponsePreservesCacheControl(): void
     {
-        $body = 'body';
+        $body = "body";
         $etag = $this->etag($body);
-        $result = $this->transform($this->response($body, cacheControl: 'public, max-age=600'), $this->request($etag));
-        $this->assertSame('public, max-age=600', $result->allHeaderFields['Cache-Control']);
+        $result = $this->transform($this->response($body, cacheControl: "public, max-age=600"), $this->request($etag));
+        $this->assertSame("public, max-age=600", $result->allHeaderFields["Cache-Control"]);
     }
 
     #[Test]
     public function notModifiedResponsePropagatesVaryHeader(): void
     {
-        $body = 'body';
+        $body = "body";
         $response = $this->response($body);
-        $response->allHeaderFields['Vary'] = 'Accept-Encoding';
+        $response->allHeaderFields["Vary"] = "Accept-Encoding";
         $etag = $this->etag($body);
         $result = $this->transform($response, $this->request($etag));
-        $this->assertSame('Accept-Encoding', $result->allHeaderFields['Vary']);
+        $this->assertSame("Accept-Encoding", $result->allHeaderFields["Vary"]);
     }
 
     #[Test]
     public function notModifiedResponseHasNoBody(): void
     {
-        $body = 'body';
+        $body = "body";
         $etag = $this->etag($body);
         $result = $this->transform($this->response($body), $this->request($etag));
         $this->assertNull($result->body);

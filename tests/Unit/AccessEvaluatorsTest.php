@@ -35,7 +35,7 @@ final class AccessEvaluatorsTest extends TestCase
     {
         $r = new ReflectionClass(AccessEvaluationContext::class);
         $context = $r->newInstanceWithoutConstructor();
-        $r->getProperty('authentication')->setValue($context, $authentication);
+        $r->getProperty("authentication")->setValue($context, $authentication);
         return $context;
     }
 
@@ -51,7 +51,7 @@ final class AccessEvaluatorsTest extends TestCase
         };
         if ($technicalScopes !== null) {
             new ReflectionClass(Authentication::class)
-                ->getProperty('technicalScopes')
+                ->getProperty("technicalScopes")
                 ->setValue($auth, $technicalScopes);
         }
         return $auth;
@@ -82,25 +82,25 @@ final class AccessEvaluatorsTest extends TestCase
     {
         $auth = $this->makeAuth(true, new ArrayClass());
         $this->assertTrue(
-            new JSONWebTokenScopeEvaluator('api:read')->evaluate($this->contextWithAuth($auth))
+            new JSONWebTokenScopeEvaluator("api:read")->evaluate($this->contextWithAuth($auth))
         );
     }
 
     #[Test]
     public function scopeEvaluatorAllowsMatchingScope(): void
     {
-        $auth = $this->makeAuth(true, new ArrayClass(['api:read']));
+        $auth = $this->makeAuth(true, new ArrayClass(["api:read"]));
         $this->assertTrue(
-            new JSONWebTokenScopeEvaluator('api:read')->evaluate($this->contextWithAuth($auth))
+            new JSONWebTokenScopeEvaluator("api:read")->evaluate($this->contextWithAuth($auth))
         );
     }
 
     #[Test]
     public function scopeEvaluatorDeniesMismatchedScope(): void
     {
-        $auth = $this->makeAuth(true, new ArrayClass(['api:write']));
+        $auth = $this->makeAuth(true, new ArrayClass(["api:write"]));
         $this->assertFalse(
-            new JSONWebTokenScopeEvaluator('api:read')->evaluate($this->contextWithAuth($auth))
+            new JSONWebTokenScopeEvaluator("api:read")->evaluate($this->contextWithAuth($auth))
         );
     }
 

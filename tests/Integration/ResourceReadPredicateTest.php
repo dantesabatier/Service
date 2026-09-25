@@ -23,7 +23,7 @@ use Sabatier\Service\Readable;
 
 // --- Fixtures ---
 
-#[Readable(where: 'day == $TODAY')]
+#[Readable(where: "day == \$TODAY")]
 class TodayGuardedResourceFixture extends ManagedObject
 {
 }
@@ -42,7 +42,7 @@ class RoleGuardedResourceFixture extends ManagedObject
 {
 }
 
-#[Readable(["Finance"], where: 'day == $TODAY')]
+#[Readable(["Finance"], where: "day == \$TODAY")]
 class RoleAndConditionGuardedResourceFixture extends ManagedObject
 {
 }
@@ -59,7 +59,7 @@ class OwnScopedWithoutOwnerFieldResourceFixture extends ManagedObject
 {
 }
 
-#[Readable(["Finance"], AuthorizationScope::own, where: 'day == $TODAY')]
+#[Readable(["Finance"], AuthorizationScope::own, where: "day == \$TODAY")]
 class OwnScopedAndConditionResourceFixture extends ManagedObject
 {
     #[Owner]
@@ -114,7 +114,7 @@ final class ResourceReadPredicateTest extends TestCase
     {
         $predicate = $this->makePolicy(true)->resourceReadPredicate(TodayGuardedResourceFixture::class);
         $this->assertNotNull($predicate);
-        $this->assertSame('day = $TODAY', $predicate->predicateFormat);
+        $this->assertSame("day = \$TODAY", $predicate->predicateFormat);
     }
 
     #[Test]
@@ -170,7 +170,7 @@ final class ResourceReadPredicateTest extends TestCase
     {
         $predicate = $this->makePolicy(true, "Finance")->resourceReadPredicate(RoleAndConditionGuardedResourceFixture::class);
         $this->assertNotNull($predicate);
-        $this->assertSame('day = $TODAY', $predicate->predicateFormat, "an admitted role is still narrowed by the rule's condition");
+        $this->assertSame("day = \$TODAY", $predicate->predicateFormat, "an admitted role is still narrowed by the rule's condition");
     }
 
     // --- scope ---

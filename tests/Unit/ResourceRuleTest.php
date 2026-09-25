@@ -15,8 +15,8 @@ use Sabatier\Service\Writable;
 
 // --- Fixtures ---
 
-#[Readable(['Finance'], where: 'status != %@', arguments: ['archived'])]
-#[Writable(['Admin'], AuthorizationScope::own)]
+#[Readable(["Finance"], where: "status != %@", arguments: ["archived"])]
+#[Writable(["Admin"], AuthorizationScope::own)]
 class ResourceRuleGuardedFixture extends ManagedObject
 {
 }
@@ -41,21 +41,21 @@ final class ResourceRuleTest extends TestCase
     {
         $rule = new ResourceRule(new Set(), AuthorizationScope::all);
         $this->assertTrue($rule->allowsRoles(new Set()));
-        $this->assertTrue($rule->allowsRoles(new Set(['Guest'])));
+        $this->assertTrue($rule->allowsRoles(new Set(["Guest"])));
     }
 
     #[Test]
     public function allowsRolesWhenUserSharesARole(): void
     {
-        $rule = new ResourceRule(new Set(['Admin', 'Manager']), AuthorizationScope::all);
-        $this->assertTrue($rule->allowsRoles(new Set(['Manager', 'User'])));
+        $rule = new ResourceRule(new Set(["Admin", "Manager"]), AuthorizationScope::all);
+        $this->assertTrue($rule->allowsRoles(new Set(["Manager", "User"])));
     }
 
     #[Test]
     public function deniesRolesWhenSetsAreDisjoint(): void
     {
-        $rule = new ResourceRule(new Set(['Admin']), AuthorizationScope::all);
-        $this->assertFalse($rule->allowsRoles(new Set(['User', 'Guest'])));
+        $rule = new ResourceRule(new Set(["Admin"]), AuthorizationScope::all);
+        $this->assertFalse($rule->allowsRoles(new Set(["User", "Guest"])));
     }
 
     // --- requiresOwner ---
@@ -86,10 +86,10 @@ final class ResourceRuleTest extends TestCase
     {
         $rule = ResourceRule::resolve(ResourceRuleGuardedFixture::class, Readable::class);
         $this->assertNotNull($rule);
-        $this->assertTrue($rule->allowsRoles(new Set(['Finance'])));
-        $this->assertFalse($rule->allowsRoles(new Set(['User'])));
-        $this->assertSame('status != %@', $rule->where);
-        $this->assertSame(['archived'], $rule->arguments);
+        $this->assertTrue($rule->allowsRoles(new Set(["Finance"])));
+        $this->assertFalse($rule->allowsRoles(new Set(["User"])));
+        $this->assertSame("status != %@", $rule->where);
+        $this->assertSame(["archived"], $rule->arguments);
         $this->assertSame(AuthorizationScope::all, $rule->scope);
         $this->assertFalse($rule->requiresOwner);
     }
@@ -99,8 +99,8 @@ final class ResourceRuleTest extends TestCase
     {
         $writable = ResourceRule::resolve(ResourceRuleGuardedFixture::class, Writable::class);
         $this->assertNotNull($writable);
-        $this->assertTrue($writable->allowsRoles(new Set(['Admin'])));
-        $this->assertFalse($writable->allowsRoles(new Set(['Finance'])));
+        $this->assertTrue($writable->allowsRoles(new Set(["Admin"])));
+        $this->assertFalse($writable->allowsRoles(new Set(["Finance"])));
         $this->assertSame(AuthorizationScope::own, $writable->scope);
         $this->assertTrue($writable->requiresOwner);
         $this->assertNull($writable->where);

@@ -21,7 +21,7 @@ final class JSONRPCRequestParserTest extends TestCase
     private function makeRequest(array $data): Request
     {
         $request = new ReflectionClass(Request::class)->newInstanceWithoutConstructor();
-        new ReflectionProperty(Request::class, 'parameters')->setValue($request, new Dictionary($data));
+        new ReflectionProperty(Request::class, "parameters")->setValue($request, new Dictionary($data));
         return $request;
     }
 
@@ -44,7 +44,7 @@ final class JSONRPCRequestParserTest extends TestCase
     public function returnsParseErrorWhenOnlyNonDictionaryParamsPresent(): void
     {
         // pruner removes params=string, leaving only that key; result is empty after prune
-        $result = $this->parser()->parse($this->makeRequest(['params' => 'bad']));
+        $result = $this->parser()->parse($this->makeRequest(["params" => "bad"]));
         $this->assertInstanceOf(JSONRPCError::class, $result);
         $this->assertSame(JSONRPCErrorCodeParseErrorCode, $result->code);
     }
@@ -52,7 +52,7 @@ final class JSONRPCRequestParserTest extends TestCase
     #[Test]
     public function returnsInvalidRequestWhenMethodIsMissing(): void
     {
-        $result = $this->parser()->parse($this->makeRequest(['id' => 1]));
+        $result = $this->parser()->parse($this->makeRequest(["id" => 1]));
         $this->assertInstanceOf(JSONRPCError::class, $result);
         $this->assertSame(JSONRPCErrorCodeInvalidRequest, $result->code);
     }
@@ -62,7 +62,7 @@ final class JSONRPCRequestParserTest extends TestCase
     #[Test]
     public function returnsNullForNotificationWithNoId(): void
     {
-        $result = $this->parser()->parse($this->makeRequest(['method' => 'notifications/initialized']));
+        $result = $this->parser()->parse($this->makeRequest(["method" => "notifications/initialized"]));
         $this->assertNull($result);
     }
 
@@ -72,18 +72,18 @@ final class JSONRPCRequestParserTest extends TestCase
     public function returnsRPCMessageForValidRequest(): void
     {
         $result = $this->parser()->parse($this->makeRequest([
-            'id' => 1,
-            'method' => 'tools/list',
+            "id" => 1,
+            "method" => "tools/list",
         ]));
         $this->assertInstanceOf(RPCMessage::class, $result);
         $this->assertSame(1, $result->id);
-        $this->assertSame('tools/list', $result->method);
+        $this->assertSame("tools/list", $result->method);
     }
 
     #[Test]
     public function paramsDefaultToEmptyDictionaryWhenAbsent(): void
     {
-        $result = $this->parser()->parse($this->makeRequest(['id' => 1, 'method' => 'tools/list']));
+        $result = $this->parser()->parse($this->makeRequest(["id" => 1, "method" => "tools/list"]));
         $this->assertInstanceOf(RPCMessage::class, $result);
         $this->assertTrue($result->params->isEmpty);
     }
@@ -92,12 +92,12 @@ final class JSONRPCRequestParserTest extends TestCase
     public function dictionaryParamsAreIncludedInRPCMessage(): void
     {
         $result = $this->parser()->parse($this->makeRequest([
-            'id' => 2,
-            'method' => 'tools/call',
-            'params' => new Dictionary(['name' => 'fetch', 'arguments' => new Dictionary(['url' => 'https://example.com'])]),
+            "id" => 2,
+            "method" => "tools/call",
+            "params" => new Dictionary(["name" => "fetch", "arguments" => new Dictionary(["url" => "https://example.com"])]),
         ]));
         $this->assertInstanceOf(RPCMessage::class, $result);
-        $this->assertSame('fetch', $result->params['name']);
+        $this->assertSame("fetch", $result->params["name"]);
     }
 
     #[Test]
@@ -105,9 +105,9 @@ final class JSONRPCRequestParserTest extends TestCase
     {
         // params is a string → pruner removes it → params defaults to empty Dictionary
         $result = $this->parser()->parse($this->makeRequest([
-            'id' => 3,
-            'method' => 'tools/call',
-            'params' => 'invalid',
+            "id" => 3,
+            "method" => "tools/call",
+            "params" => "invalid",
         ]));
         $this->assertInstanceOf(RPCMessage::class, $result);
         $this->assertTrue($result->params->isEmpty);
@@ -116,21 +116,21 @@ final class JSONRPCRequestParserTest extends TestCase
     #[Test]
     public function idCanBeAString(): void
     {
-        $result = $this->parser()->parse($this->makeRequest(['id' => 'req-abc', 'method' => 'ping']));
+        $result = $this->parser()->parse($this->makeRequest(["id" => "req-abc", "method" => "ping"]));
         $this->assertInstanceOf(RPCMessage::class, $result);
-        $this->assertSame('req-abc', $result->id);
+        $this->assertSame("req-abc", $result->id);
     }
 
     #[Test]
     public function extraFieldsAreIgnored(): void
     {
         $result = $this->parser()->parse($this->makeRequest([
-            'jsonrpc' => '2.0',
-            'id' => 5,
-            'method' => 'initialize',
-            'extra' => 'ignored',
+            "jsonrpc" => "2.0",
+            "id" => 5,
+            "method" => "initialize",
+            "extra" => "ignored",
         ]));
         $this->assertInstanceOf(RPCMessage::class, $result);
-        $this->assertSame('initialize', $result->method);
+        $this->assertSame("initialize", $result->method);
     }
 }

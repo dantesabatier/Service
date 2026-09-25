@@ -28,28 +28,28 @@ use Sabatier\Service\Writable;
 class OpenEntityFixture extends ManagedObject
 {
     #[Readable]
-    public string $name = '';
+    public string $name = "";
     #[Readable]
     public float $price = 0.0;
     #[Writable]
-    public string $summary = '';
+    public string $summary = "";
 }
 
 class RoleRestrictedEntityFixture extends ManagedObject
 {
     #[Readable]
-    public string $name = '';
-    #[Readable(['Admin'])]
+    public string $name = "";
+    #[Readable(["Admin"])]
     public float $price = 0.0;
-    #[Readable(['Admin', 'Manager'])]
-    public string $internalCode = '';
-    #[Writable(['Admin'])]
-    public string $adminNote = '';
+    #[Readable(["Admin", "Manager"])]
+    public string $internalCode = "";
+    #[Writable(["Admin"])]
+    public string $adminNote = "";
 }
 
 class PlainEntityFixture extends ManagedObject
 {
-    public string $name = '';
+    public string $name = "";
     public float $price = 0.0;
 }
 
@@ -58,16 +58,16 @@ class OwnedEntityFixture extends ManagedObject
     #[Owner]
     public ?Authorizable $createdBy = null;
 
-    #[Readable(['Admin'], AuthorizationScope::own)]
-    public string $secret = '';
+    #[Readable(["Admin"], AuthorizationScope::own)]
+    public string $secret = "";
 }
 
 class ConditionEntityFixture extends ManagedObject
 {
-    public string $status = '';
+    public string $status = "";
 
-    #[Readable(where: 'status == %@', arguments: ['published'])]
-    public string $body = '';
+    #[Readable(where: "status == %@", arguments: ["published"])]
+    public string $body = "";
 }
 
 // --- Tests ---
@@ -88,7 +88,7 @@ final class FieldSecurityFilterTest extends TestCase
         $roles = new Set(array_map(fn(string $n) => $this->makeRole($n), $roleNames));
         return new class($roles) implements Authorizable {
             public function __construct(private readonly Set $userRoles) {}
-            public string $username { get => 'user'; }
+            public string $username { get => "user"; }
             public ?string $password { get => null; }
             public bool $isEnabled { get => true; }
             public int $refreshTokenVersion { get => 1; set {} }
@@ -116,8 +116,8 @@ final class FieldSecurityFilterTest extends TestCase
         $resource = new ReflectionClass(OwnedEntityFixture::class)->newInstanceWithoutConstructor();
         $entity = new ReflectionClass(EntityDescription::class)->newInstanceWithoutConstructor();
         $context = new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor();
-        new ReflectionClass(ManagedObject::class)->getProperty('entity')->setValue($resource, $entity);
-        new ReflectionClass(ManagedObject::class)->getProperty('managedObjectContext')->setValue($resource, $context);
+        new ReflectionClass(ManagedObject::class)->getProperty("entity")->setValue($resource, $entity);
+        new ReflectionClass(ManagedObject::class)->getProperty("managedObjectContext")->setValue($resource, $context);
         $resource->createdBy = $owner;
         return $resource;
     }
@@ -129,21 +129,21 @@ final class FieldSecurityFilterTest extends TestCase
     {
         $rule = new FieldRule(new Set(), AuthorizationScope::all);
         $this->assertTrue($rule->allowsRoles(new Set()));
-        $this->assertTrue($rule->allowsRoles(new Set(['Admin'])));
+        $this->assertTrue($rule->allowsRoles(new Set(["Admin"])));
     }
 
     #[Test]
     public function allowsRolesWhenUserHasMatchingRole(): void
     {
-        $rule = new FieldRule(new Set(['Admin']), AuthorizationScope::all);
-        $this->assertTrue($rule->allowsRoles(new Set(['Admin'])));
+        $rule = new FieldRule(new Set(["Admin"]), AuthorizationScope::all);
+        $this->assertTrue($rule->allowsRoles(new Set(["Admin"])));
     }
 
     #[Test]
     public function allowsRolesReturnsFalseWhenNoMatch(): void
     {
-        $rule = new FieldRule(new Set(['Admin']), AuthorizationScope::all);
-        $this->assertFalse($rule->allowsRoles(new Set(['User', 'Guest'])));
+        $rule = new FieldRule(new Set(["Admin"]), AuthorizationScope::all);
+        $this->assertFalse($rule->allowsRoles(new Set(["User", "Guest"])));
     }
 
     #[Test]
@@ -163,72 +163,72 @@ final class FieldSecurityFilterTest extends TestCase
     #[Test]
     public function filterReadPassesThroughWhenNoAttributes(): void
     {
-        $data = new Dictionary(['name' => 'Product', 'price' => 9.99]);
+        $data = new Dictionary(["name" => "Product", "price" => 9.99]);
         $result = new FieldSecurityFilter(
             $this->makeResource(PlainEntityFixture::class),
             $this->makeUser()
         )->filterRead($data);
-        $this->assertSame('Product', $result['name']);
-        $this->assertSame(9.99, $result['price']);
+        $this->assertSame("Product", $result["name"]);
+        $this->assertSame(9.99, $result["price"]);
     }
 
     #[Test]
     public function filterReadKeepsAllFieldsWhenEmptyRolesAllowAll(): void
     {
-        $data = new Dictionary(['name' => 'Product', 'price' => 9.99]);
+        $data = new Dictionary(["name" => "Product", "price" => 9.99]);
         $result = new FieldSecurityFilter(
             $this->makeResource(OpenEntityFixture::class),
             $this->makeUser()
         )->filterRead($data);
-        $this->assertSame('Product', $result['name']);
-        $this->assertSame(9.99, $result['price']);
+        $this->assertSame("Product", $result["name"]);
+        $this->assertSame(9.99, $result["price"]);
     }
 
     #[Test]
     public function filterReadRemovesFieldWhenUserLacksRole(): void
     {
-        $data = new Dictionary(['name' => 'Product', 'price' => 9.99]);
+        $data = new Dictionary(["name" => "Product", "price" => 9.99]);
         $result = new FieldSecurityFilter(
             $this->makeResource(RoleRestrictedEntityFixture::class),
             $this->makeUser()
         )->filterRead($data);
-        $this->assertSame('Product', $result['name']);
-        $this->assertNull($result['price']);
+        $this->assertSame("Product", $result["name"]);
+        $this->assertNull($result["price"]);
     }
 
     #[Test]
     public function filterReadKeepsFieldWhenUserHasRequiredRole(): void
     {
-        $data = new Dictionary(['name' => 'Product', 'price' => 9.99]);
+        $data = new Dictionary(["name" => "Product", "price" => 9.99]);
         $result = new FieldSecurityFilter(
             $this->makeResource(RoleRestrictedEntityFixture::class),
-            $this->makeUser('Admin')
+            $this->makeUser("Admin")
         )->filterRead($data);
-        $this->assertSame('Product', $result['name']);
-        $this->assertSame(9.99, $result['price']);
+        $this->assertSame("Product", $result["name"]);
+        $this->assertSame(9.99, $result["price"]);
     }
 
     #[Test]
     public function filterReadKeepsFieldWhenUserHasOneOfMultipleAllowedRoles(): void
     {
-        $data = new Dictionary(['name' => 'P', 'internalCode' => 'SKU-1']);
+        $data = new Dictionary(["name" => "P", "internalCode" => "SKU-1"]);
         $result = new FieldSecurityFilter(
             $this->makeResource(RoleRestrictedEntityFixture::class),
-            $this->makeUser('Manager')
+            $this->makeUser("Manager")
         )->filterRead($data);
-        $this->assertSame('SKU-1', $result['internalCode']);
+        $this->assertSame("SKU-1", $result["internalCode"]);
     }
 
     #[Test]
     public function filterReadIgnoresFieldsNotPresentInData(): void
     {
-        $data = new Dictionary(['name' => 'Product']); // price absent
+        $data = new Dictionary(["name" => "Product"]); // price absent
         $result = new FieldSecurityFilter(
             $this->makeResource(RoleRestrictedEntityFixture::class),
             $this->makeUser()
         )->filterRead($data);
-        $this->assertSame('Product', $result['name']);
-        $this->assertNull($result['price']); // absent, not filtered
+        $this->assertSame("Product", $result["name"]);
+        $this->assertNull($result["price"]); // absent, not filtered
     }
 
     // --- filterWrite ---
@@ -236,23 +236,23 @@ final class FieldSecurityFilterTest extends TestCase
     #[Test]
     public function filterWriteRemovesFieldWhenUserLacksRole(): void
     {
-        $data = new Dictionary(['summary' => 'text', 'adminNote' => 'secret']);
+        $data = new Dictionary(["summary" => "text", "adminNote" => "secret"]);
         $result = new FieldSecurityFilter(
             $this->makeResource(RoleRestrictedEntityFixture::class),
             $this->makeUser()
         )->filterWrite($data);
-        $this->assertNull($result['adminNote']);
+        $this->assertNull($result["adminNote"]);
     }
 
     #[Test]
     public function filterWriteKeepsFieldWhenUserHasRole(): void
     {
-        $data = new Dictionary(['summary' => 'text', 'adminNote' => 'secret']);
+        $data = new Dictionary(["summary" => "text", "adminNote" => "secret"]);
         $result = new FieldSecurityFilter(
             $this->makeResource(RoleRestrictedEntityFixture::class),
-            $this->makeUser('Admin')
+            $this->makeUser("Admin")
         )->filterWrite($data);
-        $this->assertSame('secret', $result['adminNote']);
+        $this->assertSame("secret", $result["adminNote"]);
     }
 
     // --- Own scope ---
@@ -261,32 +261,32 @@ final class FieldSecurityFilterTest extends TestCase
     public function filterReadRemovesOwnedFieldWhenOwnedByAnotherUser(): void
     {
         $result = new FieldSecurityFilter(
-            $this->makeOwnedResource($this->makeUser('User')),
-            $this->makeUser('User')
-        )->filterRead(new Dictionary(['secret' => 'classified']));
-        $this->assertNull($result['secret']);
+            $this->makeOwnedResource($this->makeUser("User")),
+            $this->makeUser("User")
+        )->filterRead(new Dictionary(["secret" => "classified"]));
+        $this->assertNull($result["secret"]);
     }
 
     #[Test]
     public function filterReadKeepsOwnedFieldWhenResourceHasNoOwner(): void
     {
-        $user = $this->makeUser('User');
+        $user = $this->makeUser("User");
         $result = new FieldSecurityFilter(
             $this->makeOwnedResource(null),
             $user
-        )->filterRead(new Dictionary(['secret' => 'classified']));
-        $this->assertSame('classified', $result['secret']);
+        )->filterRead(new Dictionary(["secret" => "classified"]));
+        $this->assertSame("classified", $result["secret"]);
     }
 
     #[Test]
     public function filterReadKeepsOwnedFieldWhenIsOwner(): void
     {
-        $user = $this->makeUser('User');
+        $user = $this->makeUser("User");
         $result = new FieldSecurityFilter(
             $this->makeOwnedResource($user),
             $user
-        )->filterRead(new Dictionary(['secret' => 'classified']));
-        $this->assertSame('classified', $result['secret']);
+        )->filterRead(new Dictionary(["secret" => "classified"]));
+        $this->assertSame("classified", $result["secret"]);
     }
 
     // --- Attribute-based condition (where) ---
@@ -297,8 +297,8 @@ final class FieldSecurityFilterTest extends TestCase
         $resource = new ReflectionClass(ConditionEntityFixture::class)->newInstanceWithoutConstructor();
         $entity = new ReflectionClass(EntityDescription::class)->newInstanceWithoutConstructor();
         $context = new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor();
-        new ReflectionClass(ManagedObject::class)->getProperty('entity')->setValue($resource, $entity);
-        new ReflectionClass(ManagedObject::class)->getProperty('managedObjectContext')->setValue($resource, $context);
+        new ReflectionClass(ManagedObject::class)->getProperty("entity")->setValue($resource, $entity);
+        new ReflectionClass(ManagedObject::class)->getProperty("managedObjectContext")->setValue($resource, $context);
         $resource->status = $status;
         return $resource;
     }
@@ -309,11 +309,11 @@ final class FieldSecurityFilterTest extends TestCase
         $user = $this->makeUser();
         $resolver = new AccessConditionResolver();
         $result = new FieldSecurityFilter(
-            $this->makeConditionResource('published'),
+            $this->makeConditionResource("published"),
             $user,
             $resolver
-        )->filterRead(new Dictionary(['body' => 'visible']));
-        $this->assertSame('visible', $result['body']);
+        )->filterRead(new Dictionary(["body" => "visible"]));
+        $this->assertSame("visible", $result["body"]);
     }
 
     #[Test]
@@ -322,10 +322,10 @@ final class FieldSecurityFilterTest extends TestCase
         $user = $this->makeUser();
         $resolver = new AccessConditionResolver();
         $result = new FieldSecurityFilter(
-            $this->makeConditionResource('draft'),
+            $this->makeConditionResource("draft"),
             $user,
             $resolver
-        )->filterRead(new Dictionary(['body' => 'hidden']));
-        $this->assertNull($result['body']);
+        )->filterRead(new Dictionary(["body" => "hidden"]));
+        $this->assertNull($result["body"]);
     }
 }

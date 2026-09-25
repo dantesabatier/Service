@@ -44,7 +44,7 @@ final class GetServerTimeToolTest extends TestCase
         $this->assertSame(date("Y-m-d"), $result["date"]);
         $this->assertSame(date("l"), $result["weekday"]);
         $this->assertLessThanOrEqual(2, abs($result["unix"] - time()));
-        $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/', $result["iso8601"]);
+        $this->assertMatchesRegularExpression("/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}/", $result["iso8601"]);
     }
 
     /**

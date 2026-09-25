@@ -17,7 +17,7 @@ final class JSONTransformerTest extends TestCase
 {
     private function response(mixed $body = null): Response
     {
-        $response = new Response(new URL('http://localhost/'));
+        $response = new Response(new URL("http://localhost/"));
         $response->body = $body;
         return $response;
     }
@@ -31,67 +31,67 @@ final class JSONTransformerTest extends TestCase
     public function setsContentTypeToApplicationJson(): void
     {
         $result = $this->transform($this->response([]));
-        $this->assertSame('application/json', $result->allHeaderFields['Content-Type']);
+        $this->assertSame("application/json", $result->allHeaderFields["Content-Type"]);
     }
 
     #[Test]
     public function encodesArrayBody(): void
     {
-        $result = $this->transform($this->response(['key' => 'value']));
-        $this->assertSame('{"key":"value"}', $result->body);
+        $result = $this->transform($this->response(["key" => "value"]));
+        $this->assertSame("{\"key\":\"value\"}", $result->body);
     }
 
     #[Test]
     public function encodesNullBody(): void
     {
         $result = $this->transform($this->response(null));
-        $this->assertSame('null', $result->body);
+        $this->assertSame("null", $result->body);
     }
 
     #[Test]
     public function encodesStringBody(): void
     {
-        $result = $this->transform($this->response('hello'));
-        $this->assertSame('"hello"', $result->body);
+        $result = $this->transform($this->response("hello"));
+        $this->assertSame("\"hello\"", $result->body);
     }
 
     #[Test]
     public function encodesIntBody(): void
     {
         $result = $this->transform($this->response(42));
-        $this->assertSame('42', $result->body);
+        $this->assertSame("42", $result->body);
     }
 
     #[Test]
     public function preservesZeroFraction(): void
     {
         $result = $this->transform($this->response(1.0));
-        $this->assertSame('1.0', $result->body);
+        $this->assertSame("1.0", $result->body);
     }
 
     #[Test]
     public function encodesDictionary(): void
     {
-        $dict = new Dictionary(['status' => 'ok', 'count' => 3]);
+        $dict = new Dictionary(["status" => "ok", "count" => 3]);
         $result = $this->transform($this->response($dict));
         $decoded = json_decode($result->body, true);
-        $this->assertSame('ok', $decoded['status']);
-        $this->assertSame(3, $decoded['count']);
+        $this->assertSame("ok", $decoded["status"]);
+        $this->assertSame(3, $decoded["count"]);
     }
 
     #[Test]
     public function encodesNestedStructure(): void
     {
-        $result = $this->transform($this->response(['items' => [1, 2, 3], 'total' => 3]));
+        $result = $this->transform($this->response(["items" => [1, 2, 3], "total" => 3]));
         $decoded = json_decode($result->body, true);
-        $this->assertSame([1, 2, 3], $decoded['items']);
-        $this->assertSame(3, $decoded['total']);
+        $this->assertSame([1, 2, 3], $decoded["items"]);
+        $this->assertSame(3, $decoded["total"]);
     }
 
     #[Test]
     public function throwsOnUnencodableValue(): void
     {
         $this->expectException(JsonException::class);
-        $this->transform($this->response(fopen('php://memory', 'r')));
+        $this->transform($this->response(fopen("php://memory", "r")));
     }
 }

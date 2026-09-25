@@ -42,7 +42,7 @@ final class CORSPolicyFromEnvTest extends TestCase
         }
     }
 
-    private function setEnv(string $origins = '', string $methods = '', string $headers = '', string $credentials = 'false', string $exposedHeaders = ''): void
+    private function setEnv(string $origins = "", string $methods = "", string $headers = "", string $credentials = "false", string $exposedHeaders = ""): void
     {
         $env = ProcessInfo::processInfo()->environment;
         $env[CORSAllowedOriginsKey] = $origins;
@@ -55,92 +55,92 @@ final class CORSPolicyFromEnvTest extends TestCase
     #[Test]
     public function parsesOriginsFromCommaSeparatedString(): void
     {
-        $this->setEnv(origins: 'https://a.com,https://b.com');
+        $this->setEnv(origins: "https://a.com,https://b.com");
         $policy = CORSPolicy::policy();
-        $this->assertTrue($policy->allowsOrigin('https://a.com'));
-        $this->assertTrue($policy->allowsOrigin('https://b.com'));
-        $this->assertFalse($policy->allowsOrigin('https://c.com'));
+        $this->assertTrue($policy->allowsOrigin("https://a.com"));
+        $this->assertTrue($policy->allowsOrigin("https://b.com"));
+        $this->assertFalse($policy->allowsOrigin("https://c.com"));
     }
 
     #[Test]
     public function trimsWhitespaceAroundOrigins(): void
     {
-        $this->setEnv(origins: 'https://a.com , https://b.com');
+        $this->setEnv(origins: "https://a.com , https://b.com");
         $policy = CORSPolicy::policy();
-        $this->assertTrue($policy->allowsOrigin('https://a.com'));
-        $this->assertTrue($policy->allowsOrigin('https://b.com'));
+        $this->assertTrue($policy->allowsOrigin("https://a.com"));
+        $this->assertTrue($policy->allowsOrigin("https://b.com"));
     }
 
     #[Test]
     public function parsesWildcardOrigin(): void
     {
-        $this->setEnv(origins: '*');
+        $this->setEnv(origins: "*");
         $policy = CORSPolicy::policy();
-        $this->assertTrue($policy->allowsOrigin('https://anything.com'));
+        $this->assertTrue($policy->allowsOrigin("https://anything.com"));
     }
 
     #[Test]
     public function emptyOriginsProducesEmptySet(): void
     {
-        $this->setEnv(origins: '');
+        $this->setEnv(origins: "");
         $policy = CORSPolicy::policy();
-        $this->assertFalse($policy->allowsOrigin('https://example.com'));
+        $this->assertFalse($policy->allowsOrigin("https://example.com"));
     }
 
     #[Test]
     public function parsesMethods(): void
     {
-        $this->setEnv(methods: 'GET,POST,DELETE');
+        $this->setEnv(methods: "GET,POST,DELETE");
         $policy = CORSPolicy::policy();
         $this->assertFalse($policy->allowedMethods->isEmpty);
-        $this->assertTrue($policy->allowedMethods->contains(fn(string $m) => $m === 'GET'));
-        $this->assertTrue($policy->allowedMethods->contains(fn(string $m) => $m === 'POST'));
-        $this->assertTrue($policy->allowedMethods->contains(fn(string $m) => $m === 'DELETE'));
+        $this->assertTrue($policy->allowedMethods->contains(fn(string $m) => $m === "GET"));
+        $this->assertTrue($policy->allowedMethods->contains(fn(string $m) => $m === "POST"));
+        $this->assertTrue($policy->allowedMethods->contains(fn(string $m) => $m === "DELETE"));
     }
 
     #[Test]
     public function parsesAllowedHeaders(): void
     {
-        $this->setEnv(headers: 'Authorization,Content-Type');
+        $this->setEnv(headers: "Authorization,Content-Type");
         $policy = CORSPolicy::policy();
-        $this->assertTrue($policy->allowedHeaders->contains(fn(string $h) => $h === 'Authorization'));
-        $this->assertTrue($policy->allowedHeaders->contains(fn(string $h) => $h === 'Content-Type'));
+        $this->assertTrue($policy->allowedHeaders->contains(fn(string $h) => $h === "Authorization"));
+        $this->assertTrue($policy->allowedHeaders->contains(fn(string $h) => $h === "Content-Type"));
     }
 
     #[Test]
     public function parsesCredentialsTrueFromString(): void
     {
-        $this->setEnv(credentials: 'true');
+        $this->setEnv(credentials: "true");
         $this->assertTrue(CORSPolicy::policy()->allowCredentials);
     }
 
     #[Test]
     public function parsesCredentialsFalseFromString(): void
     {
-        $this->setEnv(credentials: 'false');
+        $this->setEnv(credentials: "false");
         $this->assertFalse(CORSPolicy::policy()->allowCredentials);
     }
 
     #[Test]
     public function parsesCredentialsTrueFromOne(): void
     {
-        $this->setEnv(credentials: '1');
+        $this->setEnv(credentials: "1");
         $this->assertTrue(CORSPolicy::policy()->allowCredentials);
     }
 
     #[Test]
     public function parsesExposedHeaders(): void
     {
-        $this->setEnv(exposedHeaders: 'X-Request-Id,X-Trace');
+        $this->setEnv(exposedHeaders: "X-Request-Id,X-Trace");
         $policy = CORSPolicy::policy();
-        $this->assertTrue($policy->exposedHeaders->contains(fn(string $h) => $h === 'X-Request-Id'));
-        $this->assertTrue($policy->exposedHeaders->contains(fn(string $h) => $h === 'X-Trace'));
+        $this->assertTrue($policy->exposedHeaders->contains(fn(string $h) => $h === "X-Request-Id"));
+        $this->assertTrue($policy->exposedHeaders->contains(fn(string $h) => $h === "X-Trace"));
     }
 
     #[Test]
     public function emptyExposedHeadersProducesEmptySet(): void
     {
-        $this->setEnv(exposedHeaders: '');
+        $this->setEnv(exposedHeaders: "");
         $this->assertTrue(CORSPolicy::policy()->exposedHeaders->isEmpty);
     }
 }

@@ -16,22 +16,22 @@ use Sabatier\Service\ResponseHeaderSanitizerTransformer;
 
 // --- Fixtures ---
 
-#[Endpoint('/products')]
+#[Endpoint("/products")]
 final class ProductsFixture {}
 
 #[Endpoint]
 final class ArticlesFixture {}
 
-#[Endpoint('orders')]
+#[Endpoint("orders")]
 final class OrdersFixture {}
 
-#[Endpoint('/users', transformers: [JSONTransformer::class])]
+#[Endpoint("/users", transformers: [JSONTransformer::class])]
 final class UsersFixture
 {
     #[Action(method: HTTPRequestMethod::post)]
     public function create(): void {}
 
-    #[Action(method: HTTPRequestMethod::patch, path: '/users/profile')]
+    #[Action(method: HTTPRequestMethod::patch, path: "/users/profile")]
     public function updateProfile(): void {}
 
     #[Action(method: HTTPRequestMethod::delete, transformers: [NoCacheHeaderTransformer::class])]
@@ -49,49 +49,49 @@ final class ResponderResolutionTest extends TestCase
     #[Test]
     public function matchesTrueForExplicitEndpointPath(): void
     {
-        $r = new ResponderResolution(ProductsFixture::class, '/products');
+        $r = new ResponderResolution(ProductsFixture::class, "/products");
         $this->assertTrue($r->matches);
     }
 
     #[Test]
     public function matchesFalseForDifferentPath(): void
     {
-        $r = new ResponderResolution(ProductsFixture::class, '/orders');
+        $r = new ResponderResolution(ProductsFixture::class, "/orders");
         $this->assertFalse($r->matches);
     }
 
     #[Test]
     public function defaultPathUsesClassShortName(): void
     {
-        $r = new ResponderResolution(ArticlesFixture::class, '/ArticlesFixture');
+        $r = new ResponderResolution(ArticlesFixture::class, "/ArticlesFixture");
         $this->assertTrue($r->matches);
     }
 
     #[Test]
     public function pathWithoutLeadingSlashGetsSlashPrepended(): void
     {
-        $r = new ResponderResolution(OrdersFixture::class, '/orders');
+        $r = new ResponderResolution(OrdersFixture::class, "/orders");
         $this->assertTrue($r->matches);
     }
 
     #[Test]
     public function endpointMatchingIsCaseInsensitive(): void
     {
-        $r = new ResponderResolution(ProductsFixture::class, '/PRODUCTS');
+        $r = new ResponderResolution(ProductsFixture::class, "/PRODUCTS");
         $this->assertTrue($r->matches);
     }
 
     #[Test]
     public function selectorIsNullForEndpointMatch(): void
     {
-        $r = new ResponderResolution(ProductsFixture::class, '/products');
+        $r = new ResponderResolution(ProductsFixture::class, "/products");
         $this->assertNull($r->selector);
     }
 
     #[Test]
     public function transformersFromEndpointAreCollected(): void
     {
-        $r = new ResponderResolution(UsersFixture::class, '/users');
+        $r = new ResponderResolution(UsersFixture::class, "/users");
         $this->assertTrue($r->transformers->contains(fn(string $t) => $t === JSONTransformer::class));
     }
 
@@ -100,36 +100,36 @@ final class ResponderResolutionTest extends TestCase
     #[Test]
     public function matchesTrueForImplicitActionPath(): void
     {
-        $r = new ResponderResolution(UsersFixture::class, '/create');
+        $r = new ResponderResolution(UsersFixture::class, "/create");
         $this->assertTrue($r->matches);
     }
 
     #[Test]
     public function selectorIsMethodNameForActionMatch(): void
     {
-        $r = new ResponderResolution(UsersFixture::class, '/create');
-        $this->assertSame('create', $r->selector);
+        $r = new ResponderResolution(UsersFixture::class, "/create");
+        $this->assertSame("create", $r->selector);
     }
 
     #[Test]
     public function actionMatchingIsCaseInsensitive(): void
     {
-        $r = new ResponderResolution(UsersFixture::class, '/CREATE');
+        $r = new ResponderResolution(UsersFixture::class, "/CREATE");
         $this->assertTrue($r->matches);
     }
 
     #[Test]
     public function actionWithExplicitPathMatches(): void
     {
-        $r = new ResponderResolution(UsersFixture::class, '/users/profile');
+        $r = new ResponderResolution(UsersFixture::class, "/users/profile");
         $this->assertTrue($r->matches);
-        $this->assertSame('updateProfile', $r->selector);
+        $this->assertSame("updateProfile", $r->selector);
     }
 
     #[Test]
     public function transformersFromActionAreCollected(): void
     {
-        $r = new ResponderResolution(UsersFixture::class, '/delete');
+        $r = new ResponderResolution(UsersFixture::class, "/delete");
         $this->assertTrue($r->transformers->contains(fn(string $t) => $t === NoCacheHeaderTransformer::class));
     }
 
@@ -138,14 +138,14 @@ final class ResponderResolutionTest extends TestCase
     #[Test]
     public function matchesFalseWhenNoAttributes(): void
     {
-        $r = new ResponderResolution(NoAttributeFixture::class, '/no-attribute-fixture');
+        $r = new ResponderResolution(NoAttributeFixture::class, "/no-attribute-fixture");
         $this->assertFalse($r->matches);
     }
 
     #[Test]
     public function selectorIsNullWhenNoMatch(): void
     {
-        $r = new ResponderResolution(NoAttributeFixture::class, '/anything');
+        $r = new ResponderResolution(NoAttributeFixture::class, "/anything");
         $this->assertNull($r->selector);
     }
 
@@ -154,14 +154,14 @@ final class ResponderResolutionTest extends TestCase
     #[Test]
     public function sanitizerTransformerAlwaysPresentOnMatch(): void
     {
-        $r = new ResponderResolution(ProductsFixture::class, '/products');
+        $r = new ResponderResolution(ProductsFixture::class, "/products");
         $this->assertTrue($r->transformers->contains(fn(string $t) => $t === ResponseHeaderSanitizerTransformer::class));
     }
 
     #[Test]
     public function sanitizerTransformerAlwaysPresentOnNoMatch(): void
     {
-        $r = new ResponderResolution(NoAttributeFixture::class, '/anything');
+        $r = new ResponderResolution(NoAttributeFixture::class, "/anything");
         $this->assertTrue($r->transformers->contains(fn(string $t) => $t === ResponseHeaderSanitizerTransformer::class));
     }
 }

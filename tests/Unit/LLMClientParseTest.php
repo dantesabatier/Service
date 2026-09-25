@@ -27,7 +27,7 @@ final class LLMClientParseTest extends TestCase
     #[Test]
     public function chatCompletionsUsageIsCountedUnderItsOwnKeys(): void
     {
-        $turn = $this->parse(new StandardLLMClient(), '{"choices":[{"message":{"content":"hi"}}],"usage":{"prompt_tokens":137,"completion_tokens":42}}');
+        $turn = $this->parse(new StandardLLMClient(), "{\"choices\":[{\"message\":{\"content\":\"hi\"}}],\"usage\":{\"prompt_tokens\":137,\"completion_tokens\":42}}");
 
         $this->assertSame(137, $turn->inputTokens);
         $this->assertSame(42, $turn->outputTokens);
@@ -36,7 +36,7 @@ final class LLMClientParseTest extends TestCase
     #[Test]
     public function responsesApiUsageIsStillCounted(): void
     {
-        $turn = $this->parse(new StandardLLMClient(), '{"choices":[{"message":{"content":"hi"}}],"usage":{"input_tokens":11,"output_tokens":5}}');
+        $turn = $this->parse(new StandardLLMClient(), "{\"choices\":[{\"message\":{\"content\":\"hi\"}}],\"usage\":{\"input_tokens\":11,\"output_tokens\":5}}");
 
         $this->assertSame(11, $turn->inputTokens);
         $this->assertSame(5, $turn->outputTokens);
@@ -47,15 +47,15 @@ final class LLMClientParseTest extends TestCase
     {
         $this->expectException(LLMProviderException::class);
 
-        $this->parse(new StandardLLMClient(), '{"error":{"message":"model not found","type":"invalid_request_error"}}');
+        $this->parse(new StandardLLMClient(), "{\"error\":{\"message\":\"model not found\",\"type\":\"invalid_request_error\"}}");
     }
 
     #[Test]
     public function standardClientDistinguishesCompletionOutputLimitAndRefusal(): void
     {
-        $completed = $this->parse(new StandardLLMClient(), '{"choices":[{"finish_reason":"stop","message":{"content":"done"}}]}');
-        $limited = $this->parse(new StandardLLMClient(), '{"choices":[{"finish_reason":"length","message":{"content":"partial"}}]}');
-        $refused = $this->parse(new StandardLLMClient(), '{"choices":[{"finish_reason":"content_filter","message":{"content":null}}]}');
+        $completed = $this->parse(new StandardLLMClient(), "{\"choices\":[{\"finish_reason\":\"stop\",\"message\":{\"content\":\"done\"}}]}");
+        $limited = $this->parse(new StandardLLMClient(), "{\"choices\":[{\"finish_reason\":\"length\",\"message\":{\"content\":\"partial\"}}]}");
+        $refused = $this->parse(new StandardLLMClient(), "{\"choices\":[{\"finish_reason\":\"content_filter\",\"message\":{\"content\":null}}]}");
 
         $this->assertSame(LLMTurnStopReason::completed, $completed->stopReason);
         $this->assertSame(LLMTurnStopReason::outputLimit, $limited->stopReason);
@@ -67,13 +67,13 @@ final class LLMClientParseTest extends TestCase
     {
         $this->expectException(LLMProviderException::class);
 
-        $this->parse(new StandardLLMClient(), '{}');
+        $this->parse(new StandardLLMClient(), "{}");
     }
 
     #[Test]
     public function standardClientCallWithoutArgumentsYieldsAnEmptyDictionary(): void
     {
-        $turn = $this->parse(new StandardLLMClient(), '{"choices":[{"message":{"content":null,"tool_calls":[{"id":"call_1","function":{"name":"probe_tool","arguments":"{}"}}]}}]}');
+        $turn = $this->parse(new StandardLLMClient(), "{\"choices\":[{\"message\":{\"content\":null,\"tool_calls\":[{\"id\":\"call_1\",\"function\":{\"name\":\"probe_tool\",\"arguments\":\"{}\"}}]}}]}");
 
         $this->assertSame(1, $turn->toolCalls->count);
         $this->assertInstanceOf(Dictionary::class, $turn->toolCalls[0]->arguments);
@@ -84,7 +84,7 @@ final class LLMClientParseTest extends TestCase
     #[Test]
     public function standardClientPreservesObjectAndListArgumentShapes(): void
     {
-        $turn = $this->parse(new StandardLLMClient(), '{"choices":[{"message":{"tool_calls":[{"id":"call_1","function":{"name":"probe_tool","arguments":"{\"object\":{},\"list\":[]}"}}]}}]}');
+        $turn = $this->parse(new StandardLLMClient(), "{\"choices\":[{\"message\":{\"tool_calls\":[{\"id\":\"call_1\",\"function\":{\"name\":\"probe_tool\",\"arguments\":\"{\\\"object\\\":{},\\\"list\\\":[]}\"}}]}}]}");
         $arguments = $turn->toolCalls[0]->arguments;
 
         $this->assertInstanceOf(Dictionary::class, $arguments["object"]);
@@ -97,7 +97,7 @@ final class LLMClientParseTest extends TestCase
         $this->expectException(LLMProviderException::class);
         $this->expectExceptionMessage("malformed JSON tool arguments");
 
-        $this->parse(new StandardLLMClient(), '{"choices":[{"message":{"tool_calls":[{"id":"call_1","function":{"name":"probe_tool","arguments":"{"}}]}}]}');
+        $this->parse(new StandardLLMClient(), "{\"choices\":[{\"message\":{\"tool_calls\":[{\"id\":\"call_1\",\"function\":{\"name\":\"probe_tool\",\"arguments\":\"{\"}}]}}]}");
     }
 
     #[Test]
@@ -106,7 +106,7 @@ final class LLMClientParseTest extends TestCase
         $this->expectException(LLMProviderException::class);
         $this->expectExceptionMessage("tool arguments that are not an object");
 
-        $this->parse(new StandardLLMClient(), '{"choices":[{"message":{"tool_calls":[{"id":"call_1","function":{"name":"probe_tool","arguments":"[]"}}]}}]}');
+        $this->parse(new StandardLLMClient(), "{\"choices\":[{\"message\":{\"tool_calls\":[{\"id\":\"call_1\",\"function\":{\"name\":\"probe_tool\",\"arguments\":\"[]\"}}]}}]}");
     }
 
     #[Test]
@@ -115,13 +115,13 @@ final class LLMClientParseTest extends TestCase
         $this->expectException(LLMProviderException::class);
         $this->expectExceptionMessage("without a non-empty id");
 
-        $this->parse(new StandardLLMClient(), '{"choices":[{"message":{"tool_calls":[{"id":"","function":{"name":"probe_tool","arguments":"{}"}}]}}]}');
+        $this->parse(new StandardLLMClient(), "{\"choices\":[{\"message\":{\"tool_calls\":[{\"id\":\"\",\"function\":{\"name\":\"probe_tool\",\"arguments\":\"{}\"}}]}}]}");
     }
 
     #[Test]
     public function anthropicKeepsEveryTextBlockRatherThanTheLastOne(): void
     {
-        $turn = $this->parse(new AnthropicClient(), '{"content":[{"type":"text","text":"first. "},{"type":"tool_use","id":"tu_1","name":"probe_tool","input":{}},{"type":"text","text":"second."}],"usage":{"input_tokens":9,"output_tokens":3}}');
+        $turn = $this->parse(new AnthropicClient(), "{\"content\":[{\"type\":\"text\",\"text\":\"first. \"},{\"type\":\"tool_use\",\"id\":\"tu_1\",\"name\":\"probe_tool\",\"input\":{}},{\"type\":\"text\",\"text\":\"second.\"}],\"usage\":{\"input_tokens\":9,\"output_tokens\":3}}");
 
         $this->assertSame("first. second.", $turn->text);
         $this->assertSame(1, $turn->toolCalls->count);
@@ -132,7 +132,7 @@ final class LLMClientParseTest extends TestCase
     #[Test]
     public function anthropicTurnWithoutATextBlockHasNoText(): void
     {
-        $turn = $this->parse(new AnthropicClient(), '{"content":[{"type":"tool_use","id":"tu_1","name":"probe_tool","input":{"n":1}}]}');
+        $turn = $this->parse(new AnthropicClient(), "{\"content\":[{\"type\":\"tool_use\",\"id\":\"tu_1\",\"name\":\"probe_tool\",\"input\":{\"n\":1}}]}");
 
         $this->assertNull($turn->text);
         $this->assertSame(1, $turn->toolCalls->count);
@@ -144,7 +144,7 @@ final class LLMClientParseTest extends TestCase
         $this->expectException(LLMProviderException::class);
         $this->expectExceptionMessage("tool arguments that are not an object");
 
-        $this->parse(new AnthropicClient(), '{"content":[{"type":"tool_use","id":"tu_1","name":"probe_tool","input":[]}]}');
+        $this->parse(new AnthropicClient(), "{\"content\":[{\"type\":\"tool_use\",\"id\":\"tu_1\",\"name\":\"probe_tool\",\"input\":[]}]}");
     }
 
     #[Test]
@@ -153,7 +153,7 @@ final class LLMClientParseTest extends TestCase
         $this->expectException(LLMProviderException::class);
         $this->expectExceptionMessage("without a non-empty name");
 
-        $this->parse(new AnthropicClient(), '{"content":[{"type":"tool_use","id":"tu_1","input":{}}]}');
+        $this->parse(new AnthropicClient(), "{\"content\":[{\"type\":\"tool_use\",\"id\":\"tu_1\",\"input\":{}}]}");
     }
 
     #[Test]
@@ -161,15 +161,15 @@ final class LLMClientParseTest extends TestCase
     {
         $this->expectException(LLMProviderException::class);
 
-        $this->parse(new AnthropicClient(), '{"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}');
+        $this->parse(new AnthropicClient(), "{\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"}}");
     }
 
     #[Test]
     public function anthropicClientDistinguishesCompletionOutputLimitAndRefusal(): void
     {
-        $completed = $this->parse(new AnthropicClient(), '{"stop_reason":"end_turn","content":[{"type":"text","text":"done"}]}');
-        $limited = $this->parse(new AnthropicClient(), '{"stop_reason":"max_tokens","content":[{"type":"text","text":"partial"}]}');
-        $refused = $this->parse(new AnthropicClient(), '{"stop_reason":"refusal","content":[]}');
+        $completed = $this->parse(new AnthropicClient(), "{\"stop_reason\":\"end_turn\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]}");
+        $limited = $this->parse(new AnthropicClient(), "{\"stop_reason\":\"max_tokens\",\"content\":[{\"type\":\"text\",\"text\":\"partial\"}]}");
+        $refused = $this->parse(new AnthropicClient(), "{\"stop_reason\":\"refusal\",\"content\":[]}");
 
         $this->assertSame(LLMTurnStopReason::completed, $completed->stopReason);
         $this->assertSame(LLMTurnStopReason::outputLimit, $limited->stopReason);
@@ -179,7 +179,7 @@ final class LLMClientParseTest extends TestCase
     #[Test]
     public function ollamaUsageIsCountedUnderItsOwnKeys(): void
     {
-        $turn = $this->parse(new OllamaClient(), '{"message":{"content":"hi"},"prompt_eval_count":64,"eval_count":8}');
+        $turn = $this->parse(new OllamaClient(), "{\"message\":{\"content\":\"hi\"},\"prompt_eval_count\":64,\"eval_count\":8}");
 
         $this->assertSame("hi", $turn->text);
         $this->assertSame(64, $turn->inputTokens);
@@ -189,7 +189,7 @@ final class LLMClientParseTest extends TestCase
     #[Test]
     public function ollamaCallWithoutArgumentsYieldsAnEmptyDictionary(): void
     {
-        $turn = $this->parse(new OllamaClient(), '{"message":{"content":null,"tool_calls":[{"function":{"name":"probe_tool"}}]}}');
+        $turn = $this->parse(new OllamaClient(), "{\"message\":{\"content\":null,\"tool_calls\":[{\"function\":{\"name\":\"probe_tool\"}}]}}");
 
         $this->assertSame(1, $turn->toolCalls->count);
         $this->assertSame("call_0", $turn->toolCalls[0]->id);
@@ -202,7 +202,7 @@ final class LLMClientParseTest extends TestCase
         $this->expectException(LLMProviderException::class);
         $this->expectExceptionMessage("tool arguments that are not an object");
 
-        $this->parse(new OllamaClient(), '{"message":{"tool_calls":[{"function":{"name":"probe_tool","arguments":[]}}]}}');
+        $this->parse(new OllamaClient(), "{\"message\":{\"tool_calls\":[{\"function\":{\"name\":\"probe_tool\",\"arguments\":[]}}]}}");
     }
 
     #[Test]
@@ -211,7 +211,7 @@ final class LLMClientParseTest extends TestCase
         $this->expectException(LLMProviderException::class);
         $this->expectExceptionMessage("without a non-empty name");
 
-        $this->parse(new OllamaClient(), '{"message":{"tool_calls":[{"function":{"arguments":{}}}]}}');
+        $this->parse(new OllamaClient(), "{\"message\":{\"tool_calls\":[{\"function\":{\"arguments\":{}}}]}}");
     }
 
     #[Test]
@@ -219,14 +219,14 @@ final class LLMClientParseTest extends TestCase
     {
         $this->expectException(LLMProviderException::class);
 
-        $this->parse(new OllamaClient(), '{"error":"model \"nope\" not found"}');
+        $this->parse(new OllamaClient(), "{\"error\":\"model \\\"nope\\\" not found\"}");
     }
 
     #[Test]
     public function ollamaClientDistinguishesCompletionAndOutputLimit(): void
     {
-        $completed = $this->parse(new OllamaClient(), '{"done":true,"done_reason":"stop","message":{"content":"done"}}');
-        $limited = $this->parse(new OllamaClient(), '{"done":true,"done_reason":"length","message":{"content":"partial"}}');
+        $completed = $this->parse(new OllamaClient(), "{\"done\":true,\"done_reason\":\"stop\",\"message\":{\"content\":\"done\"}}");
+        $limited = $this->parse(new OllamaClient(), "{\"done\":true,\"done_reason\":\"length\",\"message\":{\"content\":\"partial\"}}");
 
         $this->assertSame(LLMTurnStopReason::completed, $completed->stopReason);
         $this->assertSame(LLMTurnStopReason::outputLimit, $limited->stopReason);

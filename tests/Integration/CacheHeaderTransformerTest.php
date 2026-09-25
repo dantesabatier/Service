@@ -16,7 +16,7 @@ final class CacheHeaderTransformerTest extends TestCase
 {
     private function response(): Response
     {
-        return new Response(new URL('http://localhost/'));
+        return new Response(new URL("http://localhost/"));
     }
 
     private function transform(Response $response, ?HTTPCachePolicy $policy): Response
@@ -30,7 +30,7 @@ final class CacheHeaderTransformerTest extends TestCase
     public function noCacheControlWhenNoPolicyInContext(): void
     {
         $result = $this->transform($this->response(), null);
-        $this->assertNull($result->allHeaderFields['Cache-Control']);
+        $this->assertNull($result->allHeaderFields["Cache-Control"]);
     }
 
     // --- Cache-Control generado ---
@@ -38,17 +38,17 @@ final class CacheHeaderTransformerTest extends TestCase
     #[Test]
     public function cacheControlWrittenWithVisibilityAndMaxAge(): void
     {
-        $policy = new HTTPCachePolicy(maxAge: 600, visibility: 'public');
+        $policy = new HTTPCachePolicy(maxAge: 600, visibility: "public");
         $result = $this->transform($this->response(), $policy);
-        $this->assertSame('public, max-age=600', $result->allHeaderFields['Cache-Control']);
+        $this->assertSame("public, max-age=600", $result->allHeaderFields["Cache-Control"]);
     }
 
     #[Test]
     public function privateVisibilityIsReflected(): void
     {
-        $policy = new HTTPCachePolicy(maxAge: 300, visibility: 'private');
+        $policy = new HTTPCachePolicy(maxAge: 300, visibility: "private");
         $result = $this->transform($this->response(), $policy);
-        $this->assertStringContainsString('private', $result->allHeaderFields['Cache-Control']);
+        $this->assertStringContainsString("private", $result->allHeaderFields["Cache-Control"]);
     }
 
     #[Test]
@@ -56,7 +56,7 @@ final class CacheHeaderTransformerTest extends TestCase
     {
         $policy = new HTTPCachePolicy(maxAge: 3600, staleWhileRevalidate: 120);
         $result = $this->transform($this->response(), $policy);
-        $this->assertStringContainsString('stale-while-revalidate=120', $result->allHeaderFields['Cache-Control']);
+        $this->assertStringContainsString("stale-while-revalidate=120", $result->allHeaderFields["Cache-Control"]);
     }
 
     #[Test]
@@ -64,15 +64,15 @@ final class CacheHeaderTransformerTest extends TestCase
     {
         $policy = new HTTPCachePolicy(staleWhileRevalidate: null);
         $result = $this->transform($this->response(), $policy);
-        $this->assertStringNotContainsString('stale-while-revalidate', $result->allHeaderFields['Cache-Control']);
+        $this->assertStringNotContainsString("stale-while-revalidate", $result->allHeaderFields["Cache-Control"]);
     }
 
     #[Test]
     public function varyHeaderAddedWhenConfigured(): void
     {
-        $policy = new HTTPCachePolicy(vary: 'Accept-Encoding');
+        $policy = new HTTPCachePolicy(vary: "Accept-Encoding");
         $result = $this->transform($this->response(), $policy);
-        $this->assertSame('Accept-Encoding', $result->allHeaderFields['Vary']);
+        $this->assertSame("Accept-Encoding", $result->allHeaderFields["Vary"]);
     }
 
     #[Test]
@@ -80,7 +80,7 @@ final class CacheHeaderTransformerTest extends TestCase
     {
         $policy = new HTTPCachePolicy(vary: null);
         $result = $this->transform($this->response(), $policy);
-        $this->assertNull($result->allHeaderFields['Vary']);
+        $this->assertNull($result->allHeaderFields["Vary"]);
     }
 
     // --- No sobreescribe Cache-Control existente ---
@@ -89,19 +89,19 @@ final class CacheHeaderTransformerTest extends TestCase
     public function existingCacheControlIsNotOverwritten(): void
     {
         $response = $this->response();
-        $response->allHeaderFields['Cache-Control'] = 'no-cache, no-store';
-        $policy = new HTTPCachePolicy(maxAge: 3600, visibility: 'public');
+        $response->allHeaderFields["Cache-Control"] = "no-cache, no-store";
+        $policy = new HTTPCachePolicy(maxAge: 3600, visibility: "public");
         $result = $this->transform($response, $policy);
-        $this->assertSame('no-cache, no-store', $result->allHeaderFields['Cache-Control']);
+        $this->assertSame("no-cache, no-store", $result->allHeaderFields["Cache-Control"]);
     }
 
     #[Test]
     public function varyNotAddedWhenCacheControlAlreadyPresent(): void
     {
         $response = $this->response();
-        $response->allHeaderFields['Cache-Control'] = 'no-cache';
-        $policy = new HTTPCachePolicy(vary: 'Accept');
+        $response->allHeaderFields["Cache-Control"] = "no-cache";
+        $policy = new HTTPCachePolicy(vary: "Accept");
         $result = $this->transform($response, $policy);
-        $this->assertNull($result->allHeaderFields['Vary']);
+        $this->assertNull($result->allHeaderFields["Vary"]);
     }
 }

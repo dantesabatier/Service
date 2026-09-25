@@ -16,7 +16,7 @@ final class StaticCacheHeaderTransformerTest extends TestCase
 {
     private function response(): Response
     {
-        return new Response(new URL('http://localhost/app.js'));
+        return new Response(new URL("http://localhost/app.js"));
     }
 
     private function transform(Response $response, ?StaticResourceDisposition $disposition): Response
@@ -35,21 +35,21 @@ final class StaticCacheHeaderTransformerTest extends TestCase
     public function writesPublicMaxAgeAndImmutableForBundleResource(): void
     {
         $result = $this->transform($this->response(), $this->cacheable(31536000, true));
-        $this->assertSame('public, max-age=31536000, immutable', $result->allHeaderFields['Cache-Control']);
+        $this->assertSame("public, max-age=31536000, immutable", $result->allHeaderFields["Cache-Control"]);
     }
 
     #[Test]
     public function omitsImmutableWhenNotFlagged(): void
     {
         $result = $this->transform($this->response(), $this->cacheable(86400, false));
-        $this->assertSame('public, max-age=86400', $result->allHeaderFields['Cache-Control']);
+        $this->assertSame("public, max-age=86400", $result->allHeaderFields["Cache-Control"]);
     }
 
     #[Test]
     public function writesZeroMaxAgeWhenDispositionSaysSo(): void
     {
         $result = $this->transform($this->response(), $this->cacheable(0, false));
-        $this->assertSame('public, max-age=0', $result->allHeaderFields['Cache-Control']);
+        $this->assertSame("public, max-age=0", $result->allHeaderFields["Cache-Control"]);
     }
 
     // --- Sin disposición o no cacheable ---
@@ -58,7 +58,7 @@ final class StaticCacheHeaderTransformerTest extends TestCase
     public function leavesResponseUntouchedWhenDispositionAbsent(): void
     {
         $result = $this->transform($this->response(), null);
-        $this->assertNull($result->allHeaderFields['Cache-Control']);
+        $this->assertNull($result->allHeaderFields["Cache-Control"]);
     }
 
     #[Test]
@@ -66,7 +66,7 @@ final class StaticCacheHeaderTransformerTest extends TestCase
     {
         $disposition = new StaticResourceDisposition(true, false, false, false, false);
         $result = $this->transform($this->response(), $disposition);
-        $this->assertNull($result->allHeaderFields['Cache-Control']);
+        $this->assertNull($result->allHeaderFields["Cache-Control"]);
     }
 
     // --- No sobreescribe Cache-Control existente ---
@@ -75,8 +75,8 @@ final class StaticCacheHeaderTransformerTest extends TestCase
     public function overwritesAnyPreexistingCacheControl(): void
     {
         $response = $this->response();
-        $response->allHeaderFields['Cache-Control'] = 'no-store';
+        $response->allHeaderFields["Cache-Control"] = "no-store";
         $result = $this->transform($response, $this->cacheable(600, false));
-        $this->assertSame('public, max-age=600', $result->allHeaderFields['Cache-Control']);
+        $this->assertSame("public, max-age=600", $result->allHeaderFields["Cache-Control"]);
     }
 }

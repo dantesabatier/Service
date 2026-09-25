@@ -33,15 +33,15 @@ final class JSONWebTokenPayloadTest extends TestCase
     #[Test]
     public function constructorSetsIssuer(): void
     {
-        $p = new JSONWebTokenPayload(issuer: 'my-service');
-        $this->assertSame('my-service', $p->issuer);
+        $p = new JSONWebTokenPayload(issuer: "my-service");
+        $this->assertSame("my-service", $p->issuer);
     }
 
     #[Test]
     public function constructorSetsSubject(): void
     {
-        $p = new JSONWebTokenPayload(subject: 'user-123');
-        $this->assertSame('user-123', $p->subject);
+        $p = new JSONWebTokenPayload(subject: "user-123");
+        $this->assertSame("user-123", $p->subject);
     }
 
     #[Test]
@@ -61,15 +61,15 @@ final class JSONWebTokenPayloadTest extends TestCase
     #[Test]
     public function constructorSetsTechnicalScopes(): void
     {
-        $p = new JSONWebTokenPayload(technicalScopes: ['api:read', 'api:write']);
-        $this->assertSame(['api:read', 'api:write'], $p->technicalScopes);
+        $p = new JSONWebTokenPayload(technicalScopes: ["api:read", "api:write"]);
+        $this->assertSame(["api:read", "api:write"], $p->technicalScopes);
     }
 
     #[Test]
     public function constructorSetsAuthorizationScopes(): void
     {
-        $p = new JSONWebTokenPayload(authorizationScopes: ['admin', 'user']);
-        $this->assertSame(['admin', 'user'], $p->authorizationScopes);
+        $p = new JSONWebTokenPayload(authorizationScopes: ["admin", "user"]);
+        $this->assertSame(["admin", "user"], $p->authorizationScopes);
     }
 
     #[Test]
@@ -84,23 +84,23 @@ final class JSONWebTokenPayloadTest extends TestCase
     public function factoryCreatesFromRawArray(): void
     {
         $p = JSONWebTokenPayload::payload([
-            JWTIssuerKey => 'issuer',
-            JWTSubjectKey => 'sub-1',
+            JWTIssuerKey => "issuer",
+            JWTSubjectKey => "sub-1",
             JWTEnabledKey => true,
             JWTVersionKey => 2,
-            JWTScopesKey => ['s1', 's2'],
+            JWTScopesKey => ["s1", "s2"],
         ]);
-        $this->assertSame('issuer', $p->issuer);
-        $this->assertSame('sub-1', $p->subject);
+        $this->assertSame("issuer", $p->issuer);
+        $this->assertSame("sub-1", $p->subject);
         $this->assertTrue($p->isEnabled);
         $this->assertSame(2, $p->version);
-        $this->assertSame(['s1', 's2'], $p->technicalScopes);
+        $this->assertSame(["s1", "s2"], $p->technicalScopes);
     }
 
     #[Test]
     public function jsonSerializeReturnsRawValue(): void
     {
-        $raw = [JWTIssuerKey => 'iss', JWTSubjectKey => 'sub'];
+        $raw = [JWTIssuerKey => "iss", JWTSubjectKey => "sub"];
         $p = JSONWebTokenPayload::payload($raw);
         $this->assertSame($raw, $p->jsonSerialize());
     }

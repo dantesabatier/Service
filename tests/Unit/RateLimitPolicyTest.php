@@ -101,42 +101,42 @@ final class RateLimitPolicyTest extends TestCase
     #[Test]
     public function policyReadsEnabledFalseFromEnv(): void
     {
-        ProcessInfo::processInfo()->environment[RateLimitEnabledKey] = 'false';
+        ProcessInfo::processInfo()->environment[RateLimitEnabledKey] = "false";
         $this->assertFalse(RateLimitPolicy::policy()->enabled);
     }
 
     #[Test]
     public function policyReadsEnabledTrueFromEnv(): void
     {
-        ProcessInfo::processInfo()->environment[RateLimitEnabledKey] = 'true';
+        ProcessInfo::processInfo()->environment[RateLimitEnabledKey] = "true";
         $this->assertTrue(RateLimitPolicy::policy()->enabled);
     }
 
     #[Test]
     public function policyParsesEnabledFromNumericOne(): void
     {
-        ProcessInfo::processInfo()->environment[RateLimitEnabledKey] = '1';
+        ProcessInfo::processInfo()->environment[RateLimitEnabledKey] = "1";
         $this->assertTrue(RateLimitPolicy::policy()->enabled);
     }
 
     #[Test]
     public function policyReadsMaxRequestsUserFromEnv(): void
     {
-        ProcessInfo::processInfo()->environment[RateLimitMaxRequestsUserKey] = '200';
+        ProcessInfo::processInfo()->environment[RateLimitMaxRequestsUserKey] = "200";
         $this->assertSame(200, RateLimitPolicy::policy()->maxRequestsUser);
     }
 
     #[Test]
     public function policyReadsMaxRequestsIPFromEnv(): void
     {
-        ProcessInfo::processInfo()->environment[RateLimitMaxRequestsIPKey] = '50';
+        ProcessInfo::processInfo()->environment[RateLimitMaxRequestsIPKey] = "50";
         $this->assertSame(50, RateLimitPolicy::policy()->maxRequestsIP);
     }
 
     #[Test]
     public function policyReadsWindowSecondsFromEnv(): void
     {
-        ProcessInfo::processInfo()->environment[RateLimitWindowSecondsKey] = '300';
+        ProcessInfo::processInfo()->environment[RateLimitWindowSecondsKey] = "300";
         $this->assertSame(300, RateLimitPolicy::policy()->windowSeconds);
     }
 }

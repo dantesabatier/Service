@@ -19,8 +19,8 @@ final class AppendHeaderTransformer extends ResponseTransformer
 {
     public function __construct(Response $response, ResponseTransformerContext $context = new ResponseTransformerContext())
     {
-        $existing = (string)($response->allHeaderFields['X-Trace'] ?? '');
-        $response->allHeaderFields['X-Trace'] = $existing === '' ? 'A' : $existing . '-A';
+        $existing = (string)($response->allHeaderFields["X-Trace"] ?? "");
+        $response->allHeaderFields["X-Trace"] = $existing === "" ? "A" : $existing . "-A";
         parent::__construct($response, $context);
     }
 }
@@ -29,8 +29,8 @@ final class AppendBTransformer extends ResponseTransformer
 {
     public function __construct(Response $response, ResponseTransformerContext $context = new ResponseTransformerContext())
     {
-        $existing = (string)($response->allHeaderFields['X-Trace'] ?? '');
-        $response->allHeaderFields['X-Trace'] = $existing === '' ? 'B' : $existing . '-B';
+        $existing = (string)($response->allHeaderFields["X-Trace"] ?? "");
+        $response->allHeaderFields["X-Trace"] = $existing === "" ? "B" : $existing . "-B";
         parent::__construct($response, $context);
     }
 }
@@ -39,7 +39,7 @@ final class SetBodyTransformer extends ResponseTransformer
 {
     public function __construct(Response $response, ResponseTransformerContext $context = new ResponseTransformerContext())
     {
-        $response->body = 'transformed';
+        $response->body = "transformed";
         parent::__construct($response, $context);
     }
 }
@@ -48,7 +48,7 @@ final class ResponsePipelineTest extends TestCase
 {
     private function response(): Response
     {
-        return new Response(new URL('http://localhost/'));
+        return new Response(new URL("http://localhost/"));
     }
 
     #[Test]
@@ -63,29 +63,29 @@ final class ResponsePipelineTest extends TestCase
     public function singleTransformerIsApplied(): void
     {
         $result = new ResponsePipeline(new Set([SetBodyTransformer::class]))->process($this->response());
-        $this->assertSame('transformed', $result->body);
+        $this->assertSame("transformed", $result->body);
     }
 
     #[Test]
     public function transformersExecuteInDeclarationOrder(): void
     {
         $result = new ResponsePipeline(new Set([AppendHeaderTransformer::class, AppendBTransformer::class]))->process($this->response());
-        $this->assertSame('A-B', $result->allHeaderFields['X-Trace']);
+        $this->assertSame("A-B", $result->allHeaderFields["X-Trace"]);
     }
 
     #[Test]
     public function reversedOrderProducesDifferentResult(): void
     {
         $result = new ResponsePipeline(new Set([AppendBTransformer::class, AppendHeaderTransformer::class]))->process($this->response());
-        $this->assertSame('B-A', $result->allHeaderFields['X-Trace']);
+        $this->assertSame("B-A", $result->allHeaderFields["X-Trace"]);
     }
 
     #[Test]
     public function eachTransformerReceivesOutputOfPrevious(): void
     {
         $result = new ResponsePipeline(new Set([SetBodyTransformer::class, AppendHeaderTransformer::class]))->process($this->response());
-        $this->assertSame('transformed', $result->body);
-        $this->assertSame('A', $result->allHeaderFields['X-Trace']);
+        $this->assertSame("transformed", $result->body);
+        $this->assertSame("A", $result->allHeaderFields["X-Trace"]);
     }
 
     #[Test]
@@ -93,6 +93,6 @@ final class ResponsePipelineTest extends TestCase
     {
         $context = new ResponseTransformerContext();
         $result = new ResponsePipeline(new Set([AppendHeaderTransformer::class, AppendBTransformer::class]), $context)->process($this->response());
-        $this->assertSame('A-B', $result->allHeaderFields['X-Trace']);
+        $this->assertSame("A-B", $result->allHeaderFields["X-Trace"]);
     }
 }

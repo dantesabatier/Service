@@ -7,6 +7,8 @@ onward.
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-09-25
+
 ### Fixed
 
 - Basic and Digest credentials that are not valid UTF-8 are rejected with `401 Unauthorized` rather than reaching the user lookup, where a Latin-1 username made the request fail with a `500`.

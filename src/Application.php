@@ -8,6 +8,7 @@ use ErrorException;
 use Exception;
 use Override;
 use Sabatier\CoreData\ManagedObject;
+use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\CoreData\PersistentContainer;
 use Sabatier\CoreData\PersistentStoreDescription;
 use Sabatier\Foundation\ArrayClass;
@@ -26,6 +27,7 @@ use function Sabatier\Foundation\fatal_error;
 use const Sabatier\CoreData\DeletedObjectsKey;
 use const Sabatier\CoreData\InsertedObjectsKey;
 use const Sabatier\CoreData\ManagedObjectContextDidSave;
+use const Sabatier\CoreData\ManagedObjectContextWillSave;
 use const Sabatier\CoreData\PersistentHistoryTrackingKey;
 use const Sabatier\CoreData\PersistentStoreRemoteChange;
 use const Sabatier\CoreData\PersistentStoreRemoteChangeNotificationPostOptionKey;
@@ -230,9 +232,22 @@ class Application extends Responder
         NotificationCenter::default()->addObserverForName(PersistentStoreRemoteChange, $persistentContainer->persistentStoreCoordinator, function (Notification $notification): void {
             $this->handlePersistentStoreRemoteChange($notification);
         });
+        NotificationCenter::default()->addObserverForName(ManagedObjectContextWillSave, null, function (Notification $notification): void {
+            $this->handleAuthorizationEntitiesWillSave($notification);
+        });
         NotificationCenter::default()->addObserverForName(ManagedObjectContextDidSave, null, function (Notification $notification): void {
             $this->handleAuthorizationEntitiesDidSave($notification);
         });
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function handleAuthorizationEntitiesWillSave(Notification $notification): void
+    {
+        if ($notification->object instanceof ManagedObjectContext) {
+            $this->authorizableTokenInvalidator->prepare($notification->object);
+        }
     }
 
     /**
@@ -244,16 +259,10 @@ class Application extends Responder
         $userInfo = $notification->userInfo ?? fatal_error("Missing userInfo in notification: $notification");
         if (new ArrayClass([InsertedObjectsKey, UpdatedObjectsKey, DeletedObjectsKey])->contains(fn(string $key): bool => (bool)$userInfo[$key]?->contains(fn(ManagedObject $object): bool => $object instanceof Authorization || $object instanceof AuthorizableRole))) {
             $this->authorizationService->invalidateAll();
-            $this->invalidateAuthorizableTokens();
         }
-    }
-
-    /**
-     * @throws Exception
-     */
-    private function invalidateAuthorizableTokens(): void
-    {
-        $this->authorizableTokenInvalidator->invalidate($this->persistentContainer->viewContext);
+        if ($notification->object instanceof ManagedObjectContext) {
+            $this->authorizableTokenInvalidator->invalidate($notification->object);
+        }
     }
 
     /**

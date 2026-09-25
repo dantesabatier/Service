@@ -66,31 +66,31 @@ final class CORSPolicyTest extends TestCase
     #[Test]
     public function isEmptyWhenNothingConfigured(): void
     {
-        $this->assertTrue((new CORSPolicy())->isEmpty);
+        $this->assertTrue(new CORSPolicy()->isEmpty);
     }
 
     #[Test]
     public function isNotEmptyWhenOriginsConfigured(): void
     {
-        $this->assertFalse((new CORSPolicy(allowedOrigins: new Set(["https://example.com"])))->isEmpty);
+        $this->assertFalse(new CORSPolicy(allowedOrigins: new Set(["https://example.com"]))->isEmpty);
     }
 
     #[Test]
     public function isNotEmptyWhenMethodsConfigured(): void
     {
-        $this->assertFalse((new CORSPolicy(allowedMethods: new Set(["GET"])))->isEmpty);
+        $this->assertFalse(new CORSPolicy(allowedMethods: new Set(["GET"]))->isEmpty);
     }
 
     #[Test]
     public function isNotEmptyWhenHeadersConfigured(): void
     {
-        $this->assertFalse((new CORSPolicy(allowedHeaders: new Set(["Authorization"])))->isEmpty);
+        $this->assertFalse(new CORSPolicy(allowedHeaders: new Set(["Authorization"]))->isEmpty);
     }
 
     #[Test]
     public function isNotEmptyWhenCredentialsAllowed(): void
     {
-        $this->assertFalse((new CORSPolicy(allowCredentials: true))->isEmpty);
+        $this->assertFalse(new CORSPolicy(allowCredentials: true)->isEmpty);
     }
 
     #[Test]

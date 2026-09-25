@@ -24,21 +24,21 @@ final class ContentTransformersTest extends TestCase
     #[Test]
     public function noCacheTransformerSetsCacheControlNoStore(): void
     {
-        $result = (new NoCacheHeaderTransformer($this->response(), new ResponseTransformerContext()))->response;
+        $result = new NoCacheHeaderTransformer($this->response(), new ResponseTransformerContext())->response;
         $this->assertSame('no-store, no-cache, must-revalidate, max-age=0', $result->allHeaderFields['Cache-Control']);
     }
 
     #[Test]
     public function noCacheTransformerSetsPragma(): void
     {
-        $result = (new NoCacheHeaderTransformer($this->response(), new ResponseTransformerContext()))->response;
+        $result = new NoCacheHeaderTransformer($this->response(), new ResponseTransformerContext())->response;
         $this->assertSame('no-cache', $result->allHeaderFields['Pragma']);
     }
 
     #[Test]
     public function noCacheTransformerSetsExpires(): void
     {
-        $result = (new NoCacheHeaderTransformer($this->response(), new ResponseTransformerContext()))->response;
+        $result = new NoCacheHeaderTransformer($this->response(), new ResponseTransformerContext())->response;
         $this->assertSame('0', $result->allHeaderFields['Expires']);
     }
 
@@ -47,7 +47,7 @@ final class ContentTransformersTest extends TestCase
     {
         $response = $this->response();
         $response->allHeaderFields['Cache-Control'] = 'public, max-age=3600';
-        $result = (new NoCacheHeaderTransformer($response, new ResponseTransformerContext()))->response;
+        $result = new NoCacheHeaderTransformer($response, new ResponseTransformerContext())->response;
         $this->assertSame('no-store, no-cache, must-revalidate, max-age=0', $result->allHeaderFields['Cache-Control']);
     }
 
@@ -56,7 +56,7 @@ final class ContentTransformersTest extends TestCase
     #[Test]
     public function htmlTransformerSetsContentType(): void
     {
-        $result = (new HTMLTransformer($this->response(), new ResponseTransformerContext()))->response;
+        $result = new HTMLTransformer($this->response(), new ResponseTransformerContext())->response;
         $this->assertSame('text/html; charset=utf-8', $result->allHeaderFields['Content-Type']);
     }
 
@@ -65,7 +65,7 @@ final class ContentTransformersTest extends TestCase
     {
         $response = $this->response();
         $response->allHeaderFields['Content-Type'] = 'text/plain';
-        $result = (new HTMLTransformer($response, new ResponseTransformerContext()))->response;
+        $result = new HTMLTransformer($response, new ResponseTransformerContext())->response;
         $this->assertSame('text/html; charset=utf-8', $result->allHeaderFields['Content-Type']);
     }
 
@@ -74,7 +74,7 @@ final class ContentTransformersTest extends TestCase
     {
         $response = $this->response();
         $response->body = '<h1>Hello</h1>';
-        $result = (new HTMLTransformer($response, new ResponseTransformerContext()))->response;
+        $result = new HTMLTransformer($response, new ResponseTransformerContext())->response;
         $this->assertSame('<h1>Hello</h1>', $result->body);
     }
 }

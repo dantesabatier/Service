@@ -17,7 +17,7 @@ final class AccessEvaluatorChainTest extends TestCase
 {
     private function context(): AccessEvaluationContext
     {
-        return (new ReflectionClass(AccessEvaluationContext::class))->newInstanceWithoutConstructor();
+        return new ReflectionClass(AccessEvaluationContext::class)->newInstanceWithoutConstructor();
     }
 
     private function allow(): AccessEvaluator

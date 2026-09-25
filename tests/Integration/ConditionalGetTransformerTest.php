@@ -57,7 +57,7 @@ final class ConditionalGetTransformerTest extends TestCase
 
     private function transform(Response $response, Request $request, ?HTTPCachePolicy $policy = new HTTPCachePolicy()): Response
     {
-        return (new ConditionalGetTransformer($response, new ResponseTransformerContext(request: $request, cachePolicy: $policy)))->response;
+        return new ConditionalGetTransformer($response, new ResponseTransformerContext(request: $request, cachePolicy: $policy))->response;
     }
 
     private function etag(string $body): string
@@ -101,7 +101,7 @@ final class ConditionalGetTransformerTest extends TestCase
     public function noETagWhenNoRequestInContext(): void
     {
         $response = $this->response();
-        $result = (new ConditionalGetTransformer($response, new ResponseTransformerContext(cachePolicy: new HTTPCachePolicy())))->response;
+        $result = new ConditionalGetTransformer($response, new ResponseTransformerContext(cachePolicy: new HTTPCachePolicy()))->response;
         $this->assertNull($result->allHeaderFields['ETag']);
     }
 

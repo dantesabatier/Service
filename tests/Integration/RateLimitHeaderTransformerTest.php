@@ -21,7 +21,7 @@ final class RateLimitHeaderTransformerTest extends TestCase
 
     private function transform(Response $response, ?RateLimitInfo $info): Response
     {
-        return (new RateLimitHeaderTransformer($response, new ResponseTransformerContext(rateLimitInfo: $info)))->response;
+        return new RateLimitHeaderTransformer($response, new ResponseTransformerContext(rateLimitInfo: $info))->response;
     }
 
     // --- Sin info ---

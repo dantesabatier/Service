@@ -83,12 +83,12 @@ final class AuthorizationServiceTest extends TestCase
 
     private function makeResolver(): AuthorizationResolver
     {
-        return (new ReflectionClass(AuthorizationResolver::class))->newInstanceWithoutConstructor();
+        return new ReflectionClass(AuthorizationResolver::class)->newInstanceWithoutConstructor();
     }
 
     private function makeContext(): ManagedObjectContext
     {
-        return (new ReflectionClass(ManagedObjectContext::class))->newInstanceWithoutConstructor();
+        return new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor();
     }
 
     /** @param string[] $scopes */

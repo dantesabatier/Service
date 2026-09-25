@@ -27,11 +27,11 @@ final class AccessConditionResolverTest extends TestCase
     private function makeResource(string $day): DateConditionFixture
     {
         /** @var DateConditionFixture $resource */
-        $resource = (new ReflectionClass(DateConditionFixture::class))->newInstanceWithoutConstructor();
-        $entity = (new ReflectionClass(EntityDescription::class))->newInstanceWithoutConstructor();
-        $context = (new ReflectionClass(ManagedObjectContext::class))->newInstanceWithoutConstructor();
-        (new ReflectionClass(ManagedObject::class))->getProperty('entity')->setValue($resource, $entity);
-        (new ReflectionClass(ManagedObject::class))->getProperty('managedObjectContext')->setValue($resource, $context);
+        $resource = new ReflectionClass(DateConditionFixture::class)->newInstanceWithoutConstructor();
+        $entity = new ReflectionClass(EntityDescription::class)->newInstanceWithoutConstructor();
+        $context = new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor();
+        new ReflectionClass(ManagedObject::class)->getProperty('entity')->setValue($resource, $entity);
+        new ReflectionClass(ManagedObject::class)->getProperty('managedObjectContext')->setValue($resource, $context);
         $resource->day = $day;
         return $resource;
     }
@@ -39,7 +39,7 @@ final class AccessConditionResolverTest extends TestCase
     #[Test]
     public function predicateParsesFormatWithArguments(): void
     {
-        $predicate = (new AccessConditionResolver())->predicate('%K == %@', ['day', 'x']);
+        $predicate = new AccessConditionResolver()->predicate('%K == %@', ['day', 'x']);
         $this->assertSame("day = 'x'", $predicate->predicateFormat);
     }
 

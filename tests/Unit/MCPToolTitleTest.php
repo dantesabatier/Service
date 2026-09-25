@@ -39,9 +39,9 @@ final class MCPToolTitleTest extends TestCase
     #[Test]
     public function everyBuiltInToolHasATitleInEveryVocabulary(): void
     {
-        $classes = (new ReflectionClass(ToolResolver::class))->getReflectionConstant("builtInToolClasses")?->getValue();
+        $classes = new ReflectionClass(ToolResolver::class)->getReflectionConstant("builtInToolClasses")?->getValue();
         $this->assertIsArray($classes);
-        $names = new ArrayClass($classes)->map(fn(string $class): string => (new ReflectionClass($class))->newInstanceWithoutConstructor()->name);
+        $names = new ArrayClass($classes)->map(fn(string $class): string => new ReflectionClass($class)->newInstanceWithoutConstructor()->name);
         foreach (["en", "es"] as $language) {
             $path = dirname(__DIR__, 2) . "/Resources/$language/mcp_vocabulary.json";
             $tools = json_decode((string)file_get_contents($path), true, flags: JSON_THROW_ON_ERROR)["tools"];
@@ -55,7 +55,7 @@ final class MCPToolTitleTest extends TestCase
     public function customToolWithoutVocabularyUsesItsNameAsTitle(): void
     {
         /** @var AbstractTool $tool */
-        $tool = (new ReflectionClass(UntitledMCPToolFixture::class))->newInstanceWithoutConstructor();
+        $tool = new ReflectionClass(UntitledMCPToolFixture::class)->newInstanceWithoutConstructor();
         $descriptor = new ToolRegistry(new ArrayClass([$tool]))->list->first;
         $this->assertSame("untitled_fixture", $descriptor->jsonSerialize()["title"]);
     }

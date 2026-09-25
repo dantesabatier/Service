@@ -21,7 +21,7 @@ final class StaticCacheHeaderTransformerTest extends TestCase
 
     private function transform(Response $response, ?StaticResourceDisposition $disposition): Response
     {
-        return (new StaticCacheHeaderTransformer($response, new ResponseTransformerContext(staticResourceDisposition: $disposition)))->response;
+        return new StaticCacheHeaderTransformer($response, new ResponseTransformerContext(staticResourceDisposition: $disposition))->response;
     }
 
     private function cacheable(int $maxAge, bool $immutable): StaticResourceDisposition

@@ -20,8 +20,8 @@ final class JSONRPCRequestParserTest extends TestCase
 {
     private function makeRequest(array $data): Request
     {
-        $request = (new ReflectionClass(Request::class))->newInstanceWithoutConstructor();
-        (new ReflectionProperty(Request::class, 'parameters'))->setValue($request, new Dictionary($data));
+        $request = new ReflectionClass(Request::class)->newInstanceWithoutConstructor();
+        new ReflectionProperty(Request::class, 'parameters')->setValue($request, new Dictionary($data));
         return $request;
     }
 

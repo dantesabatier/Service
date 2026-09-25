@@ -17,7 +17,7 @@ final class JSONRPCRequestPrunerTest extends TestCase
     public function prunesParamsWhenValueIsAString(): void
     {
         $params = new Dictionary(['method' => 'tools/list', 'params' => 'not-a-dict']);
-        (new JSONRPCRequestPruner())->prune($params);
+        new JSONRPCRequestPruner()->prune($params);
         $this->assertNull($params['params']);
         $this->assertSame('tools/list', $params['method']);
     }
@@ -26,7 +26,7 @@ final class JSONRPCRequestPrunerTest extends TestCase
     public function prunesArgumentsWhenValueIsAnInteger(): void
     {
         $params = new Dictionary(['method' => 'ping', 'arguments' => 42]);
-        (new JSONRPCRequestPruner())->prune($params);
+        new JSONRPCRequestPruner()->prune($params);
         $this->assertNull($params['arguments']);
     }
 
@@ -34,7 +34,7 @@ final class JSONRPCRequestPrunerTest extends TestCase
     public function prunesArgumentsWhenValueIsAnArray(): void
     {
         $params = new Dictionary(['arguments' => ['a', 'b']]);
-        (new JSONRPCRequestPruner())->prune($params);
+        new JSONRPCRequestPruner()->prune($params);
         $this->assertNull($params['arguments']);
     }
 
@@ -45,7 +45,7 @@ final class JSONRPCRequestPrunerTest extends TestCase
     {
         $inner = new Dictionary(['name' => 'echo']);
         $params = new Dictionary(['params' => $inner]);
-        (new JSONRPCRequestPruner())->prune($params);
+        new JSONRPCRequestPruner()->prune($params);
         $this->assertSame($inner, $params['params']);
     }
 
@@ -54,7 +54,7 @@ final class JSONRPCRequestPrunerTest extends TestCase
     {
         $inner = new Dictionary(['x' => 1]);
         $params = new Dictionary(['arguments' => $inner]);
-        (new JSONRPCRequestPruner())->prune($params);
+        new JSONRPCRequestPruner()->prune($params);
         $this->assertSame($inner, $params['arguments']);
     }
 
@@ -64,7 +64,7 @@ final class JSONRPCRequestPrunerTest extends TestCase
     public function doesNotThrowWhenKeyIsAbsent(): void
     {
         $params = new Dictionary(['method' => 'ping', 'id' => 1]);
-        (new JSONRPCRequestPruner())->prune($params);
+        new JSONRPCRequestPruner()->prune($params);
         $this->assertSame('ping', $params['method']);
     }
 
@@ -74,7 +74,7 @@ final class JSONRPCRequestPrunerTest extends TestCase
     public function respectsCustomKeyList(): void
     {
         $params = new Dictionary(['data' => 'not-a-dict', 'params' => 'also-not']);
-        (new JSONRPCRequestPruner(['data']))->prune($params);
+        new JSONRPCRequestPruner(['data'])->prune($params);
         $this->assertNull($params['data']);
         $this->assertSame('also-not', $params['params']); // not in custom list, untouched
     }

@@ -21,7 +21,7 @@ final class CacheHeaderTransformerTest extends TestCase
 
     private function transform(Response $response, ?HTTPCachePolicy $policy): Response
     {
-        return (new CacheHeaderTransformer($response, new ResponseTransformerContext(cachePolicy: $policy)))->response;
+        return new CacheHeaderTransformer($response, new ResponseTransformerContext(cachePolicy: $policy))->response;
     }
 
     // --- Sin política ---

@@ -57,7 +57,7 @@ final class CORSResponseTransformerTest extends TestCase
 
     private function transform(Response $response, CORSPolicy $policy, Request $request): Response
     {
-        return (new CORSResponseTransformer($response, new ResponseTransformerContext(request: $request, corsPolicy: $policy)))->response;
+        return new CORSResponseTransformer($response, new ResponseTransformerContext(request: $request, corsPolicy: $policy))->response;
     }
 
     // --- Sin política / sin Origin ---

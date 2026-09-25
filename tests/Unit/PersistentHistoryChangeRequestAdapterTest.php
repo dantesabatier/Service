@@ -59,9 +59,9 @@ final class PersistentHistoryChangeRequestAdapterTest extends TestCase
     /** @param array<string, mixed> $parameters */
     private function request(string $method, array $parameters): Request
     {
-        $request = (new ReflectionClass(Request::class))->newInstanceWithoutConstructor();
+        $request = new ReflectionClass(Request::class)->newInstanceWithoutConstructor();
         $request->httpMethod = $method;
-        (new ReflectionProperty(Request::class, "parameters"))->setValue($request, new Dictionary($parameters));
+        new ReflectionProperty(Request::class, "parameters")->setValue($request, new Dictionary($parameters));
         return $request;
     }
 }

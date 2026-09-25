@@ -148,7 +148,7 @@ final class InMemoryAuthorizationCacheTest extends TestCase
     {
         $user = $this->makeUser('dave');
         $authorizations = $this->makeAuthorizations('reports');
-        (new InMemoryAuthorizationCache())->setAuthorizableAuthorizations($user, $authorizations);
-        $this->assertSame($authorizations, (new InMemoryAuthorizationCache())->getAuthorizableAuthorizations($user));
+        new InMemoryAuthorizationCache()->setAuthorizableAuthorizations($user, $authorizations);
+        $this->assertSame($authorizations, new InMemoryAuthorizationCache()->getAuthorizableAuthorizations($user));
     }
 }

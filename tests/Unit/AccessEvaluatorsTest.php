@@ -50,7 +50,7 @@ final class AccessEvaluatorsTest extends TestCase
             public static function isSupported(AuthenticationScheme $scheme): bool { return false; }
         };
         if ($technicalScopes !== null) {
-            (new ReflectionClass(Authentication::class))
+            new ReflectionClass(Authentication::class)
                 ->getProperty('technicalScopes')
                 ->setValue($auth, $technicalScopes);
         }
@@ -63,7 +63,7 @@ final class AccessEvaluatorsTest extends TestCase
     public function authenticationEvaluatorAllowsValidAuth(): void
     {
         $this->assertTrue(
-            (new AuthenticationEvaluator())->evaluate($this->contextWithAuth($this->makeAuth(true)))
+            new AuthenticationEvaluator()->evaluate($this->contextWithAuth($this->makeAuth(true)))
         );
     }
 
@@ -71,7 +71,7 @@ final class AccessEvaluatorsTest extends TestCase
     public function authenticationEvaluatorDeniesInvalidAuth(): void
     {
         $this->assertFalse(
-            (new AuthenticationEvaluator())->evaluate($this->contextWithAuth($this->makeAuth(false)))
+            new AuthenticationEvaluator()->evaluate($this->contextWithAuth($this->makeAuth(false)))
         );
     }
 
@@ -82,7 +82,7 @@ final class AccessEvaluatorsTest extends TestCase
     {
         $auth = $this->makeAuth(true, new ArrayClass());
         $this->assertTrue(
-            (new JSONWebTokenScopeEvaluator('api:read'))->evaluate($this->contextWithAuth($auth))
+            new JSONWebTokenScopeEvaluator('api:read')->evaluate($this->contextWithAuth($auth))
         );
     }
 
@@ -91,7 +91,7 @@ final class AccessEvaluatorsTest extends TestCase
     {
         $auth = $this->makeAuth(true, new ArrayClass(['api:read']));
         $this->assertTrue(
-            (new JSONWebTokenScopeEvaluator('api:read'))->evaluate($this->contextWithAuth($auth))
+            new JSONWebTokenScopeEvaluator('api:read')->evaluate($this->contextWithAuth($auth))
         );
     }
 
@@ -100,7 +100,7 @@ final class AccessEvaluatorsTest extends TestCase
     {
         $auth = $this->makeAuth(true, new ArrayClass(['api:write']));
         $this->assertFalse(
-            (new JSONWebTokenScopeEvaluator('api:read'))->evaluate($this->contextWithAuth($auth))
+            new JSONWebTokenScopeEvaluator('api:read')->evaluate($this->contextWithAuth($auth))
         );
     }
 
@@ -110,7 +110,7 @@ final class AccessEvaluatorsTest extends TestCase
     public function accessTimeEvaluatorAllowsNonBearerAuthentication(): void
     {
         $this->assertTrue(
-            (new JSONWebTokenAccessTimeEvaluator())->evaluate($this->contextWithAuth($this->makeAuth(true)))
+            new JSONWebTokenAccessTimeEvaluator()->evaluate($this->contextWithAuth($this->makeAuth(true)))
         );
     }
 
@@ -119,7 +119,7 @@ final class AccessEvaluatorsTest extends TestCase
     {
         // credential = null → authenticatedUser = null → false
         $this->assertFalse(
-            (new JSONWebTokenEnabledEvaluator())->evaluate($this->contextWithAuth($this->makeAuth(true)))
+            new JSONWebTokenEnabledEvaluator()->evaluate($this->contextWithAuth($this->makeAuth(true)))
         );
     }
 
@@ -127,7 +127,7 @@ final class AccessEvaluatorsTest extends TestCase
     public function versionEvaluatorAllowsNonBearerAuthentication(): void
     {
         $this->assertTrue(
-            (new JSONWebTokenVersionEvaluator())->evaluate($this->contextWithAuth($this->makeAuth(true)))
+            new JSONWebTokenVersionEvaluator()->evaluate($this->contextWithAuth($this->makeAuth(true)))
         );
     }
 

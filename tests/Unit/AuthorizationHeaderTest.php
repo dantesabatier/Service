@@ -100,7 +100,7 @@ final class AuthorizationHeaderTest extends TestCase
     public function rawValueIsPreserved(): void
     {
         $raw = 'Bearer abc123';
-        $this->assertSame($raw, (new AuthorizationHeader($raw))->rawValue);
+        $this->assertSame($raw, new AuthorizationHeader($raw)->rawValue);
     }
 
     // --- Value with internal spaces ---

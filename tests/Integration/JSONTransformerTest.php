@@ -24,7 +24,7 @@ final class JSONTransformerTest extends TestCase
 
     private function transform(Response $response): Response
     {
-        return (new JSONTransformer($response, new ResponseTransformerContext()))->response;
+        return new JSONTransformer($response, new ResponseTransformerContext())->response;
     }
 
     #[Test]

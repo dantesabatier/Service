@@ -25,9 +25,9 @@ final class ToolVocabularyTest extends TestCase
      */
     private function make(array $localized, array $base): ToolVocabulary
     {
-        $vocabulary = (new ReflectionClass(ToolVocabulary::class))->newInstanceWithoutConstructor();
-        (new ReflectionProperty(ToolVocabulary::class, "tools"))->setValue($vocabulary, $localized);
-        (new ReflectionProperty(ToolVocabulary::class, "baseTools"))->setValue($vocabulary, $base);
+        $vocabulary = new ReflectionClass(ToolVocabulary::class)->newInstanceWithoutConstructor();
+        new ReflectionProperty(ToolVocabulary::class, "tools")->setValue($vocabulary, $localized);
+        new ReflectionProperty(ToolVocabulary::class, "baseTools")->setValue($vocabulary, $base);
         return $vocabulary;
     }
 

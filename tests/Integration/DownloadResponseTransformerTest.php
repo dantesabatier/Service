@@ -27,7 +27,7 @@ final class DownloadResponseTransformerTest extends TestCase
 
     private function transform(Response $response): Response
     {
-        return (new DownloadResponseTransformer($response, new ResponseTransformerContext()))->response;
+        return new DownloadResponseTransformer($response, new ResponseTransformerContext())->response;
     }
 
     #[Test]

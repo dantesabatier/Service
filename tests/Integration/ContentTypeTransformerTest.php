@@ -20,7 +20,7 @@ final class ContentTypeTransformerTest extends TestCase
 
     private function transform(Response $response): Response
     {
-        return (new ContentTypeTransformer($response, new ResponseTransformerContext()))->response;
+        return new ContentTypeTransformer($response, new ResponseTransformerContext())->response;
     }
 
     // --- Detección por extensión ---

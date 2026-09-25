@@ -63,13 +63,13 @@ final class ResourceRuleTest extends TestCase
     #[Test]
     public function requiresOwnerTrueForOwnScope(): void
     {
-        $this->assertTrue((new ResourceRule(new Set(), AuthorizationScope::own))->requiresOwner);
+        $this->assertTrue(new ResourceRule(new Set(), AuthorizationScope::own)->requiresOwner);
     }
 
     #[Test]
     public function requiresOwnerFalseForAllScope(): void
     {
-        $this->assertFalse((new ResourceRule(new Set(), AuthorizationScope::all))->requiresOwner);
+        $this->assertFalse(new ResourceRule(new Set(), AuthorizationScope::all)->requiresOwner);
     }
 
     // --- resolve ---

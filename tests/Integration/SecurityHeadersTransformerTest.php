@@ -21,7 +21,7 @@ final class SecurityHeadersTransformerTest extends TestCase
 
     private function transform(Response $response, ?SecurityHeadersPolicy $policy): Response
     {
-        return (new SecurityHeadersTransformer($response, new ResponseTransformerContext(securityHeadersPolicy: $policy)))->response;
+        return new SecurityHeadersTransformer($response, new ResponseTransformerContext(securityHeadersPolicy: $policy))->response;
     }
 
     // --- Sin política ---

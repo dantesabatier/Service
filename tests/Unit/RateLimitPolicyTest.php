@@ -50,28 +50,28 @@ final class RateLimitPolicyTest extends TestCase
     #[Test]
     public function enabledDefaultsToTrue(): void
     {
-        $this->assertTrue((new RateLimitPolicy())->enabled);
+        $this->assertTrue(new RateLimitPolicy()->enabled);
     }
 
     #[Test]
     public function maxRequestsUserDefaultIs120(): void
     {
-        $this->assertSame(RateLimitMaxRequestsUserDefault, (new RateLimitPolicy())->maxRequestsUser);
-        $this->assertSame(120, (new RateLimitPolicy())->maxRequestsUser);
+        $this->assertSame(RateLimitMaxRequestsUserDefault, new RateLimitPolicy()->maxRequestsUser);
+        $this->assertSame(120, new RateLimitPolicy()->maxRequestsUser);
     }
 
     #[Test]
     public function maxRequestsIPDefaultIs30(): void
     {
-        $this->assertSame(RateLimitMaxRequestsIPDefault, (new RateLimitPolicy())->maxRequestsIP);
-        $this->assertSame(30, (new RateLimitPolicy())->maxRequestsIP);
+        $this->assertSame(RateLimitMaxRequestsIPDefault, new RateLimitPolicy()->maxRequestsIP);
+        $this->assertSame(30, new RateLimitPolicy()->maxRequestsIP);
     }
 
     #[Test]
     public function windowSecondsDefaultIs60(): void
     {
-        $this->assertSame(RateLimitWindowSecondsDefault, (new RateLimitPolicy())->windowSeconds);
-        $this->assertSame(60, (new RateLimitPolicy())->windowSeconds);
+        $this->assertSame(RateLimitWindowSecondsDefault, new RateLimitPolicy()->windowSeconds);
+        $this->assertSame(60, new RateLimitPolicy()->windowSeconds);
     }
 
     #[Test]

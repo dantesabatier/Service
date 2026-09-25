@@ -26,7 +26,7 @@ final class ResponseHeaderSanitizerTransformerTest extends TestCase
 
     private function transform(Response $response): Response
     {
-        return (new ResponseHeaderSanitizerTransformer($response, new ResponseTransformerContext()))->response;
+        return new ResponseHeaderSanitizerTransformer($response, new ResponseTransformerContext())->response;
     }
 
     // --- Status codes que prohíben body ---

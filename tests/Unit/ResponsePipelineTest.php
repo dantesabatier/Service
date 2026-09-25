@@ -55,35 +55,35 @@ final class ResponsePipelineTest extends TestCase
     public function emptyPipelineReturnsResponseUnchanged(): void
     {
         $response = $this->response();
-        $result = (new ResponsePipeline(new Set([])))->process($response);
+        $result = new ResponsePipeline(new Set([]))->process($response);
         $this->assertSame($response, $result);
     }
 
     #[Test]
     public function singleTransformerIsApplied(): void
     {
-        $result = (new ResponsePipeline(new Set([SetBodyTransformer::class])))->process($this->response());
+        $result = new ResponsePipeline(new Set([SetBodyTransformer::class]))->process($this->response());
         $this->assertSame('transformed', $result->body);
     }
 
     #[Test]
     public function transformersExecuteInDeclarationOrder(): void
     {
-        $result = (new ResponsePipeline(new Set([AppendHeaderTransformer::class, AppendBTransformer::class])))->process($this->response());
+        $result = new ResponsePipeline(new Set([AppendHeaderTransformer::class, AppendBTransformer::class]))->process($this->response());
         $this->assertSame('A-B', $result->allHeaderFields['X-Trace']);
     }
 
     #[Test]
     public function reversedOrderProducesDifferentResult(): void
     {
-        $result = (new ResponsePipeline(new Set([AppendBTransformer::class, AppendHeaderTransformer::class])))->process($this->response());
+        $result = new ResponsePipeline(new Set([AppendBTransformer::class, AppendHeaderTransformer::class]))->process($this->response());
         $this->assertSame('B-A', $result->allHeaderFields['X-Trace']);
     }
 
     #[Test]
     public function eachTransformerReceivesOutputOfPrevious(): void
     {
-        $result = (new ResponsePipeline(new Set([SetBodyTransformer::class, AppendHeaderTransformer::class])))->process($this->response());
+        $result = new ResponsePipeline(new Set([SetBodyTransformer::class, AppendHeaderTransformer::class]))->process($this->response());
         $this->assertSame('transformed', $result->body);
         $this->assertSame('A', $result->allHeaderFields['X-Trace']);
     }
@@ -92,7 +92,7 @@ final class ResponsePipelineTest extends TestCase
     public function contextIsPassedToEveryTransformer(): void
     {
         $context = new ResponseTransformerContext();
-        $result = (new ResponsePipeline(new Set([AppendHeaderTransformer::class, AppendBTransformer::class]), $context))->process($this->response());
+        $result = new ResponsePipeline(new Set([AppendHeaderTransformer::class, AppendBTransformer::class]), $context)->process($this->response());
         $this->assertSame('A-B', $result->allHeaderFields['X-Trace']);
     }
 }

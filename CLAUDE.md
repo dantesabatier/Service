@@ -4,21 +4,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Code Quality Commands
 
-The dev tools are installed **globally** (Composer global, on `PATH`) — `vendor/bin` is empty. Invoke them by bare name, not via `vendor/bin/`:
+The dev tools are declared in `require-dev`. Always run the project's own `vendor/bin` binaries, never the global Composer ones, which do not load this project's autoload:
 
 ```bash
 # Tests
-phpunit                       # full suite (config: phpunit.xml)
+php vendor/bin/phpunit                  # full suite (config: phpunit.xml)
 
 # Static analysis
-psalm --show-info=false
+php vendor/bin/psalm --show-info=false
 
 # Automated refactoring
-rector --dry-run              # check
-rector                        # apply
+php vendor/bin/rector --dry-run         # check
+php vendor/bin/rector                   # apply
 ```
 
-The framework has a PHPUnit suite under `tests/` (`tests/Unit`, `tests/Integration`). Both directories pass in full (`phpunit tests/Unit`, `phpunit tests/Integration`).
+The framework has a PHPUnit suite under `tests/` (`tests/Unit`, `tests/Integration`). Both directories pass in full (`php vendor/bin/phpunit tests/Unit`, `php vendor/bin/phpunit tests/Integration`).
 
 ## Architecture
 

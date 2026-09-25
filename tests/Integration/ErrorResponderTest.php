@@ -67,11 +67,10 @@ final class ErrorResponderTest extends TestCase
         $this->assertSame("Internal server error", $this->error($response)["localizedDescription"]);
     }
 
-    /** @throws JsonException */
     #[Test]
     public function anUnrecognisedThrowableDoesNotLeakItsMessageOutsideDevelopment(): void
     {
-        $this->assertSame("", $this->error($this->respondTo(new RuntimeException("the disk caught fire")))["localizedFailureReason"]);
+        $this->assertStringNotContainsString("the disk caught fire", (string)$this->respondTo(new RuntimeException("the disk caught fire"))->body);
     }
 
     #[Test]

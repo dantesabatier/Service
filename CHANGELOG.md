@@ -7,6 +7,8 @@ onward.
 
 ## [Unreleased]
 
+## [1.3.2] - 2026-09-25
+
 ### Fixed
 
 - Updating a user no longer invalidates every user's tokens. A `PATCH` whose body carries the user's roles rewrote each role's `name` with its own value, and any save touching a role or an authorization incremented every user's `refreshTokenVersion`. `AuthorizableTokenInvalidator` now compares the pending changes against the store and increments it only for the users whose permissions actually change: a user who gains or loses a role (from either side of the relationship), the members of a role whose name or authorizations change or that is inserted or deleted, and the members of the roles of an authorization whose name, type, scope or roles change or that is inserted or deleted.

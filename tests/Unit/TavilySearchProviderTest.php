@@ -45,7 +45,7 @@ final class TavilySearchProviderTest extends TestCase
     public function missingResultsPayloadFunnelsAsFailure(): void
     {
         $provider = new TavilySearchProvider();
-        $this->expectExceptionMessage("no results payload");
+        $this->expectExceptionMessageIsOrContains("no results payload");
         $this->invokeParse($provider, new Dictionary(["detail" => "API key invalid"]));
     }
 

@@ -60,9 +60,9 @@ final class MCPTransportGuardTest extends TestCase
         InMemoryMCPSessionStore::reset();
     }
 
-    private function guard(string $subject = self::subject): MCPTransportGuard
+    private function guard(): MCPTransportGuard
     {
-        return new MCPTransportGuard($subject);
+        return new MCPTransportGuard(self::subject);
     }
 
     private function storedSessionIdentifier(string $subject = self::subject): string

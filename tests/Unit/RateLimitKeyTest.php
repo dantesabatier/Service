@@ -27,6 +27,7 @@ final class RateLimitKeyTest extends TestCase
      * The keys and limits one request is charged against, mirrored from `Application::enforceRateLimitIfNeeded()`.
      *
      * @return Dictionary<int>
+     * @noinspection PhpSameParameterValueInspection
      */
     private function limits(string $address, ?string $username, int $maximumForIP, int $maximumForUser): Dictionary
     {

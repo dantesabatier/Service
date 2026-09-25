@@ -102,7 +102,13 @@ final class FieldSecurityFilterTest extends TestCase
         };
     }
 
-    /** @throws ReflectionException */
+    /**
+     * @template T of ManagedObject
+     * @param class-string<T> $fixtureClass
+     * @return T
+     * @throws ReflectionException
+     * @noinspection PhpIncompatibleReturnTypeInspection
+     */
     private function makeResource(string $fixtureClass): ManagedObject
     {
         return new ReflectionClass($fixtureClass)->newInstanceWithoutConstructor();

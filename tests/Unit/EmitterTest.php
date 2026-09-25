@@ -134,7 +134,10 @@ final class EmitterTest extends TestCase
         return $this->captureWith($emitter, $content, false);
     }
 
-    /** @throws ReflectionException */
+    /**
+     * @throws ReflectionException
+     * @noinspection PhpSameParameterValueInspection
+     */
     private function captureCompressed(Emitter $emitter, mixed $content): string
     {
         return $this->captureWith($emitter, $content, true);

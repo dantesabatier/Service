@@ -104,7 +104,7 @@ final class LLMClientParseTest extends TestCase
     public function standardClientRejectsMalformedJSONToolArguments(): void
     {
         $this->expectException(LLMProviderException::class);
-        $this->expectExceptionMessage("malformed JSON tool arguments");
+        $this->expectExceptionMessageIsOrContains("malformed JSON tool arguments");
 
         $this->parse(new StandardLLMClient(), "{\"choices\":[{\"message\":{\"tool_calls\":[{\"id\":\"call_1\",\"function\":{\"name\":\"probe_tool\",\"arguments\":\"{\"}}]}}]}");
     }
@@ -114,7 +114,7 @@ final class LLMClientParseTest extends TestCase
     public function standardClientRejectsToolArgumentsThatDecodeAsAList(): void
     {
         $this->expectException(LLMProviderException::class);
-        $this->expectExceptionMessage("tool arguments that are not an object");
+        $this->expectExceptionMessageIsOrContains("tool arguments that are not an object");
 
         $this->parse(new StandardLLMClient(), "{\"choices\":[{\"message\":{\"tool_calls\":[{\"id\":\"call_1\",\"function\":{\"name\":\"probe_tool\",\"arguments\":\"[]\"}}]}}]}");
     }
@@ -124,7 +124,7 @@ final class LLMClientParseTest extends TestCase
     public function standardClientRejectsAToolCallWithoutAnIdentifier(): void
     {
         $this->expectException(LLMProviderException::class);
-        $this->expectExceptionMessage("without a non-empty id");
+        $this->expectExceptionMessageIsOrContains("without a non-empty id");
 
         $this->parse(new StandardLLMClient(), "{\"choices\":[{\"message\":{\"tool_calls\":[{\"id\":\"\",\"function\":{\"name\":\"probe_tool\",\"arguments\":\"{}\"}}]}}]}");
     }
@@ -156,7 +156,7 @@ final class LLMClientParseTest extends TestCase
     public function anthropicClientRejectsToolInputThatIsAList(): void
     {
         $this->expectException(LLMProviderException::class);
-        $this->expectExceptionMessage("tool arguments that are not an object");
+        $this->expectExceptionMessageIsOrContains("tool arguments that are not an object");
 
         $this->parse(new AnthropicClient(), "{\"content\":[{\"type\":\"tool_use\",\"id\":\"tu_1\",\"name\":\"probe_tool\",\"input\":[]}]}");
     }
@@ -166,7 +166,7 @@ final class LLMClientParseTest extends TestCase
     public function anthropicClientRejectsAToolCallWithoutAName(): void
     {
         $this->expectException(LLMProviderException::class);
-        $this->expectExceptionMessage("without a non-empty name");
+        $this->expectExceptionMessageIsOrContains("without a non-empty name");
 
         $this->parse(new AnthropicClient(), "{\"content\":[{\"type\":\"tool_use\",\"id\":\"tu_1\",\"input\":{}}]}");
     }
@@ -220,7 +220,7 @@ final class LLMClientParseTest extends TestCase
     public function ollamaClientRejectsToolArgumentsThatAreAList(): void
     {
         $this->expectException(LLMProviderException::class);
-        $this->expectExceptionMessage("tool arguments that are not an object");
+        $this->expectExceptionMessageIsOrContains("tool arguments that are not an object");
 
         $this->parse(new OllamaClient(), "{\"message\":{\"tool_calls\":[{\"function\":{\"name\":\"probe_tool\",\"arguments\":[]}}]}}");
     }
@@ -230,7 +230,7 @@ final class LLMClientParseTest extends TestCase
     public function ollamaClientRejectsAToolCallWithoutAName(): void
     {
         $this->expectException(LLMProviderException::class);
-        $this->expectExceptionMessage("without a non-empty name");
+        $this->expectExceptionMessageIsOrContains("without a non-empty name");
 
         $this->parse(new OllamaClient(), "{\"message\":{\"tool_calls\":[{\"function\":{\"arguments\":{}}}]}}");
     }

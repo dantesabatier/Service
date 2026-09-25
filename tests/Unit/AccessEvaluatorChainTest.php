@@ -106,8 +106,8 @@ final class AccessEvaluatorChainTest extends TestCase
     public function firstDenialShortCircuitsChain(): void
     {
         $state = (object)["called" => false];
-        $sentinel = new class($state) implements AccessEvaluator {
-            public function __construct(private readonly object $state) {}
+        $sentinel = new readonly class($state) implements AccessEvaluator {
+            public function __construct(private object $state) {}
             #[Override]
             public function evaluate(AccessEvaluationContext $context): bool {
                 $this->state->called = true;

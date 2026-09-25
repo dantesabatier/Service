@@ -14,9 +14,9 @@ use Sabatier\Service\ResponseTransformerContext;
 
 final class ContentTransformersTest extends TestCase
 {
-    private function response(string $urlPath = "/"): Response
+    private function response(): Response
     {
-        return new Response(new URL("http://localhost$urlPath"));
+        return new Response(new URL("http://localhost/"));
     }
 
     // --- NoCacheHeaderTransformer ---

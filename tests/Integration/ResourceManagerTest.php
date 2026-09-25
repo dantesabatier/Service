@@ -78,6 +78,7 @@ final class ResourceManagerTest extends TestCase
     #[Test]
     public function itAnswersOnlyForADispositionThatClaimsTheRequest(): void
     {
+        /** @noinspection PhpRedundantOptionalArgumentInspection */
         $this->assertTrue($this->manager("/style.css", $this->disposition(shouldHandle: true))->isFirstResponder);
         $this->assertFalse($this->manager("/style.css", $this->disposition(shouldHandle: false))->isFirstResponder);
     }
@@ -85,6 +86,7 @@ final class ResourceManagerTest extends TestCase
     #[Test]
     public function theDispositionDecidesWhetherProtectedContentIsAvailable(): void
     {
+        /** @noinspection PhpRedundantOptionalArgumentInspection */
         $this->assertTrue($this->manager("/style.css", $this->disposition(isProtectedContentAvailable: true))->isProtectedContentAvailable);
         $this->assertFalse($this->manager("/style.css", $this->disposition(isProtectedContentAvailable: false))->isProtectedContentAvailable);
     }
@@ -101,6 +103,7 @@ final class ResourceManagerTest extends TestCase
     #[Test]
     public function anUncacheableResourceIsServedWithTheNoCacheHeaders(): void
     {
+        /** @noinspection PhpRedundantOptionalArgumentInspection */
         $transformers = $this->transformers($this->manager("/style.css", $this->disposition(cacheable: false)));
         $this->assertTrue($transformers->containsElement(NoCacheHeaderTransformer::class));
         $this->assertFalse($transformers->containsElement(StaticCacheHeaderTransformer::class));
@@ -131,6 +134,7 @@ final class ResourceManagerTest extends TestCase
     public function anAbsentFileIsNotFoundWhenTheDispositionForbidsAnEmptyBody(): void
     {
         $this->expectException(NotFoundException::class);
+        /** @noinspection PhpRedundantOptionalArgumentInspection */
         $this->data($this->manager("/" . new UUID()->uuidString . ".css", $this->disposition(allowEmptyResponse: false)));
     }
 

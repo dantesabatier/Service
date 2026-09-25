@@ -82,6 +82,7 @@ final class CORSPolicyFromEnvTest extends TestCase
     #[Test]
     public function emptyOriginsProducesEmptySet(): void
     {
+        /** @noinspection PhpRedundantOptionalArgumentInspection */
         $this->setEnv(origins: "");
         $policy = CORSPolicy::policy();
         $this->assertFalse($policy->allowsOrigin("https://example.com"));
@@ -117,6 +118,7 @@ final class CORSPolicyFromEnvTest extends TestCase
     #[Test]
     public function parsesCredentialsFalseFromString(): void
     {
+        /** @noinspection PhpRedundantOptionalArgumentInspection */
         $this->setEnv(credentials: "false");
         $this->assertFalse(CORSPolicy::policy()->allowCredentials);
     }
@@ -140,6 +142,7 @@ final class CORSPolicyFromEnvTest extends TestCase
     #[Test]
     public function emptyExposedHeadersProducesEmptySet(): void
     {
+        /** @noinspection PhpRedundantOptionalArgumentInspection */
         $this->setEnv(exposedHeaders: "");
         $this->assertTrue(CORSPolicy::policy()->exposedHeaders->isEmpty);
     }

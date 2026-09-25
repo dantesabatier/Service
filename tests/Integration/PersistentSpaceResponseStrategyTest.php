@@ -240,11 +240,13 @@ final class PersistentSpaceResponseStrategyTest extends TestCase
         $entity->name = "Order";
         $entity->properties = new ArrayClass([$total]);
         // An entity stays editable — and refuses to derive attributesByName — until a model owns it.
+        /** @noinspection PhpObjectFieldsAreOnlyWrittenInspection */
         $model = new ManagedObjectModel();
         $model->entities = new ArrayClass([$entity]);
         return new ReadPersistentSpaceResponseStrategy($request, $entity, new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor(), $policy);
     }
 
+    /** @noinspection PhpSameParameterValueInspection */
     private function user(string ...$roleNames): Authorizable
     {
         $roles = new Set(new ArrayClass($roleNames)->map($this->role(...))->array);

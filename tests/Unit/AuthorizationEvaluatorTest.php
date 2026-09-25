@@ -121,7 +121,10 @@ final class AuthorizationEvaluatorTest extends TestCase
         parent::tearDown();
     }
 
-    /** @throws ReflectionException */
+    /**
+     * @throws ReflectionException
+     * @noinspection PhpSameParameterValueInspection
+     */
     private function context(string $method, string $path, ?Authorizable $user): AccessEvaluationContext
     {
         $server = $_SERVER;
@@ -144,6 +147,7 @@ final class AuthorizationEvaluatorTest extends TestCase
     private function authentication(?Authorizable $user): Authentication
     {
         $authentication = new class extends Authentication {
+            /** @noinspection PhpMissingParentConstructorInspection */
             public function __construct()
             {
             }
@@ -151,7 +155,7 @@ final class AuthorizationEvaluatorTest extends TestCase
             public AuthenticationScheme $scheme { get => AuthenticationScheme::bearer; }
             public ?URLCredential $credential { get => null; }
             public bool $isValid { get => true; }
-            protected(set) ArrayClass $authorizationScopes { get => new ArrayClass(); }
+            public ArrayClass $authorizationScopes { get => new ArrayClass(); }
 
             #[Override]
             public static function isSupported(AuthenticationScheme $scheme): bool

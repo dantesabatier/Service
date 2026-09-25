@@ -94,11 +94,11 @@ final class ResourceWriteAccessTest extends TestCase
     }
 
     /**
-     * Builds a fixture with the minimal CoreData stubs so `valueForKey()` falls through to the PHP
-     * property and `entity->name` is available for the denial message.
-     *
-     * @param class-string<ManagedObject> $fixtureClass
+     * @template T of ManagedObject
+     * @param class-string<T> $fixtureClass
+     * @return T
      * @throws ReflectionException
+     * @noinspection PhpIncompatibleReturnTypeInspection
      */
     private function makeResource(string $fixtureClass, ?Authorizable $owner = null): ManagedObject
     {

@@ -73,6 +73,7 @@ final class CORSResponseTransformerTest extends TestCase
     public function noCORSHeadersWhenRequestHasNoOrigin(): void
     {
         $policy = new CORSPolicy(allowedOrigins: new Set(["*"]));
+        /** @noinspection PhpRedundantOptionalArgumentInspection */
         $response = $this->transform($this->response(), $policy, $this->request(""));
         $this->assertNull($response->allHeaderFields["Access-Control-Allow-Origin"]);
     }

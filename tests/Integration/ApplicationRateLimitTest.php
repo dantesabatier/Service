@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpPossiblePolymorphicInvocationInspection */
+
 declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Integration;
@@ -93,7 +95,7 @@ final class ApplicationRateLimitTest extends TestCase
     #[Test]
     public function theRemainingAllowanceCountsDownWithEachRequest(): void
     {
-        [$application, $store] = $this->application(new RateLimitPolicy(maxRequestsIP: 10));
+        [$application] = $this->application(new RateLimitPolicy(maxRequestsIP: 10));
         $this->enforce($application);
         $this->assertSame(9, $application->rateLimitInfo?->remaining);
         $this->resetInfo($application);
@@ -128,7 +130,7 @@ final class ApplicationRateLimitTest extends TestCase
     #[Test]
     public function exhaustingTheAllowanceRefusesTheRequest(): void
     {
-        [$application, $store] = $this->application(new RateLimitPolicy(maxRequestsIP: 2));
+        [$application] = $this->application(new RateLimitPolicy(maxRequestsIP: 2));
         $this->enforce($application);
         $this->resetInfo($application);
         $this->enforce($application);

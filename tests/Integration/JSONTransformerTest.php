@@ -48,6 +48,7 @@ final class JSONTransformerTest extends TestCase
     #[Test]
     public function encodesNullBody(): void
     {
+        /** @noinspection PhpRedundantOptionalArgumentInspection */
         $result = $this->transform($this->response(null));
         $this->assertSame("null", $result->body);
     }
@@ -102,6 +103,7 @@ final class JSONTransformerTest extends TestCase
     public function throwsOnUnencodableValue(): void
     {
         $this->expectException(JsonException::class);
-        $this->transform($this->response(fopen("php://memory", "r")));
+        $response = $this->response(fopen("php://memory", "r"));
+        $this->transform($response);
     }
 }

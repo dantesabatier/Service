@@ -143,7 +143,7 @@ final class MCPClientTest extends TestCase
         $client = new MCPClient($transport);
 
         $this->expectException(MCPClientException::class);
-        $this->expectExceptionMessage("unsupported tool content");
+        $this->expectExceptionMessageIsOrContains("unsupported tool content");
         $client->callTool("render", new Dictionary());
     }
 
@@ -208,7 +208,7 @@ final class MCPClientTest extends TestCase
     public function malformedAnnotationValuesAreProtocolFailures(mixed $annotations): void
     {
         $this->expectException(MCPClientException::class);
-        $this->expectExceptionMessage("annotation");
+        $this->expectExceptionMessageIsOrContains("annotation");
 
         $this->catalogueClient($annotations)->tools;
     }
@@ -419,17 +419,17 @@ final class MutableMCPClock implements LLMClock
     }
 }
 
-final class RecordingMCPTransport implements MCPTransport
+final readonly class RecordingMCPTransport implements MCPTransport
 {
     /** @var ArrayClass<Dictionary<mixed>> */
-    public readonly ArrayClass $messages;
+    public ArrayClass $messages;
     /** @var ArrayClass<Dictionary<string>> */
-    public readonly ArrayClass $headers;
+    public ArrayClass $headers;
     /** @var ArrayClass<float|null> */
-    public readonly ArrayClass $timeouts;
+    public ArrayClass $timeouts;
 
     /** @param ArrayClass<MCPClientResponse|MCPClientException> $responses Responses or failures returned in request order. */
-    public function __construct(private readonly ArrayClass $responses)
+    public function __construct(private ArrayClass $responses)
     {
         $this->messages = new ArrayClass();
         $this->headers = new ArrayClass();

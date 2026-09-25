@@ -168,7 +168,10 @@ final class RequestToFetchRequestAdapterTest extends TestCase
         return $fetchRequest->predicate->predicateFormat;
     }
 
-    /** @throws ReflectionException */
+    /**
+     * @throws ReflectionException
+     * @noinspection PhpSameParameterValueInspection
+     */
     private function contextForModelWithEntityNamed(string $name): ManagedObjectContext
     {
         $entity = new EntityDescription();

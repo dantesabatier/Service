@@ -1,5 +1,10 @@
 <?php
 
+/**
+ * @noinspection PhpPossiblePolymorphicInvocationInspection
+ * @noinspection PhpArrayWriteIsNotUsedInspection
+ */
+
 declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
@@ -230,8 +235,8 @@ final class UploadsEnumeratorFilesTest extends TestCase
 
     private function policyRefusingWithDestination(URL $destinationURL): void
     {
-        $policy = new class ($destinationURL) implements FileTransferPolicy {
-            public function __construct(private readonly URL $destination)
+        $policy = new readonly class ($destinationURL) implements FileTransferPolicy {
+            public function __construct(private URL $destination)
             {
             }
 

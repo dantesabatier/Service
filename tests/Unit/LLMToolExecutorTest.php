@@ -115,10 +115,10 @@ final class LLMToolExecutorTest extends TestCase
     }
 }
 
-final class ToolExecutorRecordingObserver implements LLMRunObserver
+final readonly class ToolExecutorRecordingObserver implements LLMRunObserver
 {
     /** @var ArrayClass<LLMRunEvent> */
-    public readonly ArrayClass $events;
+    public ArrayClass $events;
 
     public function __construct()
     {

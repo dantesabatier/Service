@@ -203,7 +203,10 @@ final class FirstResponderResolverTest extends TestCase
         }
     }
 
-    /** @throws ReflectionException */
+    /**
+     * @throws ReflectionException
+     * @noinspection PhpSameParameterValueInspection
+     */
     private function invokeOnWiredResolver(string $method, mixed ...$arguments): mixed
     {
         $resolver = new ReflectionClass(FirstResponderResolver::class)->newInstanceWithoutConstructor();

@@ -126,7 +126,7 @@ final class RetrievalAugmentedLLMContextAssemblerTest extends TestCase
         $assembler = new RetrievalAugmentedLLMContextAssembler(new FailingRAGRetriever());
 
         $this->expectException(LogicException::class);
-        $this->expectExceptionMessage("retrieval unavailable");
+        $this->expectExceptionMessageIsOrContains("retrieval unavailable");
 
         $assembler->assemble(new ArrayClass([new LLMMessage(LLMMessageRole::user, "question")]), new ArrayClass());
     }

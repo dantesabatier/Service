@@ -105,7 +105,7 @@ final class LLMAgentTest extends TestCase
         $agent = new LLMAgent(new ScriptedTerminalTurnClient(LLMTurnStopReason::completed), new ToolRegistry(new ArrayClass()), canSpawnSubagents: false, loop: new PrematureCompletionLoop());
 
         $this->expectException(LogicException::class);
-        $this->expectExceptionMessage("cannot complete without a conclusive assistant turn");
+        $this->expectExceptionMessageIsOrContains("cannot complete without a conclusive assistant turn");
 
         $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
     }
@@ -116,7 +116,7 @@ final class LLMAgentTest extends TestCase
         $agent = new LLMAgent(new ScriptedTerminalTurnClient(LLMTurnStopReason::completed), new ToolRegistry(new ArrayClass()), canSpawnSubagents: false, loop: new ReentrantAgentLoop());
 
         $this->expectException(LogicException::class);
-        $this->expectExceptionMessage("can only be executed once");
+        $this->expectExceptionMessageIsOrContains("can only be executed once");
 
         $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
     }
@@ -127,7 +127,7 @@ final class LLMAgentTest extends TestCase
         $agent = new LLMAgent(new ScriptedNeverDoneClient(), new ToolRegistry(new ArrayClass([$this->tool()])), canSpawnSubagents: false, loop: new SkippingToolResultLoop());
 
         $this->expectException(LogicException::class);
-        $this->expectExceptionMessage("must receive a result before another turn");
+        $this->expectExceptionMessageIsOrContains("must receive a result before another turn");
 
         $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
     }
@@ -138,7 +138,7 @@ final class LLMAgentTest extends TestCase
         $agent = new LLMAgent(new ScriptedNeverDoneClient(), new ToolRegistry(new ArrayClass([$this->tool()])), canSpawnSubagents: false, loop: new FabricatingToolCallLoop());
 
         $this->expectException(LogicException::class);
-        $this->expectExceptionMessage("did not request this exact tool call");
+        $this->expectExceptionMessageIsOrContains("did not request this exact tool call");
 
         $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
     }
@@ -364,7 +364,7 @@ final class LLMAgentTest extends TestCase
         $agent = new LLMAgent(new ScriptedFaultyClient(), new ToolRegistry(new ArrayClass([$this->tool()])), 25, false);
 
         $this->expectException(InternalInconsistencyException::class);
-        $this->expectExceptionMessage("Unexpected shape in the decoded body.");
+        $this->expectExceptionMessageIsOrContains("Unexpected shape in the decoded body.");
 
         $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
     }
@@ -666,6 +666,7 @@ final class ReentrantAgentLoop implements LLMAgentLoop
     #[Override]
     public function run(LLMAgentSession $session): LLMAgentLoopOutcome
     {
+        /** @noinspection PhpConditionAlreadyCheckedInspection */
         if (!$session instanceof LLMAgentRuntime) {
             throw new LogicException("The default agent did not supply its runtime implementation.");
         }

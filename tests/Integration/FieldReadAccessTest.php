@@ -110,7 +110,7 @@ final class FieldReadAccessTest extends TestCase
     public function roleGuardedFieldDeniesOtherRole(): void
     {
         $this->expectException(ForbiddenException::class);
-        $this->expectExceptionMessage("permission to read \"salary\"");
+        $this->expectExceptionMessageIsOrContains("permission to read \"salary\"");
         $this->makePolicy($this->makeUser("Sales"))->enforceFieldRead(FieldReadFixture::class, "salary", "salary");
     }
 
@@ -135,7 +135,7 @@ final class FieldReadAccessTest extends TestCase
     public function theKeyPathIsReportedRatherThanTheFieldName(): void
     {
         $this->expectException(ForbiddenException::class);
-        $this->expectExceptionMessage("permission to read \"employee.salary\"");
+        $this->expectExceptionMessageIsOrContains("permission to read \"employee.salary\"");
         $this->makePolicy($this->makeUser("Sales"))->enforceFieldRead(FieldReadFixture::class, "salary", "employee.salary");
     }
 

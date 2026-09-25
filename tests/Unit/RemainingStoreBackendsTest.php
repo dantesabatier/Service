@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpPossiblePolymorphicInvocationInspection */
+
 declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
@@ -198,7 +200,7 @@ final class RemainingStoreBackendsTest extends TestCase
     #[Test]
     public function invalidatingAnAuthorizableDropsOnlyItsMemcachedEntry(): void
     {
-        [$cache, $memcached] = $this->memcachedAuthorizations();
+        [$cache] = $this->memcachedAuthorizations();
         $cache->setAuthorizableAuthorizations($this->user("ada"), new ArrayClass());
         $cache->setAuthorizableAuthorizations($this->user("grace"), new ArrayClass());
         $cache->invalidateAuthorizable($this->user("ada"));

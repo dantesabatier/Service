@@ -46,6 +46,7 @@ final class AccessEvaluatorsTest extends TestCase
     private function makeAuth(bool $isValid, ?ArrayClass $technicalScopes = null): Authentication
     {
         $auth = new class($isValid) extends Authentication {
+            /** @noinspection PhpMissingParentConstructorInspection */
             public function __construct(private readonly bool $_valid) {}
             public AuthenticationScheme $scheme { get => AuthenticationScheme::bearer; }
             public ?URLCredential $credential { get => null; }
@@ -182,6 +183,7 @@ final class AccessEvaluatorsTest extends TestCase
     #[Test]
     public function aBearerWhoseSubjectCannotBeResolvedFailsTheVersionCheck(): void
     {
+        /** @noinspection PhpRedundantOptionalArgumentInspection */
         $this->assertFalse(new JSONWebTokenVersionEvaluator()->evaluate($this->contextWithAuth($this->bearer($this->payload(version: 1), null))));
     }
 
@@ -219,6 +221,7 @@ final class AccessEvaluatorsTest extends TestCase
         return $bearer;
     }
 
+    /** @noinspection PhpSameParameterValueInspection */
     private function userAtVersion(int $version): Authorizable
     {
         return new class ($version) implements Authorizable {

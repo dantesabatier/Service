@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpTypedPropertyMightBeUninitializedInspection */
+
 declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;

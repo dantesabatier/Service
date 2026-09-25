@@ -126,7 +126,7 @@ final class ErrorResponderTest extends TestCase
         $this->assertStringContainsString("uri=\"/orders\"", $challenge);
         $this->assertStringContainsString("algorithm=\"SHA-256\"", $challenge);
         $this->assertStringContainsString("qop=\"auth\"", $challenge);
-        $this->assertStringContainsString(sprintf("opaque=\"%s\"", base64_encode("localhost")), $challenge);
+        $this->assertStringContainsString("opaque=\"bG9jYWxob3N0\"", $challenge);
     }
 
     #[Test]

@@ -205,10 +205,10 @@ final class DigestAuthenticationTest extends TestCase
         return "$header, response=\"$response\"";
     }
 
-    private function expectedResponse(string $hash, string $password = "secret"): string
+    private function expectedResponse(string $hash): string
     {
         $HA2 = hash($hash, HTTPRequestMethod::get . ":/orders");
-        return hash($hash, "$password:abc:00000001:xyz:auth:$HA2");
+        return hash($hash, "secret:abc:00000001:xyz:auth:$HA2");
     }
 
     /** @throws ReflectionException */

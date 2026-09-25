@@ -22,7 +22,11 @@ final class BasicAuthentication extends Authentication
                 return $this->credential;
             }
             $this->isCredentialResolved = true;
-            $components = explode(BasicAuthenticationComponentDelimiter, base64_decode($this->context->authorizationHeader->value));
+            $decoded = base64_decode($this->context->authorizationHeader->value);
+            if (!mb_check_encoding($decoded, "UTF-8")) {
+                return $this->credential = null;
+            }
+            $components = explode(BasicAuthenticationComponentDelimiter, $decoded);
             if (count($components) !== BasicAuthenticationComponentCount) {
                 return $this->credential = null;
             }

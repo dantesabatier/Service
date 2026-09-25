@@ -33,7 +33,7 @@ final class DigestAuthentication extends Authentication
                 return $this->credential;
             }
             $this->isCredentialResolved = true;
-            if (!($username = $this->parameters["username"])) {
+            if (!($username = $this->parameters["username"]) || !mb_check_encoding($username, "UTF-8")) {
                 return $this->credential = null;
             }
             return $this->credential = new URLCredential($username);

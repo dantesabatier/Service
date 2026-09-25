@@ -103,6 +103,13 @@ final class DigestAuthenticationTest extends TestCase
 
     /** @throws ReflectionException */
     #[Test]
+    public function thereIsNoCredentialForAUsernameThatIsNotUTF8(): void
+    {
+        $this->assertNull($this->authentication("username=\"ma\xF1ana\"")->credential);
+    }
+
+    /** @throws ReflectionException */
+    #[Test]
     public function theCredentialIsResolvedOnlyOnce(): void
     {
         $authentication = $this->authentication("username=\"ada\"");

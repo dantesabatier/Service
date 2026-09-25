@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Integration;
 
+use Exception;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Sabatier\Foundation\Bundle;
@@ -19,6 +20,7 @@ final class RendererTest extends TestCase
 {
     private ?URL $bundleURL = null;
 
+    /** @throws Exception */
     protected function tearDown(): void
     {
         if ($this->bundleURL) {
@@ -28,6 +30,7 @@ final class RendererTest extends TestCase
         parent::tearDown();
     }
 
+    /** @throws Exception */
     #[Test]
     public function aTemplateThatIsNotThereIsNotFound(): void
     {
@@ -35,6 +38,7 @@ final class RendererTest extends TestCase
         $this->renderer()->render("absent", []);
     }
 
+    /** @throws Exception */
     #[Test]
     public function theRefusalNamesTheTemplateItLookedFor(): void
     {
@@ -46,6 +50,7 @@ final class RendererTest extends TestCase
         }
     }
 
+    /** @throws Exception */
     #[Test]
     public function aTemplateIsRenderedToItsOutput(): void
     {
@@ -53,6 +58,7 @@ final class RendererTest extends TestCase
         $this->assertSame("<p>Hello</p>", $renderer->render("greeting", []));
     }
 
+    /** @throws Exception */
     #[Test]
     public function theContextIsExtractedIntoTheTemplate(): void
     {
@@ -60,6 +66,7 @@ final class RendererTest extends TestCase
         $this->assertSame("ada has 3", $renderer->render("profile", ["username" => "ada", "unread" => 3]));
     }
 
+    /** @throws Exception */
     #[Test]
     public function anObjectContextIsExtractedLikeAnArray(): void
     {
@@ -69,6 +76,7 @@ final class RendererTest extends TestCase
         $this->assertSame("grace", $renderer->render("profile", $context));
     }
 
+    /** @throws Exception */
     #[Test]
     public function aTemplateMayIncludeAnother(): void
     {
@@ -76,6 +84,7 @@ final class RendererTest extends TestCase
         $this->assertSame("head MIDDLE tail", $renderer->render("page", []));
     }
 
+    /** @throws Exception */
     #[Test]
     public function anIncludedTemplateReceivesItsOwnContext(): void
     {
@@ -83,6 +92,7 @@ final class RendererTest extends TestCase
         $this->assertSame("hi ada", $renderer->render("page", []));
     }
 
+    /** @throws Exception */
     #[Test]
     public function anIncludedTemplateDoesNotInheritTheOuterContext(): void
     {
@@ -91,6 +101,7 @@ final class RendererTest extends TestCase
         $this->assertSame("clean", $renderer->render("page", ["secret" => "shh"]));
     }
 
+    /** @throws Exception */
     #[Test]
     public function theTemplateCanReachTheIncludeHelperItself(): void
     {
@@ -98,6 +109,7 @@ final class RendererTest extends TestCase
         $this->assertSame("callable", $renderer->render("page", []));
     }
 
+    /** @throws Exception */
     #[Test]
     public function aViewRendersThroughItsOwnRenderer(): void
     {
@@ -105,7 +117,10 @@ final class RendererTest extends TestCase
         $this->assertSame("card for ada", new View("card", ["name" => "ada"], $renderer)->render());
     }
 
-    /** @param array<string, string> $templates */
+    /**
+     * @param array<string, string> $templates
+     * @throws Exception
+     */
     private function renderer(array $templates = []): Renderer
     {
         $this->bundleURL = FileManager::default()->temporaryDirectory->appendingPathComponent(new UUID()->uuidString);

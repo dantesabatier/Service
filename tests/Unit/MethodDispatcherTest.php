@@ -8,6 +8,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\MCP\InitializeHandler;
 use Sabatier\Service\MCP\JSONRPCError;
@@ -31,6 +32,7 @@ final class MethodDispatcherTest extends TestCase
         yield "the initialized notification" => ["notifications/initialized"];
     }
 
+    /** @throws ReflectionException */
     #[Test]
     #[DataProvider("acknowledgedMethodProvider")]
     public function aMethodThatOnlyNeedsAcknowledgingAnswersWithNothing(string $method): void
@@ -38,6 +40,7 @@ final class MethodDispatcherTest extends TestCase
         $this->assertNull($this->dispatcher()->dispatch($this->message($method)));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anUnknownMethodIsAnsweredWithAJSONRPCError(): void
     {
@@ -46,6 +49,7 @@ final class MethodDispatcherTest extends TestCase
         $this->assertSame(JSONRPCErrorCodeInvalidParams, $result->code);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theErrorNamesTheMethodThatWasNotFound(): void
     {
@@ -54,12 +58,14 @@ final class MethodDispatcherTest extends TestCase
         $this->assertStringContainsString("tools/destroy", (string)$result->userInfo[LocalizedFailureReasonErrorKey]);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anEmptyMethodIsNotMistakenForAKnownOne(): void
     {
         $this->assertInstanceOf(JSONRPCError::class, $this->dispatcher()->dispatch($this->message("")));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theMethodIsMatchedExactly(): void
     {
@@ -72,6 +78,7 @@ final class MethodDispatcherTest extends TestCase
         return new RPCMessage(1, $method, new Dictionary());
     }
 
+    /** @throws ReflectionException */
     private function dispatcher(): MethodDispatcher
     {
         return new MethodDispatcher(

@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Integration;
 
+use Exception;
+use JsonException;
 use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use Sabatier\CoreData\AttributeDescription;
 use Sabatier\CoreData\AttributeType;
 use Sabatier\CoreData\EntityDescription;
@@ -71,6 +74,7 @@ final class TemporalVariableResolutionTest extends TestCase
         }
     }
 
+    /** @throws Exception */
     private function context(): ManagedObjectContext
     {
         $creationDate = new AttributeDescription();
@@ -108,6 +112,7 @@ final class TemporalVariableResolutionTest extends TestCase
         return $context;
     }
 
+    /** @throws ReflectionException */
     private function descriptor(): ModelDescriptor
     {
         $attributes = new Dictionary([
@@ -121,6 +126,7 @@ final class TemporalVariableResolutionTest extends TestCase
         return $descriptor;
     }
 
+    /** @throws ReflectionException */
     private function disableSecurity(AbstractTool $tool): void
     {
         $policy = new FieldLevelSecurityPolicy(new AuthorizationContext(null, new ArrayClass(), false));
@@ -130,6 +136,7 @@ final class TemporalVariableResolutionTest extends TestCase
     /**
      * @param ArrayClass<ContentItem> $result
      * @return array<string, mixed>
+     * @throws JsonException
      */
     private function decode(ArrayClass $result): array
     {
@@ -149,6 +156,7 @@ final class TemporalVariableResolutionTest extends TestCase
         ]);
     }
 
+    /** @throws Exception */
     #[Test]
     public function countResolvesTemporalPredicateArguments(): void
     {
@@ -157,6 +165,7 @@ final class TemporalVariableResolutionTest extends TestCase
         $this->assertSame(["count" => 1], $this->decode($tool->execute($this->arguments())));
     }
 
+    /** @throws Exception */
     #[Test]
     public function aggregateResolvesTemporalPredicateArguments(): void
     {
@@ -169,6 +178,7 @@ final class TemporalVariableResolutionTest extends TestCase
         $this->assertSame(42, $decoded["result"]);
     }
 
+    /** @throws Exception */
     #[Test]
     public function fetchResolvesTemporalPredicateArguments(): void
     {
@@ -178,6 +188,7 @@ final class TemporalVariableResolutionTest extends TestCase
         $this->assertSame(1, $decoded["rowCount"]);
     }
 
+    /** @throws Exception */
     #[Test]
     public function groupByResolvesTemporalPredicateArguments(): void
     {
@@ -193,6 +204,7 @@ final class TemporalVariableResolutionTest extends TestCase
     /**
      * `having_arguments` is resolved on its own line, independently of `arguments`, so it needs its
      * own case: the group predicate can regress while the row predicate keeps working.
+     * @throws Exception
      */
     #[Test]
     public function groupByResolvesTemporalHavingArguments(): void

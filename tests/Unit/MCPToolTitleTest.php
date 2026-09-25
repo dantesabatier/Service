@@ -9,6 +9,7 @@ use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\MCP\ToolResolver;
@@ -51,6 +52,7 @@ final class MCPToolTitleTest extends TestCase
         }
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function customToolWithoutVocabularyUsesItsNameAsTitle(): void
     {

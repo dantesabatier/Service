@@ -8,11 +8,13 @@ use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\Tools\AbstractTool;
 use Sabatier\Service\MCP\Tools\ToolRegistry;
+use Throwable;
 
 /**
  * Fixes what the registry answers when the model calls a tool with arguments its schema does not declare.
@@ -24,6 +26,7 @@ use Sabatier\Service\MCP\Tools\ToolRegistry;
  */
 final class ToolRegistrySchemaTest extends TestCase
 {
+    /** @throws ReflectionException */
     private function registry(): ToolRegistry
     {
         /** @var AbstractTool $tool */
@@ -31,7 +34,10 @@ final class ToolRegistrySchemaTest extends TestCase
         return new ToolRegistry(new ArrayClass([$tool]));
     }
 
-    /** The call the schema declares runs, and nothing is in its way. */
+    /**
+     * The call the schema declares runs, and nothing is in its way.
+     * @throws Throwable
+     */
     #[Test]
     public function aWellFormedCallRuns(): void
     {
@@ -41,7 +47,10 @@ final class ToolRegistrySchemaTest extends TestCase
         $this->assertSame("ran", $result->text);
     }
 
-    /** Omitting an optional argument is not a complaint. */
+    /**
+     * Omitting an optional argument is not a complaint.
+     * @throws Throwable
+     */
     #[Test]
     public function anOmittedOptionalArgumentIsFine(): void
     {
@@ -54,6 +63,7 @@ final class ToolRegistrySchemaTest extends TestCase
      * The answer names the key, lists what is accepted, and says to call again — everything the model
      * needs to correct itself. Executing instead would have run the tool without the filter the model
      * believed it had sent.
+     * @throws Throwable
      */
     #[Test]
     public function anUndeclaredArgumentIsRefusedWithTheAcceptedOnes(): void
@@ -66,7 +76,10 @@ final class ToolRegistrySchemaTest extends TestCase
         $this->assertStringNotContainsString("ran", $result->text, "The tool must not have been executed.");
     }
 
-    /** A required argument left out is named rather than left to the tool to discover. */
+    /**
+     * A required argument left out is named rather than left to the tool to discover.
+     * @throws Throwable
+     */
     #[Test]
     public function aMissingRequiredArgumentIsNamed(): void
     {
@@ -76,7 +89,10 @@ final class ToolRegistrySchemaTest extends TestCase
         $this->assertStringContainsString("entity", $result->text);
     }
 
-    /** A tool declaring no properties accepts anything: the check is for the model's mistakes, not a schema police. */
+    /**
+     * A tool declaring no properties accepts anything: the check is for the model's mistakes, not a schema police.
+     * @throws Throwable
+     */
     #[Test]
     public function aToolWithoutDeclaredPropertiesAcceptsAnything(): void
     {

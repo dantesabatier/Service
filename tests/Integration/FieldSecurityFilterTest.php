@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Integration;
 
+use Exception;
 use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
@@ -100,6 +102,7 @@ final class FieldSecurityFilterTest extends TestCase
         };
     }
 
+    /** @throws ReflectionException */
     private function makeResource(string $fixtureClass): ManagedObject
     {
         return new ReflectionClass($fixtureClass)->newInstanceWithoutConstructor();
@@ -109,6 +112,7 @@ final class FieldSecurityFilterTest extends TestCase
      * Creates an OwnedEntityFixture with the minimal CoreData stubs needed so that
      * ManagedObject::valueForKey() can fall through to ObjectClass::valueForKey(),
      * which reads the PHP property directly.
+     * @throws ReflectionException
      */
     private function makeOwnedResource(?Authorizable $owner): OwnedEntityFixture
     {
@@ -160,6 +164,7 @@ final class FieldSecurityFilterTest extends TestCase
 
     // --- filterRead ---
 
+    /** @throws Exception */
     #[Test]
     public function filterReadPassesThroughWhenNoAttributes(): void
     {
@@ -172,6 +177,7 @@ final class FieldSecurityFilterTest extends TestCase
         $this->assertSame(9.99, $result["price"]);
     }
 
+    /** @throws Exception */
     #[Test]
     public function filterReadKeepsAllFieldsWhenEmptyRolesAllowAll(): void
     {
@@ -184,6 +190,7 @@ final class FieldSecurityFilterTest extends TestCase
         $this->assertSame(9.99, $result["price"]);
     }
 
+    /** @throws Exception */
     #[Test]
     public function filterReadRemovesFieldWhenUserLacksRole(): void
     {
@@ -196,6 +203,7 @@ final class FieldSecurityFilterTest extends TestCase
         $this->assertNull($result["price"]);
     }
 
+    /** @throws Exception */
     #[Test]
     public function filterReadKeepsFieldWhenUserHasRequiredRole(): void
     {
@@ -208,6 +216,7 @@ final class FieldSecurityFilterTest extends TestCase
         $this->assertSame(9.99, $result["price"]);
     }
 
+    /** @throws Exception */
     #[Test]
     public function filterReadKeepsFieldWhenUserHasOneOfMultipleAllowedRoles(): void
     {
@@ -219,6 +228,7 @@ final class FieldSecurityFilterTest extends TestCase
         $this->assertSame("SKU-1", $result["internalCode"]);
     }
 
+    /** @throws Exception */
     #[Test]
     public function filterReadIgnoresFieldsNotPresentInData(): void
     {
@@ -233,6 +243,7 @@ final class FieldSecurityFilterTest extends TestCase
 
     // --- filterWrite ---
 
+    /** @throws Exception */
     #[Test]
     public function filterWriteRemovesFieldWhenUserLacksRole(): void
     {
@@ -244,6 +255,7 @@ final class FieldSecurityFilterTest extends TestCase
         $this->assertNull($result["adminNote"]);
     }
 
+    /** @throws Exception */
     #[Test]
     public function filterWriteKeepsFieldWhenUserHasRole(): void
     {
@@ -257,6 +269,7 @@ final class FieldSecurityFilterTest extends TestCase
 
     // --- Own scope ---
 
+    /** @throws Exception */
     #[Test]
     public function filterReadRemovesOwnedFieldWhenOwnedByAnotherUser(): void
     {
@@ -267,6 +280,7 @@ final class FieldSecurityFilterTest extends TestCase
         $this->assertNull($result["secret"]);
     }
 
+    /** @throws Exception */
     #[Test]
     public function filterReadKeepsOwnedFieldWhenResourceHasNoOwner(): void
     {
@@ -278,6 +292,7 @@ final class FieldSecurityFilterTest extends TestCase
         $this->assertSame("classified", $result["secret"]);
     }
 
+    /** @throws Exception */
     #[Test]
     public function filterReadKeepsOwnedFieldWhenIsOwner(): void
     {
@@ -291,6 +306,7 @@ final class FieldSecurityFilterTest extends TestCase
 
     // --- Attribute-based condition (where) ---
 
+    /** @throws ReflectionException */
     private function makeConditionResource(string $status): ConditionEntityFixture
     {
         /** @var ConditionEntityFixture $resource */
@@ -303,6 +319,7 @@ final class FieldSecurityFilterTest extends TestCase
         return $resource;
     }
 
+    /** @throws Exception */
     #[Test]
     public function filterReadKeepsFieldWhenResourceConditionHolds(): void
     {
@@ -316,6 +333,7 @@ final class FieldSecurityFilterTest extends TestCase
         $this->assertSame("visible", $result["body"]);
     }
 
+    /** @throws Exception */
     #[Test]
     public function filterReadRemovesFieldWhenResourceConditionFails(): void
     {

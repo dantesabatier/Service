@@ -8,6 +8,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\InternalInconsistencyException;
@@ -42,6 +43,7 @@ final class MutatingToolArgumentTest extends TestCase
     /**
      * @param class-string<AbstractTool> $toolClass
      * @param array<string, mixed> $arguments
+     * @throws ReflectionException
      */
     #[Test]
     #[DataProvider("missingArgumentProvider")]
@@ -66,6 +68,7 @@ final class MutatingToolArgumentTest extends TestCase
     /**
      * @param class-string<AbstractTool> $toolClass
      * @param list<string> $required
+     * @throws ReflectionException
      */
     #[Test]
     #[DataProvider("toolShapeProvider")]
@@ -85,7 +88,10 @@ final class MutatingToolArgumentTest extends TestCase
         yield "create" => [CreateTool::class];
     }
 
-    /** @param class-string<AbstractTool> $toolClass */
+    /**
+     * @param class-string<AbstractTool> $toolClass
+     * @throws ReflectionException
+     */
     #[Test]
     #[DataProvider("toolProvider")]
     public function aMutatingToolNeverClaimsToBeReadOnly(string $toolClass): void
@@ -95,7 +101,10 @@ final class MutatingToolArgumentTest extends TestCase
         $this->assertFalse($tool->isReadOnlyCall(new Dictionary()));
     }
 
-    /** @param class-string<AbstractTool> $toolClass */
+    /**
+     * @param class-string<AbstractTool> $toolClass
+     * @throws ReflectionException
+     */
     #[Test]
     #[DataProvider("toolProvider")]
     public function aMutatingToolStaysWithinTheModelItKnows(string $toolClass): void
@@ -108,6 +117,7 @@ final class MutatingToolArgumentTest extends TestCase
      * conservative hint a client uses to decide whether to confirm, not a claim about deletion.
      *
      * @param class-string<AbstractTool> $toolClass
+     * @throws ReflectionException
      */
     #[Test]
     #[DataProvider("toolProvider")]
@@ -116,7 +126,10 @@ final class MutatingToolArgumentTest extends TestCase
         $this->assertTrue($this->tool($toolClass)->isDestructive);
     }
 
-    /** @param class-string<AbstractTool> $toolClass */
+    /**
+     * @param class-string<AbstractTool> $toolClass
+     * @throws ReflectionException
+     */
     private function tool(string $toolClass): AbstractTool
     {
         return new $toolClass(new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor(), new ReflectionClass(ModelDescriptor::class)->newInstanceWithoutConstructor());

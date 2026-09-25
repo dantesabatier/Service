@@ -6,6 +6,7 @@ namespace Sabatier\Service\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use ReflectionException;
 use ReflectionMethod;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
@@ -24,6 +25,7 @@ use Sabatier\Service\LLM\StandardLLMClient;
  */
 final class LLMClientParseTest extends TestCase
 {
+    /** @throws ReflectionException */
     #[Test]
     public function chatCompletionsUsageIsCountedUnderItsOwnKeys(): void
     {
@@ -33,6 +35,7 @@ final class LLMClientParseTest extends TestCase
         $this->assertSame(42, $turn->outputTokens);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function responsesApiUsageIsStillCounted(): void
     {
@@ -42,6 +45,7 @@ final class LLMClientParseTest extends TestCase
         $this->assertSame(5, $turn->outputTokens);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function standardClientReportsTheProviderErrorBody(): void
     {
@@ -50,6 +54,7 @@ final class LLMClientParseTest extends TestCase
         $this->parse(new StandardLLMClient(), "{\"error\":{\"message\":\"model not found\",\"type\":\"invalid_request_error\"}}");
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function standardClientDistinguishesCompletionOutputLimitAndRefusal(): void
     {
@@ -62,6 +67,7 @@ final class LLMClientParseTest extends TestCase
         $this->assertSame(LLMTurnStopReason::refusal, $refused->stopReason);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function standardClientRejectsAnEmptySuccessfulResponse(): void
     {
@@ -70,6 +76,7 @@ final class LLMClientParseTest extends TestCase
         $this->parse(new StandardLLMClient(), "{}");
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function standardClientCallWithoutArgumentsYieldsAnEmptyDictionary(): void
     {
@@ -81,6 +88,7 @@ final class LLMClientParseTest extends TestCase
         $this->assertFalse($turn->isDone);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function standardClientPreservesObjectAndListArgumentShapes(): void
     {
@@ -91,6 +99,7 @@ final class LLMClientParseTest extends TestCase
         $this->assertInstanceOf(ArrayClass::class, $arguments["list"]);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function standardClientRejectsMalformedJSONToolArguments(): void
     {
@@ -100,6 +109,7 @@ final class LLMClientParseTest extends TestCase
         $this->parse(new StandardLLMClient(), "{\"choices\":[{\"message\":{\"tool_calls\":[{\"id\":\"call_1\",\"function\":{\"name\":\"probe_tool\",\"arguments\":\"{\"}}]}}]}");
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function standardClientRejectsToolArgumentsThatDecodeAsAList(): void
     {
@@ -109,6 +119,7 @@ final class LLMClientParseTest extends TestCase
         $this->parse(new StandardLLMClient(), "{\"choices\":[{\"message\":{\"tool_calls\":[{\"id\":\"call_1\",\"function\":{\"name\":\"probe_tool\",\"arguments\":\"[]\"}}]}}]}");
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function standardClientRejectsAToolCallWithoutAnIdentifier(): void
     {
@@ -118,6 +129,7 @@ final class LLMClientParseTest extends TestCase
         $this->parse(new StandardLLMClient(), "{\"choices\":[{\"message\":{\"tool_calls\":[{\"id\":\"\",\"function\":{\"name\":\"probe_tool\",\"arguments\":\"{}\"}}]}}]}");
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anthropicKeepsEveryTextBlockRatherThanTheLastOne(): void
     {
@@ -129,6 +141,7 @@ final class LLMClientParseTest extends TestCase
         $this->assertSame(3, $turn->outputTokens);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anthropicTurnWithoutATextBlockHasNoText(): void
     {
@@ -138,6 +151,7 @@ final class LLMClientParseTest extends TestCase
         $this->assertSame(1, $turn->toolCalls->count);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anthropicClientRejectsToolInputThatIsAList(): void
     {
@@ -147,6 +161,7 @@ final class LLMClientParseTest extends TestCase
         $this->parse(new AnthropicClient(), "{\"content\":[{\"type\":\"tool_use\",\"id\":\"tu_1\",\"name\":\"probe_tool\",\"input\":[]}]}");
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anthropicClientRejectsAToolCallWithoutAName(): void
     {
@@ -156,6 +171,7 @@ final class LLMClientParseTest extends TestCase
         $this->parse(new AnthropicClient(), "{\"content\":[{\"type\":\"tool_use\",\"id\":\"tu_1\",\"input\":{}}]}");
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anthropicReportsTheProviderErrorBody(): void
     {
@@ -164,6 +180,7 @@ final class LLMClientParseTest extends TestCase
         $this->parse(new AnthropicClient(), "{\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"}}");
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anthropicClientDistinguishesCompletionOutputLimitAndRefusal(): void
     {
@@ -176,6 +193,7 @@ final class LLMClientParseTest extends TestCase
         $this->assertSame(LLMTurnStopReason::refusal, $refused->stopReason);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function ollamaUsageIsCountedUnderItsOwnKeys(): void
     {
@@ -186,6 +204,7 @@ final class LLMClientParseTest extends TestCase
         $this->assertSame(8, $turn->outputTokens);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function ollamaCallWithoutArgumentsYieldsAnEmptyDictionary(): void
     {
@@ -196,6 +215,7 @@ final class LLMClientParseTest extends TestCase
         $this->assertTrue($turn->toolCalls[0]->arguments->isEmpty);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function ollamaClientRejectsToolArgumentsThatAreAList(): void
     {
@@ -205,6 +225,7 @@ final class LLMClientParseTest extends TestCase
         $this->parse(new OllamaClient(), "{\"message\":{\"tool_calls\":[{\"function\":{\"name\":\"probe_tool\",\"arguments\":[]}}]}}");
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function ollamaClientRejectsAToolCallWithoutAName(): void
     {
@@ -214,6 +235,7 @@ final class LLMClientParseTest extends TestCase
         $this->parse(new OllamaClient(), "{\"message\":{\"tool_calls\":[{\"function\":{\"arguments\":{}}}]}}");
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function ollamaReportsTheProviderErrorBody(): void
     {
@@ -222,6 +244,7 @@ final class LLMClientParseTest extends TestCase
         $this->parse(new OllamaClient(), "{\"error\":\"model \\\"nope\\\" not found\"}");
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function ollamaClientDistinguishesCompletionAndOutputLimit(): void
     {
@@ -232,6 +255,7 @@ final class LLMClientParseTest extends TestCase
         $this->assertSame(LLMTurnStopReason::outputLimit, $limited->stopReason);
     }
 
+    /** @throws ReflectionException */
     private function parse(LLMClient $client, string $json): LLMTurn
     {
         $body = Dictionary::dictionaryWithArray(json_decode($json) ?? [], false);

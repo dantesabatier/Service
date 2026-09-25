@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
 
+use Exception;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionMethod;
 use ReflectionProperty;
 use Sabatier\Foundation\ArrayClass;
@@ -38,6 +40,7 @@ final class FirstResponderResolverTest extends TestCase
 {
     private ?URL $scratchURL = null;
 
+    /** @throws Exception */
     protected function tearDown(): void
     {
         if ($this->scratchURL) {
@@ -47,6 +50,7 @@ final class FirstResponderResolverTest extends TestCase
         parent::tearDown();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function buildsAClassNameFromTheNamespaceTheDirectoryAndTheFileStem(): void
     {
@@ -54,36 +58,42 @@ final class FirstResponderResolverTest extends TestCase
         $this->assertSame("App\\Responders\\OrdersResponder", $className);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function acceptsAnInstantiableResponderSubclass(): void
     {
         $this->assertTrue($this->invoke("isValidResponderClass", HeadChainLinkResponderFixture::class));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function rejectsAClassThatDoesNotExist(): void
     {
         $this->assertFalse($this->invoke("isValidResponderClass", "App\\Responders\\Nope"));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function rejectsAClassThatIsNotAResponder(): void
     {
         $this->assertFalse($this->invoke("isValidResponderClass", self::class));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function rejectsResponderItself(): void
     {
         $this->assertFalse($this->invoke("isValidResponderClass", Responder::class));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function rejectsAnAbstractResponderSubclass(): void
     {
         $this->assertFalse($this->invoke("isValidResponderClass", ChainLinkResponderFixture::class));
     }
 
+    /** @throws Exception */
     #[Test]
     public function keepsOnlyPhpFilesRegardlessOfTheExtensionCase(): void
     {
@@ -93,12 +103,14 @@ final class FirstResponderResolverTest extends TestCase
         $this->assertSame(["OrdersResponder.php", "UsersResponder.PHP"], $names);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function returnsNullWhenTheDiscoveryDirectoryIsAbsent(): void
     {
         $this->assertNull($this->invoke("responderClasses", "App", URL::fileURL("C:/definitely/not/here")));
     }
 
+    /** @throws Exception */
     #[Test]
     public function keepsOnlyTheFilesThatResolveToAnInstantiableResponder(): void
     {
@@ -107,6 +119,7 @@ final class FirstResponderResolverTest extends TestCase
         $this->assertSame([HeadChainLinkResponderFixture::class], $classes?->array);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function linksEveryResponderIntoASingleChainAndReturnsItsHead(): void
     {
@@ -119,6 +132,7 @@ final class FirstResponderResolverTest extends TestCase
         $this->assertNull($tail->nextResponder);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aSingleResponderChainLeavesItsTailOpen(): void
     {
@@ -127,6 +141,7 @@ final class FirstResponderResolverTest extends TestCase
         $this->assertNull($only->nextResponder);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function mergingOntoAnAbsentChainYieldsTheSecondChainUntouched(): void
     {
@@ -135,6 +150,7 @@ final class FirstResponderResolverTest extends TestCase
         $this->assertNull($second->nextResponder);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function mergingAppendsTheSecondChainToTheTailOfTheFirst(): void
     {
@@ -147,6 +163,7 @@ final class FirstResponderResolverTest extends TestCase
         $this->assertSame($tail, $middle->nextResponder);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function mergingNothingOntoAChainLeavesItTerminated(): void
     {
@@ -155,18 +172,21 @@ final class FirstResponderResolverTest extends TestCase
         $this->assertNull($head->nextResponder);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function discoversNothingWhenTheBundleHasNoResponderDirectories(): void
     {
         $this->assertTrue(new ArrayClass($this->invokeOnWiredResolver("discoverResponderClasses", "App"))->isEmpty);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function thereIsNoCustomResponderWithoutADelegate(): void
     {
         $this->assertNull($this->invokeOnWiredResolver("customResponder"));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aPreflightRequestShortCircuitsToTheApplicationItself(): void
     {
@@ -183,6 +203,7 @@ final class FirstResponderResolverTest extends TestCase
         }
     }
 
+    /** @throws ReflectionException */
     private function invokeOnWiredResolver(string $method, mixed ...$arguments): mixed
     {
         $resolver = new ReflectionClass(FirstResponderResolver::class)->newInstanceWithoutConstructor();
@@ -190,7 +211,10 @@ final class FirstResponderResolverTest extends TestCase
         return new ReflectionMethod(FirstResponderResolver::class, $method)->invoke($resolver, ...$arguments);
     }
 
-    /** @param list<string> $fileNames */
+    /**
+     * @param list<string> $fileNames
+     * @throws Exception
+     */
     private function scratchDirectory(array $fileNames, string $name = "Responders"): URL
     {
         $this->scratchURL = FileManager::default()->temporaryDirectory->appendingPathComponent(new UUID()->uuidString);
@@ -200,6 +224,7 @@ final class FirstResponderResolverTest extends TestCase
         return $directoryURL;
     }
 
+    /** @throws ReflectionException */
     private function invoke(string $method, mixed ...$arguments): mixed
     {
         $resolver = new ReflectionClass(FirstResponderResolver::class)->newInstanceWithoutConstructor();

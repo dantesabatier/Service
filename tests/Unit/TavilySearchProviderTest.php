@@ -6,6 +6,7 @@ namespace Sabatier\Service\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use ReflectionException;
 use ReflectionMethod;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\Search\TavilySearchProvider;
@@ -18,6 +19,7 @@ use Sabatier\Service\Search\WebSearchResult;
  */
 final class TavilySearchProviderTest extends TestCase
 {
+    /** @throws ReflectionException */
     #[Test]
     public function parsesResultsAndTruncatesContent(): void
     {
@@ -38,6 +40,7 @@ final class TavilySearchProviderTest extends TestCase
         $this->assertLessThanOrEqual(800, mb_strlen($result->results[0]["content"]));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function missingResultsPayloadFunnelsAsFailure(): void
     {
@@ -46,6 +49,7 @@ final class TavilySearchProviderTest extends TestCase
         $this->invokeParse($provider, new Dictionary(["detail" => "API key invalid"]));
     }
 
+    /** @throws ReflectionException */
     private function invokeParse(TavilySearchProvider $provider, Dictionary $body): WebSearchResult
     {
         $method = new ReflectionMethod(TavilySearchProvider::class, "parse");

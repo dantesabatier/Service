@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
 
+use JsonException;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\MCP\Schema\ModelDescriptor;
@@ -19,6 +21,7 @@ use Sabatier\Service\MCP\Tools\GetServerTimeTool;
  */
 final class GetServerTimeToolTest extends TestCase
 {
+    /** @throws ReflectionException */
     private function makeTool(): GetServerTimeTool
     {
         $context = new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor();
@@ -28,6 +31,7 @@ final class GetServerTimeToolTest extends TestCase
 
     /**
      * @return array<string, mixed>
+     * @throws JsonException
      */
     private function decode(GetServerTimeTool $tool, Dictionary $arguments): array
     {
@@ -36,6 +40,10 @@ final class GetServerTimeToolTest extends TestCase
         return json_decode($content->first->text, true, flags: JSON_THROW_ON_ERROR);
     }
 
+    /**
+     * @throws ReflectionException
+     * @throws JsonException
+     */
     #[Test]
     public function returnsServerTimeFields(): void
     {
@@ -53,6 +61,7 @@ final class GetServerTimeToolTest extends TestCase
      * This tool takes no arguments, so every call in a run shares one cache key: cached, the first
      * answer would stand as the time for the rest of the run, and the model would be told not to ask
      * again. It stays read-only — it writes nothing — and declines the cache.
+     * @throws ReflectionException
      */
     #[Test]
     public function theClockIsReadOnlyButNeverCacheable(): void

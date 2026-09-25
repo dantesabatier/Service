@@ -7,6 +7,7 @@ namespace Sabatier\Service\Tests\Unit;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionMethod;
 use ReflectionProperty;
 use Sabatier\CoreData\FetchRequest;
@@ -29,6 +30,7 @@ use Sabatier\Service\MCP\Tools\FetchTool;
  */
 final class FetchToolProjectionTest extends TestCase
 {
+    /** @throws ReflectionException */
     #[Test]
     public function theSummaryNamesTheEntityAndTheRowCount(): void
     {
@@ -37,18 +39,21 @@ final class FetchToolProjectionTest extends TestCase
         $this->assertStringContainsString("3 row(s) returned", $summary);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theSummaryTellsTheCallerNotToRetry(): void
     {
         $this->assertStringContainsString("do not retry", $this->invoke("buildSummary", "Order", new Dictionary(), 0));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theSummaryRepeatsThePredicateThatNarrowedIt(): void
     {
         $this->assertStringContainsString("filter: %K = %s", $this->invoke("buildSummary", "Order", new Dictionary(["predicate" => "%K = %s"]), 1));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theSummarySpellsOutTheSortDirection(): void
     {
@@ -56,12 +61,14 @@ final class FetchToolProjectionTest extends TestCase
         $this->assertStringContainsString("sort: total DESC, name ASC", $this->invoke("buildSummary", "Order", new Dictionary(["sort" => $sort]), 1));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anEmptySortIsLeftOutOfTheSummary(): void
     {
         $this->assertStringNotContainsString("sort:", $this->invoke("buildSummary", "Order", new Dictionary(["sort" => new ArrayClass()]), 1));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aRequestWithoutAPredicateIsNotNarrowed(): void
     {
@@ -70,6 +77,7 @@ final class FetchToolProjectionTest extends TestCase
         $this->assertNull($request->predicate);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aPredicateIsValidatedAndBuiltOntoTheRequest(): void
     {
@@ -79,6 +87,7 @@ final class FetchToolProjectionTest extends TestCase
         $this->assertStringContainsString("total", $request->predicate->predicateFormat);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aPredicateNamingAnUnknownKeyPathIsRefused(): void
     {
@@ -86,6 +95,7 @@ final class FetchToolProjectionTest extends TestCase
         $this->invoke("applyPredicate", new FetchRequest(), "Order", new Dictionary(["predicate" => "%K = %s", "arguments" => new ArrayClass(["nope", "10"])]));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aProjectionNamingKnownPropertiesIsAccepted(): void
     {
@@ -93,6 +103,7 @@ final class FetchToolProjectionTest extends TestCase
         $this->expectNotToPerformAssertions();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aProjectionNamingAnUnknownPropertyIsRefused(): void
     {
@@ -100,6 +111,7 @@ final class FetchToolProjectionTest extends TestCase
         $this->invoke("validateProjection", "Order", new Dictionary(["properties" => new ArrayClass(["nope"])]));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aProjectionMayReachIntoARelationship(): void
     {
@@ -107,6 +119,7 @@ final class FetchToolProjectionTest extends TestCase
         $this->expectNotToPerformAssertions();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aProjectionNamingAnUnknownRelationshipIsRefused(): void
     {
@@ -114,6 +127,7 @@ final class FetchToolProjectionTest extends TestCase
         $this->invoke("validateProjection", "Order", new Dictionary(["relationships" => new Dictionary(["nope" => new ArrayClass(["name"])])]));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aProjectionNamingAnUnknownPropertyOfARelationshipIsRefused(): void
     {
@@ -121,6 +135,7 @@ final class FetchToolProjectionTest extends TestCase
         $this->invoke("validateProjection", "Order", new Dictionary(["relationships" => new Dictionary(["customer" => new ArrayClass(["nope"])])]));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anExplicitShapeIsValidatedInPlaceOfThePropertyArguments(): void
     {
@@ -128,6 +143,7 @@ final class FetchToolProjectionTest extends TestCase
         $this->invoke("validateProjection", "Order", new Dictionary(["serialization" => new Dictionary(["nope" => true])]));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anEmptyShapeFallsBackToThePropertyArguments(): void
     {
@@ -135,6 +151,7 @@ final class FetchToolProjectionTest extends TestCase
         $this->invoke("validateProjection", "Order", new Dictionary(["serialization" => new Dictionary(), "properties" => new ArrayClass(["nope"])]));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aNestedShapeIsValidatedAgainstItsRelationshipTarget(): void
     {
@@ -142,6 +159,7 @@ final class FetchToolProjectionTest extends TestCase
         $this->expectNotToPerformAssertions();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function nestingUnderSomethingThatIsNotARelationshipIsRefused(): void
     {
@@ -149,6 +167,7 @@ final class FetchToolProjectionTest extends TestCase
         $this->invoke("validateShape", "Order", new Dictionary(["total" => new Dictionary(["name" => true])]));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anUnknownLeafInANestedShapeIsRefused(): void
     {
@@ -156,6 +175,7 @@ final class FetchToolProjectionTest extends TestCase
         $this->invoke("validateShape", "Order", new Dictionary(["customer" => new Dictionary(["nope" => true])]));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aRelationshipIsAValidLeafOfAShape(): void
     {
@@ -163,12 +183,14 @@ final class FetchToolProjectionTest extends TestCase
         $this->expectNotToPerformAssertions();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function noProjectionAtAllLeavesTheDefaultRepresentation(): void
     {
         $this->assertNull($this->invoke("resolveShape", new Dictionary()));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anExplicitShapeIsPreferredOverThePropertyArguments(): void
     {
@@ -176,6 +198,7 @@ final class FetchToolProjectionTest extends TestCase
         $this->assertSame(["total" => true], $shape->array);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aShapeIsNormalizedSoEveryAttributeLeafIsTrue(): void
     {
@@ -184,6 +207,7 @@ final class FetchToolProjectionTest extends TestCase
         $this->assertSame(["name" => true], $shape["customer"]->array);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function thePropertyArgumentsBuildTheShapeWhenNoneWasGiven(): void
     {
@@ -191,6 +215,7 @@ final class FetchToolProjectionTest extends TestCase
         $this->assertSame(["total" => true, "status" => true], $shape->array);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theRelationshipArgumentsBecomeNestedSubShapes(): void
     {
@@ -198,6 +223,7 @@ final class FetchToolProjectionTest extends TestCase
         $this->assertSame(["name" => true], $shape["customer"]->array);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aSortNamingKnownKeyPathsIsAccepted(): void
     {
@@ -205,6 +231,7 @@ final class FetchToolProjectionTest extends TestCase
         $this->expectNotToPerformAssertions();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aSortNamingAnUnknownKeyPathIsRefused(): void
     {
@@ -212,6 +239,7 @@ final class FetchToolProjectionTest extends TestCase
         $this->invoke("validateSort", "Order", new ArrayClass([new Dictionary(["key" => "nope"])]));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aSortEntryWithoutAKeyIsSkipped(): void
     {
@@ -219,6 +247,7 @@ final class FetchToolProjectionTest extends TestCase
         $this->expectNotToPerformAssertions();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function noSortAtAllIsAccepted(): void
     {
@@ -226,6 +255,7 @@ final class FetchToolProjectionTest extends TestCase
         $this->expectNotToPerformAssertions();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aRequestWithoutASortKeepsItsOwnOrdering(): void
     {
@@ -234,6 +264,7 @@ final class FetchToolProjectionTest extends TestCase
         $this->assertNull($request->sortDescriptors);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function sortEntriesBecomeSortDescriptorsDefaultingToAscending(): void
     {
@@ -248,6 +279,7 @@ final class FetchToolProjectionTest extends TestCase
         $this->assertTrue($second->ascending);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aSortEntryWithoutAKeyContributesNoDescriptor(): void
     {
@@ -256,6 +288,7 @@ final class FetchToolProjectionTest extends TestCase
         $this->assertSame(1, $request->sortDescriptors?->count);
     }
 
+    /** @throws ReflectionException */
     private function invoke(string $method, mixed ...$arguments): mixed
     {
         $descriptor = new ReflectionClass(ModelDescriptor::class)->newInstanceWithoutConstructor();

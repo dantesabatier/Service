@@ -7,6 +7,7 @@ namespace Sabatier\Service\Tests\Unit;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionProperty;
 use Sabatier\Service\MCP\Tools\ToolVocabulary;
 
@@ -22,6 +23,7 @@ final class ToolVocabularyTest extends TestCase
     /**
      * @param array<string, mixed> $localized
      * @param array<string, mixed> $base
+     * @throws ReflectionException
      */
     private function make(array $localized, array $base): ToolVocabulary
     {
@@ -31,6 +33,7 @@ final class ToolVocabularyTest extends TestCase
         return $vocabulary;
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function returnsLocalizedValueWhenPresent(): void
     {
@@ -42,6 +45,7 @@ final class ToolVocabularyTest extends TestCase
         $this->assertSame("Cuenta filas.", $vocabulary->localize("count", "description"));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function fallsBackToBaseWhenLocaleLacksTheField(): void
     {
@@ -52,6 +56,7 @@ final class ToolVocabularyTest extends TestCase
         $this->assertSame("Count rows.", $vocabulary->localize("count", "description"), "description sin traducir cae al base en");
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function fallsBackToBaseWhenLocaleLacksTheTool(): void
     {
@@ -63,6 +68,7 @@ final class ToolVocabularyTest extends TestCase
         $this->assertSame("Count rows.", $vocabulary->localize("count", "description"));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function returnsNullWhenNeitherLocaleNorBaseHasTheTool(): void
     {
@@ -71,6 +77,7 @@ final class ToolVocabularyTest extends TestCase
         $this->assertNull($vocabulary->localize("count", "description"));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function returnsNullWhenEntryExistsButFieldIsMissingEverywhere(): void
     {

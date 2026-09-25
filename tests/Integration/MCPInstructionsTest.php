@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Integration;
 
+use Exception;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
@@ -26,6 +27,7 @@ final class MCPInstructionsTest extends TestCase
         $this->writtenURLs = new ArrayClass();
     }
 
+    /** @throws Exception */
     protected function tearDown(): void
     {
         $this->writtenURLs->forEach(fn(URL $url) => FileManager::default()->removeItem($url));
@@ -80,6 +82,7 @@ final class MCPInstructionsTest extends TestCase
         $this->assertStringContainsString("CRITICAL", new MCPInstructionsProvider("probe_absent_instructions.md")->build());
     }
 
+    /** @throws Exception */
     #[Test]
     public function theNamedResourceIsPrependedToTheFrameworkRules(): void
     {
@@ -89,6 +92,7 @@ final class MCPInstructionsTest extends TestCase
         $this->assertStringContainsString("CRITICAL", $built);
     }
 
+    /** @throws Exception */
     #[Test]
     public function theLocalizedResourceIsPreferredOverTheBundleRoot(): void
     {
@@ -97,6 +101,7 @@ final class MCPInstructionsTest extends TestCase
         $this->assertStringStartsWith("Localized copy.", new MCPInstructionsProvider("probe_localized_instructions.md")->build());
     }
 
+    /** @throws Exception */
     #[Test]
     public function theInstructionsAreBuiltOnceAndReused(): void
     {
@@ -109,6 +114,7 @@ final class MCPInstructionsTest extends TestCase
         $this->assertStringStartsWith("First reading.", $provider->build());
     }
 
+    /** @throws Exception */
     private function writeInstructions(string $filename, string $contents, ?string $localization = null): void
     {
         $directoryURL = Bundle::main()->resourceURL ?? Bundle::main()->bundleURL;

@@ -115,7 +115,10 @@ final class LLMClientBuildRequestTest extends TestCase
         $this->assertSame("the query was malformed", $toolResult["content"]);
     }
 
-    /** @throws ReflectionException */
+    /**
+     * @throws ReflectionException
+     * @throws JsonException
+     */
     #[Test]
     public function toolArgumentObjectsAndListsKeepTheirWireShapeAcrossProviders(): void
     {

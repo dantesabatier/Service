@@ -8,6 +8,7 @@ use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionMethod;
 use ReflectionProperty;
 use Sabatier\Foundation\Dictionary;
@@ -50,6 +51,7 @@ final class ApplicationRateLimitTest extends TestCase
         parent::tearDown();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aDisabledPolicyCountsNothing(): void
     {
@@ -59,6 +61,7 @@ final class ApplicationRateLimitTest extends TestCase
         $this->assertNull($application->rateLimitInfo);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anAnonymousCallerIsCountedUnderItsAddress(): void
     {
@@ -67,6 +70,7 @@ final class ApplicationRateLimitTest extends TestCase
         $this->assertSame(["rate_limit:ip:203.0.113.7"], array_keys($store->counts));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anAddressThatCannotBeResolvedIsCountedAsUnknown(): void
     {
@@ -76,6 +80,7 @@ final class ApplicationRateLimitTest extends TestCase
         $this->assertSame(["rate_limit:ip:unknown"], array_keys($store->counts));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anAnonymousCallerIsHeldToTheAddressAllowance(): void
     {
@@ -84,6 +89,7 @@ final class ApplicationRateLimitTest extends TestCase
         $this->assertSame(90, $application->rateLimitInfo?->limit);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theRemainingAllowanceCountsDownWithEachRequest(): void
     {
@@ -95,6 +101,7 @@ final class ApplicationRateLimitTest extends TestCase
         $this->assertSame(8, $application->rateLimitInfo?->remaining);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theResetIsReportedAsAnAbsoluteMoment(): void
     {
@@ -104,6 +111,7 @@ final class ApplicationRateLimitTest extends TestCase
         $this->assertEqualsWithDelta(time() + 30, $application->rateLimitInfo?->reset, 1.0);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theAllowanceNeverGoesBelowZero(): void
     {
@@ -116,6 +124,7 @@ final class ApplicationRateLimitTest extends TestCase
         $this->assertSame(0, $application->rateLimitInfo?->remaining);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function exhaustingTheAllowanceRefusesTheRequest(): void
     {
@@ -128,6 +137,7 @@ final class ApplicationRateLimitTest extends TestCase
         $this->enforce($application);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theRefusalTellsTheCallerHowLongToWait(): void
     {
@@ -142,6 +152,7 @@ final class ApplicationRateLimitTest extends TestCase
         }
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aRefusalAlwaysAsksForAtLeastOneSecond(): void
     {
@@ -156,6 +167,7 @@ final class ApplicationRateLimitTest extends TestCase
         }
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theRequestIsCountedExactlyOncePerKey(): void
     {
@@ -164,6 +176,7 @@ final class ApplicationRateLimitTest extends TestCase
         $this->assertSame(1, $store->counts["rate_limit:ip:203.0.113.7"]);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anAuthenticatedCallerIsCountedByAddressAndByIdentity(): void
     {
@@ -172,6 +185,7 @@ final class ApplicationRateLimitTest extends TestCase
         $this->assertSame(["rate_limit:ip:203.0.113.7", "rate_limit:ip:203.0.113.7:user:ada"], array_keys($store->counts));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anAuthenticatedCallerIsHeldToTheUserAllowanceOnBothKeys(): void
     {
@@ -180,6 +194,7 @@ final class ApplicationRateLimitTest extends TestCase
         $this->assertSame(5, $application->rateLimitInfo?->limit);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theTightestOfTheTwoAllowancesIsTheOneReported(): void
     {
@@ -189,6 +204,7 @@ final class ApplicationRateLimitTest extends TestCase
         $this->assertSame(3, $application->rateLimitInfo?->remaining);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function exhaustingEitherKeyRefusesTheRequest(): void
     {
@@ -203,11 +219,13 @@ final class ApplicationRateLimitTest extends TestCase
         new ReflectionProperty(Application::class, "rateLimitInfo")->setValue($application, null);
     }
 
+    /** @throws ReflectionException */
     private function enforce(Application $application): void
     {
         new ReflectionMethod(Application::class, "enforceRateLimitIfNeeded")->invoke($application);
     }
 
+    /** @throws ReflectionException */
     private function authentication(?string $username): Authentication
     {
         return new class (new ReflectionClass(AuthenticationContext::class)->newInstanceWithoutConstructor(), new Dictionary(), $username) extends Authentication {
@@ -228,7 +246,10 @@ final class ApplicationRateLimitTest extends TestCase
         };
     }
 
-    /** @return array{Application, RateLimitStore} */
+    /**
+     * @return array{Application, RateLimitStore}
+     * @throws ReflectionException
+     */
     private function application(?RateLimitPolicy $policy = null, ?string $username = null): array
     {
         $store = new class implements RateLimitStore {

@@ -8,6 +8,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionProperty;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\Dictionary;
@@ -117,12 +118,14 @@ final class ResolverRegistriesTest extends TestCase
         $this->assertNull(AuthenticationResolver::getAuthentications());
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aHistoryReadResolvesToTheFetchStrategy(): void
     {
         $this->assertInstanceOf(FetchPersistentHistoryResponseStrategy::class, $this->historyResolver(HTTPRequestMethod::get)->strategy);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aHistoryPurgeResolvesToTheDeleteStrategy(): void
     {
@@ -137,6 +140,7 @@ final class ResolverRegistriesTest extends TestCase
         yield "PUT" => [HTTPRequestMethod::put];
     }
 
+    /** @throws ReflectionException */
     #[Test]
     #[DataProvider("unsupportedHistoryMethodProvider")]
     public function historyServesNeitherWritesNorUpdates(string $method): void
@@ -145,6 +149,7 @@ final class ResolverRegistriesTest extends TestCase
         $this->historyResolver($method)->strategy;
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function everyReadBuildsAFreshHistoryStrategy(): void
     {
@@ -152,6 +157,7 @@ final class ResolverRegistriesTest extends TestCase
         $this->assertNotSame($resolver->strategy, $resolver->strategy);
     }
 
+    /** @throws ReflectionException */
     private function historyResolver(string $method): PersistentHistoryResponseStrategyResolver
     {
         $request = new ReflectionClass(Request::class)->newInstanceWithoutConstructor();

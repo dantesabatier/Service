@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
 
+use Exception;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
@@ -22,6 +23,7 @@ final class SessionTest extends TestCase
     /**
      * Reading Session::$storageURL creates the bundle's caches tree under the project, which is not
      * a build artifact the repository ignores, so the suite takes it away again once it is done with it.
+     * @throws Exception
      */
     public static function tearDownAfterClass(): void
     {
@@ -52,6 +54,7 @@ final class SessionTest extends TestCase
         $this->assertSame("SABATIERSESSID", $session->name);
     }
 
+    /** @throws Exception */
     #[Test]
     public function theStorageDirectoryIsCreatedOnFirstAccessAndMemoized(): void
     {
@@ -97,6 +100,7 @@ final class SessionTest extends TestCase
         $this->assertNotSame("", $session->id);
     }
 
+    /** @throws Exception */
     #[Test]
     public function theSessionIsWrittenIntoItsOwnStorageDirectory(): void
     {
@@ -209,6 +213,7 @@ final class SessionTest extends TestCase
         $this->assertSame(SessionStatus::none, $session->status);
     }
 
+    /** @throws Exception */
     #[Test]
     public function theDestructorSweepsSessionFilesBelongingToOtherSessions(): void
     {
@@ -225,6 +230,7 @@ final class SessionTest extends TestCase
         $this->assertTrue(FileManager::default()->fileExists($unrelatedURL->path));
     }
 
+    /** @throws Exception */
     #[Test]
     public function theDestructorKeepsTheOwnSessionFileWhenItIsStillWithinItsLifetime(): void
     {
@@ -237,6 +243,7 @@ final class SessionTest extends TestCase
         $this->assertTrue(FileManager::default()->fileExists($ownURL->path));
     }
 
+    /** @throws Exception */
     #[Test]
     public function theDestructorSweepsTheOwnSessionFileOnceItsLifetimeHasElapsed(): void
     {
@@ -251,6 +258,7 @@ final class SessionTest extends TestCase
         $this->assertFalse(FileManager::default()->fileExists($ownURL->path));
     }
 
+    /** @throws Exception */
     #[Test]
     public function theDestructorSurvivesAStorageDirectoryThatIsGone(): void
     {
@@ -261,6 +269,7 @@ final class SessionTest extends TestCase
         $this->assertFalse(FileManager::default()->fileExists($storageURL->path));
     }
 
+    /** @throws Exception */
     private function scratchStorage(): URL
     {
         $storageURL = FileManager::default()->temporaryDirectory->appendingPathComponent(new UUID()->uuidString)->appendingPathComponent("Session");

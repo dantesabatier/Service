@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
 
+use Exception;
 use Override;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionProperty;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\CoreData\ManagedObjectModel;
@@ -35,6 +37,7 @@ use Sabatier\Service\Request;
 
 final class AuthorizationEvaluatorTest extends TestCase
 {
+    /** @throws Exception */
     #[Test]
     public function anUnauthenticatedRequestIsDeniedBeforeAnythingIsAsked(): void
     {
@@ -49,6 +52,7 @@ final class AuthorizationEvaluatorTest extends TestCase
         yield "an empty method" => [""];
     }
 
+    /** @throws Exception */
     #[Test]
     #[DataProvider("unsupportedMethodProvider")]
     public function aMethodWithNoAuthorizationMeaningIsRefused(string $method): void
@@ -68,6 +72,7 @@ final class AuthorizationEvaluatorTest extends TestCase
         yield "DELETE" => [HTTPRequestMethod::delete];
     }
 
+    /** @throws Exception */
     #[Test]
     #[DataProvider("supportedMethodProvider")]
     public function everySupportedMethodReachesTheAuthorizationService(string $method): void
@@ -83,6 +88,7 @@ final class AuthorizationEvaluatorTest extends TestCase
         }
     }
 
+    /** @throws Exception */
     #[Test]
     public function aUserHoldingThePermissionIsAuthorized(): void
     {
@@ -91,6 +97,7 @@ final class AuthorizationEvaluatorTest extends TestCase
         $this->assertTrue(new AuthorizationEvaluator()->evaluate($this->context(HTTPRequestMethod::get, "/Order", $user)));
     }
 
+    /** @throws Exception */
     #[Test]
     public function aUserLackingThePermissionIsDenied(): void
     {
@@ -99,6 +106,7 @@ final class AuthorizationEvaluatorTest extends TestCase
         $this->assertFalse(new AuthorizationEvaluator()->evaluate($this->context(HTTPRequestMethod::get, "/Order", $user)));
     }
 
+    /** @throws Exception */
     #[Test]
     public function thePublicPolicyAuthorizesWithoutAUser(): void
     {
@@ -113,6 +121,7 @@ final class AuthorizationEvaluatorTest extends TestCase
         parent::tearDown();
     }
 
+    /** @throws ReflectionException */
     private function context(string $method, string $path, ?Authorizable $user): AccessEvaluationContext
     {
         $server = $_SERVER;

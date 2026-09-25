@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Integration;
 
+use Exception;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
@@ -36,6 +37,7 @@ final class ResourceManagerTest extends TestCase
         ObjectClass::$staticAssociatedValues = [];
     }
 
+    /** @throws Exception */
     protected function tearDown(): void
     {
         $this->writtenURLs->forEach(fn(URL $url) => FileManager::default()->removeItem($url));
@@ -117,6 +119,7 @@ final class ResourceManagerTest extends TestCase
         $this->assertNull($this->data($this->manager("/style.css", method: HTTPRequestMethod::head)));
     }
 
+    /** @throws Exception */
     #[Test]
     public function aReadableFileIsServedAsItsContents(): void
     {
@@ -137,6 +140,7 @@ final class ResourceManagerTest extends TestCase
         $this->assertNull($this->data($this->manager("/" . new UUID()->uuidString . ".css", $this->disposition(allowEmptyResponse: true))));
     }
 
+    /** @throws Exception */
     #[Test]
     public function anAssignedBodyIsServedInPlaceOfTheFile(): void
     {
@@ -147,6 +151,7 @@ final class ResourceManagerTest extends TestCase
         $this->assertSame("assigned", $this->data($manager));
     }
 
+    /** @throws Exception */
     private function writeResource(string $contents): string
     {
         $name = new UUID()->uuidString . ".css";

@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Integration;
 
+use JsonException;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\MCP\Schema\AttributeSchema;
@@ -18,6 +20,7 @@ use Sabatier\Service\MCP\Schema\RelationshipSchema;
 use Sabatier\Service\MCP\Tools\DescribeModelTool;
 use Sabatier\Service\MCP\Tools\ToolRegistry;
 use Sabatier\Foundation\ArrayClass;
+use Throwable;
 
 /**
  * Exercises the two response modes of describe_model without a live store: a call with no
@@ -39,6 +42,7 @@ final class DescribeModelToolTest extends TestCase
         return new EntitySchema($name, "App\\Model\\$name", "the $name", ["alias-$name"], $attributes, $relationships);
     }
 
+    /** @throws ReflectionException */
     private function makeTool(): DescribeModelTool
     {
         /** @var Dictionary<EntitySchema> $entities */
@@ -58,6 +62,7 @@ final class DescribeModelToolTest extends TestCase
 
     /**
      * @return array<string, mixed>
+     * @throws JsonException
      */
     private function decode(DescribeModelTool $tool, Dictionary $arguments): array
     {
@@ -66,6 +71,10 @@ final class DescribeModelToolTest extends TestCase
         return json_decode($content->first->text, true, flags: JSON_THROW_ON_ERROR);
     }
 
+    /**
+     * @throws ReflectionException
+     * @throws JsonException
+     */
     #[Test]
     public function noArgumentReturnsLightweightIndex(): void
     {
@@ -79,6 +88,10 @@ final class DescribeModelToolTest extends TestCase
         $this->assertArrayHasKey("usage", $result);
     }
 
+    /**
+     * @throws ReflectionException
+     * @throws JsonException
+     */
     #[Test]
     public function indexDoesNotExpandAttributeShapes(): void
     {
@@ -86,6 +99,10 @@ final class DescribeModelToolTest extends TestCase
         $this->assertIsInt($result["entities"]["Order"]["attributes"]);
     }
 
+    /**
+     * @throws ReflectionException
+     * @throws JsonException
+     */
     #[Test]
     public function singleEntityStringReturnsFullDetail(): void
     {
@@ -96,6 +113,10 @@ final class DescribeModelToolTest extends TestCase
         $this->assertArrayHasKey("predicate_syntax", $result);
     }
 
+    /**
+     * @throws ReflectionException
+     * @throws JsonException
+     */
     #[Test]
     public function entityListReturnsDetailForEach(): void
     {
@@ -105,6 +126,7 @@ final class DescribeModelToolTest extends TestCase
         $this->assertCount(2, $result["entities"]["Small"]["attributes"]);
     }
 
+    /** @throws Throwable */
     #[Test]
     public function unknownEntityFailsWithActionableMessage(): void
     {

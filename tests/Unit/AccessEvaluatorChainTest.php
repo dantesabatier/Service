@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
 
+use Exception;
 use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Service\AccessEvaluationContext;
 use Sabatier\Service\AccessEvaluator;
@@ -15,6 +17,7 @@ use Sabatier\Service\AccessEvaluatorChain;
 
 final class AccessEvaluatorChainTest extends TestCase
 {
+    /** @throws ReflectionException */
     private function context(): AccessEvaluationContext
     {
         return new ReflectionClass(AccessEvaluationContext::class)->newInstanceWithoutConstructor();
@@ -36,6 +39,7 @@ final class AccessEvaluatorChainTest extends TestCase
         };
     }
 
+    /** @throws Exception */
     #[Test]
     public function emptyChainGrantsAccess(): void
     {
@@ -43,6 +47,7 @@ final class AccessEvaluatorChainTest extends TestCase
         $this->assertTrue($chain->evaluate($this->context()));
     }
 
+    /** @throws Exception */
     #[Test]
     public function singleAllowingEvaluatorGrantsAccess(): void
     {
@@ -50,6 +55,7 @@ final class AccessEvaluatorChainTest extends TestCase
         $this->assertTrue($chain->evaluate($this->context()));
     }
 
+    /** @throws Exception */
     #[Test]
     public function singleDenyingEvaluatorDeniesAccess(): void
     {
@@ -57,6 +63,7 @@ final class AccessEvaluatorChainTest extends TestCase
         $this->assertFalse($chain->evaluate($this->context()));
     }
 
+    /** @throws Exception */
     #[Test]
     public function failedEvaluatorIsNullWhenAllAllow(): void
     {
@@ -65,6 +72,7 @@ final class AccessEvaluatorChainTest extends TestCase
         $this->assertNull($chain->failedEvaluator);
     }
 
+    /** @throws Exception */
     #[Test]
     public function failedEvaluatorIsSetOnDenial(): void
     {
@@ -74,6 +82,7 @@ final class AccessEvaluatorChainTest extends TestCase
         $this->assertSame($deny, $chain->failedEvaluator);
     }
 
+    /** @throws Exception */
     #[Test]
     public function failedEvaluatorTracksFirstDenialInSequence(): void
     {
@@ -84,6 +93,7 @@ final class AccessEvaluatorChainTest extends TestCase
         $this->assertSame($first, $chain->failedEvaluator);
     }
 
+    /** @throws Exception */
     #[Test]
     public function allMustAllowForAccess(): void
     {
@@ -91,6 +101,7 @@ final class AccessEvaluatorChainTest extends TestCase
         $this->assertFalse($chain->evaluate($this->context()));
     }
 
+    /** @throws Exception */
     #[Test]
     public function firstDenialShortCircuitsChain(): void
     {

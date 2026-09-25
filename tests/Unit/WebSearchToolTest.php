@@ -7,12 +7,14 @@ namespace Sabatier\Service\Tests\Unit;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\MCP\Schema\ModelDescriptor;
 use Sabatier\Service\MCP\Tools\ToolRegistry;
 use Sabatier\Service\MCP\Tools\WebSearchTool;
+use Throwable;
 
 /**
  * Exercises the correctable failure paths of web_search through the framework's built-in tool
@@ -22,6 +24,7 @@ use Sabatier\Service\MCP\Tools\WebSearchTool;
  */
 final class WebSearchToolTest extends TestCase
 {
+    /** @throws ReflectionException */
     private function makeRegistry(): ToolRegistry
     {
         $context = new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor();
@@ -29,6 +32,7 @@ final class WebSearchToolTest extends TestCase
         return new ToolRegistry(new ArrayClass([new WebSearchTool($context, $descriptor)]));
     }
 
+    /** @throws Throwable */
     #[Test]
     public function blankQueryFunnelsAsCorrectableFailure(): void
     {
@@ -37,6 +41,7 @@ final class WebSearchToolTest extends TestCase
         $this->assertStringContainsString("non-empty query", $result->text);
     }
 
+    /** @throws Throwable */
     #[Test]
     public function missingApiKeyFunnelsAsConfigurationFailure(): void
     {

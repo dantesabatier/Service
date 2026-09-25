@@ -8,6 +8,7 @@ use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionMethod;
 use ReflectionProperty;
 use Sabatier\CoreData\EntityDescription;
@@ -79,6 +80,7 @@ final class KeyPathProbeTool extends AbstractTool
         return $this->shapeFromValues($entityName, $values);
     }
 
+    /** @throws ReflectionException */
     public function exposedResolveAttribute(string $entityName, string $keyPath): ?AttributeSchema
     {
         /** @var AttributeSchema|null */
@@ -93,12 +95,14 @@ final class KeyPathProbeTool extends AbstractTool
 
 final class AbstractToolSchemaTest extends TestCase
 {
+    /** @throws ReflectionException */
     #[Test]
     public function resolvesAnEntityByName(): void
     {
         $this->assertSame("Order", $this->tool()->exposedEntity("Order")->name);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anUnknownEntityIsAFatalMisuse(): void
     {
@@ -106,6 +110,7 @@ final class AbstractToolSchemaTest extends TestCase
         $this->tool()->exposedEntity("Ghost");
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function acceptsAnAttributeAsTheLastKeyPathComponent(): void
     {
@@ -113,6 +118,7 @@ final class AbstractToolSchemaTest extends TestCase
         $this->expectNotToPerformAssertions();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function acceptsARelationshipAsTheLastKeyPathComponent(): void
     {
@@ -120,6 +126,7 @@ final class AbstractToolSchemaTest extends TestCase
         $this->expectNotToPerformAssertions();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function acceptsAKeyPathTraversingARelationship(): void
     {
@@ -127,6 +134,7 @@ final class AbstractToolSchemaTest extends TestCase
         $this->expectNotToPerformAssertions();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function rejectsAnUnknownFinalProperty(): void
     {
@@ -134,6 +142,7 @@ final class AbstractToolSchemaTest extends TestCase
         $this->tool()->exposedValidateKeyPath("Order", "nope");
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function rejectsTraversingSomethingThatIsNotARelationship(): void
     {
@@ -141,6 +150,7 @@ final class AbstractToolSchemaTest extends TestCase
         $this->tool()->exposedValidateKeyPath("Order", "total.name");
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function rejectsAnUnknownPropertyBeyondARelationship(): void
     {
@@ -148,6 +158,7 @@ final class AbstractToolSchemaTest extends TestCase
         $this->tool()->exposedValidateKeyPath("Order", "customer.nope");
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function acceptsAPredicateWhoseArgumentsMatchItsPlaceholders(): void
     {
@@ -155,6 +166,7 @@ final class AbstractToolSchemaTest extends TestCase
         $this->expectNotToPerformAssertions();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function rejectsAPredicateWithTooFewArguments(): void
     {
@@ -162,6 +174,7 @@ final class AbstractToolSchemaTest extends TestCase
         $this->tool()->exposedValidatePredicateKeyPaths("Order", "%K = %s", new ArrayClass(["total"]));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function rejectsAPredicateWithTooManyArguments(): void
     {
@@ -169,6 +182,7 @@ final class AbstractToolSchemaTest extends TestCase
         $this->tool()->exposedValidatePredicateKeyPaths("Order", "%K = %s", new ArrayClass(["total", "10", "extra"]));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function everyKeyPathPlaceholderIsValidated(): void
     {
@@ -176,6 +190,7 @@ final class AbstractToolSchemaTest extends TestCase
         $this->tool()->exposedValidatePredicateKeyPaths("Order", "%K = %s AND %K = %s", new ArrayClass(["total", "10", "nope", "x"]));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aNonKeyPathPlaceholderIsNotTakenForAKeyPath(): void
     {
@@ -183,6 +198,7 @@ final class AbstractToolSchemaTest extends TestCase
         $this->expectNotToPerformAssertions();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function acceptsAMappedEnumValue(): void
     {
@@ -190,6 +206,7 @@ final class AbstractToolSchemaTest extends TestCase
         $this->expectNotToPerformAssertions();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function rejectsAnEnumCaseNameInPlaceOfItsValue(): void
     {
@@ -197,6 +214,7 @@ final class AbstractToolSchemaTest extends TestCase
         $this->tool()->exposedValidatePredicateKeyPaths("Order", "%K = %d", new ArrayClass(["status", "paid"]));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function everyMemberOfAnEnumListIsChecked(): void
     {
@@ -204,6 +222,7 @@ final class AbstractToolSchemaTest extends TestCase
         $this->tool()->exposedValidatePredicateKeyPaths("Order", "%K IN %@", new ArrayClass(["status", new ArrayClass([1, 99])]));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theEnumRejectionNamesEveryCaseAgainstItsMappedValue(): void
     {
@@ -217,6 +236,7 @@ final class AbstractToolSchemaTest extends TestCase
         }
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anEnumListOfMappedValuesIsAccepted(): void
     {
@@ -224,6 +244,7 @@ final class AbstractToolSchemaTest extends TestCase
         $this->expectNotToPerformAssertions();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aTrailingEnumKeyPathWithNoValueIsNotChecked(): void
     {
@@ -231,6 +252,7 @@ final class AbstractToolSchemaTest extends TestCase
         $this->expectNotToPerformAssertions();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aNonEnumAttributeAcceptsAnyValue(): void
     {
@@ -238,6 +260,7 @@ final class AbstractToolSchemaTest extends TestCase
         $this->expectNotToPerformAssertions();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aNumericRelationshipValueBecomesAnObjectIDReference(): void
     {
@@ -247,6 +270,7 @@ final class AbstractToolSchemaTest extends TestCase
         $this->assertSame(10, $normalized["total"]);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aNonNumericRelationshipValueIsLeftAlone(): void
     {
@@ -254,6 +278,7 @@ final class AbstractToolSchemaTest extends TestCase
         $this->assertSame($values["customer"], $this->tool()->exposedNormalizeRelationships("Order", $values)["customer"]);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function normalizingDoesNotMutateTheValuesItWasGiven(): void
     {
@@ -262,18 +287,21 @@ final class AbstractToolSchemaTest extends TestCase
         $this->assertSame(42, $values["customer"]);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anAttributeBecomesALeafOfTheShape(): void
     {
         $this->assertSame(["total" => true], $this->tool()->exposedShapeFromValues("Order", new Dictionary(["total" => 10]))->array);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aRelationshipWithNoNestedValuesIsALeafToo(): void
     {
         $this->assertSame(["customer" => true], $this->tool()->exposedShapeFromValues("Order", new Dictionary(["customer" => 42]))->array);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aNestedDictionaryIsRecursedInto(): void
     {
@@ -281,6 +309,7 @@ final class AbstractToolSchemaTest extends TestCase
         $this->assertSame(["name" => true], $shape["customer"]->array);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function everyMemberOfAToManyRelationshipContributesToTheShape(): void
     {
@@ -288,42 +317,49 @@ final class AbstractToolSchemaTest extends TestCase
         $this->assertSame(["name" => true, "total" => true], $shape["lines"]->array);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anAttributeIsResolvedThroughItsKeyPath(): void
     {
         $this->assertSame("total", $this->tool()->exposedResolveAttribute("Order", "total")?->name);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anAttributeBeyondARelationshipIsResolvedToo(): void
     {
         $this->assertSame("name", $this->tool()->exposedResolveAttribute("Order", "customer.name")?->name);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aRelationshipIsNotAnAttribute(): void
     {
         $this->assertNull($this->tool()->exposedResolveAttribute("Order", "customer"));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anUnknownPropertyResolvesToNoAttribute(): void
     {
         $this->assertNull($this->tool()->exposedResolveAttribute("Order", "nope"));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function traversingSomethingThatIsNotARelationshipResolvesToNothing(): void
     {
         $this->assertNull($this->tool()->exposedResolveAttribute("Order", "total.name"));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aFetchRequestIsScopedToTheNamedEntity(): void
     {
         $this->assertSame("Order", $this->toolWithModel()->exposedFetchRequest("Order")->entity?->name);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aFetchRequestForAnUnknownEntityIsRefused(): void
     {
@@ -331,6 +367,7 @@ final class AbstractToolSchemaTest extends TestCase
         $this->toolWithModel()->exposedFetchRequest("Ghost");
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aFetchRequestWithoutAModelBehindTheContextIsRefused(): void
     {
@@ -343,6 +380,7 @@ final class AbstractToolSchemaTest extends TestCase
         }
     }
 
+    /** @throws ReflectionException */
     private function toolWithModel(): KeyPathProbeTool
     {
         $entity = new EntityDescription();
@@ -355,6 +393,7 @@ final class AbstractToolSchemaTest extends TestCase
         return $this->tool($context);
     }
 
+    /** @throws ReflectionException */
     private function tool(?ManagedObjectContext $context = null): KeyPathProbeTool
     {
         $descriptor = new ReflectionClass(ModelDescriptor::class)->newInstanceWithoutConstructor();

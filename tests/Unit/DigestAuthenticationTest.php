@@ -9,6 +9,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionProperty;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\Dictionary;
@@ -41,12 +42,14 @@ final class DigestAuthenticationTest extends TestCase
         $this->assertSame($expected, DigestAuthentication::isSupported($scheme));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function reportsItsOwnScheme(): void
     {
         $this->assertSame(AuthenticationScheme::digest, $this->authentication("")->scheme);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function parsesEveryRecognisedDigestParameter(): void
     {
@@ -62,18 +65,21 @@ final class DigestAuthenticationTest extends TestCase
         $this->assertSame("op", $parameters["opaque"]);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function ignoresParametersItDoesNotRecognise(): void
     {
         $this->assertNull($this->authentication("username=\"ada\", stale=TRUE")->parameters["stale"]);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function parsesUnquotedParameters(): void
     {
         $this->assertSame("ada", $this->authentication("username=ada")->parameters["username"]);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theParsedParametersAreMemoized(): void
     {
@@ -81,18 +87,21 @@ final class DigestAuthenticationTest extends TestCase
         $this->assertSame($authentication->parameters, $authentication->parameters);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function derivesTheCredentialFromTheUsernameParameter(): void
     {
         $this->assertSame("ada", $this->authentication("username=\"ada\"")->credential?->user);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function thereIsNoCredentialWithoutAUsername(): void
     {
         $this->assertNull($this->authentication("nonce=\"abc\"")->credential);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theCredentialIsResolvedOnlyOnce(): void
     {
@@ -100,12 +109,14 @@ final class DigestAuthenticationTest extends TestCase
         $this->assertSame($authentication->credential, $authentication->credential);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aCredentiallessHeaderIsNotValid(): void
     {
         $this->assertFalse($this->authentication("nonce=\"abc\"")->isValid);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aUserWithoutAPasswordIsNotValid(): void
     {
@@ -122,6 +133,7 @@ final class DigestAuthenticationTest extends TestCase
         yield "no qop" => ["uri=\"/orders\", nonce=\"abc\", nc=1, cnonce=\"xyz\""];
     }
 
+    /** @throws ReflectionException */
     #[Test]
     #[DataProvider("missingParameterProvider")]
     public function aChallengeMissingAnyRequiredParameterIsNotValid(string $header): void
@@ -138,6 +150,7 @@ final class DigestAuthenticationTest extends TestCase
         yield "an unknown algorithm falls through to md5" => ["SHA-1", "md5"];
     }
 
+    /** @throws ReflectionException */
     #[Test]
     #[DataProvider("algorithmProvider")]
     public function acceptsTheResponseComputedWithTheNamedAlgorithm(string $algorithm, string $hash): void
@@ -146,30 +159,35 @@ final class DigestAuthenticationTest extends TestCase
         $this->assertTrue($this->authenticationForUser($header, "secret")->isValid);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anAbsentAlgorithmFallsThroughToMD5(): void
     {
         $this->assertTrue($this->authenticationForUser($this->challenge($this->expectedResponse("md5")), "secret")->isValid);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function rejectsAResponseComputedWithADifferentAlgorithm(): void
     {
         $this->assertFalse($this->authenticationForUser($this->challenge($this->expectedResponse("md5"), "SHA-256"), "secret")->isValid);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function rejectsAMismatchedResponse(): void
     {
         $this->assertFalse($this->authenticationForUser($this->challenge("not the right digest"), "secret")->isValid);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function rejectsAResponseComputedFromADifferentPassword(): void
     {
         $this->assertFalse($this->authenticationForUser($this->challenge($this->expectedResponse("md5")), "a different secret")->isValid);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theVerdictIsMemoized(): void
     {
@@ -193,6 +211,7 @@ final class DigestAuthenticationTest extends TestCase
         return hash($hash, "$password:abc:00000001:xyz:auth:$HA2");
     }
 
+    /** @throws ReflectionException */
     private function authentication(string $headerValue): DigestAuthentication
     {
         $context = new AuthenticationContext(
@@ -205,6 +224,7 @@ final class DigestAuthenticationTest extends TestCase
         return new DigestAuthentication($context, new Dictionary());
     }
 
+    /** @throws ReflectionException */
     private function authenticationForUser(string $headerValue, ?string $password): DigestAuthentication
     {
         $authentication = $this->authentication($headerValue);

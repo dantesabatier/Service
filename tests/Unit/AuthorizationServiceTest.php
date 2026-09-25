@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
 
+use Exception;
 use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
@@ -80,11 +82,13 @@ final class AuthorizationServiceTest extends TestCase
         };
     }
 
+    /** @throws ReflectionException */
     private function makeResolver(): AuthorizationResolver
     {
         return new ReflectionClass(AuthorizationResolver::class)->newInstanceWithoutConstructor();
     }
 
+    /** @throws ReflectionException */
     private function makeContext(): ManagedObjectContext
     {
         return new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor();
@@ -96,11 +100,13 @@ final class AuthorizationServiceTest extends TestCase
         return new ArrayClass($scopes);
     }
 
+    /** @throws ReflectionException */
     private function makeService(AuthorizationCache $inRequest, ?AuthorizationCache $persistent = null): AuthorizationService
     {
         return new AuthorizationService($this->makeResolver(), $inRequest, $persistent);
     }
 
+    /** @throws Exception */
     #[Test]
     public function tokenScopeExactMatchGrantsAccessWithoutCacheLookup(): void
     {
@@ -112,6 +118,7 @@ final class AuthorizationServiceTest extends TestCase
         $this->assertTrue($result);
     }
 
+    /** @throws Exception */
     #[Test]
     public function tokenScopeAnyGrantsAccessForAnyAction(): void
     {
@@ -123,6 +130,7 @@ final class AuthorizationServiceTest extends TestCase
         $this->assertTrue($result);
     }
 
+    /** @throws Exception */
     #[Test]
     public function tokenScopeWrongResourceDoesNotGrantAccess(): void
     {
@@ -135,6 +143,7 @@ final class AuthorizationServiceTest extends TestCase
         $this->assertFalse($result);
     }
 
+    /** @throws Exception */
     #[Test]
     public function inRequestCacheHitGrantsAccessWhenAuthorizationMatches(): void
     {
@@ -146,6 +155,7 @@ final class AuthorizationServiceTest extends TestCase
         $this->assertTrue($result);
     }
 
+    /** @throws Exception */
     #[Test]
     public function inRequestCacheHitDeniesAccessWhenAuthorizationDoesNotMatch(): void
     {
@@ -157,6 +167,7 @@ final class AuthorizationServiceTest extends TestCase
         $this->assertFalse($result);
     }
 
+    /** @throws Exception */
     #[Test]
     public function persistentCacheHitIsPromotedToInRequestCache(): void
     {
@@ -170,6 +181,7 @@ final class AuthorizationServiceTest extends TestCase
         $this->assertNotNull($inRequest->captured);
     }
 
+    /** @throws Exception */
     #[Test]
     public function persistentCacheHitGrantsAccessWithoutResolver(): void
     {
@@ -181,6 +193,7 @@ final class AuthorizationServiceTest extends TestCase
         $this->assertTrue($result);
     }
 
+    /** @throws Exception */
     #[Test]
     public function authorizationTypeAnyGrantsAccessForSpecificAction(): void
     {
@@ -192,6 +205,7 @@ final class AuthorizationServiceTest extends TestCase
         $this->assertTrue($result);
     }
 
+    /** @throws Exception */
     #[Test]
     public function authorizationMatchIsCaseInsensitiveOnResourceName(): void
     {
@@ -203,6 +217,7 @@ final class AuthorizationServiceTest extends TestCase
         $this->assertTrue($result);
     }
 
+    /** @throws Exception */
     #[Test]
     public function wrongResourceNameDeniesAccess(): void
     {
@@ -214,6 +229,7 @@ final class AuthorizationServiceTest extends TestCase
         $this->assertFalse($result);
     }
 
+    /** @throws Exception */
     #[Test]
     public function authorizationsComeFromTheInRequestCacheBeforeThePersistentOne(): void
     {
@@ -222,6 +238,7 @@ final class AuthorizationServiceTest extends TestCase
         $this->assertSame($inRequest, $this->makeService($this->makeCache($inRequest), $this->makeCache($persistent))->authorizations($this->makeUser(), $this->makeContext()));
     }
 
+    /** @throws Exception */
     #[Test]
     public function authorizationsFromThePersistentCacheArePromotedToTheInRequestOne(): void
     {
@@ -231,6 +248,7 @@ final class AuthorizationServiceTest extends TestCase
         $this->assertSame($authorizations, $inRequest->captured);
     }
 
+    /** @throws Exception */
     #[Test]
     public function authorizationScopesTakeTheFormATokenCarries(): void
     {
@@ -238,6 +256,7 @@ final class AuthorizationServiceTest extends TestCase
         $this->assertSame(["Order:read:own", "Order:any:all"], $this->makeService($inRequest)->authorizationScopes($this->makeUser(), $this->makeContext())->array);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function invalidateAuthorizableCallsBothCaches(): void
     {
@@ -248,6 +267,7 @@ final class AuthorizationServiceTest extends TestCase
         $this->assertTrue($persistent->invalidated);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function invalidateAuthorizableWithoutPersistentCacheDoesNotThrow(): void
     {

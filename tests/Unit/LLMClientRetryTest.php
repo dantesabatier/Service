@@ -6,6 +6,7 @@ namespace Sabatier\Service\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use ReflectionException;
 use ReflectionMethod;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
@@ -20,6 +21,7 @@ use Sabatier\Service\LLM\StandardLLMClient;
  */
 final class LLMClientRetryTest extends TestCase
 {
+    /** @throws ReflectionException */
     #[Test]
     public function rateLimitingAndServerFailuresAreWorthRetrying(): void
     {
@@ -31,6 +33,7 @@ final class LLMClientRetryTest extends TestCase
         $this->assertTrue($this->isRetryable(HTTPStatusCode::requestTimeout));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function faultsTheCallerCausedAreNotRetried(): void
     {
@@ -41,6 +44,7 @@ final class LLMClientRetryTest extends TestCase
         $this->assertFalse($this->isRetryable(HTTPStatusCode::ok));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function delayDoublesWithEveryAttempt(): void
     {
@@ -51,6 +55,7 @@ final class LLMClientRetryTest extends TestCase
         $this->assertSame(4.0, $this->retryDelay($client, 2, null));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function delayNeverExceedsItsCeiling(): void
     {
@@ -59,6 +64,7 @@ final class LLMClientRetryTest extends TestCase
         $this->assertSame(30.0, $this->retryDelay($client, 20, null));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function providersRetryAfterWinsOverTheComputedDelay(): void
     {
@@ -67,6 +73,7 @@ final class LLMClientRetryTest extends TestCase
         $this->assertSame(7.0, $this->retryDelay($client, 0, $this->responseRetryingAfter("7")));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anOversizedRetryAfterIsStillCapped(): void
     {
@@ -75,6 +82,7 @@ final class LLMClientRetryTest extends TestCase
         $this->assertSame(30.0, $this->retryDelay($client, 0, $this->responseRetryingAfter("3600")));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aDateFormattedRetryAfterFallsBackToTheComputedDelay(): void
     {
@@ -83,36 +91,42 @@ final class LLMClientRetryTest extends TestCase
         $this->assertSame(1.0, $this->retryDelay($client, 0, $this->responseRetryingAfter("Wed, 21 Oct 2015 07:28:00 GMT")));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aFailureWithoutAStatusIsReportedAsNoResponseAtAll(): void
     {
         $this->assertSame("The LLM provider returned no response", $this->failureReason(null, null));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aFailingStatusIsNamedInTheFailureReason(): void
     {
         $this->assertSame("The LLM provider returned HTTP 503", $this->failureReason(HTTPStatusCode::serviceUnavailable, null));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theProvidersOwnBodyIsAppendedToTheFailureReason(): void
     {
         $this->assertSame("The LLM provider returned HTTP 400: {\"error\":\"unknown model\"}", $this->failureReason(HTTPStatusCode::badRequest, "{\"error\":\"unknown model\"}"));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aBlankBodyIsLeftOutOfTheFailureReason(): void
     {
         $this->assertSame("The LLM provider returned HTTP 500", $this->failureReason(HTTPStatusCode::internalServerError, "   \n  "));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aBodylessFailureWithoutAStatusStillReadsCleanly(): void
     {
         $this->assertSame("The LLM provider returned no response: timed out", $this->failureReason(null, "timed out"));
     }
 
+    /** @throws ReflectionException */
     private function failureReason(?int $statusCode, ?string $data): string
     {
         $client = new StandardLLMClient();
@@ -120,6 +134,7 @@ final class LLMClientRetryTest extends TestCase
         return new ReflectionMethod($client, "failureReason")->invoke($client, $statusCode, $data);
     }
 
+    /** @throws ReflectionException */
     private function isRetryable(int $statusCode): bool
     {
         $client = new StandardLLMClient();
@@ -127,6 +142,7 @@ final class LLMClientRetryTest extends TestCase
         return new ReflectionMethod($client, "isRetryable")->invoke($client, $statusCode);
     }
 
+    /** @throws ReflectionException */
     private function retryDelay(StandardLLMClient $client, int $attempt, ?HTTPURLResponse $response): float
     {
         /** @var float */

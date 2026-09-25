@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
 
+use JsonException;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Sabatier\CoreData\AttributeType;
@@ -14,6 +15,7 @@ use Sabatier\Service\FetchRequestAdapter;
 
 final class FetchRequestAdapterTest extends TestCase
 {
+    /** @throws JsonException */
     #[Test]
     public function anEmptyRepresentationYieldsTheFetchRequestDefaults(): void
     {
@@ -31,6 +33,7 @@ final class FetchRequestAdapterTest extends TestCase
         $this->assertNull($fetchRequest->havingPredicate);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function carriesTheEntityNameAcross(): void
     {
@@ -38,6 +41,7 @@ final class FetchRequestAdapterTest extends TestCase
         $this->assertSame("Order", $fetchRequest->entityName);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function buildsThePredicateFromItsFormatAndArguments(): void
     {
@@ -46,6 +50,7 @@ final class FetchRequestAdapterTest extends TestCase
         $this->assertStringContainsString("Ada", $fetchRequest->predicate->predicateFormat);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function buildsThePredicateWithoutArguments(): void
     {
@@ -54,6 +59,7 @@ final class FetchRequestAdapterTest extends TestCase
         $this->assertStringContainsString("enabled", $fetchRequest->predicate->predicateFormat);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function ignoresAPredicateThatIsNotAnObject(): void
     {
@@ -61,6 +67,7 @@ final class FetchRequestAdapterTest extends TestCase
         $this->assertNull($fetchRequest->predicate);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function ignoresAPredicateObjectWithoutAFormat(): void
     {
@@ -68,6 +75,7 @@ final class FetchRequestAdapterTest extends TestCase
         $this->assertNull($fetchRequest->predicate);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function carriesTheScalarBoundsAcross(): void
     {
@@ -79,6 +87,7 @@ final class FetchRequestAdapterTest extends TestCase
         $this->assertTrue($fetchRequest->returnsDistinctResults);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function buildsSortDescriptorsAndDefaultsThemToAscending(): void
     {
@@ -95,6 +104,7 @@ final class FetchRequestAdapterTest extends TestCase
         $this->assertTrue($second->ascending);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function dropsSortDescriptorsWithoutAKey(): void
     {
@@ -102,6 +112,7 @@ final class FetchRequestAdapterTest extends TestCase
         $this->assertSame(1, $fetchRequest->sortDescriptors?->count);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function ignoresSortDescriptorsThatAreNotAnArray(): void
     {
@@ -109,6 +120,7 @@ final class FetchRequestAdapterTest extends TestCase
         $this->assertNull($fetchRequest->sortDescriptors);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function resolvesTheResultTypeFromItsRawValue(): void
     {
@@ -116,6 +128,7 @@ final class FetchRequestAdapterTest extends TestCase
         $this->assertSame(FetchRequestResultType::dictionaryResultType, $fetchRequest->resultType);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function keepsAStringPropertyToFetchVerbatim(): void
     {
@@ -123,6 +136,7 @@ final class FetchRequestAdapterTest extends TestCase
         $this->assertSame(["name", "date"], $fetchRequest->propertiesToFetch?->array);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function buildsAnExpressionDescriptionFromAPropertyToFetch(): void
     {
@@ -134,6 +148,7 @@ final class FetchRequestAdapterTest extends TestCase
         $this->assertNotNull($description->expression);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function leavesTheExpressionResultTypeUndefinedWhenItIsAbsent(): void
     {
@@ -143,6 +158,7 @@ final class FetchRequestAdapterTest extends TestCase
         $this->assertSame(AttributeType::undefined, $description->resultType);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function dropsPropertiesToFetchThatAreNeitherStringsNorObjects(): void
     {
@@ -150,6 +166,7 @@ final class FetchRequestAdapterTest extends TestCase
         $this->assertSame(["name"], $fetchRequest->propertiesToFetch?->array);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function dropsAnExpressionPropertyMissingItsNameOrExpression(): void
     {
@@ -157,6 +174,7 @@ final class FetchRequestAdapterTest extends TestCase
         $this->assertTrue($fetchRequest->propertiesToFetch?->isEmpty);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function dropsAnExpressionPropertyWhoseExpressionHasNoFormat(): void
     {
@@ -164,6 +182,7 @@ final class FetchRequestAdapterTest extends TestCase
         $this->assertTrue($fetchRequest->propertiesToFetch?->isEmpty);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function ignoresPropertiesToFetchThatAreNotAnArray(): void
     {
@@ -171,6 +190,7 @@ final class FetchRequestAdapterTest extends TestCase
         $this->assertNull($fetchRequest->propertiesToFetch);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function buildsThePropertiesToGroupByThroughTheSameTransform(): void
     {
@@ -181,6 +201,7 @@ final class FetchRequestAdapterTest extends TestCase
         $this->assertInstanceOf(ExpressionDescription::class, $propertiesToGroupBy[1]);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function ignoresPropertiesToGroupByThatAreNotAnArray(): void
     {
@@ -188,6 +209,7 @@ final class FetchRequestAdapterTest extends TestCase
         $this->assertNull($fetchRequest->propertiesToGroupBy);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function buildsTheHavingPredicateFromItsFormatAndArguments(): void
     {
@@ -196,6 +218,7 @@ final class FetchRequestAdapterTest extends TestCase
         $this->assertStringContainsString("10", $fetchRequest->havingPredicate->predicateFormat);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function ignoresAHavingPredicateThatIsNotAnObject(): void
     {
@@ -203,6 +226,7 @@ final class FetchRequestAdapterTest extends TestCase
         $this->assertNull($fetchRequest->havingPredicate);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function ignoresAHavingPredicateObjectWithoutAFormat(): void
     {
@@ -210,6 +234,7 @@ final class FetchRequestAdapterTest extends TestCase
         $this->assertNull($fetchRequest->havingPredicate);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function buildsAFreshFetchRequestOnEveryRead(): void
     {
@@ -217,6 +242,7 @@ final class FetchRequestAdapterTest extends TestCase
         $this->assertNotSame($adapter->fetchRequest, $adapter->fetchRequest);
     }
 
+    /** @throws JsonException */
     private function representation(string $json): object
     {
         /** @var object */

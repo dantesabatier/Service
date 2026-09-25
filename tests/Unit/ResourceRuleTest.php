@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
 
+use Exception;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Sabatier\CoreData\ManagedObject;
@@ -74,6 +75,7 @@ final class ResourceRuleTest extends TestCase
 
     // --- resolve ---
 
+    /** @throws Exception */
     #[Test]
     public function resolveReturnsNullWhenClassCarriesNoAttribute(): void
     {
@@ -81,6 +83,7 @@ final class ResourceRuleTest extends TestCase
         $this->assertNull(ResourceRule::resolve(ResourceRuleUnguardedFixture::class, Writable::class));
     }
 
+    /** @throws Exception */
     #[Test]
     public function resolveReadsRolesWhereAndArgumentsFromReadable(): void
     {
@@ -94,6 +97,7 @@ final class ResourceRuleTest extends TestCase
         $this->assertFalse($rule->requiresOwner);
     }
 
+    /** @throws Exception */
     #[Test]
     public function resolveDiscriminatesBetweenReadableAndWritableOnSameClass(): void
     {
@@ -107,6 +111,7 @@ final class ResourceRuleTest extends TestCase
         $this->assertSame([], $writable->arguments);
     }
 
+    /** @throws Exception */
     #[Test]
     public function resolveDefaultsToEmptyRolesAllScopeForBareAttribute(): void
     {
@@ -117,6 +122,7 @@ final class ResourceRuleTest extends TestCase
         $this->assertNull($rule->where);
     }
 
+    /** @throws Exception */
     #[Test]
     public function resolveReturnsCachedInstanceOnSecondCall(): void
     {

@@ -7,6 +7,7 @@ namespace Sabatier\Service\Tests\Integration;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
@@ -24,6 +25,7 @@ class DateConditionFixture extends ManagedObject
 
 final class AccessConditionResolverTest extends TestCase
 {
+    /** @throws ReflectionException */
     private function makeResource(string $day): DateConditionFixture
     {
         /** @var DateConditionFixture $resource */
@@ -43,6 +45,7 @@ final class AccessConditionResolverTest extends TestCase
         $this->assertSame("day = 'x'", $predicate->predicateFormat);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function evaluateResolvesTodayVariableAgainstMatchingResource(): void
     {
@@ -51,6 +54,7 @@ final class AccessConditionResolverTest extends TestCase
         $this->assertTrue($resolver->evaluate("%K == \$TODAY", ["day"], $resource));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function evaluateResolvesTodayVariableAgainstNonMatchingResource(): void
     {
@@ -59,6 +63,7 @@ final class AccessConditionResolverTest extends TestCase
         $this->assertFalse($resolver->evaluate("%K == \$TODAY", ["day"], $resource));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function evaluateResolvesWeekStartVariable(): void
     {
@@ -67,6 +72,7 @@ final class AccessConditionResolverTest extends TestCase
         $this->assertTrue($resolver->evaluate("%K == \$WEEK_START", ["day"], $this->makeResource($weekStart)));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function evaluatePlainArgumentConditionWithoutVariables(): void
     {

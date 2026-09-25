@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
 
+use Exception;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionMethod;
 use ReflectionProperty;
 use Sabatier\CoreData\ManagedObjectContext;
@@ -29,6 +31,7 @@ use const Sabatier\Service\ServiceResponseStatusKey;
  */
 final class PersistentHistoryToolRequestTest extends TestCase
 {
+    /** @throws Exception */
     #[Test]
     public function anOperationIsRequiredBeforeAnythingElseHappens(): void
     {
@@ -40,6 +43,7 @@ final class PersistentHistoryToolRequestTest extends TestCase
         }
     }
 
+    /** @throws Exception */
     #[Test]
     public function anUnknownOperationIsRefusedAndNamesTheAllowedOnes(): void
     {
@@ -53,6 +57,7 @@ final class PersistentHistoryToolRequestTest extends TestCase
         }
     }
 
+    /** @throws Exception */
     #[Test]
     public function anOperationThatOnlyMatchesLooselyIsStillRefused(): void
     {
@@ -66,6 +71,7 @@ final class PersistentHistoryToolRequestTest extends TestCase
         }
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theToolAdvertisesItselfAsReadOnlyOnlyForAFetch(): void
     {
@@ -74,6 +80,7 @@ final class PersistentHistoryToolRequestTest extends TestCase
         $this->assertFalse($tool->isReadOnlyCall(new Dictionary(["operation" => "purge"])));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aPurgeScopedByDateDeletesBeforeThatDate(): void
     {
@@ -82,6 +89,7 @@ final class PersistentHistoryToolRequestTest extends TestCase
         $this->assertSame("2026-01-15", $request->date?->description ? substr($request->date->description, 0, 10) : null);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aPurgeScopedByTransactionDeletesBeforeThatNumber(): void
     {
@@ -90,12 +98,14 @@ final class PersistentHistoryToolRequestTest extends TestCase
         $this->assertSame(42, $request->transactionNumber?->intValue);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aPurgeKeepsZeroAsAnExplicitTransactionBoundary(): void
     {
         $this->assertSame(0, $this->purgeRequest(["transaction" => 0])->transactionNumber?->intValue);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aPurgeScopedByTokenDeletesBeforeThatToken(): void
     {
@@ -104,6 +114,7 @@ final class PersistentHistoryToolRequestTest extends TestCase
         $this->assertNotNull($request->token);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aPurgeWithoutAScopeIsRefused(): void
     {
@@ -111,6 +122,7 @@ final class PersistentHistoryToolRequestTest extends TestCase
         $this->purgeRequest([]);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aFetchScopedByDateReadsAfterThatDate(): void
     {
@@ -119,6 +131,7 @@ final class PersistentHistoryToolRequestTest extends TestCase
         $this->assertNotNull($request->date);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aFetchScopedByTransactionReadsAfterThatNumber(): void
     {
@@ -127,18 +140,21 @@ final class PersistentHistoryToolRequestTest extends TestCase
         $this->assertSame(42, $request->transactionNumber?->intValue);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aFetchKeepsZeroAsAnExplicitTransactionBoundary(): void
     {
         $this->assertSame(0, $this->fetchRequestFor(["transaction" => 0])->transactionNumber?->intValue);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aFetchScopedByTokenReadsAfterThatToken(): void
     {
         $this->assertNotNull($this->fetchRequestFor(["token" => new Dictionary(["store-1" => 7])])->token);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aFetchWithoutAScopeIsRefused(): void
     {
@@ -146,6 +162,7 @@ final class PersistentHistoryToolRequestTest extends TestCase
         $this->fetchRequestFor([]);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theDefaultResultTypeIsLeftUntouched(): void
     {
@@ -164,6 +181,7 @@ final class PersistentHistoryToolRequestTest extends TestCase
         yield "transactionsAndChanges" => ["transactionsAndChanges", PersistentHistoryResultType::transactionsAndChanges];
     }
 
+    /** @throws ReflectionException */
     #[Test]
     #[DataProvider("resultTypeProvider")]
     public function eachNamedResultTypeIsMappedOntoItsCase(string $name, PersistentHistoryResultType $expected): void
@@ -171,6 +189,7 @@ final class PersistentHistoryToolRequestTest extends TestCase
         $this->assertSame($expected, $this->fetchRequestFor(["transaction" => "1", "resultType" => $name])->resultType);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anUnknownResultTypeIsRefusedAndNamesTheAllowedOnes(): void
     {
@@ -184,6 +203,7 @@ final class PersistentHistoryToolRequestTest extends TestCase
         }
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aTokenMustBeAnObjectOfStoreIdentifiersToNumbers(): void
     {
@@ -191,18 +211,21 @@ final class PersistentHistoryToolRequestTest extends TestCase
         $this->purgeRequest(["token" => "not-an-object"]);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aRequestWithoutAPredicateIsNotFiltered(): void
     {
         $this->assertNull($this->invoke("transactionFilter", new Dictionary([])));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anEmptyPredicateDoesNotFilterEither(): void
     {
         $this->assertNull($this->invoke("transactionFilter", new Dictionary(["predicate" => ""])));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aStatusOnlyResultIsReportedUnderTheStatusKey(): void
     {
@@ -210,6 +233,7 @@ final class PersistentHistoryToolRequestTest extends TestCase
         $this->assertSame(1, $shaped[ServiceResponseStatusKey]->intValue);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aCountResultIsReportedUnderTheCountKey(): void
     {
@@ -217,6 +241,7 @@ final class PersistentHistoryToolRequestTest extends TestCase
         $this->assertSame(17, $shaped[ServiceResponseCountKey]->intValue);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anyOtherResultIsReturnedAsItCame(): void
     {
@@ -224,6 +249,7 @@ final class PersistentHistoryToolRequestTest extends TestCase
         $this->assertSame($payload, $this->invoke("shapeResult", $this->historyResult(PersistentHistoryResultType::transactionsAndChanges, $payload)));
     }
 
+    /** @throws ReflectionException */
     private function historyResult(PersistentHistoryResultType $resultType, ArrayClass|Number $result): PersistentHistoryResult
     {
         $instance = new ReflectionClass(PersistentHistoryResult::class)->newInstanceWithoutConstructor();
@@ -232,25 +258,33 @@ final class PersistentHistoryToolRequestTest extends TestCase
         return $instance;
     }
 
-    /** @param array<string, mixed> $arguments */
+    /**
+     * @param array<string, mixed> $arguments
+     * @throws ReflectionException
+     */
     private function purgeRequest(array $arguments): PersistentHistoryChangeRequest
     {
         /** @var PersistentHistoryChangeRequest */
         return $this->invoke("purgeRequest", new Dictionary($arguments));
     }
 
-    /** @param array<string, mixed> $arguments */
+    /**
+     * @param array<string, mixed> $arguments
+     * @throws ReflectionException
+     */
     private function fetchRequestFor(array $arguments): PersistentHistoryChangeRequest
     {
         /** @var PersistentHistoryChangeRequest */
         return $this->invoke("fetchRequestFor", new Dictionary($arguments));
     }
 
+    /** @throws ReflectionException */
     private function tool(): PersistentHistoryTool
     {
         return new PersistentHistoryTool(new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor(), new ReflectionClass(ModelDescriptor::class)->newInstanceWithoutConstructor());
     }
 
+    /** @throws ReflectionException */
     private function invoke(string $method, mixed ...$arguments): mixed
     {
         return new ReflectionMethod(PersistentHistoryTool::class, $method)->invoke($this->tool(), ...$arguments);

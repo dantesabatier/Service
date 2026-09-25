@@ -7,6 +7,7 @@ namespace Sabatier\Service\Tests\Integration;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObjectContext;
@@ -38,6 +39,7 @@ final class RequestToFetchRequestAdapterTest extends TestCase
         parent::tearDown();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aQueryWithoutParametersYieldsAnUnfilteredRequest(): void
     {
@@ -46,6 +48,7 @@ final class RequestToFetchRequestAdapterTest extends TestCase
         $this->assertNull($fetchRequest->serialization?->keys->first);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aSingleQueryParameterBecomesOneEqualityPredicate(): void
     {
@@ -54,6 +57,7 @@ final class RequestToFetchRequestAdapterTest extends TestCase
         $this->assertInstanceOf(ComparisonPredicate::class, $fetchRequest->predicate);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function severalQueryParametersAreAndedTogether(): void
     {
@@ -65,6 +69,7 @@ final class RequestToFetchRequestAdapterTest extends TestCase
         $this->assertInstanceOf(CompoundPredicate::class, $fetchRequest->predicate);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aBase64FetchRequestReplacesTheWholeRequest(): void
     {
@@ -74,18 +79,21 @@ final class RequestToFetchRequestAdapterTest extends TestCase
         $this->assertStringContainsString("paid", $this->predicateFormat($fetchRequest));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theFetchRequestKeyIsMatchedWithoutRegardToCase(): void
     {
         $this->assertSame(7, $this->adapt("/Order?FETCHREQUEST=" . $this->encoded("{\"fetchLimit\": 7}"))->fetchLimit);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theFetchRequestKeySuppressesTheEqualityPredicates(): void
     {
         $this->assertNull($this->adapt("/Order?status=active&fetchRequest=" . $this->encoded("{\"fetchLimit\": 7}"))->predicate);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anEmptyFetchRequestValueLeavesAnUntouchedRequest(): void
     {
@@ -94,12 +102,14 @@ final class RequestToFetchRequestAdapterTest extends TestCase
         $this->assertSame(0, $fetchRequest->fetchLimit);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aFetchRequestValueThatIsNotBase64JSONLeavesAnUntouchedRequest(): void
     {
         $this->assertSame(0, $this->adapt("/Order?fetchRequest=" . base64_encode("{not json"))->fetchLimit);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theSerializationHeaderIsCarriedOntoTheRequest(): void
     {
@@ -107,6 +117,7 @@ final class RequestToFetchRequestAdapterTest extends TestCase
         $this->assertSame(["name"], $fetchRequest->serialization->keys->array);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theSerializationHeaderSurvivesABase64FetchRequest(): void
     {
@@ -115,6 +126,7 @@ final class RequestToFetchRequestAdapterTest extends TestCase
         $this->assertSame(["name"], $fetchRequest->serialization->keys->array);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anEntityNameIsResolvedAgainstTheModel(): void
     {
@@ -122,6 +134,7 @@ final class RequestToFetchRequestAdapterTest extends TestCase
         $this->assertSame("Order", $fetchRequest->entity?->name);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anEntityNameAbsentFromTheModelResolvesToNothing(): void
     {
@@ -129,6 +142,7 @@ final class RequestToFetchRequestAdapterTest extends TestCase
         $this->assertNull($fetchRequest->entity);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anUnresolvableEntityNameIsClearedRatherThanKept(): void
     {
@@ -136,6 +150,7 @@ final class RequestToFetchRequestAdapterTest extends TestCase
         $this->assertNull($this->adapt("/Order?fetchRequest=" . $this->encoded("{\"entityName\": \"Ghost\"}"), null, $this->contextForModelWithEntityNamed("Order"))->entityName);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function withoutAnEntityNameTheModelIsNeverConsulted(): void
     {
@@ -153,6 +168,7 @@ final class RequestToFetchRequestAdapterTest extends TestCase
         return $fetchRequest->predicate->predicateFormat;
     }
 
+    /** @throws ReflectionException */
     private function contextForModelWithEntityNamed(string $name): ManagedObjectContext
     {
         $entity = new EntityDescription();
@@ -164,6 +180,7 @@ final class RequestToFetchRequestAdapterTest extends TestCase
         return $context;
     }
 
+    /** @throws ReflectionException */
     private function adapt(string $requestURI, ?string $serialization = null, ?ManagedObjectContext $context = null): FetchRequest
     {
         $_SERVER["HTTP_HOST"] = "localhost";

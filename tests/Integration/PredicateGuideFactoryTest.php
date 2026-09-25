@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Integration;
 
+use Exception;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
@@ -28,6 +29,7 @@ final class PredicateGuideFactoryTest extends TestCase
         $this->writtenURLs = new ArrayClass();
     }
 
+    /** @throws Exception */
     protected function tearDown(): void
     {
         $this->writtenURLs->forEach(fn(URL $url) => FileManager::default()->removeItem($url));
@@ -63,6 +65,7 @@ final class PredicateGuideFactoryTest extends TestCase
         $this->assertNotNull($examples->first(fn(string $example): bool => str_contains($example, "IN list")));
     }
 
+    /** @throws Exception */
     #[Test]
     public function appendsTheExamplesFoundInTheBundleResource(): void
     {
@@ -72,6 +75,7 @@ final class PredicateGuideFactoryTest extends TestCase
         $this->assertStringContainsString("Fixture:", (string)$examples->last);
     }
 
+    /** @throws Exception */
     #[Test]
     public function fallsBackToTheBaseExamplesWhenTheResourceIsAbsent(): void
     {
@@ -79,6 +83,7 @@ final class PredicateGuideFactoryTest extends TestCase
         $this->assertSame(8, new ArrayClass(new PredicateGuideFactory()->make()->examples)->count);
     }
 
+    /** @throws Exception */
     #[Test]
     public function fallsBackToTheBaseExamplesWhenTheResourceIsEmpty(): void
     {
@@ -86,6 +91,7 @@ final class PredicateGuideFactoryTest extends TestCase
         $this->assertSame(8, new ArrayClass(new PredicateGuideFactory()->make()->examples)->count);
     }
 
+    /** @throws Exception */
     #[Test]
     public function fallsBackToTheBaseExamplesWhenTheResourceIsNotValidJSON(): void
     {
@@ -93,6 +99,7 @@ final class PredicateGuideFactoryTest extends TestCase
         $this->assertSame(8, new ArrayClass(new PredicateGuideFactory()->make()->examples)->count);
     }
 
+    /** @throws Exception */
     #[Test]
     public function readsTheDefaultFilenameWhenTheEnvironmentNamesNone(): void
     {
@@ -105,6 +112,7 @@ final class PredicateGuideFactoryTest extends TestCase
         $this->assertStringContainsString("Default filename copy", (string)$examples->last);
     }
 
+    /** @throws Exception */
     #[Test]
     public function prefersTheLocalizedResourceOverTheBundleRoot(): void
     {
@@ -114,6 +122,7 @@ final class PredicateGuideFactoryTest extends TestCase
         $this->assertStringContainsString("Localized copy", (string)$examples->last);
     }
 
+    /** @throws Exception */
     private function writeExamples(string $filename, string $contents, ?string $localization = null): void
     {
         $directoryURL = Bundle::main()->resourceURL ?? Bundle::main()->bundleURL;
@@ -126,6 +135,7 @@ final class PredicateGuideFactoryTest extends TestCase
         $this->useExamplesFilename($filename);
     }
 
+    /** @throws Exception */
     private function useExamplesFilename(string $filename): void
     {
         $key = MCPPredicateExamplesFilenameKey;

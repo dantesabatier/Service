@@ -8,6 +8,7 @@ use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionMethod;
 use ReflectionProperty;
 use Sabatier\CoreData\AttributeDescription;
@@ -66,18 +67,21 @@ final class PersistentSpaceResponseStrategyTest extends TestCase
         parent::tearDown();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theLookupIsScopedToTheStrategysOwnEntity(): void
     {
         $this->assertSame("Order", $this->fetchRequestFor(42)->entity?->name);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theLookupMatchesTheObjectIdentifier(): void
     {
         $this->assertStringContainsString("42", $this->fetchRequestFor(42)->predicate?->predicateFormat ?? "");
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aNumericIdentifierArrivingAsTextIsMatchedAsANumber(): void
     {
@@ -87,18 +91,21 @@ final class PersistentSpaceResponseStrategyTest extends TestCase
         $this->assertSame($this->fetchRequestFor(42)->predicate?->predicateFormat, $this->fetchRequestFor("42")->predicate?->predicateFormat);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aNonNumericIdentifierIsMatchedAsItCame(): void
     {
         $this->assertStringContainsString("abc", $this->fetchRequestFor("abc")->predicate?->predicateFormat ?? "");
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function withoutASerializationHeaderTheLookupFallsBackToTheEntitysOwnAttributes(): void
     {
         $this->assertSame(["total"], $this->fetchRequestFor(42)->serialization->keys->array);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theSerializationHeaderIsCarriedOntoTheLookup(): void
     {
@@ -106,6 +113,7 @@ final class PersistentSpaceResponseStrategyTest extends TestCase
         $this->assertSame(["name"], $this->fetchRequestFor(42)->serialization->keys->array);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theSubjectIsTakenFromTheSecurityPolicy(): void
     {
@@ -114,6 +122,7 @@ final class PersistentSpaceResponseStrategyTest extends TestCase
         $this->assertSame($user, new ReflectionProperty(PersistentSpaceResponseStrategy::class, "user")->getValue($strategy));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function whetherSecurityIsEnabledIsTakenFromTheSecurityPolicy(): void
     {
@@ -121,6 +130,7 @@ final class PersistentSpaceResponseStrategyTest extends TestCase
         $this->assertFalse($this->isSecurityEnabled($this->strategy($this->policy(false, null))));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theOwnScopeIsAnsweredPerEntity(): void
     {
@@ -154,6 +164,7 @@ final class PersistentSpaceResponseStrategyTest extends TestCase
         $this->assertFalse($this->policy(true, $this->user(), new ArrayClass(["Order:read:own", "Order:any:all"]))->hasOwnScopeFor("Order", AuthorizationType::read));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aDeleteIsNotRestrictedByAnOwnScopeOnReads(): void
     {
@@ -161,6 +172,7 @@ final class PersistentSpaceResponseStrategyTest extends TestCase
         $this->expectNotToPerformAssertions();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aDeleteIsRestrictedByAnOwnScopeOnDeletes(): void
     {
@@ -168,6 +180,7 @@ final class PersistentSpaceResponseStrategyTest extends TestCase
         $this->enforceOwnership(HTTPRequestMethod::delete, new ArrayClass(["Order:update:all", "Order:delete:own"]));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anUpdateIsRestrictedByAnOwnScopeOnUpdates(): void
     {
@@ -175,12 +188,16 @@ final class PersistentSpaceResponseStrategyTest extends TestCase
         $this->enforceOwnership(HTTPRequestMethod::patch, new ArrayClass(["Order:update:own", "Order:delete:all"]));
     }
 
-    /** @param ArrayClass<string> $scopes */
+    /**
+     * @param ArrayClass<string> $scopes
+     * @throws ReflectionException
+     */
     private function enforceOwnership(string $method, ArrayClass $scopes): void
     {
         new ReflectionMethod(PersistentSpaceResponseStrategy::class, "enforceOwnership")->invoke($this->strategy($this->policy(true, $this->user(), $scopes), $method), $this->ownedOrder($this->user()));
     }
 
+    /** @throws ReflectionException */
     private function ownedOrder(Authorizable $owner): OwnedOrderStrategyFixture
     {
         $order = new ReflectionClass(OwnedOrderStrategyFixture::class)->newInstanceWithoutConstructor();
@@ -198,6 +215,7 @@ final class PersistentSpaceResponseStrategyTest extends TestCase
         return new ReflectionProperty(PersistentSpaceResponseStrategy::class, "isSecurityEnabled")->getValue($strategy);
     }
 
+    /** @throws ReflectionException */
     private function fetchRequestFor(int|string $objectID): FetchRequest
     {
         /** @var FetchRequest */
@@ -210,6 +228,7 @@ final class PersistentSpaceResponseStrategyTest extends TestCase
         return new FieldLevelSecurityPolicy(new AuthorizationContext($user, $scopes ?? new ArrayClass(), $isSecurityEnabled));
     }
 
+    /** @throws ReflectionException */
     private function strategy(FieldLevelSecurityPolicy $policy, string $method = HTTPRequestMethod::get): PersistentSpaceResponseStrategy
     {
         $request = new Request();

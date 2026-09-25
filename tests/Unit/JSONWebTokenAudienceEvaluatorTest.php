@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
 
+use Exception;
 use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use Sabatier\Foundation\ProcessInfo;
 use Sabatier\Service\AccessEvaluationContext;
 use Sabatier\Service\Authentication;
@@ -52,6 +54,7 @@ final class JSONWebTokenAudienceEvaluatorTest extends TestCase
         ProcessInfo::processInfo()->environment[MCPTokenAudienceKey] = $this->originalAudience;
     }
 
+    /** @throws ReflectionException */
     private function context(string $path, Authentication $authentication, string $requiredAudience): AccessEvaluationContext
     {
         $_SERVER["REQUEST_URI"] = $path;
@@ -64,6 +67,7 @@ final class JSONWebTokenAudienceEvaluatorTest extends TestCase
         return $context;
     }
 
+    /** @throws ReflectionException */
     private function bearerWithAudience(?string $audience): Authentication
     {
         $authentication = new ReflectionClass(BearerAuthentication::class)->newInstanceWithoutConstructor();
@@ -74,47 +78,55 @@ final class JSONWebTokenAudienceEvaluatorTest extends TestCase
         return $authentication;
     }
 
+    /** @throws ReflectionException */
     private function nonBearer(): Authentication
     {
         return new ReflectionClass(BasicAuthentication::class)->newInstanceWithoutConstructor();
     }
 
+    /** @throws Exception */
     #[Test]
     public function anUnconfiguredAudienceAcceptsATokenWithoutOne(): void
     {
         $this->assertTrue(new JSONWebTokenAudienceEvaluator()->evaluate($this->context("/mcp", $this->bearerWithAudience(null), "")));
     }
 
+    /** @throws Exception */
     #[Test]
     public function theMatchingAudienceIsAccepted(): void
     {
         $this->assertTrue(new JSONWebTokenAudienceEvaluator()->evaluate($this->context("/mcp", $this->bearerWithAudience(self::requiredAudience), self::requiredAudience)));
     }
 
+    /** @throws Exception */
     #[Test]
     public function aTokenWithoutTheAudienceIsRejected(): void
     {
         $this->assertFalse(new JSONWebTokenAudienceEvaluator()->evaluate($this->context("/mcp", $this->bearerWithAudience(null), self::requiredAudience)));
     }
 
+    /** @throws Exception */
     #[Test]
     public function aTokenForAnotherResourceIsRejected(): void
     {
         $this->assertFalse(new JSONWebTokenAudienceEvaluator()->evaluate($this->context("/mcp", $this->bearerWithAudience("some.other.resource"), self::requiredAudience)));
     }
 
+    /** @throws Exception */
     #[Test]
     public function thePathIsMatchedRegardlessOfCase(): void
     {
         $this->assertFalse(new JSONWebTokenAudienceEvaluator()->evaluate($this->context("/MCP", $this->bearerWithAudience(null), self::requiredAudience)));
     }
 
+    /** @throws Exception */
     #[Test]
     public function otherEndpointsAreUnaffected(): void
     {
         $this->assertTrue(new JSONWebTokenAudienceEvaluator()->evaluate($this->context("/Capacity/Committed", $this->bearerWithAudience(null), self::requiredAudience)));
     }
 
+    /** @throws Exception */
     #[Test]
     public function aNonBearerSchemeIsUnaffected(): void
     {

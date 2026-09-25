@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Integration;
 
+use Exception;
 use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -102,6 +103,7 @@ final class DefaultStaticResourcePolicyTest extends TestCase
 
     // --- Recurso del bundle (directorio público) ---
 
+    /** @throws Exception */
     #[Test]
     public function publicBundleResourceIsCacheableImmutableWithLongMaxAge(): void
     {
@@ -115,6 +117,7 @@ final class DefaultStaticResourcePolicyTest extends TestCase
 
     // --- Recurso fuera de directorios públicos ---
 
+    /** @throws Exception */
     #[Test]
     public function nonPublicResourceIsHandledButNotCacheable(): void
     {
@@ -128,6 +131,7 @@ final class DefaultStaticResourcePolicyTest extends TestCase
 
     // --- Recurso optativo del navegador ---
 
+    /** @throws Exception */
     #[Test]
     public function optionalBrowserResourceIsCacheableWithShortMaxAgeAndMutable(): void
     {
@@ -140,6 +144,7 @@ final class DefaultStaticResourcePolicyTest extends TestCase
 
     // --- Recurso inexistente y no optativo ---
 
+    /** @throws Exception */
     #[Test]
     public function missingNonOptionalResourceIsNotHandled(): void
     {
@@ -150,6 +155,7 @@ final class DefaultStaticResourcePolicyTest extends TestCase
 
     // --- Directorio público extra declarado por STATIC_PUBLIC_DIRECTORIES ---
 
+    /** @throws Exception */
     #[Test]
     public function resourceInConfiguredPublicDirectoryIsCacheableImmutable(): void
     {
@@ -161,6 +167,7 @@ final class DefaultStaticResourcePolicyTest extends TestCase
         $this->assertSame(StaticResourceMaxAgeDefault, $disposition->maxAge);
     }
 
+    /** @throws Exception */
     #[Test]
     public function resourceInUnconfiguredDirectoryIsNotCacheable(): void
     {
@@ -171,6 +178,7 @@ final class DefaultStaticResourcePolicyTest extends TestCase
         $this->assertFalse($disposition->cacheable);
     }
 
+    /** @throws Exception */
     #[Test]
     public function existingHiddenFileIsNotHandled(): void
     {
@@ -181,6 +189,7 @@ final class DefaultStaticResourcePolicyTest extends TestCase
         $this->assertFalse($disposition->allowEmptyResponse);
     }
 
+    /** @throws Exception */
     #[Test]
     public function fileUnderHiddenDirectoryIsNotHandled(): void
     {
@@ -190,6 +199,7 @@ final class DefaultStaticResourcePolicyTest extends TestCase
         $this->assertFalse($disposition->cacheable);
     }
 
+    /** @throws Exception */
     #[Test]
     public function nestedHiddenFileIsNotHandled(): void
     {
@@ -198,6 +208,7 @@ final class DefaultStaticResourcePolicyTest extends TestCase
         $this->assertFalse($disposition->shouldHandle);
     }
 
+    /** @throws Exception */
     #[Test]
     public function parentTraversalIsNotHandled(): void
     {
@@ -206,6 +217,7 @@ final class DefaultStaticResourcePolicyTest extends TestCase
         $this->assertFalse($disposition->cacheable);
     }
 
+    /** @throws Exception */
     #[Test]
     public function visibleFileNextToHiddenSiblingIsHandled(): void
     {

@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
 
+use Exception;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionProperty;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\FileManager;
@@ -49,24 +51,28 @@ final class MCPRequestHandlerTest extends TestCase
         parent::tearDown();
     }
 
+    /** @throws Exception */
     #[Test]
     public function aNotificationIsAcknowledgedWithNothing(): void
     {
         $this->assertNull($this->handle(["jsonrpc" => "2.0", "method" => "notifications/initialized"]));
     }
 
+    /** @throws Exception */
     #[Test]
     public function aPingIsAnsweredWithNothing(): void
     {
         $this->assertNull($this->handle(["jsonrpc" => "2.0", "id" => 1, "method" => "ping"]));
     }
 
+    /** @throws Exception */
     #[Test]
     public function anUnknownMethodComesBackAsAJSONRPCError(): void
     {
         $this->assertInstanceOf(JSONRPCError::class, $this->handle(["jsonrpc" => "2.0", "id" => 1, "method" => "tools/destroy"]));
     }
 
+    /** @throws Exception */
     #[Test]
     public function aRequestCarryingNothingIsAParseError(): void
     {
@@ -78,6 +84,7 @@ final class MCPRequestHandlerTest extends TestCase
         $this->assertSame(JSONRPCErrorCodeParseErrorCode, $result->code);
     }
 
+    /** @throws Exception */
     #[Test]
     public function aRequestWithoutAMethodIsRefusedAsAnInvalidRequest(): void
     {
@@ -87,6 +94,7 @@ final class MCPRequestHandlerTest extends TestCase
         $this->assertSame(JSONRPCErrorCodeInvalidRequest, $result->code);
     }
 
+    /** @throws Exception */
     #[Test]
     public function aFailureBelowTheHandlerIsReportedAsAnInternalError(): void
     {
@@ -96,6 +104,7 @@ final class MCPRequestHandlerTest extends TestCase
         $this->assertSame(JSONRPCErrorCodeInternalError, $result->code);
     }
 
+    /** @throws Exception */
     #[Test]
     public function theInternalErrorCarriesTheReasonItFailedFor(): void
     {
@@ -109,6 +118,7 @@ final class MCPRequestHandlerTest extends TestCase
      * line discarded: it is the framework reporting, not something the suite needs to show.
      *
      * @param array<string, mixed> $parameters
+     * @throws Exception
      */
     private function handle(array $parameters): mixed
     {
@@ -123,7 +133,10 @@ final class MCPRequestHandlerTest extends TestCase
         }
     }
 
-    /** @param array<string, mixed> $parameters */
+    /**
+     * @param array<string, mixed> $parameters
+     * @throws ReflectionException
+     */
     private function dispatch(array $parameters): mixed
     {
         $dispatcher = new MethodDispatcher(
@@ -134,7 +147,10 @@ final class MCPRequestHandlerTest extends TestCase
         return new MCPRequestHandler(new JSONRPCRequestParser(), $dispatcher)->handle($this->request($parameters));
     }
 
-    /** @param array<string, mixed> $parameters */
+    /**
+     * @param array<string, mixed> $parameters
+     * @throws ReflectionException
+     */
     private function request(array $parameters): Request
     {
         $_SERVER["HTTP_HOST"] = "localhost";

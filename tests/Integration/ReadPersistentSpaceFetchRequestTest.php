@@ -8,6 +8,7 @@ use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObject;
@@ -61,6 +62,7 @@ final class ReadPersistentSpaceFetchRequestTest extends TestCase
         parent::tearDown();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function withoutSecurityTheQueryPredicateIsTheWholeFilter(): void
     {
@@ -68,12 +70,14 @@ final class ReadPersistentSpaceFetchRequestTest extends TestCase
         $this->assertSame("status = 'active'", $fetchRequest->predicate?->predicateFormat);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theEntityIsAlwaysForcedOntoTheRequest(): void
     {
         $this->assertSame("OwnedReadEntityFixture", $this->fetchRequest("/OwnedReadEntityFixture", OwnedReadEntityFixture::class, false)->entity?->name);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aBase64FetchRequestCannotRedirectTheReadToAnotherEntity(): void
     {
@@ -81,6 +85,7 @@ final class ReadPersistentSpaceFetchRequestTest extends TestCase
         $this->assertSame("OwnedReadEntityFixture", $fetchRequest->entity?->name);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anOwnScopedSubjectIsNarrowedToItsOwnRows(): void
     {
@@ -89,6 +94,7 @@ final class ReadPersistentSpaceFetchRequestTest extends TestCase
         $this->assertStringContainsString("createdBy", $fetchRequest->predicate->predicateFormat);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theOwnershipPredicateIsAndedOntoTheQueryPredicate(): void
     {
@@ -99,24 +105,28 @@ final class ReadPersistentSpaceFetchRequestTest extends TestCase
         $this->assertStringContainsString("createdBy", $format);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anEntityWithoutAnOwnerFieldIsNotNarrowedByOwnership(): void
     {
         $this->assertNull($this->fetchRequest("/UnownedReadEntityFixture", UnownedReadEntityFixture::class, true, ["UnownedReadEntityFixture"])->predicate);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aSubjectWithoutTheOwnScopeSeesEveryRow(): void
     {
         $this->assertNull($this->fetchRequest("/OwnedReadEntityFixture", OwnedReadEntityFixture::class, true)->predicate);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function securityBeingDisabledSkipsTheOwnershipNarrowing(): void
     {
         $this->assertNull($this->fetchRequest("/OwnedReadEntityFixture", OwnedReadEntityFixture::class, false, ["OwnedReadEntityFixture"])->predicate);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aResourceRuleExcludingTheSubjectNarrowsTheFetchToNoRows(): void
     {
@@ -124,6 +134,7 @@ final class ReadPersistentSpaceFetchRequestTest extends TestCase
         $this->assertSame("FALSEPREDICATE", $fetchRequest->predicate?->predicateFormat);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theResourcePredicateIsAndedOntoTheQueryPredicate(): void
     {
@@ -132,6 +143,7 @@ final class ReadPersistentSpaceFetchRequestTest extends TestCase
         $this->assertStringContainsString("status = 'active'", $fetchRequest->predicate->predicateFormat);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aSubjectTheResourceRuleAdmitsIsNotNarrowed(): void
     {
@@ -141,6 +153,7 @@ final class ReadPersistentSpaceFetchRequestTest extends TestCase
     /**
      * @param class-string<ManagedObject> $className
      * @param list<string> $ownScopedEntityNames
+     * @throws ReflectionException
      */
     private function fetchRequest(string $requestURI, string $className, bool $isSecurityEnabled, array $ownScopedEntityNames = [], string ...$roleNames): FetchRequest
     {

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
 
+use Exception;
 use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionMethod;
 use ReflectionProperty;
 use Sabatier\CoreData\ManagedObjectContext;
@@ -61,6 +63,7 @@ final class JobsTest extends TestCase
         $this->assertSame("nightly-rollup", new RenamedJobFixture()->name);
     }
 
+    /** @throws Exception */
     #[Test]
     public function aJobRunsAgainstTheContextItIsHanded(): void
     {
@@ -69,12 +72,14 @@ final class JobsTest extends TestCase
         $this->assertSame(1, $job->runCount);
     }
 
+    /** @throws Exception */
     #[Test]
     public function aJobLogsWithItsDateAndNamePrefix(): void
     {
         $this->assertMatchesRegularExpression("/^\\[\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}] \\[RecordingJobFixture] rebuilt 12 rows$/", $this->captureErrorLog(fn() => new RecordingJobFixture()->logThrough("rebuilt 12 rows")));
     }
 
+    /** @throws Exception */
     #[Test]
     public function aRenamedJobLogsUnderTheNameItChose(): void
     {
@@ -154,6 +159,7 @@ final class JobsTest extends TestCase
         $this->assertSame($this->registryOf($runner), $this->registryOf($runner));
     }
 
+    /** @throws Exception */
     #[Test]
     public function theRunnerLogsWithTheSameDateAndNamePrefixAJobUses(): void
     {
@@ -166,6 +172,7 @@ final class JobsTest extends TestCase
         return new ReflectionProperty(JobRunner::class, "registry")->getValue($runner);
     }
 
+    /** @throws ReflectionException */
     private function context(): ManagedObjectContext
     {
         return new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor();
@@ -174,6 +181,7 @@ final class JobsTest extends TestCase
     /**
      * error_log writes to the SAPI logger, so the destination is redirected to a file for the call
      * and restored afterwards; there is no way to observe the default channel from inside the process.
+     * @throws Exception
      */
     private function captureErrorLog(callable $body): string
     {

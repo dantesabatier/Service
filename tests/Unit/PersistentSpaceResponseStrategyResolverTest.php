@@ -8,6 +8,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionProperty;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\ManagedObjectContext;
@@ -35,6 +36,7 @@ final class PersistentSpaceResponseStrategyResolverTest extends TestCase
         yield "DELETE deletes" => [HTTPRequestMethod::delete, DeletePersistentSpaceResponseStrategy::class];
     }
 
+    /** @throws ReflectionException */
     #[Test]
     #[DataProvider("methodProvider")]
     public function eachMethodResolvesToItsOwnStrategy(string $method, string $expected): void
@@ -50,6 +52,7 @@ final class PersistentSpaceResponseStrategyResolverTest extends TestCase
         yield "OPTIONS" => [HTTPRequestMethod::options];
     }
 
+    /** @throws ReflectionException */
     #[Test]
     #[DataProvider("unsupportedMethodProvider")]
     public function aMethodPersistentSpaceDoesNotServeIsRefused(string $method): void
@@ -58,6 +61,7 @@ final class PersistentSpaceResponseStrategyResolverTest extends TestCase
         $this->resolver($method)->strategy;
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theStrategyCarriesTheRequestEntityAndContextItWasBuiltWith(): void
     {
@@ -68,6 +72,7 @@ final class PersistentSpaceResponseStrategyResolverTest extends TestCase
         $this->assertSame($resolver->managedObjectContext, new ReflectionProperty($strategy, "managedObjectContext")->getValue($strategy));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function everyReadBuildsAFreshStrategy(): void
     {
@@ -75,6 +80,7 @@ final class PersistentSpaceResponseStrategyResolverTest extends TestCase
         $this->assertNotSame($resolver->strategy, $resolver->strategy);
     }
 
+    /** @throws ReflectionException */
     private function resolver(string $method): PersistentSpaceResponseStrategyResolver
     {
         $request = new ReflectionClass(Request::class)->newInstanceWithoutConstructor();

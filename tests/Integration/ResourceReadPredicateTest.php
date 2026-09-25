@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Integration;
 
+use Exception;
 use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -109,6 +110,7 @@ final class ResourceReadPredicateTest extends TestCase
         };
     }
 
+    /** @throws Exception */
     #[Test]
     public function resolvesWherePredicateFromClassReadable(): void
     {
@@ -117,30 +119,35 @@ final class ResourceReadPredicateTest extends TestCase
         $this->assertSame("day = \$TODAY", $predicate->predicateFormat);
     }
 
+    /** @throws Exception */
     #[Test]
     public function returnsNullWhenReadableHasNoWhere(): void
     {
         $this->assertNull($this->makePolicy(true)->resourceReadPredicate(BareReadableResourceFixture::class));
     }
 
+    /** @throws Exception */
     #[Test]
     public function returnsNullWhenClassCarriesNoReadable(): void
     {
         $this->assertNull($this->makePolicy(true)->resourceReadPredicate(UnguardedResourceFixture::class));
     }
 
+    /** @throws Exception */
     #[Test]
     public function returnsNullWhenSecurityDisabled(): void
     {
         $this->assertNull($this->makePolicy(false)->resourceReadPredicate(TodayGuardedResourceFixture::class));
     }
 
+    /** @throws Exception */
     #[Test]
     public function returnsNullWhenSubjectHoldsTheRequiredRole(): void
     {
         $this->assertNull($this->makePolicy(true, "Finance")->resourceReadPredicate(RoleGuardedResourceFixture::class), "a role the rule admits has nothing to narrow");
     }
 
+    /** @throws Exception */
     #[Test]
     public function narrowsToNoRowsWhenSubjectLacksTheRequiredRole(): void
     {
@@ -149,6 +156,7 @@ final class ResourceReadPredicateTest extends TestCase
         $this->assertSame("FALSEPREDICATE", $predicate->predicateFormat, "a role the rule excludes reads no rows at all");
     }
 
+    /** @throws Exception */
     #[Test]
     public function narrowsToNoRowsWhenSubjectIsUnauthenticated(): void
     {
@@ -157,6 +165,7 @@ final class ResourceReadPredicateTest extends TestCase
         $this->assertSame("FALSEPREDICATE", $predicate->predicateFormat, "an unauthenticated subject holds no roles and so is excluded");
     }
 
+    /** @throws Exception */
     #[Test]
     public function excludedRoleTakesPrecedenceOverTheCondition(): void
     {
@@ -165,6 +174,7 @@ final class ResourceReadPredicateTest extends TestCase
         $this->assertSame("FALSEPREDICATE", $predicate->predicateFormat, "the condition never widens what the roles already denied");
     }
 
+    /** @throws Exception */
     #[Test]
     public function admittedRoleStillHonoursTheCondition(): void
     {
@@ -175,6 +185,7 @@ final class ResourceReadPredicateTest extends TestCase
 
     // --- scope ---
 
+    /** @throws Exception */
     #[Test]
     public function ownScopeNarrowsToTheSubjectsOwnRows(): void
     {
@@ -183,6 +194,7 @@ final class ResourceReadPredicateTest extends TestCase
         $this->assertSame("createdBy", $predicate->leftExpression->keyPath);
     }
 
+    /** @throws Exception */
     #[Test]
     public function ownScopeNarrowsToNoRowsWithoutAnOwnerField(): void
     {
@@ -191,6 +203,7 @@ final class ResourceReadPredicateTest extends TestCase
         $this->assertSame("FALSEPREDICATE", $predicate->predicateFormat, "a scope that cannot be expressed closes rather than opens");
     }
 
+    /** @throws Exception */
     #[Test]
     public function ownScopeNarrowsToNoRowsWhenUnauthenticated(): void
     {
@@ -199,6 +212,7 @@ final class ResourceReadPredicateTest extends TestCase
         $this->assertSame("FALSEPREDICATE", $predicate->predicateFormat, "a rule any role satisfies still has no own rows without a subject to compare against");
     }
 
+    /** @throws Exception */
     #[Test]
     public function ownScopeCombinesWithTheCondition(): void
     {

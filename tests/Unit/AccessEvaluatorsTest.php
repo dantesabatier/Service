@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
 
+use Exception;
 use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionProperty;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Date;
@@ -31,6 +33,7 @@ use Sabatier\Service\JSONWebTokenVersionEvaluator;
 
 final class AccessEvaluatorsTest extends TestCase
 {
+    /** @throws ReflectionException */
     private function contextWithAuth(Authentication $authentication): AccessEvaluationContext
     {
         $r = new ReflectionClass(AccessEvaluationContext::class);
@@ -39,6 +42,7 @@ final class AccessEvaluatorsTest extends TestCase
         return $context;
     }
 
+    /** @throws ReflectionException */
     private function makeAuth(bool $isValid, ?ArrayClass $technicalScopes = null): Authentication
     {
         $auth = new class($isValid) extends Authentication {
@@ -59,6 +63,7 @@ final class AccessEvaluatorsTest extends TestCase
 
     // --- AuthenticationEvaluator ---
 
+    /** @throws Exception */
     #[Test]
     public function authenticationEvaluatorAllowsValidAuth(): void
     {
@@ -67,6 +72,7 @@ final class AccessEvaluatorsTest extends TestCase
         );
     }
 
+    /** @throws Exception */
     #[Test]
     public function authenticationEvaluatorDeniesInvalidAuth(): void
     {
@@ -77,6 +83,7 @@ final class AccessEvaluatorsTest extends TestCase
 
     // --- JSONWebTokenScopeEvaluator ---
 
+    /** @throws Exception */
     #[Test]
     public function scopeEvaluatorAllowsWhenTechnicalScopesEmpty(): void
     {
@@ -86,6 +93,7 @@ final class AccessEvaluatorsTest extends TestCase
         );
     }
 
+    /** @throws Exception */
     #[Test]
     public function scopeEvaluatorAllowsMatchingScope(): void
     {
@@ -95,6 +103,7 @@ final class AccessEvaluatorsTest extends TestCase
         );
     }
 
+    /** @throws Exception */
     #[Test]
     public function scopeEvaluatorDeniesMismatchedScope(): void
     {
@@ -106,6 +115,7 @@ final class AccessEvaluatorsTest extends TestCase
 
     // --- Non-Bearer paths for JWT-specific evaluators ---
 
+    /** @throws Exception */
     #[Test]
     public function accessTimeEvaluatorAllowsNonBearerAuthentication(): void
     {
@@ -114,6 +124,7 @@ final class AccessEvaluatorsTest extends TestCase
         );
     }
 
+    /** @throws Exception */
     #[Test]
     public function enabledEvaluatorDeniesNonBearerWithNoAuthenticatedUser(): void
     {
@@ -123,6 +134,7 @@ final class AccessEvaluatorsTest extends TestCase
         );
     }
 
+    /** @throws Exception */
     #[Test]
     public function versionEvaluatorAllowsNonBearerAuthentication(): void
     {
@@ -133,6 +145,7 @@ final class AccessEvaluatorsTest extends TestCase
 
     // --- bearer branches ---
 
+    /** @throws Exception */
     #[Test]
     public function aBearerWithoutATokenIsDeniedByEveryTokenEvaluator(): void
     {
@@ -142,12 +155,14 @@ final class AccessEvaluatorsTest extends TestCase
         $this->assertFalse(new JSONWebTokenAccessTimeEvaluator()->evaluate($context));
     }
 
+    /** @throws Exception */
     #[Test]
     public function aRefreshTokenWithoutANotBeforeIsUsableAtOnce(): void
     {
         $this->assertTrue(new JSONWebTokenRefreshTimeEvaluator()->evaluate($this->contextWithAuth($this->bearer($this->payload()))));
     }
 
+    /** @throws Exception */
     #[Test]
     public function aRefreshTokenIsUsableOnceItsNotBeforeHasPassed(): void
     {
@@ -155,6 +170,7 @@ final class AccessEvaluatorsTest extends TestCase
         $this->assertTrue(new JSONWebTokenRefreshTimeEvaluator()->evaluate($this->contextWithAuth($this->bearer($payload))));
     }
 
+    /** @throws Exception */
     #[Test]
     public function aRefreshTokenIsRefusedUntilItsNotBeforeArrives(): void
     {
@@ -162,12 +178,14 @@ final class AccessEvaluatorsTest extends TestCase
         $this->assertFalse(new JSONWebTokenRefreshTimeEvaluator()->evaluate($this->contextWithAuth($this->bearer($payload))));
     }
 
+    /** @throws Exception */
     #[Test]
     public function aBearerWhoseSubjectCannotBeResolvedFailsTheVersionCheck(): void
     {
         $this->assertFalse(new JSONWebTokenVersionEvaluator()->evaluate($this->contextWithAuth($this->bearer($this->payload(version: 1), null))));
     }
 
+    /** @throws Exception */
     #[Test]
     public function aTokenIssuedForTheSubjectsCurrentVersionIsAccepted(): void
     {
@@ -175,6 +193,7 @@ final class AccessEvaluatorsTest extends TestCase
         $this->assertTrue(new JSONWebTokenVersionEvaluator()->evaluate($this->contextWithAuth($bearer)));
     }
 
+    /** @throws Exception */
     #[Test]
     public function aTokenLeftBehindByAVersionBumpIsRefused(): void
     {
@@ -187,6 +206,7 @@ final class AccessEvaluatorsTest extends TestCase
         return new JSONWebTokenPayload(notBefore: $notBefore, version: $version);
     }
 
+    /** @throws ReflectionException */
     private function bearer(?JSONWebTokenPayload $payload, ?Authorizable $user = null): BearerAuthentication
     {
         $bearer = new ReflectionClass(BearerAuthentication::class)->newInstanceWithoutConstructor();

@@ -10,6 +10,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Redis;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionProperty;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
@@ -40,6 +41,7 @@ final class RemainingStoreBackendsTest extends TestCase
         parent::tearDown();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anUnknownKeyIsAnIdempotencyMissInRedis(): void
     {
@@ -47,6 +49,7 @@ final class RemainingStoreBackendsTest extends TestCase
         $this->assertNull($store->get("idem:1"));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anIdempotentResponseSurvivesARoundTripThroughRedis(): void
     {
@@ -59,6 +62,7 @@ final class RemainingStoreBackendsTest extends TestCase
         $this->assertFalse($restored->isProcessing);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anIdempotentResponseIsStoredWithTheLifetimeItWasGiven(): void
     {
@@ -67,6 +71,7 @@ final class RemainingStoreBackendsTest extends TestCase
         $this->assertSame(90, $redis->lifetimes["idem:1"]);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anInFlightMarkerSurvivesTheRoundTrip(): void
     {
@@ -75,6 +80,7 @@ final class RemainingStoreBackendsTest extends TestCase
         $this->assertTrue($store->get("idem:1")?->isProcessing);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aValueThatIsNotAStringIsAnIdempotencyMiss(): void
     {
@@ -83,6 +89,7 @@ final class RemainingStoreBackendsTest extends TestCase
         $this->assertNull($store->get("idem:1"));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theFirstRequestInARedisWindowStartsAtOneAndSetsTheExpiry(): void
     {
@@ -91,6 +98,7 @@ final class RemainingStoreBackendsTest extends TestCase
         $this->assertSame(60, $redis->lifetimes["ip:1.2.3.4"]);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function laterRequestsAdvanceTheCounterWithoutResettingTheWindow(): void
     {
@@ -101,6 +109,7 @@ final class RemainingStoreBackendsTest extends TestCase
         $this->assertSame([], $redis->lifetimes);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theRemainingRedisWindowIsReportedAsItStands(): void
     {
@@ -109,6 +118,7 @@ final class RemainingStoreBackendsTest extends TestCase
         $this->assertSame(42, $store->ttl("ip:1.2.3.4"));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aKeyWithoutAWindowHasNoRemainingRedisTime(): void
     {
@@ -117,6 +127,7 @@ final class RemainingStoreBackendsTest extends TestCase
         $this->assertSame(0, $store->ttl("ip:1.2.3.4"));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anUnknownKeyIsASessionMiss(): void
     {
@@ -124,6 +135,7 @@ final class RemainingStoreBackendsTest extends TestCase
         $this->assertNull($store->get("mcp:s1"));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anMCPSessionSurvivesARoundTrip(): void
     {
@@ -136,6 +148,7 @@ final class RemainingStoreBackendsTest extends TestCase
         $this->assertSame("1.0", $restored->clientVersion);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anMCPSessionIsStoredWithItsLifetime(): void
     {
@@ -144,6 +157,7 @@ final class RemainingStoreBackendsTest extends TestCase
         $this->assertSame(300, $redis->lifetimes["mcp:s1"]);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aDeletedSessionIsGone(): void
     {
@@ -153,6 +167,7 @@ final class RemainingStoreBackendsTest extends TestCase
         $this->assertNull($store->get("mcp:s1"));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aSessionValueThatIsNotAStringIsAMiss(): void
     {
@@ -161,6 +176,7 @@ final class RemainingStoreBackendsTest extends TestCase
         $this->assertNull($store->get("mcp:s1"));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function authorizationsSurviveARoundTripThroughMemcached(): void
     {
@@ -170,6 +186,7 @@ final class RemainingStoreBackendsTest extends TestCase
         $this->assertSame("Order", $cache->getAuthorizableAuthorizations($user)?->first?->name);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anUncachedAuthorizableIsAMemcachedMiss(): void
     {
@@ -177,6 +194,7 @@ final class RemainingStoreBackendsTest extends TestCase
         $this->assertNull($cache->getAuthorizableAuthorizations($this->user("ada")));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function invalidatingAnAuthorizableDropsOnlyItsMemcachedEntry(): void
     {
@@ -188,6 +206,7 @@ final class RemainingStoreBackendsTest extends TestCase
         $this->assertNotNull($cache->getAuthorizableAuthorizations($this->user("grace")));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anIdempotentResponseSurvivesARoundTripThroughMemcached(): void
     {
@@ -196,6 +215,7 @@ final class RemainingStoreBackendsTest extends TestCase
         $this->assertSame("payload", $store->get("idem:1")?->body);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anUnknownKeyIsAnIdempotencyMissInMemcached(): void
     {
@@ -244,21 +264,30 @@ final class RemainingStoreBackendsTest extends TestCase
         $this->assertNull($store->get("idem:1"));
     }
 
-    /** @return array{RedisIdempotencyStore, Redis} */
+    /**
+     * @return array{RedisIdempotencyStore, Redis}
+     * @throws ReflectionException
+     */
     private function redisIdempotency(): array
     {
         $redis = $this->redis();
         return [$this->withRedis(RedisIdempotencyStore::class, $redis), $redis];
     }
 
-    /** @return array{RedisRateLimitStore, Redis} */
+    /**
+     * @return array{RedisRateLimitStore, Redis}
+     * @throws ReflectionException
+     */
     private function redisRateLimit(): array
     {
         $redis = $this->redis();
         return [$this->withRedis(RedisRateLimitStore::class, $redis), $redis];
     }
 
-    /** @return array{RedisMCPSessionStore, Redis} */
+    /**
+     * @return array{RedisMCPSessionStore, Redis}
+     * @throws ReflectionException
+     */
     private function redisSessions(): array
     {
         $redis = $this->redis();
@@ -267,6 +296,7 @@ final class RemainingStoreBackendsTest extends TestCase
 
     /**
      * @param class-string $storeClass
+     * @throws ReflectionException
      */
     private function withRedis(string $storeClass, Redis $redis): object
     {
@@ -275,7 +305,10 @@ final class RemainingStoreBackendsTest extends TestCase
         return $store;
     }
 
-    /** @return array{MemcachedAuthorizationCache, Memcached} */
+    /**
+     * @return array{MemcachedAuthorizationCache, Memcached}
+     * @throws ReflectionException
+     */
     private function memcachedAuthorizations(): array
     {
         $memcached = $this->memcached();
@@ -285,7 +318,10 @@ final class RemainingStoreBackendsTest extends TestCase
         return [$cache, $memcached];
     }
 
-    /** @return array{MemcachedIdempotencyStore, Memcached} */
+    /**
+     * @return array{MemcachedIdempotencyStore, Memcached}
+     * @throws ReflectionException
+     */
     private function memcachedIdempotency(): array
     {
         $memcached = $this->memcached();

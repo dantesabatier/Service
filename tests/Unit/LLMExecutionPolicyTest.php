@@ -8,6 +8,7 @@ use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\LLM\LLMExecutionPolicy;
 use Sabatier\Service\LLM\LLMToolCall;
@@ -40,6 +41,7 @@ final class LLMExecutionPolicyTest extends TestCase
         new LLMExecutionPolicy(maxSubagentIterations: -1);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function mixedToolsClassifyTheConcreteOperation(): void
     {

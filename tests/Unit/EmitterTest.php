@@ -6,6 +6,7 @@ namespace Sabatier\Service\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use ReflectionException;
 use ReflectionMethod;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
@@ -32,18 +33,21 @@ final class EmitterTest extends TestCase
         parent::tearDown();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function writesTheContentOutUncompressed(): void
     {
         $this->assertSame("hello", $this->capture(new Emitter(), "hello"));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function writesAnEmptyBodyWithoutOutput(): void
     {
         $this->assertSame("", $this->capture(new Emitter(), ""));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function reusesAnAlreadyOpenBufferRatherThanNestingAnother(): void
     {
@@ -56,12 +60,14 @@ final class EmitterTest extends TestCase
         ob_end_clean();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function compressionIsOnlyConsideredWhenNoBufferIsOpenSoTheContentIsWrittenEitherWay(): void
     {
         $this->assertSame("hello", $this->captureCompressed(new Emitter(), "hello"));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function flushesItsOwnBufferOutToTheEnclosingOne(): void
     {
@@ -74,6 +80,7 @@ final class EmitterTest extends TestCase
         $this->assertSame("hello", $outer);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function emittingHeadersLeavesTheResponseIntact(): void
     {
@@ -82,6 +89,7 @@ final class EmitterTest extends TestCase
         $this->assertSame(HTTPStatusCode::ok, $response->statusCode);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function emittingHeadersWithoutAContentLengthIsAccepted(): void
     {
@@ -89,18 +97,21 @@ final class EmitterTest extends TestCase
         $this->assertFalse(headers_sent());
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theStreamEmitterWritesEachChunkOnItsOwnLine(): void
     {
         $this->assertSame("first\nsecond\nthird\n", $this->capture(new StreamEmitter(), ["first", "second", "third"]));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theStreamEmitterWritesNothingForAnEmptySequence(): void
     {
         $this->assertSame("", $this->capture(new StreamEmitter(), []));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theStreamEmitterStringifiesEachChunk(): void
     {
@@ -116,17 +127,20 @@ final class EmitterTest extends TestCase
      * Emitter::emitContent ends in ob_flush, which pushes its buffer out to the enclosing one, while
      * StreamEmitter::emitContent only flushes and leaves its output in place. Capturing at two levels
      * and concatenating them reads the output wherever the emitter happened to leave it.
+     * @throws ReflectionException
      */
     private function capture(Emitter $emitter, mixed $content): string
     {
         return $this->captureWith($emitter, $content, false);
     }
 
+    /** @throws ReflectionException */
     private function captureCompressed(Emitter $emitter, mixed $content): string
     {
         return $this->captureWith($emitter, $content, true);
     }
 
+    /** @throws ReflectionException */
     private function captureWith(Emitter $emitter, mixed $content, bool $useCompression): string
     {
         ob_start();
@@ -136,6 +150,7 @@ final class EmitterTest extends TestCase
         return ob_get_clean() . $inner;
     }
 
+    /** @throws ReflectionException */
     private function emitContent(Emitter $emitter, mixed $content, bool $useCompression): void
     {
         new ReflectionMethod($emitter::class, "emitContent")->invoke($emitter, $content, $useCompression);

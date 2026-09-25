@@ -9,6 +9,7 @@ use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionMethod;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
@@ -22,30 +23,35 @@ use stdClass;
  */
 final class LLMAgentRuntimeCanonicalValueTest extends TestCase
 {
+    /** @throws ReflectionException */
     #[Test]
     public function aDictionaryIsTaggedAndItsKeysAreOrdered(): void
     {
         $this->assertSame(["dictionary", [["a", ["int", 1]], ["b", ["int", 2]]]], $this->canonical(new Dictionary(["b" => 2, "a" => 1])));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function twoDictionariesDifferingOnlyInKeyOrderCanonicalizeAlike(): void
     {
         $this->assertSame($this->canonical(new Dictionary(["a" => 1, "b" => 2])), $this->canonical(new Dictionary(["b" => 2, "a" => 1])));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anArrayClassKeepsItsOrder(): void
     {
         $this->assertSame(["array", [["int", 1], ["int", 2]]], $this->canonical(new ArrayClass([1, 2])));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function orderMattersForASequence(): void
     {
         $this->assertNotSame($this->canonical(new ArrayClass([1, 2])), $this->canonical(new ArrayClass([2, 1])));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anObjectShapeIsCanonicalizedAsADictionary(): void
     {
@@ -55,6 +61,7 @@ final class LLMAgentRuntimeCanonicalValueTest extends TestCase
         $this->assertSame($this->canonical(new Dictionary(["a" => 1, "b" => 2])), $this->canonical($object));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aSerializableValueCarriesItsClassIntoTheCanonicalForm(): void
     {
@@ -63,24 +70,28 @@ final class LLMAgentRuntimeCanonicalValueTest extends TestCase
         $this->assertSame(CanonicalSerializableFixture::class, $canonical[1]);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function twoSerializablesWithTheSamePayloadButDifferentClassesDiffer(): void
     {
         $this->assertNotSame($this->canonical(new CanonicalSerializableFixture(["a" => 1])), $this->canonical(new OtherCanonicalSerializableFixture(["a" => 1])));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aNativeListIsTaggedAsASequence(): void
     {
         $this->assertSame(["array", [["int", 1], ["int", 2]]], $this->canonical([1, 2]));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aNativeMapIsTaggedAsADictionaryWithItsKeysOrdered(): void
     {
         $this->assertSame($this->canonical(["a" => 1, "b" => 2]), $this->canonical(["b" => 2, "a" => 1]));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aNativeMapIsNotConfusedWithASequence(): void
     {
@@ -88,6 +99,7 @@ final class LLMAgentRuntimeCanonicalValueTest extends TestCase
         $this->assertSame("array", $this->canonical([1])[0]);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aScalarCarriesItsOwnTypeAlongsideItsValue(): void
     {
@@ -98,12 +110,14 @@ final class LLMAgentRuntimeCanonicalValueTest extends TestCase
         $this->assertSame(["null", null], $this->canonical(null));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aNumberAndItsStringAreNotTheSameArgument(): void
     {
         $this->assertNotSame($this->canonical(7), $this->canonical("7"));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function nestingIsCanonicalizedAllTheWayDown(): void
     {
@@ -111,6 +125,7 @@ final class LLMAgentRuntimeCanonicalValueTest extends TestCase
         $this->assertSame(["dictionary", [["outer", ["array", [["dictionary", [["inner", ["int", 1]]]]]]]]], $this->canonical($nested));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aDictionaryAndANativeMapCanonicalizeUnderDifferentShapes(): void
     {
@@ -120,7 +135,10 @@ final class LLMAgentRuntimeCanonicalValueTest extends TestCase
         $this->assertSame(["dictionary", ["a" => ["int", 1]]], $this->canonical(["a" => 1]));
     }
 
-    /** @return array */
+    /**
+     * @return array
+     * @throws ReflectionException
+     */
     private function canonical(mixed $value): array
     {
         $runtime = new ReflectionClass(LLMAgentRuntime::class)->newInstanceWithoutConstructor();

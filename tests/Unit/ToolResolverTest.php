@@ -7,6 +7,7 @@ namespace Sabatier\Service\Tests\Unit;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionMethod;
 use ReflectionProperty;
 use Sabatier\CoreData\ManagedObjectContext;
@@ -25,12 +26,14 @@ use Sabatier\Service\MCP\Tools\FetchTool;
  */
 final class ToolResolverTest extends TestCase
 {
+    /** @throws ReflectionException */
     #[Test]
     public function everyBuiltInToolIsResolved(): void
     {
         $this->assertSame(12, $this->resolve()->count);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theCatalogueIsAdvertisedUnderTheProtocolNames(): void
     {
@@ -39,6 +42,7 @@ final class ToolResolverTest extends TestCase
         $this->assertSame(["aggregate", "count", "create", "delete", "describe_model", "fetch", "get_server_time", "group_by", "persistent_history", "run_job", "update", "web_search"], $names);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function describeModelLeadsTheCatalogue(): void
     {
@@ -47,6 +51,7 @@ final class ToolResolverTest extends TestCase
         $this->assertInstanceOf(DescribeModelTool::class, $this->resolve()->first);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function everyResolvedToolCarriesTheContextAndDescriptorItWasGiven(): void
     {
@@ -57,6 +62,7 @@ final class ToolResolverTest extends TestCase
         $this->assertSame($descriptor, new ReflectionProperty(AbstractTool::class, "descriptor")->getValue($tool));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theReadAndWriteToolsAreBothOffered(): void
     {
@@ -65,6 +71,7 @@ final class ToolResolverTest extends TestCase
         $this->assertContains(DeleteTool::class, $classes);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aBundleWithoutAToolsDirectoryContributesNothing(): void
     {
@@ -74,30 +81,35 @@ final class ToolResolverTest extends TestCase
         $this->assertTrue($discovered->isEmpty);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function acceptsAnInstantiableToolSubclass(): void
     {
         $this->assertTrue($this->isValidToolClass(FetchTool::class));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function rejectsAClassThatDoesNotExist(): void
     {
         $this->assertFalse($this->isValidToolClass("App\\MCPTools\\Nope"));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function rejectsAClassThatIsNotATool(): void
     {
         $this->assertFalse($this->isValidToolClass(Dictionary::class));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function rejectsTheAbstractBaseItself(): void
     {
         $this->assertFalse($this->isValidToolClass(AbstractTool::class));
     }
 
+    /** @throws ReflectionException */
     private function isValidToolClass(string $className): bool
     {
         $resolver = new ToolResolver(new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor(), new ReflectionClass(ModelDescriptor::class)->newInstanceWithoutConstructor());
@@ -105,7 +117,10 @@ final class ToolResolverTest extends TestCase
         return new ReflectionMethod(ToolResolver::class, "isValidToolClass")->invoke($resolver, $className);
     }
 
-    /** @return ArrayClass<AbstractTool> */
+    /**
+     * @return ArrayClass<AbstractTool>
+     * @throws ReflectionException
+     */
     private function resolve(): ArrayClass
     {
         return new ToolResolver(new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor(), new ReflectionClass(ModelDescriptor::class)->newInstanceWithoutConstructor())->resolve();

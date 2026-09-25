@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Integration;
 
+use Exception;
 use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -80,6 +81,7 @@ final class FieldReadAccessTest extends TestCase
         return new FieldLevelSecurityPolicy(new AuthorizationContext($user, new ArrayClass(), $securityEnabled));
     }
 
+    /** @throws Exception */
     #[Test]
     public function fieldWithoutReadableIsUnrestricted(): void
     {
@@ -87,6 +89,7 @@ final class FieldReadAccessTest extends TestCase
         $this->makePolicy($this->makeUser("Sales"))->enforceFieldRead(FieldReadFixture::class, "title", "title");
     }
 
+    /** @throws Exception */
     #[Test]
     public function readableWithoutRolesAllowsAnyRole(): void
     {
@@ -94,6 +97,7 @@ final class FieldReadAccessTest extends TestCase
         $this->makePolicy($this->makeUser("Sales"))->enforceFieldRead(FieldReadFixture::class, "reference", "reference");
     }
 
+    /** @throws Exception */
     #[Test]
     public function roleGuardedFieldAllowsMatchingRole(): void
     {
@@ -101,6 +105,7 @@ final class FieldReadAccessTest extends TestCase
         $this->makePolicy($this->makeUser("Finance"))->enforceFieldRead(FieldReadFixture::class, "salary", "salary");
     }
 
+    /** @throws Exception */
     #[Test]
     public function roleGuardedFieldDeniesOtherRole(): void
     {
@@ -109,6 +114,7 @@ final class FieldReadAccessTest extends TestCase
         $this->makePolicy($this->makeUser("Sales"))->enforceFieldRead(FieldReadFixture::class, "salary", "salary");
     }
 
+    /** @throws Exception */
     #[Test]
     public function conditionalFieldIsDeniedBecauseNoRowIsAvailable(): void
     {
@@ -116,6 +122,7 @@ final class FieldReadAccessTest extends TestCase
         $this->makePolicy($this->makeUser("Sales"))->enforceFieldRead(FieldReadFixture::class, "score", "score");
     }
 
+    /** @throws Exception */
     #[Test]
     public function ownScopedFieldIsDeniedEvenForTheDeclaredRole(): void
     {
@@ -123,6 +130,7 @@ final class FieldReadAccessTest extends TestCase
         $this->makePolicy($this->makeUser("Finance"))->enforceFieldRead(FieldReadFixture::class, "bonus", "bonus");
     }
 
+    /** @throws Exception */
     #[Test]
     public function theKeyPathIsReportedRatherThanTheFieldName(): void
     {
@@ -131,6 +139,7 @@ final class FieldReadAccessTest extends TestCase
         $this->makePolicy($this->makeUser("Sales"))->enforceFieldRead(FieldReadFixture::class, "salary", "employee.salary");
     }
 
+    /** @throws Exception */
     #[Test]
     public function nothingIsEnforcedWhenSecurityIsDisabled(): void
     {
@@ -138,6 +147,7 @@ final class FieldReadAccessTest extends TestCase
         $this->makePolicy($this->makeUser("Sales"), false)->enforceFieldRead(FieldReadFixture::class, "salary", "salary");
     }
 
+    /** @throws Exception */
     #[Test]
     public function roleGuardedFieldDeniesUnauthenticatedSubject(): void
     {

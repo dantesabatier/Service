@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
 
+use Exception;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Override;
+use ReflectionException;
 use ReflectionMethod;
 use ReflectionProperty;
 use Sabatier\Foundation\FileAttributeKey;
@@ -46,7 +48,10 @@ final class UploadsEnumeratorFilesTest extends TestCase
         $_FILES = $this->files;
     }
 
-    /** @return list<array{name: string, tmp_name: string, size: int, error: int}> */
+    /**
+     * @return list<array{name: string, tmp_name: string, size: int, error: int}>
+     * @throws ReflectionException
+     */
     private function uploadedFiles(): array
     {
         $enumerator = new UploadsEnumerator("uploads");
@@ -55,7 +60,10 @@ final class UploadsEnumeratorFilesTest extends TestCase
         return iterator_to_array($files, false);
     }
 
-    /** A single-file field: every member is a scalar. */
+    /**
+     * A single-file field: every member is a scalar.
+     * @throws ReflectionException
+     */
     #[Test]
     public function aSingleFileFieldYieldsOneEntry(): void
     {
@@ -64,7 +72,10 @@ final class UploadsEnumeratorFilesTest extends TestCase
         $this->assertSame([["name" => "report.pdf", "tmp_name" => "/tmp/php1", "size" => 2048, "error" => UPLOAD_ERR_OK]], $this->uploadedFiles());
     }
 
-    /** A `files[]` field: each member is a parallel array, and the entries have to be rejoined by index. */
+    /**
+     * A `files[]` field: each member is a parallel array, and the entries have to be rejoined by index.
+     * @throws ReflectionException
+     */
     #[Test]
     public function aMultipleFieldYieldsOneEntryPerFile(): void
     {
@@ -73,7 +84,10 @@ final class UploadsEnumeratorFilesTest extends TestCase
         $this->assertSame([["name" => "a.pdf", "tmp_name" => "/tmp/php1", "size" => 10, "error" => UPLOAD_ERR_OK], ["name" => "b.png", "tmp_name" => "/tmp/php2", "size" => 20, "error" => UPLOAD_ERR_OK]], $this->uploadedFiles());
     }
 
-    /** Several fields in one request, each of either shape. */
+    /**
+     * Several fields in one request, each of either shape.
+     * @throws ReflectionException
+     */
     #[Test]
     public function bothShapesInOneRequestAreFlattenedTogether(): void
     {
@@ -90,6 +104,7 @@ final class UploadsEnumeratorFilesTest extends TestCase
      *
      * The entry is still produced rather than skipped, because the policy is what refuses an upload:
      * dropping it here would silently accept a request that named a file and never stored it.
+     * @throws ReflectionException
      */
     #[Test]
     public function aMisalignedMemberFallsBackInsteadOfSkippingTheEntry(): void
@@ -99,7 +114,10 @@ final class UploadsEnumeratorFilesTest extends TestCase
         $this->assertSame([["name" => "a.pdf", "tmp_name" => "/tmp/php1", "size" => 10, "error" => UPLOAD_ERR_OK], ["name" => "b.pdf", "tmp_name" => "", "size" => 0, "error" => UPLOAD_ERR_OK]], $this->uploadedFiles());
     }
 
-    /** A field with no `error` member is read as successful, so a hand-built fixture is not mistaken for a failed upload. */
+    /**
+     * A field with no `error` member is read as successful, so a hand-built fixture is not mistaken for a failed upload.
+     * @throws ReflectionException
+     */
     #[Test]
     public function anAbsentErrorMemberReadsAsSuccess(): void
     {
@@ -108,7 +126,10 @@ final class UploadsEnumeratorFilesTest extends TestCase
         $this->assertSame(UPLOAD_ERR_OK, $this->uploadedFiles()[0]["error"]);
     }
 
-    /** The transport's own failure is carried through per file, so one rejected file in a multiple upload is distinguishable from its siblings. */
+    /**
+     * The transport's own failure is carried through per file, so one rejected file in a multiple upload is distinguishable from its siblings.
+     * @throws ReflectionException
+     */
     #[Test]
     public function aTransportFailureIsCarriedPerFile(): void
     {
@@ -123,6 +144,7 @@ final class UploadsEnumeratorFilesTest extends TestCase
      * A file rejected for exceeding `upload_max_filesize` arrives with a size of zero and an empty
      * temporary path: it passes a size check and then fails to move, which used to surface as a `500`
      * where the caller deserved to be told what it did wrong.
+     * @throws ReflectionException
      */
     #[Test]
     public function everyTransportFailureHasItsOwnAnswer(): void
@@ -140,7 +162,10 @@ final class UploadsEnumeratorFilesTest extends TestCase
         }
     }
 
-    /** No upload in the request yields nothing at all. */
+    /**
+     * No upload in the request yields nothing at all.
+     * @throws ReflectionException
+     */
     #[Test]
     public function anEmptyFilesArrayYieldsNothing(): void
     {
@@ -325,6 +350,7 @@ final class UploadsEnumeratorFilesTest extends TestCase
         $this->assertNull(new UploadsEnumerator("uploads")->fileAttributes);
     }
 
+    /** @throws Exception */
     #[Test]
     public function theAttributesOfTheFileLastWrittenAreReported(): void
     {

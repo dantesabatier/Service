@@ -7,6 +7,7 @@ namespace Sabatier\Service\Tests\Unit;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionProperty;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\MCP\JSONRPCError;
@@ -18,6 +19,7 @@ use Sabatier\Service\Request;
 
 final class JSONRPCRequestParserTest extends TestCase
 {
+    /** @throws ReflectionException */
     private function makeRequest(array $data): Request
     {
         $request = new ReflectionClass(Request::class)->newInstanceWithoutConstructor();
@@ -32,6 +34,7 @@ final class JSONRPCRequestParserTest extends TestCase
 
     // --- Empty / missing data ---
 
+    /** @throws ReflectionException */
     #[Test]
     public function returnsParseErrorWhenParametersAreEmpty(): void
     {
@@ -40,6 +43,7 @@ final class JSONRPCRequestParserTest extends TestCase
         $this->assertSame(JSONRPCErrorCodeParseErrorCode, $result->code);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function returnsParseErrorWhenOnlyNonDictionaryParamsPresent(): void
     {
@@ -49,6 +53,7 @@ final class JSONRPCRequestParserTest extends TestCase
         $this->assertSame(JSONRPCErrorCodeParseErrorCode, $result->code);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function returnsInvalidRequestWhenMethodIsMissing(): void
     {
@@ -59,6 +64,7 @@ final class JSONRPCRequestParserTest extends TestCase
 
     // --- Notification (no id) ---
 
+    /** @throws ReflectionException */
     #[Test]
     public function returnsNullForNotificationWithNoId(): void
     {
@@ -68,6 +74,7 @@ final class JSONRPCRequestParserTest extends TestCase
 
     // --- Valid request ---
 
+    /** @throws ReflectionException */
     #[Test]
     public function returnsRPCMessageForValidRequest(): void
     {
@@ -80,6 +87,7 @@ final class JSONRPCRequestParserTest extends TestCase
         $this->assertSame("tools/list", $result->method);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function paramsDefaultToEmptyDictionaryWhenAbsent(): void
     {
@@ -88,6 +96,7 @@ final class JSONRPCRequestParserTest extends TestCase
         $this->assertTrue($result->params->isEmpty);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function dictionaryParamsAreIncludedInRPCMessage(): void
     {
@@ -100,6 +109,7 @@ final class JSONRPCRequestParserTest extends TestCase
         $this->assertSame("fetch", $result->params["name"]);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function stringParamsArePrunedBeforePackagingIntoRPCMessage(): void
     {
@@ -113,6 +123,7 @@ final class JSONRPCRequestParserTest extends TestCase
         $this->assertTrue($result->params->isEmpty);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function idCanBeAString(): void
     {
@@ -121,6 +132,7 @@ final class JSONRPCRequestParserTest extends TestCase
         $this->assertSame("req-abc", $result->id);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function extraFieldsAreIgnored(): void
     {

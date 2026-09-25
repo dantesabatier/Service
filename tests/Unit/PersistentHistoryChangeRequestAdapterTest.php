@@ -8,6 +8,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionProperty;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
@@ -32,6 +33,7 @@ final class PersistentHistoryChangeRequestAdapterTest extends TestCase
         yield "DELETE with a whitespace token" => [HTTPRequestMethod::delete, [PersistentHistoryBeforeTokenKey => "  "]];
     }
 
+    /** @throws ReflectionException */
     #[Test]
     #[DataProvider("missingScopeProvider")]
     public function rejectsMissingOrEmptyScope(string $method, array $parameters): void
@@ -40,6 +42,7 @@ final class PersistentHistoryChangeRequestAdapterTest extends TestCase
         new PersistentHistoryChangeRequestAdapter($this->request($method, $parameters))->changeRequest;
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function preservesZeroAsAnExplicitFetchTransactionBoundary(): void
     {
@@ -48,6 +51,7 @@ final class PersistentHistoryChangeRequestAdapterTest extends TestCase
         $this->assertFalse($request->isDelete);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function preservesZeroAsAnExplicitDeleteTransactionBoundary(): void
     {
@@ -56,7 +60,10 @@ final class PersistentHistoryChangeRequestAdapterTest extends TestCase
         $this->assertTrue($request->isDelete);
     }
 
-    /** @param array<string, mixed> $parameters */
+    /**
+     * @param array<string, mixed> $parameters
+     * @throws ReflectionException
+     */
     private function request(string $method, array $parameters): Request
     {
         $request = new ReflectionClass(Request::class)->newInstanceWithoutConstructor();

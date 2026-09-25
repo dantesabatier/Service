@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Integration;
 
+use Exception;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
@@ -28,6 +29,7 @@ final class VocabularyRepositoryTest extends TestCase
         $this->writtenURLs = new ArrayClass();
     }
 
+    /** @throws Exception */
     protected function tearDown(): void
     {
         $this->writtenURLs->forEach(fn(URL $url) => FileManager::default()->removeItem($url));
@@ -45,6 +47,7 @@ final class VocabularyRepositoryTest extends TestCase
         $this->assertNotSame([], new VocabularyRepository()->load());
     }
 
+    /** @throws Exception */
     #[Test]
     public function aVocabularyNamedByTheEnvironmentIsPreferred(): void
     {
@@ -52,6 +55,7 @@ final class VocabularyRepositoryTest extends TestCase
         $this->assertSame("Pedido", new VocabularyRepository()->load()["entities"]["Order"]["description"]);
     }
 
+    /** @throws Exception */
     #[Test]
     public function aVocabularyThatIsNotThereYieldsNothing(): void
     {
@@ -59,6 +63,7 @@ final class VocabularyRepositoryTest extends TestCase
         $this->assertSame([], new VocabularyRepository()->load());
     }
 
+    /** @throws Exception */
     #[Test]
     public function anEmptyVocabularyFileYieldsNothing(): void
     {
@@ -66,6 +71,7 @@ final class VocabularyRepositoryTest extends TestCase
         $this->assertSame([], new VocabularyRepository()->load());
     }
 
+    /** @throws Exception */
     #[Test]
     public function aVocabularyThatIsNotValidJSONYieldsNothing(): void
     {
@@ -73,6 +79,7 @@ final class VocabularyRepositoryTest extends TestCase
         $this->assertSame([], new VocabularyRepository()->load());
     }
 
+    /** @throws Exception */
     #[Test]
     public function theLocalizedVocabularyIsPreferredOverTheBundleRoot(): void
     {
@@ -91,6 +98,7 @@ final class VocabularyRepositoryTest extends TestCase
         $this->assertSame(json_decode((string)$shipped, true), new VocabularyRepository()->load());
     }
 
+    /** @throws Exception */
     private function writeVocabulary(string $filename, string $contents, ?string $localization = null): void
     {
         $directoryURL = Bundle::main()->resourceURL ?? Bundle::main()->bundleURL;
@@ -103,6 +111,7 @@ final class VocabularyRepositoryTest extends TestCase
         $this->useFilename($filename);
     }
 
+    /** @throws Exception */
     private function useFilename(string $filename): void
     {
         $key = MCPVocabularyFilenameKey;

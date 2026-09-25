@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
 
+use Exception;
 use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionProperty;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
@@ -38,6 +40,7 @@ final class AuthenticationAuthorizationScopesTest extends TestCase
 {
     private const string key = "a-secret-long-enough-to-sign-a-token";
 
+    /** @throws ReflectionException */
     #[Test]
     public function aBasicUserCarriesTheScopesItsRolesGrant(): void
     {
@@ -48,6 +51,7 @@ final class AuthenticationAuthorizationScopesTest extends TestCase
         $this->assertTrue(new FieldLevelSecurityPolicy(new AuthorizationContext($user, $authentication->authorizationScopes, true))->hasOwnScopeFor("Order", AuthorizationType::read));
     }
 
+    /** @throws Exception */
     #[Test]
     public function aBearerUserCarriesTheScopesItsTokenCarries(): void
     {
@@ -58,12 +62,14 @@ final class AuthenticationAuthorizationScopesTest extends TestCase
         $this->assertSame(["Order:read:all"], $authentication->authorizationScopes->array);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function withoutAUserThereAreNoScopes(): void
     {
         $this->assertTrue($this->withUser(new BasicAuthentication($this->context("Basic", $this->service()), new Dictionary()), null)->authorizationScopes->isEmpty);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function withoutAnAuthorizationServiceThereAreNoScopes(): void
     {
@@ -90,11 +96,13 @@ final class AuthenticationAuthorizationScopesTest extends TestCase
         new InMemoryAuthorizationCache()->setAuthorizableAuthorizations($user, new ArrayClass($authorizations));
     }
 
+    /** @throws ReflectionException */
     private function service(): AuthorizationService
     {
         return new AuthorizationService(new ReflectionClass(AuthorizationResolver::class)->newInstanceWithoutConstructor(), new InMemoryAuthorizationCache());
     }
 
+    /** @throws ReflectionException */
     private function context(string $header, ?AuthorizationService $authorizationService): AuthenticationContext
     {
         return new AuthenticationContext(new AuthorizationHeader($header), HTTPRequestMethod::get, new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor(), null, new ReflectionClass(AuthenticationService::class)->newInstanceWithoutConstructor(), $authorizationService);

@@ -7,6 +7,7 @@ namespace Sabatier\Service\Tests\Unit;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionProperty;
 use Sabatier\CoreData\AttributeDescription;
 use Sabatier\CoreData\AttributeType;
@@ -26,6 +27,7 @@ use const Sabatier\CoreData\ManagedObjectObjectIDKey;
 
 final class ModelSchemaExtractorTest extends TestCase
 {
+    /** @throws ReflectionException */
     #[Test]
     public function aContextWithoutAModelIsAFatalMisconfiguration(): void
     {
@@ -33,12 +35,14 @@ final class ModelSchemaExtractorTest extends TestCase
         new ModelSchemaExtractor(new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor(), new AttributeSchemaFactory())->extract();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anEmptyModelYieldsNoEntities(): void
     {
         $this->assertTrue($this->extract(new ArrayClass())->isEmpty);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function everyEntityIsExposedUnderItsOwnName(): void
     {
@@ -46,6 +50,7 @@ final class ModelSchemaExtractorTest extends TestCase
         $this->assertSame(["Order", "Customer"], $entities->keys->array);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function everyEntityCarriesTheIdentityAttributesTheProtocolNeeds(): void
     {
@@ -56,6 +61,7 @@ final class ModelSchemaExtractorTest extends TestCase
         $this->assertSame("string", $order->attributes[ManagedObjectEntityNameKey]->type);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theModelsOwnAttributesAreAddedAlongsideTheIdentityOnes(): void
     {
@@ -65,6 +71,7 @@ final class ModelSchemaExtractorTest extends TestCase
         $this->assertSame([ManagedObjectObjectIDKey, ManagedObjectEntityNameKey, "total"], $order->attributes->keys->array);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anEntityWithoutRelationshipsExposesNone(): void
     {
@@ -73,6 +80,7 @@ final class ModelSchemaExtractorTest extends TestCase
         $this->assertTrue($order->relationships->isEmpty);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aRelationshipCarriesItsTargetCardinalityAndOptionality(): void
     {
@@ -87,6 +95,7 @@ final class ModelSchemaExtractorTest extends TestCase
         $this->assertFalse($schema->relationships["items"]->nullable);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theBackingClassIsCarriedOntoTheSchema(): void
     {
@@ -95,6 +104,7 @@ final class ModelSchemaExtractorTest extends TestCase
         $this->assertSame("App\\Models\\Order", $order->className);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anEntityWithoutABackingClassFallsBackToItsName(): void
     {
@@ -103,6 +113,7 @@ final class ModelSchemaExtractorTest extends TestCase
         $this->assertSame("Order", $order->className);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anAbstractEntityIsMarkedAsSuch(): void
     {
@@ -146,6 +157,7 @@ final class ModelSchemaExtractorTest extends TestCase
     /**
      * @param ArrayClass<EntityDescription> $entities
      * @return Dictionary<EntitySchema>
+     * @throws ReflectionException
      */
     private function extract(ArrayClass $entities): Dictionary
     {

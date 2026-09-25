@@ -22,11 +22,13 @@ final class JSONTransformerTest extends TestCase
         return $response;
     }
 
+    /** @throws JsonException */
     private function transform(Response $response): Response
     {
         return new JSONTransformer($response, new ResponseTransformerContext())->response;
     }
 
+    /** @throws JsonException */
     #[Test]
     public function setsContentTypeToApplicationJson(): void
     {
@@ -34,6 +36,7 @@ final class JSONTransformerTest extends TestCase
         $this->assertSame("application/json", $result->allHeaderFields["Content-Type"]);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function encodesArrayBody(): void
     {
@@ -41,6 +44,7 @@ final class JSONTransformerTest extends TestCase
         $this->assertSame("{\"key\":\"value\"}", $result->body);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function encodesNullBody(): void
     {
@@ -48,6 +52,7 @@ final class JSONTransformerTest extends TestCase
         $this->assertSame("null", $result->body);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function encodesStringBody(): void
     {
@@ -55,6 +60,7 @@ final class JSONTransformerTest extends TestCase
         $this->assertSame("\"hello\"", $result->body);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function encodesIntBody(): void
     {
@@ -62,6 +68,7 @@ final class JSONTransformerTest extends TestCase
         $this->assertSame("42", $result->body);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function preservesZeroFraction(): void
     {
@@ -69,6 +76,7 @@ final class JSONTransformerTest extends TestCase
         $this->assertSame("1.0", $result->body);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function encodesDictionary(): void
     {
@@ -79,6 +87,7 @@ final class JSONTransformerTest extends TestCase
         $this->assertSame(3, $decoded["count"]);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function encodesNestedStructure(): void
     {
@@ -88,6 +97,7 @@ final class JSONTransformerTest extends TestCase
         $this->assertSame(3, $decoded["total"]);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function throwsOnUnencodableValue(): void
     {

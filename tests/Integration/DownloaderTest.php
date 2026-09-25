@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Integration;
 
+use Exception;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -39,6 +40,7 @@ final class DownloaderTest extends TestCase
         ObjectClass::$staticAssociatedValues = [];
     }
 
+    /** @throws Exception */
     protected function tearDown(): void
     {
         $this->writtenURLs->forEach(fn(URL $url) => FileManager::default()->removeItem($url));
@@ -119,6 +121,7 @@ final class DownloaderTest extends TestCase
         $this->directoryURL($this->downloader($urlString));
     }
 
+    /** @throws Exception */
     #[Test]
     public function aRefusedDispositionIsNotFound(): void
     {
@@ -126,6 +129,7 @@ final class DownloaderTest extends TestCase
         $this->download($this->downloaderWith(new DownloadDisposition(false)));
     }
 
+    /** @throws Exception */
     #[Test]
     public function theRefusalCarriesTheReasonThePolicyGave(): void
     {
@@ -137,6 +141,7 @@ final class DownloaderTest extends TestCase
         }
     }
 
+    /** @throws Exception */
     #[Test]
     public function aRefusalWithoutAReasonStillReadsAsOne(): void
     {
@@ -148,6 +153,7 @@ final class DownloaderTest extends TestCase
         }
     }
 
+    /** @throws Exception */
     #[Test]
     public function aFileThatIsNotThereIsNotServed(): void
     {
@@ -155,6 +161,7 @@ final class DownloaderTest extends TestCase
         $this->download($this->downloaderWith(new DownloadDisposition(true, FileManager::default()->temporaryDirectory->appendingPathComponent(new UUID()->uuidString))));
     }
 
+    /** @throws Exception */
     #[Test]
     public function anAllowedFileIsServedWithItsNameAndContents(): void
     {
@@ -164,6 +171,7 @@ final class DownloaderTest extends TestCase
         $this->assertSame($url->lastPathComponent, $data["filename"]);
     }
 
+    /** @throws Exception */
     #[Test]
     public function aRecognisedExtensionCarriesItsMediaTypeAndEncoding(): void
     {
@@ -172,6 +180,7 @@ final class DownloaderTest extends TestCase
         $this->assertStringContainsString("charset=", (string)$data["contentType"]);
     }
 
+    /** @throws Exception */
     #[Test]
     public function anUnrecognisedExtensionFallsBackToOpaqueBytes(): void
     {
@@ -179,7 +188,10 @@ final class DownloaderTest extends TestCase
         $this->assertSame("application/octet-stream", $data["contentType"]);
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * @return array<string, mixed>
+     * @throws Exception
+     */
     private function download(Downloader $downloader): array
     {
         $downloader->download();
@@ -187,6 +199,7 @@ final class DownloaderTest extends TestCase
         return new ReflectionProperty(Downloader::class, "data")->getValue($downloader);
     }
 
+    /** @throws Exception */
     private function writeTemporary(string $name, string $contents): URL
     {
         $url = FileManager::default()->temporaryDirectory->appendingPathComponent(new UUID()->uuidString . "-" . $name);

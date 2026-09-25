@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Integration;
 
+use Exception;
+use JsonException;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
@@ -30,6 +32,7 @@ final class ErrorResponderTest extends TestCase
     /**
      * Resolving the responder's session creates the bundle's caches tree under the project, which is
      * not a build artifact the repository ignores, so the suite takes it away again once it is done.
+     * @throws Exception
      */
     public static function tearDownAfterClass(): void
     {
@@ -55,6 +58,7 @@ final class ErrorResponderTest extends TestCase
         parent::tearDown();
     }
 
+    /** @throws JsonException */
     #[Test]
     public function anUnrecognisedThrowableBecomesAnInternalServerError(): void
     {
@@ -63,6 +67,7 @@ final class ErrorResponderTest extends TestCase
         $this->assertSame("Internal server error", $this->error($response)["localizedDescription"]);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function anUnrecognisedThrowableDoesNotLeakItsMessageOutsideDevelopment(): void
     {
@@ -78,6 +83,7 @@ final class ErrorResponderTest extends TestCase
         $this->assertSame(HTTPStatusCode::conflict, $this->respondTo(new ConflictException("already there"))->statusCode);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function anInvalidRequestExceptionSurfacesItsFailureReason(): void
     {
@@ -86,6 +92,7 @@ final class ErrorResponderTest extends TestCase
         $this->assertSame("no such order", $error["localizedFailureReason"]);
     }
 
+    /** @throws JsonException */
     #[Test]
     public function theBodyIsAlwaysKeyedUnderError(): void
     {
@@ -169,7 +176,10 @@ final class ErrorResponderTest extends TestCase
         return $responder->response;
     }
 
-    /** @return array{localizedDescription?: string, localizedFailureReason?: string} */
+    /**
+     * @return array{localizedDescription?: string, localizedFailureReason?: string}
+     * @throws JsonException
+     */
     private function error(Response $response): array
     {
         /** @var array{error: array{localizedDescription?: string, localizedFailureReason?: string}} $body */

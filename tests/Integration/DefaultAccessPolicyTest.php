@@ -9,6 +9,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionProperty;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Networking\HTTPRequestMethod;
@@ -55,6 +56,7 @@ final class DefaultAccessPolicyTest extends TestCase
         parent::tearDown();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aResponderServingPublicContentIsLetThrough(): void
     {
@@ -64,6 +66,7 @@ final class DefaultAccessPolicyTest extends TestCase
         $this->expectNotToPerformAssertions();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anAuthenticatedManagerIsLetThroughEvenForAGuardedResponder(): void
     {
@@ -71,6 +74,7 @@ final class DefaultAccessPolicyTest extends TestCase
         $this->expectNotToPerformAssertions();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aSubjectTheAuthorizationEvaluatorRejectedIsForbidden(): void
     {
@@ -86,6 +90,7 @@ final class DefaultAccessPolicyTest extends TestCase
         yield "a delete names the action" => [HTTPRequestMethod::delete, "perform this action"];
     }
 
+    /** @throws ReflectionException */
     #[Test]
     #[DataProvider("methodProvider")]
     public function theRefusalIsWordedForWhatTheCallerTriedToDo(string $method, string $expected): void
@@ -100,6 +105,7 @@ final class DefaultAccessPolicyTest extends TestCase
         }
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anyOtherFailedEvaluatorLeavesTheCallerUnauthenticated(): void
     {
@@ -107,6 +113,7 @@ final class DefaultAccessPolicyTest extends TestCase
         new DefaultAccessPolicy()->enforceAccess(new AccessProbeResponder(), $this->manager(false, new AuthenticationEvaluator()));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theRefusalNamesTheEvaluatorThatRejectedTheRequest(): void
     {
@@ -120,6 +127,7 @@ final class DefaultAccessPolicyTest extends TestCase
         }
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aChainThatNamedNoFailedEvaluatorStillRefuses(): void
     {
@@ -131,6 +139,7 @@ final class DefaultAccessPolicyTest extends TestCase
         }
     }
 
+    /** @throws ReflectionException */
     private function manager(bool $isProtectedContentAvailable, ?AccessEvaluator $failedEvaluator): AuthenticationManager
     {
         $chain = new AccessEvaluatorChain(new ArrayClass());

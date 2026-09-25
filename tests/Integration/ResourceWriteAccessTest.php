@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Integration;
 
+use Exception;
 use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
@@ -96,6 +98,7 @@ final class ResourceWriteAccessTest extends TestCase
      * property and `entity->name` is available for the denial message.
      *
      * @param class-string<ManagedObject> $fixtureClass
+     * @throws ReflectionException
      */
     private function makeResource(string $fixtureClass, ?Authorizable $owner = null): ManagedObject
     {
@@ -111,6 +114,7 @@ final class ResourceWriteAccessTest extends TestCase
         return $resource;
     }
 
+    /** @throws Exception */
     #[Test]
     public function classWithoutWritableIsUnrestricted(): void
     {
@@ -118,6 +122,7 @@ final class ResourceWriteAccessTest extends TestCase
         $this->makePolicy($this->makeUser("Sales"))->enforceResourceAccess($this->makeResource(UnguardedWriteFixture::class));
     }
 
+    /** @throws Exception */
     #[Test]
     public function securityDisabledSkipsEnforcement(): void
     {
@@ -125,6 +130,7 @@ final class ResourceWriteAccessTest extends TestCase
         $this->makePolicy($this->makeUser("Sales"), false)->enforceResourceAccess($this->makeResource(RoleGuardedWriteFixture::class));
     }
 
+    /** @throws Exception */
     #[Test]
     public function admittedRolePassesWithoutScope(): void
     {
@@ -132,6 +138,7 @@ final class ResourceWriteAccessTest extends TestCase
         $this->makePolicy($this->makeUser("Finance"))->enforceResourceAccess($this->makeResource(RoleGuardedWriteFixture::class));
     }
 
+    /** @throws Exception */
     #[Test]
     public function excludedRoleIsDenied(): void
     {
@@ -141,6 +148,7 @@ final class ResourceWriteAccessTest extends TestCase
 
     // --- scope ---
 
+    /** @throws Exception */
     #[Test]
     public function ownScopePassesForTheOwnRow(): void
     {
@@ -149,6 +157,7 @@ final class ResourceWriteAccessTest extends TestCase
         $this->makePolicy($user)->enforceResourceAccess($this->makeResource(OwnScopedWriteFixture::class, $user));
     }
 
+    /** @throws Exception */
     #[Test]
     public function ownScopeDeniesAnotherSubjectsRow(): void
     {
@@ -156,6 +165,7 @@ final class ResourceWriteAccessTest extends TestCase
         $this->makePolicy($this->makeUser("Finance"))->enforceResourceAccess($this->makeResource(OwnScopedWriteFixture::class, $this->makeUser("Finance")));
     }
 
+    /** @throws Exception */
     #[Test]
     public function ownScopeDeniesAnUnownedRow(): void
     {
@@ -163,6 +173,7 @@ final class ResourceWriteAccessTest extends TestCase
         $this->makePolicy($this->makeUser("Finance"))->enforceResourceAccess($this->makeResource(OwnScopedWriteFixture::class));
     }
 
+    /** @throws Exception */
     #[Test]
     public function ownScopeDeniesWhenTheClassDeclaresNoOwnerField(): void
     {

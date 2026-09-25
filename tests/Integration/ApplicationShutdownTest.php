@@ -8,6 +8,7 @@ use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionMethod;
 use ReflectionProperty;
 use Sabatier\Foundation\ObjectClass;
@@ -66,6 +67,7 @@ final class ApplicationShutdownTest extends TestCase
         parent::tearDown();
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aCleanShutdownTellsTheDelegateTheApplicationIsEnding(): void
     {
@@ -75,6 +77,7 @@ final class ApplicationShutdownTest extends TestCase
         $this->assertNull($delegate->crash);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function shuttingDownTwiceTellsTheDelegateEachTime(): void
     {
@@ -84,6 +87,7 @@ final class ApplicationShutdownTest extends TestCase
         $this->assertSame(2, $delegate->willTerminateCount);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aShutdownAfterAnOrderlyTerminationDoesNotReportACrash(): void
     {
@@ -93,6 +97,7 @@ final class ApplicationShutdownTest extends TestCase
         $this->assertNull($delegate->crash);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theDelegateIsNotToldItLaunchedByAShutdown(): void
     {
@@ -102,6 +107,7 @@ final class ApplicationShutdownTest extends TestCase
         $this->assertSame(0, $delegate->didFinishLaunchingCount);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aRequestThatIsNotPreflightIsLeftAlone(): void
     {
@@ -117,12 +123,16 @@ final class ApplicationShutdownTest extends TestCase
         }
     }
 
+    /** @throws ReflectionException */
     private function shutDown(Application $application): void
     {
         new ReflectionMethod(Application::class, "handleShutdown")->invoke($application);
     }
 
-    /** @return array{Application, RecordingApplicationDelegate} */
+    /**
+     * @return array{Application, RecordingApplicationDelegate}
+     * @throws ReflectionException
+     */
     private function application(): array
     {
         $application = new ReflectionClass(Application::class)->newInstanceWithoutConstructor();

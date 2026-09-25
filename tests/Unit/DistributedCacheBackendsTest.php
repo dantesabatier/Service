@@ -10,6 +10,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Redis;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionProperty;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
@@ -27,6 +28,7 @@ use Sabatier\Service\RedisAuthorizationCache;
  */
 final class DistributedCacheBackendsTest extends TestCase
 {
+    /** @throws ReflectionException */
     #[Test]
     public function anAbsentAuthorizableIsACacheMiss(): void
     {
@@ -34,6 +36,7 @@ final class DistributedCacheBackendsTest extends TestCase
         $this->assertNull($cache->getAuthorizableAuthorizations($this->user("ada")));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function authorizationsSurviveARoundTripThroughRedis(): void
     {
@@ -45,6 +48,7 @@ final class DistributedCacheBackendsTest extends TestCase
         $this->assertSame("Order", $restored[0]->name);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function eachAuthorizableIsCachedUnderItsOwnUsername(): void
     {
@@ -54,6 +58,7 @@ final class DistributedCacheBackendsTest extends TestCase
         $this->assertNull($cache->getAuthorizableAuthorizations($this->user("grace")));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function authorizationsAreStoredWithTheConfiguredLifetime(): void
     {
@@ -62,6 +67,7 @@ final class DistributedCacheBackendsTest extends TestCase
         $this->assertSame(120, $redis->lifetimes["auth:u:ada"]);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function invalidatingAnAuthorizableDropsOnlyItsOwnEntry(): void
     {
@@ -72,6 +78,7 @@ final class DistributedCacheBackendsTest extends TestCase
         $this->assertSame(["auth:u:grace"], array_keys($redis->entries));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function invalidatingEverythingClearsEveryAuthorizable(): void
     {
@@ -82,6 +89,7 @@ final class DistributedCacheBackendsTest extends TestCase
         $this->assertSame([], $redis->entries);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function invalidatingEverythingOnAnEmptyCacheDeletesNothing(): void
     {
@@ -90,6 +98,7 @@ final class DistributedCacheBackendsTest extends TestCase
         $this->assertSame(0, $redis->deleteCalls);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aValueThatIsNotAStringIsTreatedAsAMiss(): void
     {
@@ -98,6 +107,7 @@ final class DistributedCacheBackendsTest extends TestCase
         $this->assertNull($cache->getAuthorizableAuthorizations($this->user("ada")));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theFirstRequestInAWindowStartsTheCounterAtOne(): void
     {
@@ -107,6 +117,7 @@ final class DistributedCacheBackendsTest extends TestCase
         $this->assertTrue($memcached->wasAdded("ip:1.2.3.4"));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function laterRequestsInTheSameWindowAdvanceTheCounter(): void
     {
@@ -116,6 +127,7 @@ final class DistributedCacheBackendsTest extends TestCase
         $this->assertSame(3, $store->increment("ip:1.2.3.4", 60));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function eachClientIsCountedSeparately(): void
     {
@@ -125,6 +137,7 @@ final class DistributedCacheBackendsTest extends TestCase
         $this->assertSame(1, $store->increment("ip:5.6.7.8", 60));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theWindowExpiryIsRecordedAlongsideTheCounter(): void
     {
@@ -134,6 +147,7 @@ final class DistributedCacheBackendsTest extends TestCase
         $this->assertGreaterThan(time() + 55, $memcached->entries["ip:1.2.3.4:reset"]);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aCounterThatVanishedMidWindowIsRestarted(): void
     {
@@ -145,6 +159,7 @@ final class DistributedCacheBackendsTest extends TestCase
         $this->assertArrayHasKey("ip:1.2.3.4:reset", $memcached->entries);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function theRemainingWindowIsDerivedFromTheRecordedExpiry(): void
     {
@@ -153,6 +168,7 @@ final class DistributedCacheBackendsTest extends TestCase
         $this->assertEqualsWithDelta(42, $store->ttl("ip:1.2.3.4"), 1.0);
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function aClientWithoutARecordedWindowHasNoRemainingTime(): void
     {
@@ -160,6 +176,7 @@ final class DistributedCacheBackendsTest extends TestCase
         $this->assertSame(0, $store->ttl("ip:1.2.3.4"));
     }
 
+    /** @throws ReflectionException */
     #[Test]
     public function anExpiryAlreadyInThePastNeverReportsNegativeTime(): void
     {
@@ -168,7 +185,10 @@ final class DistributedCacheBackendsTest extends TestCase
         $this->assertSame(0, $store->ttl("ip:1.2.3.4"));
     }
 
-    /** @return array{RedisAuthorizationCache, Redis} */
+    /**
+     * @return array{RedisAuthorizationCache, Redis}
+     * @throws ReflectionException
+     */
     private function redisCache(int $ttl = 3600): array
     {
         $redis = new class extends Redis {
@@ -218,7 +238,10 @@ final class DistributedCacheBackendsTest extends TestCase
         return [$cache, $redis];
     }
 
-    /** @return array{MemcachedRateLimitStore, Memcached} */
+    /**
+     * @return array{MemcachedRateLimitStore, Memcached}
+     * @throws ReflectionException
+     */
     private function memcachedStore(): array
     {
         $memcached = new class extends Memcached {

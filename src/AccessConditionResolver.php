@@ -8,6 +8,7 @@ use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
+use Sabatier\Foundation\Nil;
 use Sabatier\Foundation\Predicates\Predicate;
 use function Sabatier\Foundation\fatal_error;
 
@@ -20,7 +21,7 @@ use function Sabatier\Foundation\fatal_error;
  */
 final class AccessConditionResolver
 {
-    /** @var Dictionary<string> The temporal substitution variables (`$TODAY`, `$NOW`, `$WEEK_START`, …) bound as the substitution context at evaluation time. */
+    /** @var Dictionary<string|Nil> The substitution variables — temporal (`$TODAY`, `$NOW`, `$WEEK_START`, …) and `$REMOTE_ADDRESS`, the TCP peer address read from `REMOTE_ADDR` as {@see Request::$remoteAddress} does, null outside an HTTP request — bound as the substitution context at evaluation time. */
     public Dictionary $variables {
         get {
             if (isset($this->variables)) {
@@ -37,6 +38,7 @@ final class AccessConditionResolver
                 "\$MONTH_END" => Date::dateWithTimeIntervalSince1970((float)strtotime("last day of this month"))->format("Y-m-d"),
                 "\$YEAR_START" => Date::dateWithTimeIntervalSince1970((float)strtotime("first day of January this year"))->format("Y-m-d"),
                 "\$YEAR_END" => Date::dateWithTimeIntervalSince1970((float)strtotime("last day of December this year"))->format("Y-m-d"),
+                "\$REMOTE_ADDRESS" => $_SERVER["REMOTE_ADDR"] ?? Nil::nil(),
             ]);
         }
     }

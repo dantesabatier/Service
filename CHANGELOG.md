@@ -9,6 +9,7 @@ onward.
 
 ### Added
 
+- The lightweight `describe_model` index marks abstract entities, so an LLM can see which entities cannot be instantiated without requesting their full schemas.
 - A `where` condition on `#[Readable]` or `#[Writable]` can reference `$REMOTE_ADDRESS`, the TCP peer address of the request (`REMOTE_ADDR`, never a forwarding header), for example `where: "\$REMOTE_ADDRESS == %@"`. Outside an HTTP request it is null.
 
 ## [1.3.2] - 2026-09-25

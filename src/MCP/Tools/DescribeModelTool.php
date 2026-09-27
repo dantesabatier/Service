@@ -18,9 +18,10 @@ use function Sabatier\Foundation\fatal_error;
  * The full schema of a large model runs to tens of thousands of tokens — more than a
  * single tool result can carry — so a call with no argument returns a lightweight index
  * instead: every entity keyed by name, with its class, label, aliases and the counts of
- * its attributes and relationships, plus the predicate syntax guide. The client then
- * requests the full detail for the entities it needs by passing `entity`, one name or a
- * list of them.
+ * its attributes and relationships; abstract entities are marked so the client knows
+ * they cannot be instantiated. The index also includes the predicate syntax guide. The
+ * client then requests the full detail for entities it needs by passing `entity`, one
+ * name or a list of them.
  *
  * @internal
  */
@@ -44,7 +45,7 @@ final class DescribeModelTool extends AbstractTool
         get => [
             "type" => "object",
             "properties" => [
-                "entity" => ["type" => "array", "items" => ["type" => "string"], "description" => "Omit for a lightweight index of every entity (class, label, aliases and attribute/relationship counts). Pass a JSON array of entity names — [\"Order\"] for one, [\"Order\", \"Customer\"] for several — for the full attributes, relationships and enum cases of those entities. Must be a real array of strings, never a single bracketed string."],
+                "entity" => ["type" => "array", "items" => ["type" => "string"], "description" => "Omit for a lightweight index of every entity (class, label, aliases, attribute/relationship counts, and an abstract marker when applicable). Pass a JSON array of entity names — [\"Order\"] for one, [\"Order\", \"Customer\"] for several — for the full attributes, relationships and enum cases of those entities. Must be a real array of strings, never a single bracketed string."],
             ],
             "required" => [],
         ];
@@ -56,13 +57,19 @@ final class DescribeModelTool extends AbstractTool
                 return $this->index;
             }
             $schema = $this->descriptor->schema;
-            $entities = $schema->entities->mapValues(fn(EntitySchema $entity): array => [
-                "class" => $entity->className,
-                "es" => $entity->label,
-                "aliases" => $entity->aliases,
-                "attributes" => $entity->attributes->count,
-                "relationships" => $entity->relationships->count,
-            ]);
+            $entities = $schema->entities->mapValues(function (EntitySchema $entity): array {
+                $index = [
+                    "class" => $entity->className,
+                    "es" => $entity->label,
+                    "aliases" => $entity->aliases,
+                    "attributes" => $entity->attributes->count,
+                    "relationships" => $entity->relationships->count,
+                ];
+                if ($entity->abstract) {
+                    $index["abstract"] = true;
+                }
+                return $index;
+            });
             return $this->index = [
                 "entities" => $entities,
                 "predicate_syntax" => $schema->predicateGuide,

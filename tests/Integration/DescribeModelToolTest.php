@@ -30,7 +30,7 @@ use Throwable;
  */
 final class DescribeModelToolTest extends TestCase
 {
-    private function makeEntity(string $name, int $attributeCount): EntitySchema
+    private function makeEntity(string $name, int $attributeCount, bool $abstract = false): EntitySchema
     {
         /** @var Dictionary<AttributeSchema> $attributes */
         $attributes = new Dictionary();
@@ -39,7 +39,7 @@ final class DescribeModelToolTest extends TestCase
         }
         /** @var Dictionary<RelationshipSchema> $relationships */
         $relationships = new Dictionary(["customer" => new RelationshipSchema("customer", "Customer", false, true)]);
-        return new EntitySchema($name, "App\\Model\\$name", "the $name", ["alias-$name"], $attributes, $relationships);
+        return new EntitySchema($name, "App\\Model\\$name", "the $name", ["alias-$name"], $attributes, $relationships, $abstract);
     }
 
     /** @throws ReflectionException */
@@ -49,6 +49,7 @@ final class DescribeModelToolTest extends TestCase
         $entities = new Dictionary([
             "Order" => $this->makeEntity("Order", 40),
             "Small" => $this->makeEntity("Small", 2),
+            "Property" => $this->makeEntity("Property", 3, true),
         ]);
         $guide = new PredicateGuide(["%K" => "key path"], ["="], ["example"]);
         $schema = new ModelSchema($entities, $guide);
@@ -79,11 +80,13 @@ final class DescribeModelToolTest extends TestCase
     public function noArgumentReturnsLightweightIndex(): void
     {
         $result = $this->decode($this->makeTool(), new Dictionary());
-        $this->assertSame(["Order", "Small"], array_keys($result["entities"]));
+        $this->assertSame(["Order", "Small", "Property"], array_keys($result["entities"]));
         $order = $result["entities"]["Order"];
         $this->assertSame("App\\Model\\Order", $order["class"]);
         $this->assertSame(40, $order["attributes"]);
         $this->assertSame(1, $order["relationships"]);
+        $this->assertArrayNotHasKey("abstract", $order);
+        $this->assertTrue($result["entities"]["Property"]["abstract"]);
         $this->assertArrayHasKey("predicate_syntax", $result);
         $this->assertArrayHasKey("usage", $result);
     }

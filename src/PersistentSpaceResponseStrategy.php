@@ -13,7 +13,6 @@ use Sabatier\CoreData\ManagedObjectID;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\Expression;
-use Sabatier\Foundation\Predicates\Predicate;
 use const Sabatier\CoreData\ManagedObjectObjectIDKey;
 
 /** @internal */
@@ -21,7 +20,7 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
 {
     protected readonly EntityDescription $entity;
     protected readonly ManagedObjectContext $managedObjectContext;
-    private readonly FieldSecurityPolicy $fieldSecurityPolicy;
+    protected readonly FieldSecurityPolicy $fieldSecurityPolicy;
     protected ?Authorizable $user {
         get => $this->fieldSecurityPolicy->user;
     }
@@ -78,17 +77,6 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
     protected function enforceResourceAccess(ManagedObject $object): void
     {
         $this->fieldSecurityPolicy->enforceResourceAccess($object);
-    }
-
-    /**
-     * Resolves the attribute-based read predicate for the backing class, or null when there is nothing to narrow.
-     *
-     * @param class-string<ManagedObject> $className
-     * @throws Exception
-     */
-    protected function resourceReadPredicate(string $className): ?Predicate
-    {
-        return $this->fieldSecurityPolicy->resourceReadPredicate($className);
     }
 
     /**

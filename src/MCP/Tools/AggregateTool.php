@@ -84,7 +84,6 @@ final class AggregateTool extends AbstractTool
             $this->validatePredicateKeyPaths($entity, $predicate, $params);
             $request->predicate = $this->buildPredicate($predicate, $params);
         }
-        $this->applySecurityScope($request);
         $result = in_array($function, self::inMemoryFunctions, true) ? $this->computeInMemory($request, $property, $function) : $this->computeDatabase($request, $property, $function);
         return $this->jsonResult(["entity" => $entity, "function" => $function, "property" => $property, "result" => round($result, 4)]);
     }
@@ -92,9 +91,7 @@ final class AggregateTool extends AbstractTool
     /** @throws Exception */
     private function computeInMemory(FetchRequest $request, string $property, string $function): float
     {
-        $request->resultType = FetchRequestResultType::managedObjectResultType;
-        /** @var ArrayClass<ManagedObject> $objects */
-        $objects = $this->context->fetch($request);
+        $objects = $this->fetchObjects($request);
         $values = $objects->map(fn(ManagedObject $object): float => (float)($object->valueForKeyPath($property) ?? 0.0));
         return Expression::expressionForFunction(self::expressionNames[$function], new ArrayClass([Expression::expressionForConstantValue($values)]))->expressionValue()?->floatValue ?? 0.0;
     }
@@ -110,7 +107,7 @@ final class AggregateTool extends AbstractTool
         $request->propertiesToFetch = new ArrayClass([$description]);
         $request->resultType = FetchRequestResultType::dictionaryResultType;
         /** @var ArrayClass<Dictionary> $rows */
-        $rows = $this->context->fetch($request);
+        $rows = $this->fetch($request);
         return (float)($rows[0]["value"] ?? 0.0);
     }
 }

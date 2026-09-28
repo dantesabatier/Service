@@ -58,7 +58,6 @@ final class CountTool extends AbstractTool
             $this->validatePredicateKeyPaths($entity, $predicate, $params);
             $request->predicate = $this->buildPredicate($predicate, $params);
         }
-        $this->applySecurityScope($request);
-        return $this->jsonResult(["count" => $this->context->count($request)]);
+        return $this->jsonResult(["count" => $this->count($request)]);
     }
 }

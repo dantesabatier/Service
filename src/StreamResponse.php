@@ -21,14 +21,14 @@ use Sabatier\Foundation\URL;
 final class StreamResponse extends Response implements IteratorAggregate
 {
     private int $chunkSize;
-    /** @var Closure(ManagedObject|ManagedObjectID): mixed|null */
+    /** @var Closure(ManagedObject|ManagedObjectID|Dictionary<mixed>): mixed|null */
     private ?Closure $transform;
 
     /**
      * @param URL $url
-     * @param ArrayClass<ManagedObject>|ArrayClass<ManagedObjectID> $body
+     * @param ArrayClass<ManagedObject|ManagedObjectID|Dictionary<mixed>> $body The objects, object IDs or rows to stream.
      * @param int $chunkSize
-     * @param Closure(ManagedObject|ManagedObjectID): mixed|null $transform
+     * @param Closure(ManagedObject|ManagedObjectID|Dictionary<mixed>): mixed|null $transform
      */
     public function __construct(URL $url, ArrayClass $body, int $chunkSize, ?Closure $transform)
     {
@@ -45,9 +45,9 @@ final class StreamResponse extends Response implements IteratorAggregate
     public function getIterator(): Generator
     {
         return (function () {
-            /** @var ArrayClass<Dictionary>|ArrayClass<int> $chunk */
+            /** @var ArrayClass<mixed> $chunk */
             $chunk = new ArrayClass();
-            /** @var ArrayClass<ManagedObject>|ArrayClass<ManagedObjectID> $body */
+            /** @var ArrayClass<ManagedObject|ManagedObjectID|Dictionary<mixed>> $body */
             $body = $this->body;
             foreach ($body as $item) {
                 $chunk->append($this->transform ? ($this->transform)($item) : $item);
@@ -55,7 +55,7 @@ final class StreamResponse extends Response implements IteratorAggregate
                     /** @var non-empty-string $json */
                     $json = json_encode($chunk, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
                     yield "$json";
-                    /** @var ArrayClass<Dictionary>|ArrayClass<int> $chunk */
+                    /** @var ArrayClass<mixed> $chunk */
                     $chunk = new ArrayClass();
                 }
             }

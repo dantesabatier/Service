@@ -7,7 +7,6 @@ namespace Sabatier\Service\MCP\Tools;
 use Exception;
 use Override;
 use Sabatier\CoreData\FetchRequest;
-use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\SortDescriptor;
@@ -63,17 +62,14 @@ final class FetchTool extends AbstractTool
         $this->validateSort($entity, $arguments["sort"]);
         $request = $this->fetchRequest($entity);
         $this->applyPredicate($request, $entity, $arguments);
-        $this->applySecurityScope($request);
         $this->applySort($request, $arguments["sort"]);
         $request->fetchLimit = (int)$arguments["limit"];
         $request->fetchOffset = (int)$arguments["offset"];
-        $shape = $this->resolveShape($arguments);
-        if ($shape !== null) {
+        if ($shape = $this->resolveShape($arguments)) {
             $request->serialization = $shape;
         }
-        $results = $this->context->fetch($request);
-        $serialized = $this->serializeResults($results, $shape);
-        return $this->jsonResult(["rowCount" => $results->count, "results" => $serialized, "summary" => $this->buildSummary($entity, $arguments, $results->count)]);
+        $results = $this->fetch($request);
+        return $this->jsonResult(["rowCount" => $results->count, "results" => $results, "summary" => $this->buildSummary($entity, $arguments, $results->count)]);
     }
 
     /**
@@ -220,25 +216,6 @@ final class FetchTool extends AbstractTool
             return;
         }
         $request->sortDescriptors = $sort->compactMap(fn(Dictionary $item): ?SortDescriptor => ($key = $item["key"]) ? new SortDescriptor($key, (bool)($item["ascending"] ?? true)) : null);
-    }
-
-    /**
-     * Serializes each fetched object, filtering the result through the field security policy when
-     * security is enabled. Filtering applies to top-level fields only — the same behavior as the
-     * PersistentSpace read strategy; nested relationship leaves in a serialization shape are not
-     * filtered.
-     *
-     * @param ArrayClass<ManagedObject> $results
-     * @param Dictionary<mixed>|null $shape
-     * @throws Exception
-     */
-    private function serializeResults(ArrayClass $results, ?Dictionary $shape): array
-    {
-        $serialize = fn(ManagedObject $object): Dictionary => $shape === null ? $object->jsonSerialize() : $object->serialized($shape)->jsonSerialize();
-        if (!$this->isSecurityEnabled) {
-            return $results->map($serialize)->array;
-        }
-        return $results->map(fn(ManagedObject $object): Dictionary => $this->applySecureRead($object, $serialize($object)))->array;
     }
 
     private function buildShape(ArrayClass $properties, Dictionary $relationships): Dictionary

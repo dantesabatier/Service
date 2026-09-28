@@ -8,13 +8,7 @@ use Exception;
 use Override;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\FetchRequestResultType;
-use Sabatier\CoreData\ManagedObject;
-use Sabatier\CoreData\ManagedObjectID;
-use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
-use Sabatier\Foundation\Predicates\ComparisonPredicate;
-use Sabatier\Foundation\Predicates\CompoundPredicate;
-use Sabatier\Foundation\Predicates\Expression;
 
 /** @internal */
 final class ReadPersistentSpaceResponseStrategy extends PersistentSpaceResponseStrategy
@@ -26,15 +20,6 @@ final class ReadPersistentSpaceResponseStrategy extends PersistentSpaceResponseS
         get {
             $fetchRequest = new RequestToFetchRequestAdapter($this->request, $this->managedObjectContext)->fetchRequest;
             $fetchRequest->entity = $this->entity;
-            /** @var class-string<ManagedObject> $entityClassName */
-            $entityClassName = $this->entity->managedObjectClassName ?? $this->entity->name;
-            if ($this->isSecurityEnabled && $this->hasOwnScopeFor($this->entity->name) && ($ownerKey = OwnerResolver::getOwnerFieldName($entityClassName))) {
-                $ownershipPredicate = new ComparisonPredicate(Expression::expressionForKeyPath($ownerKey), Expression::expressionForConstantValue($this->user));
-                $fetchRequest->predicate = $fetchRequest->predicate ? CompoundPredicate::andPredicateWithSubpredicates(new ArrayClass([$fetchRequest->predicate, $ownershipPredicate])) : $ownershipPredicate;
-            }
-            if ($resourcePredicate = $this->resourceReadPredicate($entityClassName)) {
-                $fetchRequest->predicate = $fetchRequest->predicate ? CompoundPredicate::andPredicateWithSubpredicates(new ArrayClass([$fetchRequest->predicate, $resourcePredicate])) : $resourcePredicate;
-            }
             return $fetchRequest;
         }
     }
@@ -44,24 +29,18 @@ final class ReadPersistentSpaceResponseStrategy extends PersistentSpaceResponseS
          * @throws Exception
          */
         get {
-            $context = $this->managedObjectContext;
             $fetchRequest = $this->fetchRequest;
-            $fetchRequestResult = match ($fetchRequest->resultType) {
-                FetchRequestResultType::managedObjectResultType, FetchRequestResultType::managedObjectIDResultType, FetchRequestResultType::dictionaryResultType => $context->fetch($fetchRequest),
-                FetchRequestResultType::countResultType => new Dictionary([ServiceResponseCountKey => $context->count($fetchRequest)])
-            };
-            $isSecurityEnabled = $this->isSecurityEnabled;
-            $transform = fn(ManagedObject|ManagedObjectID|Dictionary $item): ManagedObjectID|Dictionary => $item instanceof ManagedObject ? $this->applySecureRead($item, $item->jsonSerialize()) : $item;
+            if ($fetchRequest->resultType === FetchRequestResultType::countResultType) {
+                return new Response($this->request->url, body: new Dictionary([ServiceResponseCountKey => new CountPersistentSpaceOperation($this->managedObjectContext, $this->fieldSecurityPolicy, $fetchRequest)->perform()]));
+            }
+            $rows = new ReadPersistentSpaceOperation($this->managedObjectContext, $this->fieldSecurityPolicy, $fetchRequest)->perform();
             if ($fetchRequest->fetchBatchSize && match ($fetchRequest->resultType) {
                     FetchRequestResultType::managedObjectResultType, FetchRequestResultType::managedObjectIDResultType => true,
                     default => false
                 }) {
-                return new StreamResponse($this->request->url, $fetchRequestResult, chunkSize: $fetchRequest->fetchBatchSize, transform: $isSecurityEnabled ? $transform : null);
+                return new StreamResponse($this->request->url, $rows, chunkSize: $fetchRequest->fetchBatchSize, transform: null);
             }
-            if ($isSecurityEnabled && $fetchRequest->resultType === FetchRequestResultType::managedObjectResultType) {
-                return new Response($this->request->url, body: $fetchRequestResult->map($transform));
-            }
-            return new Response($this->request->url, body: $fetchRequestResult);
+            return new Response($this->request->url, body: $rows);
         }
     }
 }

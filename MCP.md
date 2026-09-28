@@ -301,7 +301,7 @@ The URL is always `/mcp`, so the endpoint guards never fire. A custom tool that 
 
 | Helper | Call it… |
 |--------|----------|
-| `applySecurityScope(FetchRequest $request)` | on **every** `FetchRequest` before executing it — folds in the `own` ownership scope and the resource-level `#[Readable]`. |
+| `fetch(FetchRequest $request)` / `count(FetchRequest $request)` / `fetchObjects(FetchRequest $request)` | to execute **every** `FetchRequest`, instead of `$this->context` — they fold in the `own` ownership scope and the resource-level `#[Readable]`, and `fetch()` filters each object to the fields the caller may read. `fetchObjects()` returns unserialized objects for a tool that computes over them. `applySecurityScope(FetchRequest $request)` applies the same scope for a tool not yet migrated. |
 | `enforceFieldRead(string $entityName, string $keyPath)` | on every key path an aggregate computes over or groups by — a protected column stays protected even over permitted rows. |
 | `authorizationResource(Dictionary $arguments): ?string` / `authorizationAction(Dictionary $arguments): AuthorizationType` | to override the resource and action `call()` authorizes before `executeCore()` — the `entity` argument and `read` (or `update` when the call is not read-only) by default. Return a null resource for a call that needs no authorization. |
 | `enforceResourceAccess(ManagedObject $object)` | on every object created, updated or deleted — enforces the resource-level `#[Writable]`. On create, call it *after* populating the object. |
@@ -309,4 +309,4 @@ The URL is always `/mcp`, so the endpoint guards never fire. A custom tool that 
 | `applySecureRead(ManagedObject $object, Dictionary $data): Dictionary` | to filter a serialized object down to the fields the caller may read. |
 | `applySecureUpdate(ManagedObject $object, Dictionary $body)` | to apply a write filtered to the fields the caller may write. |
 
-The rule of thumb: `applySecurityScope` narrows *which rows* a read sees; `enforceFieldRead` / `applySecureRead` narrow *which columns*; the `enforce*` write helpers turn a forbidden mutation into a `ForbiddenException` rather than a silent no-op.
+The rule of thumb: the read helpers narrow *which rows* a read sees; `enforceFieldRead` / `applySecureRead` narrow *which columns*; the `enforce*` write helpers turn a forbidden mutation into a `ForbiddenException` rather than a silent no-op.

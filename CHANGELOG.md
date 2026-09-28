@@ -10,6 +10,7 @@ onward.
 ### Added
 
 - The lightweight `describe_model` index marks abstract entities, so an LLM can see which entities cannot be instantiated without requesting their full schemas.
+- `AbstractTool::fetch()`, `count()` and `fetchObjects()` execute a tool's `FetchRequest` through the same read operation `PersistentSpace` uses over HTTP: the ownership scope and the resource-level `#[Readable]` are always folded in, and `fetch()` filters each object to the fields the caller may read. A tool that reads through them no longer calls `applySecurityScope()` or `applySecureRead()` itself.
 - `AbstractTool::call()` is the only way to invoke a tool: it authorizes the call and then runs `executeCore()`, the method a tool now overrides. `ToolRegistry` uses it, so no caller can run a tool without authorizing it first.
 - A `where` condition on `#[Readable]` or `#[Writable]` can reference `$REMOTE_ADDRESS`, the TCP peer address of the request (`REMOTE_ADDR`, never a forwarding header), for example `where: "\$REMOTE_ADDRESS == %@"`. Outside an HTTP request it is null.
 

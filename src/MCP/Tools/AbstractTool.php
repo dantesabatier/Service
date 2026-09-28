@@ -16,9 +16,6 @@ use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Dictionary;
-use Sabatier\Foundation\Predicates\ComparisonPredicate;
-use Sabatier\Foundation\Predicates\CompoundPredicate;
-use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Foundation\Predicates\Predicate;
 use Sabatier\Service\AccessConditionResolver;
 use Sabatier\Service\Application;
@@ -26,7 +23,9 @@ use Sabatier\Service\Authorizable;
 use Sabatier\Service\AuthorizationContext;
 use Sabatier\Service\AuthorizationService;
 use Sabatier\Service\AuthorizationType;
+use Sabatier\Service\CountPersistentSpaceOperation;
 use Sabatier\Service\DefaultAccessPolicy;
+use Sabatier\Service\FetchPersistentSpaceOperation;
 use Sabatier\Service\FieldLevelSecurityPolicy;
 use Sabatier\Service\FieldSecurityPolicy;
 use Sabatier\Service\ForbiddenException;
@@ -35,7 +34,7 @@ use Sabatier\Service\MCP\Schema\AttributeSchema;
 use Sabatier\Service\MCP\Schema\EntitySchema;
 use Sabatier\Service\MCP\Schema\ModelDescriptor;
 use Sabatier\Service\MCP\Schema\RelationshipSchema;
-use Sabatier\Service\OwnerResolver;
+use Sabatier\Service\ReadPersistentSpaceOperation;
 use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\human_readable_value;
 use function Sabatier\Foundation\localized_string;
@@ -213,50 +212,53 @@ abstract class AbstractTool
     }
 
     /**
-     * Builds the ownership predicate for an entity when the caller's `own` scope applies —
-     * the same guard `ReadPersistentSpaceResponseStrategy` uses to scope GET fetches. Returns
-     * `null` when security is disabled, the scope is absent, or the entity declares no
-     * `#[Owner]` field.
      * @throws Exception
      */
     protected function ownershipPredicate(EntityDescription $entity): ?Predicate
     {
-        /** @var class-string<ManagedObject> $entityClassName */
-        $entityClassName = $entity->managedObjectClassName ?? $entity->name;
-        if ($this->isSecurityEnabled && $this->fieldSecurityPolicy->hasOwnScopeFor($entity->name, AuthorizationType::read) && class_exists($entityClassName) && ($ownerKey = OwnerResolver::getOwnerFieldName($entityClassName))) {
-            return new ComparisonPredicate(Expression::expressionForKeyPath($ownerKey), Expression::expressionForConstantValue($this->user));
-        }
-        return null;
+        return $this->fieldSecurityPolicy->ownReadPredicate($entity);
     }
 
     /**
-     * Narrows a fetch request by every row-level rule that applies to the caller, AND-combining
-     * with any predicate the tool already set: the `own` ownership scope, and the resource-level
-     * `#[Readable]` declared on the entity's class.
-     *
-     * Call this on every fetch request a tool builds before executing it. A tool that skips it
-     * reads rows the caller is not entitled to — the MCP request URL is always `/mcp`, so none of
-     * the URL-driven guards that protect a regular endpoint apply here.
+     * Narrows a fetch request by every row-level rule that applies to the caller; {@see self::fetch()}, {@see self::count()} and {@see self::fetchObjects()} already do it.
      *
      * @throws Exception
      */
     protected function applySecurityScope(FetchRequest $request): void
     {
-        $entity = $request->entity;
-        if (!$entity instanceof EntityDescription) {
-            return;
-        }
-        /** @var class-string<ManagedObject> $entityClassName */
-        $entityClassName = $entity->managedObjectClassName ?? $entity->name;
-        $predicates = new ArrayClass([
-            $request->predicate,
-            $this->ownershipPredicate($entity),
-            class_exists($entityClassName) ? $this->fieldSecurityPolicy->resourceReadPredicate($entityClassName) : null,
-        ])->compactMap(fn(?Predicate $predicate): ?Predicate => $predicate);
-        if ($predicates->isEmpty) {
-            return;
-        }
-        $request->predicate = $predicates->count > 1 ? CompoundPredicate::andPredicateWithSubpredicates($predicates) : $predicates->first;
+        $this->fieldSecurityPolicy->applyReadScope($request);
+    }
+
+    /**
+     * Fetches the rows the caller may read, each object filtered to the fields the caller may read as it is accessed.
+     *
+     * @return ArrayClass<mixed>
+     * @throws Exception
+     */
+    protected function fetch(FetchRequest $request): ArrayClass
+    {
+        return new ReadPersistentSpaceOperation($this->context, $this->fieldSecurityPolicy, $request)->perform();
+    }
+
+    /**
+     * Counts the rows the caller may read.
+     *
+     * @throws Exception
+     */
+    protected function count(FetchRequest $request): int
+    {
+        return new CountPersistentSpaceOperation($this->context, $this->fieldSecurityPolicy, $request)->perform();
+    }
+
+    /**
+     * Fetches the objects the caller may read, unserialized, for a tool that computes over them rather than returning them.
+     *
+     * @return ArrayClass<ManagedObject>
+     * @throws Exception
+     */
+    protected function fetchObjects(FetchRequest $request): ArrayClass
+    {
+        return new FetchPersistentSpaceOperation($this->context, $this->fieldSecurityPolicy, $request)->perform();
     }
 
     /**

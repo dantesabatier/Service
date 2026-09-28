@@ -81,7 +81,6 @@ final class GroupByTool extends AbstractTool
             $this->validatePredicateKeyPaths($entity, $predicate, $params);
             $request->predicate = $this->buildPredicate($predicate, $params);
         }
-        $this->applySecurityScope($request);
         if ($having = $arguments["having_predicate"]) {
             $request->havingPredicate = $this->buildPredicate($having, $this->resolveVariables($arguments["having_arguments"] ?? new ArrayClass()));
         }
@@ -93,7 +92,7 @@ final class GroupByTool extends AbstractTool
         $request->fetchLimit = (int)$arguments["limit"];
         $request->fetchOffset = (int)$arguments["offset"];
         /** @var ArrayClass<Dictionary> $rows */
-        $rows = $this->context->fetch($request);
+        $rows = $this->fetch($request);
         $groupByPaths = $arguments["group_by"];
         $normalized = $rows->map(fn(Dictionary $row): Dictionary => $this->normalizeRow($row, $groupByPaths));
         return $this->jsonResult(["rowCount" => $rows->count, "results" => $normalized, "summary" => $this->buildSummary($entity, $arguments, $rows->count)]);

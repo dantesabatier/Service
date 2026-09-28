@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Sabatier\Service;
 
 use Exception;
+use Sabatier\CoreData\EntityDescription;
+use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
@@ -208,6 +210,41 @@ abstract readonly class FieldSecurityPolicy
         $any = AuthorizationType::any->name;
         $isGranted = fn(AuthorizationScope $scope): bool => $this->scopes->containsElement("$entityName:$action->name:$scope->name") || $this->scopes->containsElement("$entityName:$any:$scope->name");
         return $isGranted(AuthorizationScope::own) && !$isGranted(AuthorizationScope::all);
+    }
+
+    /**
+     * Narrows a fetch by every row-level rule that applies to the subject, AND-combining with the predicate it already has: the `own` read scope and the resource-level `#[Readable]`.
+     * @param FetchRequest $request The fetch request to narrow.
+     * @throws Exception
+     */
+    public function applyReadScope(FetchRequest $request): void
+    {
+        $entity = $request->entity;
+        if (!$entity instanceof EntityDescription) {
+            return;
+        }
+        /** @var class-string<ManagedObject> $className */
+        $className = $entity->managedObjectClassName ?? $entity->name;
+        $predicates = new ArrayClass([$request->predicate, $this->ownReadPredicate($entity), class_exists($className) ? $this->resourceReadPredicate($className) : null])->compactMap(fn(?Predicate $predicate): ?Predicate => $predicate);
+        if ($predicates->isEmpty) {
+            return;
+        }
+        $request->predicate = $predicates->count > 1 ? CompoundPredicate::andPredicateWithSubpredicates($predicates) : $predicates->first;
+    }
+
+    /**
+     * Returns the predicate narrowing a read of the entity to the subject's own rows when an `own` read scope applies, or null when there is nothing to narrow.
+     * @param EntityDescription $entity The entity being read.
+     * @throws Exception
+     */
+    public function ownReadPredicate(EntityDescription $entity): ?Predicate
+    {
+        /** @var class-string<ManagedObject> $className */
+        $className = $entity->managedObjectClassName ?? $entity->name;
+        if ($this->isSecurityEnabled && $this->hasOwnScopeFor($entity->name, AuthorizationType::read) && class_exists($className) && ($ownerKey = OwnerResolver::getOwnerFieldName($className))) {
+            return new ComparisonPredicate(Expression::expressionForKeyPath($ownerKey), Expression::expressionForConstantValue($this->user));
+        }
+        return null;
     }
 
     /**

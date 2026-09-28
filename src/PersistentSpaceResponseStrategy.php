@@ -4,16 +4,8 @@ declare(strict_types=1);
 
 namespace Sabatier\Service;
 
-use Exception;
 use Sabatier\CoreData\EntityDescription;
-use Sabatier\CoreData\FetchRequest;
-use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
-use Sabatier\CoreData\ManagedObjectID;
-use Sabatier\Foundation\Dictionary;
-use Sabatier\Foundation\Predicates\ComparisonPredicate;
-use Sabatier\Foundation\Predicates\Expression;
-use const Sabatier\CoreData\ManagedObjectObjectIDKey;
 
 /** @internal */
 abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
@@ -21,17 +13,6 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
     protected readonly EntityDescription $entity;
     protected readonly ManagedObjectContext $managedObjectContext;
     protected readonly FieldSecurityPolicy $fieldSecurityPolicy;
-    protected ?Authorizable $user {
-        get => $this->fieldSecurityPolicy->user;
-    }
-    protected bool $isSecurityEnabled {
-        get => $this->fieldSecurityPolicy->isSecurityEnabled;
-    }
-
-    protected function hasOwnScopeFor(string $entityName): bool
-    {
-        return $this->fieldSecurityPolicy->hasOwnScopeFor($entityName, AuthorizationType::forHTTPMethod($this->request->httpMethod));
-    }
 
     public function __construct(Request $request, EntityDescription $entity, ManagedObjectContext $managedObjectContext, FieldSecurityPolicy $fieldSecurityPolicy)
     {
@@ -39,64 +20,5 @@ abstract class PersistentSpaceResponseStrategy extends ResponseStrategy
         $this->entity = $entity;
         $this->managedObjectContext = $managedObjectContext;
         $this->fieldSecurityPolicy = $fieldSecurityPolicy;
-    }
-
-    protected function fetchRequestFor(ManagedObjectID|int|string $objectID): FetchRequest
-    {
-        if (is_string($objectID) && is_numeric($objectID)) {
-            $objectID = (int)$objectID;
-        }
-        /** @var FetchRequest<ManagedObject> $fetchRequest */
-        $fetchRequest = new FetchRequest();
-        $fetchRequest->entity = $this->entity;
-        $fetchRequest->predicate = new ComparisonPredicate(Expression::expressionForKeyPath(ManagedObjectObjectIDKey), Expression::expressionForConstantValue($objectID));
-        if ($serialization = $this->request->serialization) {
-            $fetchRequest->serialization = $serialization;
-        }
-        return $fetchRequest;
-    }
-
-    /**
-     * @throws Exception
-     */
-    protected function fetchBy(ManagedObjectID|int|string $objectID): ?ManagedObject
-    {
-        /** @var FetchRequest<ManagedObject> $fetchRequest */
-        $fetchRequest = $this->fetchRequestFor($objectID);
-        return $this->managedObjectContext->fetch($fetchRequest)->first;
-    }
-
-    protected function enforceOwnership(ManagedObject $object): void
-    {
-        $this->fieldSecurityPolicy->enforceOwnership($object, AuthorizationType::forHTTPMethod($this->request->httpMethod));
-    }
-
-    /**
-     * @throws Exception
-     */
-    protected function enforceResourceAccess(ManagedObject $object): void
-    {
-        $this->fieldSecurityPolicy->enforceResourceAccess($object);
-    }
-
-    /**
-     * @param ManagedObject $object
-     * @param Dictionary<mixed> $body
-     * @throws Exception
-     */
-    protected function applySecureUpdate(ManagedObject $object, Dictionary $body): void
-    {
-        $this->fieldSecurityPolicy->applySecureUpdate($object, $body);
-    }
-
-    /**
-     * @param ManagedObject $object
-     * @param Dictionary<mixed> $data
-     * @return Dictionary<mixed>
-     * @throws Exception
-     */
-    protected function applySecureRead(ManagedObject $object, Dictionary $data): Dictionary
-    {
-        return $this->fieldSecurityPolicy->applySecureRead($object, $data);
     }
 }

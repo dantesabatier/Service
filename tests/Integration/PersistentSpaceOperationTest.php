@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpInternalEntityUsedInspection */
+
 declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Integration;
@@ -29,12 +31,21 @@ use Sabatier\Foundation\UUID;
 use Sabatier\Service\Authorizable;
 use Sabatier\Service\AuthorizableRole;
 use Sabatier\Service\AuthorizationContext;
+use Sabatier\Service\ConflictException;
 use Sabatier\Service\CountPersistentSpaceOperation;
+use Sabatier\Service\CreatePersistentSpaceOperation;
+use Sabatier\Service\DeletePersistentSpaceOperation;
 use Sabatier\Service\FetchPersistentSpaceOperation;
 use Sabatier\Service\FieldLevelSecurityPolicy;
 use Sabatier\Service\FieldSecurityPolicy;
+use Sabatier\Service\ForbiddenException;
+use Sabatier\Service\NotFoundException;
+use Sabatier\Service\Owner;
 use Sabatier\Service\ReadPersistentSpaceOperation;
 use Sabatier\Service\Readable;
+use Sabatier\Service\UpdatePersistentSpaceOperation;
+use Sabatier\Service\Writable;
+use const Sabatier\CoreData\ManagedObjectObjectIDKey;
 
 #[Readable(where: "status == %@", arguments: ["open"])]
 final class OperationRowFixture extends ManagedObject
@@ -47,6 +58,19 @@ final class OperationRowFixture extends ManagedObject
     }
     #[Readable(["auditor"])]
     public string $note {
+        get => $this->valueForKey(__PROPERTY__);
+        set {
+            $this->setValueForKey($value, __PROPERTY__);
+        }
+    }
+}
+
+#[Writable(where: "title != %@", arguments: ["locked"])]
+final class OwnedOperationRowFixture extends ManagedObject
+{
+    #[Owner]
+    public ?Authorizable $createdBy = null;
+    public string $title {
         get => $this->valueForKey(__PROPERTY__);
         set {
             $this->setValueForKey($value, __PROPERTY__);
@@ -81,8 +105,13 @@ final readonly class RecordingFieldSecurityPolicy extends FieldSecurityPolicy
 final class PersistentSpaceOperationTest extends TestCase
 {
     private const string entityName = "OperationRow";
+    private const string ownedEntityName = "OwnedOperationRow";
     private URL $storeURL;
     private ManagedObjectContext $context;
+    private OperationRowFixture $open;
+    private OperationRowFixture $closed;
+    private OwnedOperationRowFixture $owned;
+    private OwnedOperationRowFixture $locked;
 
     /** @throws Exception */
     #[Override]
@@ -98,20 +127,32 @@ final class PersistentSpaceOperationTest extends TestCase
         $entity->name = self::entityName;
         $entity->managedObjectClassName = OperationRowFixture::class;
         $entity->properties = new ArrayClass([$status, $note]);
+        $title = new AttributeDescription();
+        $title->name = "title";
+        $title->type = AttributeType::string;
+        $ownedEntity = new EntityDescription();
+        $ownedEntity->name = self::ownedEntityName;
+        $ownedEntity->managedObjectClassName = OwnedOperationRowFixture::class;
+        $ownedEntity->properties = new ArrayClass([$title]);
         $model = new ManagedObjectModel();
-        $model->entities = new ArrayClass([$entity]);
+        $model->entities = new ArrayClass([$entity, $ownedEntity]);
         $coordinator = new PersistentStoreCoordinator($model);
         $identifier = new UUID()->uuidString;
         $this->storeURL = FileManager::default()->temporaryDirectory->appendingPathComponent("persistent-space-operation-$identifier.xml");
         $coordinator->addPersistentStoreWithType(PersistentStoreType::xml, null, $this->storeURL);
         $this->context = new ManagedObjectContext();
         $this->context->persistentStoreCoordinator = $coordinator;
-        $open = new OperationRowFixture($this->context);
-        $open->status = "open";
-        $open->note = "visible to auditors";
-        $closed = new OperationRowFixture($this->context);
-        $closed->status = "closed";
-        $closed->note = "never read";
+        $this->open = new OperationRowFixture($this->context);
+        $this->open->status = "open";
+        $this->open->note = "visible to auditors";
+        $this->closed = new OperationRowFixture($this->context);
+        $this->closed->status = "closed";
+        $this->closed->note = "never read";
+        $this->owned = new OwnedOperationRowFixture($this->context);
+        $this->owned->title = "someone else's";
+        $this->owned->createdBy = $this->user();
+        $this->locked = new OwnedOperationRowFixture($this->context);
+        $this->locked->title = "locked";
         $this->context->save();
     }
 
@@ -220,6 +261,134 @@ final class PersistentSpaceOperationTest extends TestCase
     {
         $this->expectException(InternalInconsistencyException::class);
         new ReadPersistentSpaceOperation($this->context, $this->policy(true), $this->request())->perform()->append(new Dictionary());
+    }
+
+    /** @throws Exception */
+    #[Test]
+    public function aCreateAnswersTheStoredRowFilteredToTheFieldsTheSubjectMayRead(): void
+    {
+        $row = new CreatePersistentSpaceOperation($this->context, $this->policy(true), $this->entity(self::entityName), new Dictionary(["status" => "open", "note" => "written, not read back"]))->perform();
+        $this->assertSame("open", $row["status"]);
+        $this->assertFalse($row->offsetExists("note"));
+        $this->assertSame(3, new CountPersistentSpaceOperation($this->context, $this->policy(false), $this->request())->perform());
+    }
+
+    /** @throws Exception */
+    #[Test]
+    public function aCreateNamingAnExistingObjectIDConflicts(): void
+    {
+        $this->expectException(ConflictException::class);
+        new CreatePersistentSpaceOperation($this->context, $this->policy(true), $this->entity(self::entityName), new Dictionary([ManagedObjectObjectIDKey => $this->open->objectID->referenceObject, "status" => "open"]))->perform();
+    }
+
+    /** @throws Exception */
+    #[Test]
+    public function anUpdateAnswersTheStoredRowEvenWhenItLeavesTheReadScope(): void
+    {
+        $row = new UpdatePersistentSpaceOperation($this->context, $this->policy(true), $this->entity(self::entityName), $this->open->objectID, new Dictionary(["status" => "closed"]))->perform();
+        $this->assertSame("closed", $row["status"]);
+        $this->assertSame(0, new CountPersistentSpaceOperation($this->context, $this->policy(true), $this->request())->perform());
+    }
+
+    /** @throws Exception */
+    #[Test]
+    public function aNumericObjectIDArrivingAsTextFindsTheRow(): void
+    {
+        $row = new UpdatePersistentSpaceOperation($this->context, $this->policy(true), $this->entity(self::entityName), (string)$this->open->objectID->referenceObject, new Dictionary(["note" => "changed"]))->perform();
+        $this->assertSame("open", $row["status"]);
+    }
+
+    /** @throws Exception */
+    #[Test]
+    public function theSerializationShapesTheAnswerToAWrite(): void
+    {
+        $row = new UpdatePersistentSpaceOperation($this->context, $this->policy(true, "auditor"), $this->entity(self::entityName), $this->open->objectID, new Dictionary(["note" => "changed"]), new Dictionary(["status" => true]))->perform();
+        $this->assertSame("open", $row["status"]);
+        $this->assertFalse($row->offsetExists("note"));
+    }
+
+    /** @throws Exception */
+    #[Test]
+    public function anUpdateCannotReachARowTheSubjectMayNotRead(): void
+    {
+        $this->expectException(NotFoundException::class);
+        new UpdatePersistentSpaceOperation($this->context, $this->policy(true), $this->entity(self::entityName), $this->closed->objectID, new Dictionary(["note" => "changed"]))->perform();
+    }
+
+    /** @throws Exception */
+    #[Test]
+    public function aDeleteRemovesTheRow(): void
+    {
+        new DeletePersistentSpaceOperation($this->context, $this->policy(true), $this->entity(self::entityName), $this->open->objectID)->perform();
+        $this->assertSame(1, new CountPersistentSpaceOperation($this->context, $this->policy(false), $this->request())->perform());
+    }
+
+    /** @throws Exception */
+    #[Test]
+    public function aDeleteCannotReachARowTheSubjectMayNotRead(): void
+    {
+        $this->expectException(NotFoundException::class);
+        new DeletePersistentSpaceOperation($this->context, $this->policy(true), $this->entity(self::entityName), $this->closed->objectID)->perform();
+    }
+
+    /** @throws Exception */
+    #[Test]
+    public function anUpdateIsRestrictedByAnOwnScopeOnUpdates(): void
+    {
+        $this->expectException(ForbiddenException::class);
+        new UpdatePersistentSpaceOperation($this->context, $this->scopedPolicy("OwnedOperationRow:update:own", "OwnedOperationRow:delete:all"), $this->entity(self::ownedEntityName), $this->owned->objectID, new Dictionary(["title" => "mine now"]))->perform();
+    }
+
+    /** @throws Exception */
+    #[Test]
+    public function aDeleteIsNotRestrictedByAnOwnScopeOnUpdates(): void
+    {
+        new DeletePersistentSpaceOperation($this->context, $this->scopedPolicy("OwnedOperationRow:update:own", "OwnedOperationRow:delete:all"), $this->entity(self::ownedEntityName), $this->owned->objectID)->perform();
+        $request = new FetchRequest();
+        $request->entity = $this->entity(self::ownedEntityName);
+        $this->assertSame(1, new CountPersistentSpaceOperation($this->context, $this->policy(false), $request)->perform());
+    }
+
+    /** @throws Exception */
+    #[Test]
+    public function aDeleteIsRestrictedByAnOwnScopeOnDeletes(): void
+    {
+        $this->expectException(ForbiddenException::class);
+        new DeletePersistentSpaceOperation($this->context, $this->scopedPolicy("OwnedOperationRow:update:all", "OwnedOperationRow:delete:own"), $this->entity(self::ownedEntityName), $this->owned->objectID)->perform();
+    }
+
+    /** @throws Exception */
+    #[Test]
+    public function aCreateTheResourceRuleRefusesIsDenied(): void
+    {
+        $this->expectException(ForbiddenException::class);
+        new CreatePersistentSpaceOperation($this->context, $this->policy(true), $this->entity(self::ownedEntityName), new Dictionary(["title" => "locked"]))->perform();
+    }
+
+    /** @throws Exception */
+    #[Test]
+    public function anUpdateTheResourceRuleRefusesIsDenied(): void
+    {
+        $this->expectException(ForbiddenException::class);
+        new UpdatePersistentSpaceOperation($this->context, $this->policy(true), $this->entity(self::ownedEntityName), $this->locked->objectID, new Dictionary(["title" => "unlocked"]))->perform();
+    }
+
+    /** @throws Exception */
+    #[Test]
+    public function aDeleteTheResourceRuleRefusesIsDenied(): void
+    {
+        $this->expectException(ForbiddenException::class);
+        new DeletePersistentSpaceOperation($this->context, $this->policy(true), $this->entity(self::ownedEntityName), $this->locked->objectID)->perform();
+    }
+
+    private function entity(string $name): EntityDescription
+    {
+        return EntityDescription::entity($name, $this->context);
+    }
+
+    private function scopedPolicy(string ...$scopes): FieldLevelSecurityPolicy
+    {
+        return new FieldLevelSecurityPolicy(new AuthorizationContext($this->user(), new ArrayClass($scopes), true));
     }
 
     private function request(): FetchRequest

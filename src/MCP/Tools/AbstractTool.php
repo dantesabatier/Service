@@ -13,6 +13,7 @@ use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
+use Sabatier\CoreData\ManagedObjectID;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Dictionary;
@@ -24,7 +25,9 @@ use Sabatier\Service\AuthorizationContext;
 use Sabatier\Service\AuthorizationService;
 use Sabatier\Service\AuthorizationType;
 use Sabatier\Service\CountPersistentSpaceOperation;
+use Sabatier\Service\CreatePersistentSpaceOperation;
 use Sabatier\Service\DefaultAccessPolicy;
+use Sabatier\Service\DeletePersistentSpaceOperation;
 use Sabatier\Service\FetchPersistentSpaceOperation;
 use Sabatier\Service\FieldLevelSecurityPolicy;
 use Sabatier\Service\FieldSecurityPolicy;
@@ -35,6 +38,7 @@ use Sabatier\Service\MCP\Schema\EntitySchema;
 use Sabatier\Service\MCP\Schema\ModelDescriptor;
 use Sabatier\Service\MCP\Schema\RelationshipSchema;
 use Sabatier\Service\ReadPersistentSpaceOperation;
+use Sabatier\Service\UpdatePersistentSpaceOperation;
 use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\human_readable_value;
 use function Sabatier\Foundation\localized_string;
@@ -259,6 +263,36 @@ abstract class AbstractTool
     protected function fetchObjects(FetchRequest $request): ArrayClass
     {
         return new FetchPersistentSpaceOperation($this->context, $this->fieldSecurityPolicy, $request)->perform();
+    }
+
+    /**
+     * @param Dictionary<mixed> $values
+     * @param Dictionary<mixed>|null $serialization
+     * @return Dictionary<mixed>
+     * @throws Exception
+     */
+    protected function create(string $entityName, Dictionary $values, ?Dictionary $serialization = null): Dictionary
+    {
+        return new CreatePersistentSpaceOperation($this->context, $this->fieldSecurityPolicy, EntityDescription::entity($entityName, $this->context), $values, $serialization)->perform();
+    }
+
+    /**
+     * @param Dictionary<mixed> $values
+     * @param Dictionary<mixed>|null $serialization
+     * @return Dictionary<mixed>
+     * @throws Exception
+     */
+    protected function update(string $entityName, ManagedObjectID|int|string $objectID, Dictionary $values, ?Dictionary $serialization = null): Dictionary
+    {
+        return new UpdatePersistentSpaceOperation($this->context, $this->fieldSecurityPolicy, EntityDescription::entity($entityName, $this->context), $objectID, $values, $serialization)->perform();
+    }
+
+    /**
+     * @throws Exception
+     */
+    protected function delete(string $entityName, ManagedObjectID|int|string $objectID): void
+    {
+        new DeletePersistentSpaceOperation($this->context, $this->fieldSecurityPolicy, EntityDescription::entity($entityName, $this->context), $objectID)->perform();
     }
 
     /**

@@ -20,16 +20,7 @@ final class UpdatePersistentSpaceResponseStrategy extends PersistentSpaceRespons
             $request = $this->request;
             $parameters = $request->parameters;
             $objectID = $parameters[ManagedObjectObjectIDKey] ?? throw new BadRequestException();
-            $object = $this->fetchBy($objectID) ?? throw new NotFoundException();
-            $this->enforceOwnership($object);
-            $this->enforceResourceAccess($object);
-            $this->applySecureUpdate($object, $parameters);
-            $context = $this->managedObjectContext;
-            if ($context->hasChanges) {
-                $context->save();
-            }
-            $refreshed = $this->fetchBy($object->objectID) ?? throw new InternalServerErrorException();
-            $body = $this->applySecureRead($refreshed, $refreshed->jsonSerialize());
+            $body = new UpdatePersistentSpaceOperation($this->managedObjectContext, $this->fieldSecurityPolicy, $this->entity, $objectID, $parameters, $request->serialization)->perform();
             return new Response($request->url, body: $body);
         }
     }

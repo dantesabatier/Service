@@ -19,12 +19,7 @@ final class DeletePersistentSpaceResponseStrategy extends PersistentSpaceRespons
          */
         get {
             $objectID = $this->request->parameters[ManagedObjectObjectIDKey] ?? throw new BadRequestException();
-            $object = $this->fetchBy($objectID) ?? throw new NotFoundException();
-            $this->enforceOwnership($object);
-            $this->enforceResourceAccess($object);
-            $context = $this->managedObjectContext;
-            $context->delete($object);
-            $context->save();
+            new DeletePersistentSpaceOperation($this->managedObjectContext, $this->fieldSecurityPolicy, $this->entity, $objectID)->perform();
             return new Response($this->request->url, HTTPStatusCode::noContent);
         }
     }

@@ -8,7 +8,6 @@ namespace Sabatier\Service\MCP\Tools;
 
 use Exception;
 use Override;
-use Sabatier\CoreData\EntityDescription;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\AuthorizationType;
@@ -53,10 +52,6 @@ final class CreateTool extends AbstractTool
         /** @var Dictionary<mixed> $values */
         $values = $arguments["values"] ?? fatal_error("values is required");
         $this->assertConcreteEntity($entity);
-        $object = EntityDescription::insertNewObject($entity, $this->context);
-        $this->applySecureUpdate($object, $this->normalizeRelationships($entity, $values));
-        $this->enforceResourceAccess($object);
-        $this->context->save();
-        return $this->jsonResult($this->applySecureRead($object, $object->serialized($this->shapeFromValues($entity, $values))->jsonSerialize()));
+        return $this->jsonResult($this->create($entity, $this->normalizeRelationships($entity, $values), $this->shapeFromValues($entity, $values)));
     }
 }

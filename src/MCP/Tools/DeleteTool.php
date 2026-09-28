@@ -6,14 +6,11 @@ namespace Sabatier\Service\MCP\Tools;
 
 use Exception;
 use Override;
-use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\AuthorizationType;
 use Sabatier\Service\MCP\Response\ContentItem;
-use Sabatier\Service\NotFoundException;
 use function Sabatier\Foundation\fatal_error;
-use const Sabatier\CoreData\ManagedObjectObjectIDKey;
 
 /** @internal */
 final class DeleteTool extends AbstractTool
@@ -51,15 +48,7 @@ final class DeleteTool extends AbstractTool
         /** @var string $entity */
         $entity = $arguments["entity"] ?? fatal_error("entity is required");
         $objectID = $arguments["objectID"] ?? fatal_error("objectID is required");
-        $request = $this->fetchRequest($entity);
-        $request->predicate = $this->buildPredicate("%K = %d", new ArrayClass([ManagedObjectObjectIDKey, $objectID]));
-        $this->applySecurityScope($request);
-        /** @var ManagedObject $object */
-        $object = $this->context->fetch($request)->first ?? throw new NotFoundException();
-        $this->enforceOwnership($object);
-        $this->enforceResourceAccess($object);
-        $this->context->delete($object);
-        $this->context->save();
+        $this->delete($entity, $objectID);
         return $this->jsonResult(["deleted" => $objectID]);
     }
 }

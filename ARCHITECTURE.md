@@ -192,10 +192,10 @@ When `fetchBatchSize` is set on the fetch request, the response is streamed: rec
 ### Mutations (POST, PATCH, DELETE)
 
 - **POST** inserts a new object. If the body includes an `objectID`, a uniqueness check runs first; a conflict throws `409`. The framework calls `applySecureUpdate` on the new object before saving, which hashes passwords for `Authorizable` entities and strips fields the user is not allowed to write.
-- **PATCH** fetches the object by `objectID`, enforces ownership if applicable, applies the secure write filter, and saves only if the context has actual changes (avoiding unnecessary writes).
-- **DELETE** fetches by `objectID`, enforces ownership, deletes, and returns `204 No Content`.
+- **PATCH** fetches the object by `objectID` within the caller's read scope (a row the caller cannot read is `404`), enforces ownership for `update` and the resource-level `#[Writable]`, applies the secure write filter, and saves only if the context has actual changes (avoiding unnecessary writes).
+- **DELETE** fetches by `objectID` within the read scope, enforces ownership for `delete` and the resource-level `#[Writable]`, deletes, and returns `204 No Content`.
 
-Every mutating operation re-fetches the object after saving and applies `applySecureRead` before returning it, so the response always reflects the committed state with fields filtered for the current user.
+Every mutating operation re-fetches the object after saving and applies `applySecureRead` before returning it, so the response always reflects the committed state with fields filtered for the current user. Each is a `PersistentSpaceOperation` (`CreatePersistentSpaceOperation`, `UpdatePersistentSpaceOperation`, `DeletePersistentSpaceOperation`) that the MCP write tools run too.
 
 ### Field-Level Security
 
@@ -445,9 +445,9 @@ A custom tool must also apply the same security helpers the built-in tools use �
 
 - **`fetch($request)` / `count($request)` / `fetchObjects($request)`** — execute every `FetchRequest` the tool builds through these. They run the `PersistentSpaceOperation` that HTTP's read strategy also runs, which AND-folds in the caller's `own` ownership scope and the resource-level `#[Readable]`; `fetch()` also filters each object to its readable fields as it is accessed. `applySecurityScope($request)` remains for tools not yet migrated and applies the same scope.
 - **`enforceFieldRead($entityName, $keyPath)`** — call on every key path an aggregate computes over or groups by. The read operations narrow which rows are read; this narrows which columns.
-- **`enforceResourceAccess($object)`** — call on every object the tool creates, updates or deletes (on create, after populating it). Enforces the resource-level `#[Writable]`; throws `ForbiddenException` on denial.
+- **`create()` / `update()` / `delete()`** — write through these. They run the write operations `PersistentSpace` runs over HTTP: the row is looked up within the read scope, ownership and the resource-level `#[Writable]` are enforced, values are filtered by the field-level `#[Writable]`, and the stored row is answered through `applySecureRead`.
 - **`authorizationResource($arguments)` / `authorizationAction($arguments)`** — the resource and action `call()` authorizes before `executeCore()`, through the same `AccessPolicy::allowsAccess()` that `AuthorizationEvaluator` asks by URL for regular endpoints. They default to the `entity` argument and to `read`, or `update` when the call is not read-only; override them only when the tool does not fit that default.
-- **`applySecureRead` / `applySecureUpdate` / `enforceOwnership`** — field-level read filtering, field-level write filtering, and `#[Owner]` enforcement, respectively.
+- **`applySecureRead` / `applySecureUpdate` / `enforceOwnership` / `enforceResourceAccess`** — field-level read filtering, field-level write filtering, `#[Owner]` enforcement and the resource-level `#[Writable]`, for tools not yet migrated to the write helpers.
 
 ### In-process agents and subagents
 

@@ -9,9 +9,7 @@ use Override;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\MCP\Response\ContentItem;
-use Sabatier\Service\NotFoundException;
 use function Sabatier\Foundation\fatal_error;
-use const Sabatier\CoreData\ManagedObjectObjectIDKey;
 
 /** @internal */
 final class UpdateTool extends AbstractTool
@@ -44,16 +42,6 @@ final class UpdateTool extends AbstractTool
         $entity = $arguments["entity"] ?? fatal_error("entity is required");
         $objectID = $arguments["objectID"] ?? fatal_error("objectID is required");
         $values = $arguments["values"] ?? fatal_error("values is required");
-        $request = $this->fetchRequest($entity);
-        $request->predicate = $this->buildPredicate("%K = %d", new ArrayClass([ManagedObjectObjectIDKey, $objectID]));
-        $this->applySecurityScope($request);
-        $object = $this->context->fetch($request)->first ?? throw new NotFoundException();
-        $this->enforceOwnership($object);
-        $this->enforceResourceAccess($object);
-        $this->applySecureUpdate($object, $this->normalizeRelationships($entity, $values));
-        if ($this->context->hasChanges) {
-            $this->context->save();
-        }
-        return $this->jsonResult($this->applySecureRead($object, $object->jsonSerialize()));
+        return $this->jsonResult($this->update($entity, $objectID, $this->normalizeRelationships($entity, $values)));
     }
 }

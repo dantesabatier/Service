@@ -56,7 +56,7 @@ A CLI entry point parallel to the responder chain — for cron and one-shot prov
 
 Discovery mirrors the MCP tool mechanism: `JobResolver` scans `src/Jobs/`, reconstructing each FQCN as `App\Jobs\{basename}` — the same hardcoded `App\` prefix `ToolResolver` uses, and unlike `FirstResponderResolver`, which derives the namespace from the delegate. `JobRegistry` keys the resolved `Dictionary<Job>` by `name`. No manifest, no registration — dropping a `Job` subclass in `src/Jobs/` makes it runnable. Because the CLI only matches its argument against the registry keys (never instantiating from raw input), an unknown name cannot run.
 
-**`JobRunner::run()`** is the CLI run loop, the counterpart to `Application::run()` — it boots the delegate, resolves the argument against the registry, runs the job (`save` only if `hasChanges`, `reset` in `finally`), and `exit`s. Both are `: never`. A project's `cli.php` is one line — `new JobRunner()->run();` — as thin as `index.php`. `transactionAuthor` is the `JobRunner` constructor argument (default `"system"`).
+**`JobRunner::run()`** is the CLI run loop, the counterpart to `Application::run()` — it boots the delegate, resolves the argument against the registry, runs the job through `JobOperation` (`transactionAuthor` stamped, `save` only if `hasChanges`) with `reset` in `finally`, and `exit`s. The MCP `run_job` tool runs a job through the same `JobOperation`. Both are `: never`. A project's `cli.php` is one line — `new JobRunner()->run();` — as thin as `index.php`. `transactionAuthor` is the `JobRunner` constructor argument (default `"system"`).
 
 Do **not** add job bootstrap (`save`/`reset`, container boot) inside a job — that belongs to `JobRunner`.
 
@@ -99,7 +99,7 @@ Removes history from the store. Responds with `204 No Content`. The purge must b
 | `beforeToken`       | base64 JSON | Purge transactions before the given token                                                                                 |
 | `fetchRequest`      | base64 JSON | Scope which transactions to purge by `PersistentHistoryTransaction` properties (e.g. `author`, `contextName`, `bundleID`) |
 
-Tokens are passed as base64-encoded JSON, decoded via `PersistentHistoryToken`. The adapter (`PersistentHistoryChangeRequestAdapter`) is `@internal` and translates request parameters into a `PersistentHistoryChangeRequest` before execution.
+Tokens are passed as base64-encoded JSON, decoded via `PersistentHistoryToken`. The adapter (`PersistentHistoryChangeRequestAdapter`) is `@internal` and translates request parameters into a `PersistentHistoryChangeRequest` before execution. Both `/history` strategies and the MCP `persistent_history` tool execute it through `PersistentHistoryOperation`.
 
 ### Response Pipeline
 

@@ -7,6 +7,10 @@ onward.
 
 ## [Unreleased]
 
+### Added
+
+- `AbstractTool::executeHistory()`, `runJob()`, `tools()` and `entityDescription()`, so a tool can run a persistent history request or a job, read the tool catalogue, or look an entity up without reaching `$this->context`. `/history`, the CLI `JobRunner` and the MCP `persistent_history` and `run_job` tools run history requests and jobs through the same operations.
+
 ## [1.4.0] - 2026-09-28
 
 ### Added

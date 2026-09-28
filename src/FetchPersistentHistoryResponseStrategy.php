@@ -8,7 +8,6 @@ use Exception;
 use Override;
 use Sabatier\CoreData\ManagedObjectID;
 use Sabatier\CoreData\PersistentHistoryChange;
-use Sabatier\CoreData\PersistentHistoryResult;
 use Sabatier\CoreData\PersistentHistoryResultType;
 use Sabatier\CoreData\PersistentHistoryTransaction;
 use Sabatier\Foundation\ArrayClass;
@@ -22,11 +21,8 @@ final class FetchPersistentHistoryResponseStrategy extends PersistentHistoryResp
          * @throws Exception
          */
         get {
-            $context = $this->managedObjectContext;
             $changeRequest = $this->changeRequest;
-            $changeRequest->fetchRequest = $this->fetchRequest;
-            /** @var PersistentHistoryResult $persistentHistoryResult */
-            $persistentHistoryResult = $context->execute($changeRequest);
+            $persistentHistoryResult = new PersistentHistoryOperation($this->managedObjectContext, $changeRequest, $this->fetchRequest)->perform();
             /** @var ArrayClass<ManagedObjectID|PersistentHistoryTransaction|PersistentHistoryChange|Number>|Number $result */
             $result = $persistentHistoryResult->result;
             return match ($changeRequest->resultType) {

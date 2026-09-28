@@ -85,11 +85,7 @@ final class JobTool extends AbstractTool
         /** @var string $name */
         $name = $arguments["job"] ?? fatal_error("job is required");
         $job = $this->registry->job($name) ?? fatal_error("Unknown job \"$name\". Available: {$this->registry->names->join(", ")}.");
-        $this->context->transactionAuthor = $this->user?->username ?? "system";
-        $job->run($this->context);
-        if ($this->context->hasChanges) {
-            $this->context->save();
-        }
+        $this->runJob($job);
         return $this->jsonResult(["status" => "completed", "job" => $name]);
     }
 }

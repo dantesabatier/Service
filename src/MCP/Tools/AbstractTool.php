@@ -14,6 +14,8 @@ use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\CoreData\ManagedObjectID;
+use Sabatier\CoreData\PersistentHistoryChangeRequest;
+use Sabatier\CoreData\PersistentHistoryResult;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Dictionary;
@@ -32,11 +34,15 @@ use Sabatier\Service\FetchPersistentSpaceOperation;
 use Sabatier\Service\FieldLevelSecurityPolicy;
 use Sabatier\Service\FieldSecurityPolicy;
 use Sabatier\Service\ForbiddenException;
+use Sabatier\Service\Jobs\Job;
+use Sabatier\Service\Jobs\JobOperation;
 use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\Schema\AttributeSchema;
 use Sabatier\Service\MCP\Schema\EntitySchema;
 use Sabatier\Service\MCP\Schema\ModelDescriptor;
 use Sabatier\Service\MCP\Schema\RelationshipSchema;
+use Sabatier\Service\MCP\ToolResolver;
+use Sabatier\Service\PersistentHistoryOperation;
 use Sabatier\Service\ReadPersistentSpaceOperation;
 use Sabatier\Service\UpdatePersistentSpaceOperation;
 use function Sabatier\Foundation\fatal_error;
@@ -293,6 +299,44 @@ abstract class AbstractTool
     protected function delete(string $entityName, ManagedObjectID|int|string $objectID): void
     {
         new DeletePersistentSpaceOperation($this->context, $this->fieldSecurityPolicy, EntityDescription::entity($entityName, $this->context), $objectID)->perform();
+    }
+
+    /**
+     * @throws Exception
+     */
+    protected function executeHistory(PersistentHistoryChangeRequest $changeRequest, ?FetchRequest $transactionFilter = null): PersistentHistoryResult
+    {
+        return new PersistentHistoryOperation($this->context, $changeRequest, $transactionFilter)->perform();
+    }
+
+    /**
+     * @throws Exception
+     */
+    protected function runJob(Job $job): void
+    {
+        new JobOperation($this->context, $job, $this->user?->username ?? "system")->perform();
+    }
+
+    protected function entityDescription(string $entityName): ?EntityDescription
+    {
+        /** @var EntityDescription|null */
+        return $this->context->persistentStoreCoordinator?->managedObjectModel?->entitiesByName[$entityName];
+    }
+
+    /**
+     * @return Dictionary<AbstractTool>
+     */
+    protected function tools(): Dictionary
+    {
+        return new ToolResolver($this->context, $this->descriptor)->resolve()->reduce(new Dictionary(),
+            /**
+             * @param Dictionary<AbstractTool> $tools
+             * @return Dictionary<AbstractTool>
+             */
+            function (Dictionary $tools, AbstractTool $tool): Dictionary {
+                $tools[$tool->name] = $tool;
+                return $tools;
+            });
     }
 
     /**

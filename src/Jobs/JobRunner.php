@@ -76,15 +76,10 @@ final class JobRunner
         $delegateClass::initialize();
         $delegate->applicationWillFinishLaunching($application);
         $context = $application->persistentContainer->viewContext;
-        $context->transactionAuthor = $this->transactionAuthor;
-
         $this->log($name, "started");
         $status = 0;
         try {
-            $job->run($context);
-            if ($context->hasChanges) {
-                $context->save();
-            }
+            new JobOperation($context, $job, $this->transactionAuthor)->perform();
             $duration = ProcessInfo::processInfo()->systemUptime - $time |> human_readable_time(...);
             $this->log($name, sprintf("completed in %s", $duration));
         } catch (Throwable $throwable) {

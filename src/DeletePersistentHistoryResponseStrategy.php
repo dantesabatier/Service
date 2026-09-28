@@ -17,11 +17,7 @@ final class DeletePersistentHistoryResponseStrategy extends PersistentHistoryRes
          * @throws Exception
          */
         get {
-            $changeRequest = $this->changeRequest;
-            if ($fetchRequest = $this->fetchRequest) {
-                $changeRequest->fetchRequest = $fetchRequest;
-            }
-            $this->managedObjectContext->execute($changeRequest);
+            new PersistentHistoryOperation($this->managedObjectContext, $this->changeRequest, $this->fetchRequest)->perform();
             return new Response($this->request->url, HTTPStatusCode::noContent);
         }
     }

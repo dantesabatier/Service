@@ -99,11 +99,7 @@ final class PersistentHistoryTool extends AbstractTool
         $operation = $arguments["operation"] ?? fatal_error("operation is required");
         in_array($operation, self::operations, true) ?: fatal_error("Invalid operation \"$operation\". Allowed: " . new ArrayClass(self::operations)->join(", ") . ".");
         $changeRequest = $operation === "purge" ? $this->purgeRequest($arguments) : $this->fetchRequestFor($arguments);
-        if ($fetchRequest = $this->transactionFilter($arguments)) {
-            $changeRequest->fetchRequest = $fetchRequest;
-        }
-        /** @var PersistentHistoryResult $result */
-        $result = $this->context->execute($changeRequest);
+        $result = $this->executeHistory($changeRequest, $this->transactionFilter($arguments));
         if ($operation === "purge") {
             return $this->jsonResult(["purged" => true]);
         }
@@ -160,7 +156,7 @@ final class PersistentHistoryTool extends AbstractTool
         $params = $arguments["arguments"] ?? new ArrayClass();
         $entityName = (string)($arguments["entity"] ?? "PersistentHistoryTransaction");
         $fetchRequest = new FetchRequest();
-        $fetchRequest->entity = $this->context->persistentStoreCoordinator?->managedObjectModel?->entitiesByName[$entityName] ?? fatal_error("Unknown history entity \"$entityName\". Use \"PersistentHistoryTransaction\" or \"PersistentHistoryChange\". History tracking may be disabled for the store.");
+        $fetchRequest->entity = $this->entityDescription($entityName) ?? fatal_error("Unknown history entity \"$entityName\". Use \"PersistentHistoryTransaction\" or \"PersistentHistoryChange\". History tracking may be disabled for the store.");
         $fetchRequest->predicate = $this->buildPredicate($predicate, $this->resolveVariables($params));
         return $fetchRequest;
     }

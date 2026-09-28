@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\MCP\Tools;
 
+use Closure;
 use Exception;
 use JetBrains\PhpStorm\Deprecated;
 use JsonException;
@@ -42,6 +43,7 @@ use Sabatier\Service\MCP\Schema\EntitySchema;
 use Sabatier\Service\MCP\Schema\ModelDescriptor;
 use Sabatier\Service\MCP\Schema\RelationshipSchema;
 use Sabatier\Service\MCP\ToolResolver;
+use Sabatier\Service\ModifyPersistentSpaceOperation;
 use Sabatier\Service\PersistentHistoryOperation;
 use Sabatier\Service\ReadPersistentSpaceOperation;
 use Sabatier\Service\UpdatePersistentSpaceOperation;
@@ -299,6 +301,17 @@ abstract class AbstractTool
     protected function delete(string $entityName, ManagedObjectID|int|string $objectID): void
     {
         new DeletePersistentSpaceOperation($this->context, $this->fieldSecurityPolicy, EntityDescription::entity($entityName, $this->context), $objectID)->perform();
+    }
+
+    /**
+     * @param Closure(ManagedObject): void $modification
+     * @param Dictionary<mixed>|null $serialization
+     * @return Dictionary<mixed>
+     * @throws Exception
+     */
+    protected function modify(string $entityName, ManagedObjectID|int|string $objectID, Closure $modification, ?Dictionary $serialization = null): Dictionary
+    {
+        return new ModifyPersistentSpaceOperation($this->context, $this->fieldSecurityPolicy, EntityDescription::entity($entityName, $this->context), $objectID, $modification, $serialization)->perform();
     }
 
     /**

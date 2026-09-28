@@ -39,6 +39,7 @@ use Sabatier\Service\FetchPersistentSpaceOperation;
 use Sabatier\Service\FieldLevelSecurityPolicy;
 use Sabatier\Service\FieldSecurityPolicy;
 use Sabatier\Service\ForbiddenException;
+use Sabatier\Service\ModifyPersistentSpaceOperation;
 use Sabatier\Service\NotFoundException;
 use Sabatier\Service\Owner;
 use Sabatier\Service\ReadPersistentSpaceOperation;
@@ -379,6 +380,41 @@ final class PersistentSpaceOperationTest extends TestCase
     {
         $this->expectException(ForbiddenException::class);
         new DeletePersistentSpaceOperation($this->context, $this->policy(true), $this->entity(self::ownedEntityName), $this->locked->objectID)->perform();
+    }
+
+    /** @throws Exception */
+    #[Test]
+    public function aModificationIsSavedAndAnsweredAsStored(): void
+    {
+        $row = new ModifyPersistentSpaceOperation($this->context, $this->policy(true), $this->entity(self::entityName), $this->open->objectID, fn(OperationRowFixture $object) => $object->note = "changed by a domain rule")->perform();
+        $this->assertSame("open", $row["status"]);
+        $this->assertFalse($row->offsetExists("note"));
+        $this->assertFalse($this->context->hasChanges);
+        $this->assertSame("changed by a domain rule", new ReadPersistentSpaceOperation($this->context, $this->policy(true, "auditor"), $this->request())->perform()->first?->valueForKey("note"));
+    }
+
+    /** @throws Exception */
+    #[Test]
+    public function aModificationCannotReachARowTheSubjectMayNotRead(): void
+    {
+        $this->expectException(NotFoundException::class);
+        new ModifyPersistentSpaceOperation($this->context, $this->policy(true), $this->entity(self::entityName), $this->closed->objectID, fn(OperationRowFixture $object) => $this->fail("A row outside the read scope must not be modified."))->perform();
+    }
+
+    /** @throws Exception */
+    #[Test]
+    public function aModificationIsRestrictedByAnOwnScopeOnUpdates(): void
+    {
+        $this->expectException(ForbiddenException::class);
+        new ModifyPersistentSpaceOperation($this->context, $this->scopedPolicy("OwnedOperationRow:update:own"), $this->entity(self::ownedEntityName), $this->owned->objectID, fn(OwnedOperationRowFixture $object) => $this->fail("Another subject's row must not be modified."))->perform();
+    }
+
+    /** @throws Exception */
+    #[Test]
+    public function aModificationTheResourceRuleRefusesIsDenied(): void
+    {
+        $this->expectException(ForbiddenException::class);
+        new ModifyPersistentSpaceOperation($this->context, $this->policy(true), $this->entity(self::ownedEntityName), $this->locked->objectID, fn(OwnedOperationRowFixture $object) => $this->fail("A row the resource rule refuses must not be modified."))->perform();
     }
 
     private function entity(string $name): EntityDescription

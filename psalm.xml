@@ -12,6 +12,7 @@
         <MissingConstructor errorLevel="suppress"/>
         <RedundantPropertyInitializationCheck errorLevel="suppress"/>
         <InaccessibleProperty errorLevel="suppress"/>
+        <OverriddenPropertyAccess errorLevel="suppress"/>
         <ClassMustBeFinal>
             <errorLevel type="suppress">
                 <file name="src/Application.php"/>

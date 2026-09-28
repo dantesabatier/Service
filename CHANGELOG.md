@@ -7,6 +7,8 @@ onward.
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-09-28
+
 ### Added
 
 - `AbstractTool::modify()` writes through a domain change instead of a set of values: the row is looked up within the read scope, ownership and the resource-level `#[Writable]` are enforced on it, the change runs, the context is saved, and the stored row is answered filtered to the fields the caller may read. The rules apply to the row named, not to the rows the change reaches through it.

@@ -7,6 +7,8 @@ onward.
 
 ## [Unreleased]
 
+## [1.6.2] - 2026-09-28
+
 ### Removed
 
 - **Breaking:** `AbstractTool::execute()`, `authorize()`, `applySecurityScope()`, `ownershipPredicate()`, `enforceOwnership()`, `enforceResourceAccess()`, `applySecureUpdate()` and `applySecureRead()`. A tool implements `executeCore()`, now abstract, and reads and writes through `fetch()`, `count()`, `fetchObjects()`, `create()`, `update()`, `delete()` and `modify()`; `ToolRegistry` invokes it through `call()`.

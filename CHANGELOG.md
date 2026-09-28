@@ -7,13 +7,13 @@ onward.
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-09-28
+
 ### Added
 
-- The lightweight `describe_model` index marks abstract entities, so an LLM can see which entities cannot be instantiated without requesting their full schemas.
 - `AbstractTool::fetch()`, `count()` and `fetchObjects()` execute a tool's `FetchRequest` through the same read operation `PersistentSpace` uses over HTTP: the ownership scope and the resource-level `#[Readable]` are always folded in, and `fetch()` filters each object to the fields the caller may read. A tool that reads through them no longer calls `applySecurityScope()` or `applySecureRead()` itself.
 - `AbstractTool::create()`, `update()` and `delete()` write through the same operations `PersistentSpace` runs over HTTP, so a tool that writes through them no longer calls `enforceOwnership()`, `enforceResourceAccess()`, `applySecureUpdate()` or `applySecureRead()` itself.
 - `AbstractTool::call()` is the only way to invoke a tool: it authorizes the call and then runs `executeCore()`, the method a tool now overrides. `ToolRegistry` uses it, so no caller can run a tool without authorizing it first.
-- A `where` condition on `#[Readable]` or `#[Writable]` can reference `$REMOTE_ADDRESS`, the TCP peer address of the request (`REMOTE_ADDR`, never a forwarding header), for example `where: "\$REMOTE_ADDRESS == %@"`. Outside an HTTP request it is null.
 
 ### Changed
 
@@ -21,12 +21,24 @@ onward.
   Psalm and Rector are the tools this project uses and the three CI runs;
   the other configs were an invitation to findings no review would ask a
   contributor to act on.
-- A `PATCH` or `DELETE` through `PersistentSpace` looks the row up within the caller's read scope, as the MCP `update` and `delete` tools already did. A row the caller cannot read — narrowed out by an `own` read scope or by a resource-level `#[Readable]` — answers `404 Not Found` instead of being modified or deleted.
+- **Breaking:** a `PATCH` or `DELETE` through `PersistentSpace` looks the row up within the caller's read scope, as the MCP `update` and `delete` tools already did. A row the caller cannot read — narrowed out by an `own` read scope or by a resource-level `#[Readable]` — answers `404 Not Found` instead of being modified or deleted.
 - The MCP `create` and `update` tools answer with the row fetched again after the save, like the HTTP response, so the answer carries what the store persisted. A `create` whose values name an existing `objectID` fails with a conflict, as a `POST` already did.
 
 ### Deprecated
 
 - `AbstractTool::execute()`. Override `executeCore()` instead and invoke a tool with `call()`. A tool that still overrides `execute()` keeps working, and calling `execute()` on one that does not raises a deprecation notice and goes through `call()`.
+
+## [1.3.4] - 2026-09-26
+
+### Added
+
+- The lightweight `describe_model` index marks abstract entities, so an LLM can see which entities cannot be instantiated without requesting their full schemas.
+
+## [1.3.3] - 2026-09-26
+
+### Added
+
+- A `where` condition on `#[Readable]` or `#[Writable]` can reference `$REMOTE_ADDRESS`, the TCP peer address of the request (`REMOTE_ADDR`, never a forwarding header), for example `where: "\$REMOTE_ADDRESS == %@"`. Outside an HTTP request it is null.
 
 ## [1.3.2] - 2026-09-25
 

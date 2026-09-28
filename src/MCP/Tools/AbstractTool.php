@@ -304,7 +304,8 @@ abstract class AbstractTool
     }
 
     /**
-     * @param Closure(ManagedObject): void $modification
+     * @template T of ManagedObject
+     * @param Closure(T): void $modification
      * @param Dictionary<mixed>|null $serialization
      * @return Dictionary<mixed>
      * @throws Exception

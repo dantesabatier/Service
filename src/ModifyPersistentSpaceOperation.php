@@ -8,7 +8,6 @@ use Closure;
 use Exception;
 use Override;
 use Sabatier\CoreData\EntityDescription;
-use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\CoreData\ManagedObjectID;
 use Sabatier\Foundation\Dictionary;
@@ -24,7 +23,7 @@ use Sabatier\Foundation\Dictionary;
 final class ModifyPersistentSpaceOperation extends PersistentSpaceOperation
 {
     /**
-     * @param Closure(ManagedObject): void $modification
+     * @param Closure $modification
      * @param Dictionary<mixed>|null $serialization
      */
     public function __construct(ManagedObjectContext $context, FieldSecurityPolicy $fieldSecurityPolicy, private readonly EntityDescription $entity, private readonly ManagedObjectID|int|string $objectID, private readonly Closure $modification, private readonly ?Dictionary $serialization = null)

@@ -57,7 +57,7 @@ final class WebSearchTool extends AbstractTool
      * @throws JsonException
      */
     #[Override]
-    public function execute(Dictionary $arguments): ArrayClass
+    protected function executeCore(Dictionary $arguments): ArrayClass
     {
         $query = trim((string)$arguments["query"]);
         $query ?: fatal_error("web_search requires a non-empty query.");

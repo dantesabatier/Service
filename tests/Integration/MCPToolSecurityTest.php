@@ -91,7 +91,7 @@ final class SecurityProbeTool extends AbstractTool
     }
 
     #[Override]
-    public function execute(Dictionary $arguments): ArrayClass
+    protected function executeCore(Dictionary $arguments): ArrayClass
     {
         if ($this->target) {
             $this->enforceOwnership($this->target);
@@ -421,7 +421,7 @@ final class MCPToolSecurityTest extends TestCase
             }
 
             #[Override]
-            public function execute(Dictionary $arguments): ArrayClass
+            protected function executeCore(Dictionary $arguments): ArrayClass
             {
                 throw new ForbiddenException("You don't have permission to delete \"Order\".");
             }

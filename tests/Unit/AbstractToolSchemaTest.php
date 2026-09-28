@@ -47,7 +47,7 @@ final class KeyPathProbeTool extends AbstractTool
     }
 
     #[Override]
-    public function execute(Dictionary $arguments): ArrayClass
+    protected function executeCore(Dictionary $arguments): ArrayClass
     {
         return $this->textResult("ok");
     }

@@ -45,7 +45,7 @@ final class CreateTool extends AbstractTool
      * @throws Exception
      */
     #[Override]
-    public function execute(Dictionary $arguments): ArrayClass
+    protected function executeCore(Dictionary $arguments): ArrayClass
     {
         /** @var string $entity */
         $entity = $arguments["entity"] ?? fatal_error("entity is required");

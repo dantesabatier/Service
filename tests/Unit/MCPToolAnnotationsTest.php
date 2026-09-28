@@ -144,7 +144,7 @@ class AnnotationProbeTool extends AbstractTool
 
     /** @return ArrayClass<ContentItem> */
     #[Override]
-    public function execute(Dictionary $arguments): ArrayClass
+    protected function executeCore(Dictionary $arguments): ArrayClass
     {
         return new ArrayClass();
     }

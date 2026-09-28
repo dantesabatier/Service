@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace Sabatier\Service\Tests\Unit;
 
 use Exception;
+use Override;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -22,8 +23,11 @@ use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Foundation\Number;
+use Sabatier\Service\AccessPolicy;
+use Sabatier\Service\Application;
 use Sabatier\Service\MCP\Schema\ModelDescriptor;
 use Sabatier\Service\MCP\Tools\PersistentHistoryTool;
+use Sabatier\Service\PublicAccessPolicy;
 use const Sabatier\Service\ServiceResponseCountKey;
 use const Sabatier\Service\ServiceResponseStatusKey;
 
@@ -33,12 +37,27 @@ use const Sabatier\Service\ServiceResponseStatusKey;
  */
 final class PersistentHistoryToolRequestTest extends TestCase
 {
+    private AccessPolicy $previousAccessPolicy;
+
+    #[Override]
+    protected function setUp(): void
+    {
+        $this->previousAccessPolicy = Application::shared()->accessPolicy;
+        Application::shared()->accessPolicy = new PublicAccessPolicy();
+    }
+
+    #[Override]
+    protected function tearDown(): void
+    {
+        Application::shared()->accessPolicy = $this->previousAccessPolicy;
+    }
+
     /** @throws Exception */
     #[Test]
     public function anOperationIsRequiredBeforeAnythingElseHappens(): void
     {
         try {
-            $this->tool()->execute(new Dictionary(["date" => "2026-01-15"]));
+            $this->tool()->call(new Dictionary(["date" => "2026-01-15"]));
             $this->fail("A call without an operation must be refused.");
         } catch (InternalInconsistencyException $exception) {
             $this->assertStringContainsString("operation is required", (string)$exception->error->localizedFailureReason);
@@ -50,7 +69,7 @@ final class PersistentHistoryToolRequestTest extends TestCase
     public function anUnknownOperationIsRefusedAndNamesTheAllowedOnes(): void
     {
         try {
-            $this->tool()->execute(new Dictionary(["operation" => "truncate"]));
+            $this->tool()->call(new Dictionary(["operation" => "truncate"]));
             $this->fail("An unknown operation must be refused.");
         } catch (InternalInconsistencyException $exception) {
             $reason = (string)$exception->error->localizedFailureReason;
@@ -64,7 +83,7 @@ final class PersistentHistoryToolRequestTest extends TestCase
     public function anOperationThatOnlyMatchesLooselyIsStillRefused(): void
     {
         try {
-            $this->tool()->execute(new Dictionary(["operation" => true]));
+            $this->tool()->call(new Dictionary(["operation" => true]));
             $this->fail("An operation that is not one of the two names must be refused.");
         } catch (InternalInconsistencyException $exception) {
             // `true` compares equal to any non-empty operation name under a loose in_array, and a

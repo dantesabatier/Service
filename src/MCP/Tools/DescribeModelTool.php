@@ -89,7 +89,7 @@ final class DescribeModelTool extends AbstractTool
      * @throws JsonException
      */
     #[Override]
-    public function execute(Dictionary $arguments): ArrayClass
+    protected function executeCore(Dictionary $arguments): ArrayClass
     {
         $entity = $arguments["entity"];
         $names = $entity instanceof ArrayClass ? $entity : ($entity === null ? new ArrayClass() : new ArrayClass([$entity]));

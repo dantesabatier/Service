@@ -133,7 +133,7 @@ final class SchemaProbeTool extends AbstractTool
 
     /** @return ArrayClass<ContentItem> */
     #[Override]
-    public function execute(Dictionary $arguments): ArrayClass
+    protected function executeCore(Dictionary $arguments): ArrayClass
     {
         return new ArrayClass([new ContentItem("text", "ran")]);
     }
@@ -156,7 +156,7 @@ final class OpenProbeTool extends AbstractTool
 
     /** @return ArrayClass<ContentItem> */
     #[Override]
-    public function execute(Dictionary $arguments): ArrayClass
+    protected function executeCore(Dictionary $arguments): ArrayClass
     {
         return new ArrayClass([new ContentItem("text", "ran")]);
     }

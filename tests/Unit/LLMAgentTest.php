@@ -1222,7 +1222,7 @@ final class LLMAgentMovingTool extends AbstractTool
 
     /** @return ArrayClass<ContentItem> */
     #[Override]
-    public function execute(Dictionary $arguments): ArrayClass
+    protected function executeCore(Dictionary $arguments): ArrayClass
     {
         self::$calls++;
         return new ArrayClass([new ContentItem("text", "moved " . self::$calls)]);
@@ -1252,7 +1252,7 @@ final class LLMAgentCountingTool extends AbstractTool
 
     /** @return ArrayClass<ContentItem> */
     #[Override]
-    public function execute(Dictionary $arguments): ArrayClass
+    protected function executeCore(Dictionary $arguments): ArrayClass
     {
         self::$calls++;
         return new ArrayClass([new ContentItem("text", "counted " . self::$calls)]);
@@ -1279,7 +1279,7 @@ final class LLMAgentWritingTool extends AbstractTool
 
     /** @return ArrayClass<ContentItem> */
     #[Override]
-    public function execute(Dictionary $arguments): ArrayClass
+    protected function executeCore(Dictionary $arguments): ArrayClass
     {
         self::$calls++;
         return new ArrayClass([new ContentItem("text", "wrote " . self::$calls)]);
@@ -1307,7 +1307,7 @@ final class LLMAgentProbeTool extends AbstractTool
 
     /** @return ArrayClass<ContentItem> */
     #[Override]
-    public function execute(Dictionary $arguments): ArrayClass
+    protected function executeCore(Dictionary $arguments): ArrayClass
     {
         return new ArrayClass([new ContentItem("text", "probe result")]);
     }

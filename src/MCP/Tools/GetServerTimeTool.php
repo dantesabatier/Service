@@ -55,7 +55,7 @@ final class GetServerTimeTool extends AbstractTool
      * @throws JsonException
      */
     #[Override]
-    public function execute(Dictionary $arguments): ArrayClass
+    protected function executeCore(Dictionary $arguments): ArrayClass
     {
         $now = Date::now();
         return $this->jsonResult([

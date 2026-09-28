@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Integration;
 
+use Exception;
 use JsonException;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -64,10 +65,11 @@ final class DescribeModelToolTest extends TestCase
     /**
      * @return array<string, mixed>
      * @throws JsonException
+     * @throws Exception
      */
     private function decode(DescribeModelTool $tool, Dictionary $arguments): array
     {
-        $content = $tool->execute($arguments);
+        $content = $tool->call($arguments);
         /** @var array<string, mixed> */
         return json_decode($content->first->text, true, flags: JSON_THROW_ON_ERROR);
     }

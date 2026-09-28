@@ -93,7 +93,7 @@ final class PersistentHistoryTool extends AbstractTool
      * @throws Exception
      */
     #[Override]
-    public function execute(Dictionary $arguments): ArrayClass
+    protected function executeCore(Dictionary $arguments): ArrayClass
     {
         /** @var string $operation */
         $operation = $arguments["operation"] ?? fatal_error("operation is required");

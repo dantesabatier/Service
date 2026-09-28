@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
 
+use Exception;
+use Override;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -12,12 +14,15 @@ use ReflectionException;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\InternalInconsistencyException;
+use Sabatier\Service\AccessPolicy;
+use Sabatier\Service\Application;
 use Sabatier\Service\MCP\Schema\ModelDescriptor;
 use Sabatier\Service\MCP\Tools\AbstractTool;
 use Sabatier\Service\MCP\Tools\AggregateTool;
 use Sabatier\Service\MCP\Tools\CreateTool;
 use Sabatier\Service\MCP\Tools\DeleteTool;
 use Sabatier\Service\MCP\Tools\UpdateTool;
+use Sabatier\Service\PublicAccessPolicy;
 
 /**
  * Fixes the arguments each mutating tool insists on before it reaches the store, and the shape it
@@ -25,6 +30,21 @@ use Sabatier\Service\MCP\Tools\UpdateTool;
  */
 final class MutatingToolArgumentTest extends TestCase
 {
+    private AccessPolicy $previousAccessPolicy;
+
+    #[Override]
+    protected function setUp(): void
+    {
+        $this->previousAccessPolicy = Application::shared()->accessPolicy;
+        Application::shared()->accessPolicy = new PublicAccessPolicy();
+    }
+
+    #[Override]
+    protected function tearDown(): void
+    {
+        Application::shared()->accessPolicy = $this->previousAccessPolicy;
+    }
+
     /** @return iterable<string, array{class-string<AbstractTool>, array<string, mixed>, string}> */
     public static function missingArgumentProvider(): iterable
     {
@@ -43,14 +63,14 @@ final class MutatingToolArgumentTest extends TestCase
     /**
      * @param class-string<AbstractTool> $toolClass
      * @param array<string, mixed> $arguments
-     * @throws ReflectionException
+     * @throws Exception
      */
     #[Test]
     #[DataProvider("missingArgumentProvider")]
     public function aMissingArgumentIsRefusedBeforeTheStoreIsTouched(string $toolClass, array $arguments, string $expected): void
     {
         try {
-            $this->tool($toolClass)->execute(new Dictionary($arguments));
+            $this->tool($toolClass)->call(new Dictionary($arguments));
             $this->fail("A missing argument must be refused.");
         } catch (InternalInconsistencyException $exception) {
             $this->assertStringContainsString($expected, (string)$exception->error->localizedFailureReason);

@@ -26,7 +26,7 @@ final class UntitledMCPToolFixture extends AbstractTool
     }
 
     #[Override]
-    public function execute(Dictionary $arguments): ArrayClass
+    protected function executeCore(Dictionary $arguments): ArrayClass
     {
         return new ArrayClass();
     }

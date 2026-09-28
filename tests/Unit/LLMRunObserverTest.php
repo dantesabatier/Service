@@ -497,7 +497,7 @@ final class ObservedProbeTool extends AbstractTool
      * @return ArrayClass<ContentItem>
      */
     #[Override]
-    public function execute(Dictionary $arguments): ArrayClass
+    protected function executeCore(Dictionary $arguments): ArrayClass
     {
         return new ArrayClass([new ContentItem("text", "probe result")]);
     }
@@ -523,7 +523,7 @@ final class ObservedWritingTool extends AbstractTool
      * @return ArrayClass<ContentItem>
      */
     #[Override]
-    public function execute(Dictionary $arguments): ArrayClass
+    protected function executeCore(Dictionary $arguments): ArrayClass
     {
         return new ArrayClass([new ContentItem("text", "written")]);
     }
@@ -553,7 +553,7 @@ final class ObservedExplodingTool extends AbstractTool
      * @return ArrayClass<ContentItem>
      */
     #[Override]
-    public function execute(Dictionary $arguments): ArrayClass
+    protected function executeCore(Dictionary $arguments): ArrayClass
     {
         throw new LogicException("tool exploded");
     }

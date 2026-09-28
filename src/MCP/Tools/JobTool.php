@@ -80,7 +80,7 @@ final class JobTool extends AbstractTool
      * @throws Exception
      */
     #[Override]
-    public function execute(Dictionary $arguments): ArrayClass
+    protected function executeCore(Dictionary $arguments): ArrayClass
     {
         /** @var string $name */
         $name = $arguments["job"] ?? fatal_error("job is required");

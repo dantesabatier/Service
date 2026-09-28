@@ -162,7 +162,7 @@ final class TemporalVariableResolutionTest extends TestCase
     {
         $tool = new CountTool($this->context(), $this->descriptor());
         $this->disableSecurity($tool);
-        $this->assertSame(["count" => 1], $this->decode($tool->execute($this->arguments())));
+        $this->assertSame(["count" => 1], $this->decode($tool->call($this->arguments())));
     }
 
     /** @throws Exception */
@@ -174,7 +174,7 @@ final class TemporalVariableResolutionTest extends TestCase
         $arguments["property"] = "amount";
         $tool = new AggregateTool($this->context(), $this->descriptor());
         $this->disableSecurity($tool);
-        $decoded = $this->decode($tool->execute($arguments));
+        $decoded = $this->decode($tool->call($arguments));
         $this->assertSame(42, $decoded["result"]);
     }
 
@@ -184,7 +184,7 @@ final class TemporalVariableResolutionTest extends TestCase
     {
         $tool = new FetchTool($this->context(), $this->descriptor());
         $this->disableSecurity($tool);
-        $decoded = $this->decode($tool->execute($this->arguments()));
+        $decoded = $this->decode($tool->call($this->arguments()));
         $this->assertSame(1, $decoded["rowCount"]);
     }
 
@@ -197,7 +197,7 @@ final class TemporalVariableResolutionTest extends TestCase
         $arguments["aggregates"] = new ArrayClass([new Dictionary(["function" => "count", "property" => "amount", "as" => "total"])]);
         $tool = new GroupByTool($this->context(), $this->descriptor());
         $this->disableSecurity($tool);
-        $decoded = $this->decode($tool->execute($arguments));
+        $decoded = $this->decode($tool->call($arguments));
         $this->assertSame(1, $decoded["rowCount"]);
     }
 
@@ -218,7 +218,7 @@ final class TemporalVariableResolutionTest extends TestCase
         ]);
         $tool = new GroupByTool($this->context(), $this->descriptor());
         $this->disableSecurity($tool);
-        $decoded = $this->decode($tool->execute($arguments));
+        $decoded = $this->decode($tool->call($arguments));
         $this->assertSame(1, $decoded["rowCount"]);
     }
 }

@@ -13,6 +13,13 @@ onward.
 - `AbstractTool::call()` is the only way to invoke a tool: it authorizes the call and then runs `executeCore()`, the method a tool now overrides. `ToolRegistry` uses it, so no caller can run a tool without authorizing it first.
 - A `where` condition on `#[Readable]` or `#[Writable]` can reference `$REMOTE_ADDRESS`, the TCP peer address of the request (`REMOTE_ADDR`, never a forwarding header), for example `where: "\$REMOTE_ADDRESS == %@"`. Outside an HTTP request it is null.
 
+### Changed
+
+- `phpcs.xml`, `phpstan.neon` and `.php-cs-fixer.dist.php` are gone. PHPUnit,
+  Psalm and Rector are the tools this project uses and the three CI runs;
+  the other configs were an invitation to findings no review would ask a
+  contributor to act on.
+
 ### Deprecated
 
 - `AbstractTool::execute()`. Override `executeCore()` instead and invoke a tool with `call()`. A tool that still overrides `execute()` keeps working, and calling `execute()` on one that does not raises a deprecation notice and goes through `call()`.

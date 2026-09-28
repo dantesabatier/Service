@@ -10,7 +10,12 @@ onward.
 ### Added
 
 - The lightweight `describe_model` index marks abstract entities, so an LLM can see which entities cannot be instantiated without requesting their full schemas.
+- `AbstractTool::call()` is the only way to invoke a tool: it authorizes the call and then runs `executeCore()`, the method a tool now overrides. `ToolRegistry` uses it, so no caller can run a tool without authorizing it first.
 - A `where` condition on `#[Readable]` or `#[Writable]` can reference `$REMOTE_ADDRESS`, the TCP peer address of the request (`REMOTE_ADDR`, never a forwarding header), for example `where: "\$REMOTE_ADDRESS == %@"`. Outside an HTTP request it is null.
+
+### Deprecated
+
+- `AbstractTool::execute()`. Override `executeCore()` instead and invoke a tool with `call()`. A tool that still overrides `execute()` keeps working, and calling `execute()` on one that does not raises a deprecation notice and goes through `call()`.
 
 ## [1.3.2] - 2026-09-25
 

@@ -269,13 +269,15 @@ final class MyTool extends AbstractTool
         get => ["type" => "object", "properties" => [ /* … */ ], "required" => [ /* … */ ]];
     }
 
-    public function execute(Dictionary $arguments): ArrayClass
+    protected function executeCore(Dictionary $arguments): ArrayClass
     {
         // … build the result, then wrap it …
         return $this->jsonResult($data);
     }
 }
 ```
+
+`ToolRegistry` invokes a tool only through the final `call()`, which authorizes the call and then runs `executeCore()`. `execute()` is deprecated: a tool that still overrides it keeps working, because `executeCore()` delegates to it until it is overridden, and calling it directly goes through `call()`.
 
 `AbstractTool` provides the helpers the built-in tools are built from:
 
@@ -301,7 +303,7 @@ The URL is always `/mcp`, so the endpoint guards never fire. A custom tool that 
 |--------|----------|
 | `applySecurityScope(FetchRequest $request)` | on **every** `FetchRequest` before executing it — folds in the `own` ownership scope and the resource-level `#[Readable]`. |
 | `enforceFieldRead(string $entityName, string $keyPath)` | on every key path an aggregate computes over or groups by — a protected column stays protected even over permitted rows. |
-| `authorizationResource(Dictionary $arguments): ?string` / `authorizationAction(Dictionary $arguments): AuthorizationType` | to override the resource and action `ToolRegistry` authorizes before `execute()` — the `entity` argument and `read` (or `update` when the call is not read-only) by default. Return a null resource for a call that needs no authorization. |
+| `authorizationResource(Dictionary $arguments): ?string` / `authorizationAction(Dictionary $arguments): AuthorizationType` | to override the resource and action `call()` authorizes before `executeCore()` — the `entity` argument and `read` (or `update` when the call is not read-only) by default. Return a null resource for a call that needs no authorization. |
 | `enforceResourceAccess(ManagedObject $object)` | on every object created, updated or deleted — enforces the resource-level `#[Writable]`. On create, call it *after* populating the object. |
 | `enforceOwnership(ManagedObject $object)` | on an object being updated or deleted — enforces the `#[Owner]` field. |
 | `applySecureRead(ManagedObject $object, Dictionary $data): Dictionary` | to filter a serialized object down to the fields the caller may read. |

@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace Sabatier\Service\MCP\Tools;
 
 use Exception;
+use JetBrains\PhpStorm\Deprecated;
 use JsonException;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
@@ -114,6 +115,8 @@ abstract class AbstractTool
     }
     /** @var AuthorizationType|null The action the call in progress was authorized for, recorded by {@see self::authorize()}. */
     private ?AuthorizationType $authorizedAction = null;
+    /** @var bool Whether {@see self::call()} is running the tool's core. */
+    private bool $isCalling = false;
 
     /**
      * @param ManagedObjectContext $context The context used to execute the tool's data operations.
@@ -154,7 +157,7 @@ abstract class AbstractTool
     }
 
     /**
-     * Enforces the access policy on the resource and action this invocation declares; `ToolRegistry` calls it before `execute()`.
+     * Enforces the access policy on the resource and action this invocation declares; {@see self::call()} runs it before the tool's core.
      *
      * @param Dictionary<mixed> $arguments The arguments selecting the concrete operation.
      * @throws Exception
@@ -168,12 +171,46 @@ abstract class AbstractTool
     }
 
     /**
-     * Executes the tool with model-supplied arguments.
+     * Invokes the tool: authorizes the call, then runs its core.
      *
      * @param Dictionary<mixed> $arguments The validated arguments supplied by the caller.
      * @return ArrayClass<ContentItem> The content returned to the caller.
+     * @throws Exception
      */
-    abstract public function execute(Dictionary $arguments): ArrayClass;
+    final public function call(Dictionary $arguments): ArrayClass
+    {
+        $this->authorize($arguments);
+        $this->isCalling = true;
+        $content = $this->executeCore($arguments);
+        $this->isCalling = false;
+        return $content;
+    }
+
+    /**
+     * @param Dictionary<mixed> $arguments
+     * @return ArrayClass<ContentItem>
+     * @throws Exception
+     * @psalm-suppress DeprecatedMethod
+     */
+    protected function executeCore(Dictionary $arguments): ArrayClass
+    {
+        return $this->execute($arguments);
+    }
+
+    /**
+     * Invokes the tool through {@see self::call()}.
+     *
+     * @param Dictionary<mixed> $arguments The validated arguments supplied by the caller.
+     * @return ArrayClass<ContentItem> The content returned to the caller.
+     * @throws Exception
+     */
+    #[Deprecated("since Service 1.4, use call() instead", "%class%->call(%parametersList%)")]
+    public function execute(Dictionary $arguments): ArrayClass
+    {
+        !$this->isCalling ?: fatal_error(static::class . " must implement executeCore().");
+        trigger_error(sprintf("%s() is deprecated, use call() instead", __METHOD__), E_USER_DEPRECATED);
+        return $this->call($arguments);
+    }
 
     /**
      * Builds the ownership predicate for an entity when the caller's `own` scope applies —

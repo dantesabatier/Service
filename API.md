@@ -354,17 +354,17 @@ If more than one scope parameter is supplied, the framework uses this precedence
 | `Idempotency-Key`        | Client-generated unique key (max 255 chars) for POST/PATCH. The framework stores the response for 24 hours (default) and replays it on retry. Concurrent requests with the same key receive `409 Conflict`. |
 | `Serialization`          | JSON object controlling which attributes and relationships are included in entity responses. Keys are attribute names; values are `true` (include) or a nested serialization object for relationships.      |
 | `If-None-Match`          | ETag value from a previous response. Returns `304 Not Modified` when the resource has not changed.                                                                                                          |
-| `X-Http-Method-Override` | Overrides the HTTP method for clients that cannot send `PUT`/`PATCH`/`DELETE`. Honored only on a real `POST`, and only to `PUT`, `PATCH`, or `DELETE`; ignored otherwise.                                     |
+| `X-Http-Method-Override` | Overrides the HTTP method for clients that cannot send `PUT`/`PATCH`/`DELETE`. Honored only on a real `POST`, and only to `PUT`, `PATCH`, or `DELETE`; ignored otherwise.                                   |
 
 ### Response headers
 
-| Header                  | Meaning                                                                                      |
-|-------------------------|----------------------------------------------------------------------------------------------|
-| `ETag`                  | Opaque hash of the response body; use with `If-None-Match` on subsequent requests.           |
+| Header                  | Meaning                                                                                                                                                                                                                                  |
+|-------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `ETag`                  | Opaque hash of the response body; use with `If-None-Match` on subsequent requests.                                                                                                                                                       |
 | `Cache-Control`         | Defaults to `private, max-age=0`; configurable via `HTTP_CACHE_*` env vars. Endpoints declaring `NoCacheHeaderTransformer` send `no-store, no-cache, must-revalidate, max-age=0` instead, alongside `Pragma: no-cache` and `Expires: 0`. |
-| `X-RateLimit-Limit`     | Request quota per window.                                                                    |
-| `X-RateLimit-Remaining` | Requests remaining in the current window.                                                    |
-| `X-RateLimit-Reset`     | Unix timestamp when the window resets.                                                       |
+| `X-RateLimit-Limit`     | Request quota per window.                                                                                                                                                                                                                |
+| `X-RateLimit-Remaining` | Requests remaining in the current window.                                                                                                                                                                                                |
+| `X-RateLimit-Reset`     | Unix timestamp when the window resets.                                                                                                                                                                                                   |
 
 ---
 

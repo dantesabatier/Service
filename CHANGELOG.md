@@ -7,6 +7,8 @@ onward.
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-09-28
+
 ### Fixed
 
 - `AbstractTool::modify()` accepts a closure typed with the entity's own class, such as `fn(Project $project)`, without Psalm reporting an argument type coercion.

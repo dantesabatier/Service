@@ -277,7 +277,7 @@ final class MyTool extends AbstractTool
 }
 ```
 
-`ToolRegistry` invokes a tool only through the final `call()`, which authorizes the call and then runs `executeCore()`. `execute()` is deprecated: a tool that still overrides it keeps working, because `executeCore()` delegates to it until it is overridden, and calling it directly goes through `call()`.
+`ToolRegistry` invokes a tool only through the final `call()`, which authorizes the call and then runs `executeCore()`, the one abstract method. The context is private to `AbstractTool`: a tool reads and writes through the helpers below.
 
 `AbstractTool` provides the helpers the built-in tools are built from:
 
@@ -301,17 +301,14 @@ The URL is always `/mcp`, so the endpoint guards never fire. A custom tool that 
 
 | Helper | Call it… |
 |--------|----------|
-| `fetch(FetchRequest $request)` / `count(FetchRequest $request)` / `fetchObjects(FetchRequest $request)` | to execute **every** `FetchRequest`, instead of `$this->context` — they fold in the `own` ownership scope and the resource-level `#[Readable]`, and `fetch()` filters each object to the fields the caller may read. `fetchObjects()` returns unserialized objects for a tool that computes over them. `applySecurityScope(FetchRequest $request)` applies the same scope for a tool not yet migrated. |
+| `fetch(FetchRequest $request)` / `count(FetchRequest $request)` / `fetchObjects(FetchRequest $request)` | to execute **every** `FetchRequest` — they fold in the `own` ownership scope and the resource-level `#[Readable]`, and `fetch()` filters each object to the fields the caller may read. `fetchObjects()` returns unserialized objects for a tool that computes over them. |
 | `enforceFieldRead(string $entityName, string $keyPath)` | on every key path an aggregate computes over or groups by — a protected column stays protected even over permitted rows. |
 | `modify(string $entityName, $objectID, Closure $modification)` | to write through a domain change rather than a set of values — the same lookup and rules as `update()`, applied to the row named; the change runs, the context is saved and the stored row is answered. |
-| `executeHistory(PersistentHistoryChangeRequest $changeRequest, ?FetchRequest $transactionFilter)` / `runJob(Job $job)` | to run a persistent history request or a job through the same operations `/history` and the CLI use, instead of `$this->context`. |
-| `tools(): Dictionary` | the tool catalogue, keyed by name — to validate what another tool will be asked to do without reaching `$this->context`. |
+| `executeHistory(PersistentHistoryChangeRequest $changeRequest, ?FetchRequest $transactionFilter)` / `runJob(Job $job)` | to run a persistent history request or a job through the same operations `/history` and the CLI use. |
+| `tools(): Dictionary` | the tool catalogue, keyed by name — to validate what another tool will be asked to do. |
 | `entityDescription(string $entityName): ?EntityDescription` | an entity of the model, or null when there is none. |
 | `authorizationResource(Dictionary $arguments): ?string` / `authorizationAction(Dictionary $arguments): AuthorizationType` | to override the resource and action `call()` authorizes before `executeCore()` — the `entity` argument and `read` (or `update` when the call is not read-only) by default. Return a null resource for a call that needs no authorization. |
-| `create(string $entityName, Dictionary $values)` / `update(string $entityName, $objectID, Dictionary $values)` / `delete(string $entityName, $objectID)` | to write, instead of `$this->context` — they look the row up within the read scope, enforce `#[Owner]` for their own action and the resource-level `#[Writable]`, filter the values by the field-level `#[Writable]`, and answer the stored row filtered to the fields the caller may read. |
-| `enforceResourceAccess(ManagedObject $object)` | for a tool not yet migrated: on every object created, updated or deleted — enforces the resource-level `#[Writable]`. On create, call it *after* populating the object. |
-| `enforceOwnership(ManagedObject $object)` | on an object being updated or deleted — enforces the `#[Owner]` field. |
-| `applySecureRead(ManagedObject $object, Dictionary $data): Dictionary` | to filter a serialized object down to the fields the caller may read. |
-| `applySecureUpdate(ManagedObject $object, Dictionary $body)` | to apply a write filtered to the fields the caller may write. |
+| `create(string $entityName, Dictionary $values)` / `update(string $entityName, $objectID, Dictionary $values)` / `delete(string $entityName, $objectID)` | to write — they look the row up within the read scope, enforce `#[Owner]` for their own action and the resource-level `#[Writable]`, filter the values by the field-level `#[Writable]`, and answer the stored row filtered to the fields the caller may read. |
+| `enforceEntityAuthorization(string $resource, AuthorizationType $action)` | for a tool that reads several entities: on each entity beyond the one `call()` authorized. |
 
-The rule of thumb: the read helpers narrow *which rows* a read sees; `enforceFieldRead` / `applySecureRead` narrow *which columns*; the `enforce*` write helpers turn a forbidden mutation into a `ForbiddenException` rather than a silent no-op.
+The rule of thumb: the read helpers narrow *which rows* a read sees; `fetch()` and `enforceFieldRead` narrow *which columns*; the write helpers turn a forbidden mutation into a `ForbiddenException` rather than a silent no-op.

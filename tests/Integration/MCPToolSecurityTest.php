@@ -16,7 +16,6 @@ use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
-use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\CompoundPredicate;
 use Sabatier\Foundation\Predicates\Predicate;
@@ -65,7 +64,6 @@ final class SecurityProbeTool extends AbstractTool
     public array $inputSchema {
         get => ["type" => "object"];
     }
-    public ?ManagedObject $target = null;
     #[Override]
     protected bool $isSecurityEnabled {
         get => $this->fieldSecurityPolicy->isSecurityEnabled;
@@ -85,36 +83,9 @@ final class SecurityProbeTool extends AbstractTool
     }
 
     #[Override]
-    public function authorizationAction(Dictionary $arguments): AuthorizationType
-    {
-        return $arguments["action"] === "delete" ? AuthorizationType::delete : parent::authorizationAction($arguments);
-    }
-
-    #[Override]
     protected function executeCore(Dictionary $arguments): ArrayClass
     {
-        if ($this->target) {
-            $this->enforceOwnership($this->target);
-        }
         return $this->textResult("ok");
-    }
-
-    /** @throws Exception */
-    public function exposedOwnershipPredicate(EntityDescription $entity): ?Predicate
-    {
-        return $this->ownershipPredicate($entity);
-    }
-
-    /** @throws Exception */
-    public function exposedApplyOwnershipScope(FetchRequest $request): void
-    {
-        $this->applySecurityScope($request);
-    }
-
-    /** @throws Exception */
-    public function exposedEnforceOwnership(ManagedObject $object): void
-    {
-        $this->enforceOwnership($object);
     }
 
     /** @throws Exception */
@@ -181,8 +152,12 @@ final class MCPToolSecurityTest extends TestCase
     /** @throws ReflectionException */
     private function makeTool(?Authorizable $user, ArrayClass $scopes, bool $isSecurityEnabled = true): SecurityProbeTool
     {
-        $policy = new FieldLevelSecurityPolicy(new AuthorizationContext($user, $scopes, $isSecurityEnabled));
-        return $this->makeToolWithPolicy($policy);
+        return $this->makeToolWithPolicy($this->makePolicy($user, $scopes, $isSecurityEnabled));
+    }
+
+    private function makePolicy(?Authorizable $user, ArrayClass $scopes, bool $isSecurityEnabled = true): FieldSecurityPolicy
+    {
+        return new FieldLevelSecurityPolicy(new AuthorizationContext($user, $scopes, $isSecurityEnabled));
     }
 
     /** @throws ReflectionException */
@@ -220,68 +195,68 @@ final class MCPToolSecurityTest extends TestCase
 
     /** @throws Exception */
     #[Test]
-    public function ownershipPredicateBuiltWhenOwnScopeAndOwnerFieldPresent(): void
+    public function ownReadPredicateBuiltWhenOwnScopeAndOwnerFieldPresent(): void
     {
-        $tool = $this->makeTool($this->makeUser(), new ArrayClass(["Ownable:read:own"]));
-        $predicate = $tool->exposedOwnershipPredicate($this->makeEntity("Ownable", OwnedToolEntityFixture::class));
+        $policy = $this->makePolicy($this->makeUser(), new ArrayClass(["Ownable:read:own"]));
+        $predicate = $policy->ownReadPredicate($this->makeEntity("Ownable", OwnedToolEntityFixture::class));
         $this->assertInstanceOf(ComparisonPredicate::class, $predicate);
     }
 
     /** @throws Exception */
     #[Test]
-    public function ownershipPredicateNullWhenSecurityDisabled(): void
+    public function ownReadPredicateNullWhenSecurityDisabled(): void
     {
-        $tool = $this->makeTool($this->makeUser(), new ArrayClass(["Ownable:read:own"]), false);
-        $this->assertNull($tool->exposedOwnershipPredicate($this->makeEntity("Ownable", OwnedToolEntityFixture::class)));
+        $policy = $this->makePolicy($this->makeUser(), new ArrayClass(["Ownable:read:own"]), false);
+        $this->assertNull($policy->ownReadPredicate($this->makeEntity("Ownable", OwnedToolEntityFixture::class)));
     }
 
     /** @throws Exception */
     #[Test]
-    public function ownershipPredicateNullWithoutOwnScope(): void
+    public function ownReadPredicateNullWithoutOwnScope(): void
     {
-        $tool = $this->makeTool($this->makeUser(), new ArrayClass(["Ownable:read"]));
-        $this->assertNull($tool->exposedOwnershipPredicate($this->makeEntity("Ownable", OwnedToolEntityFixture::class)));
+        $policy = $this->makePolicy($this->makeUser(), new ArrayClass(["Ownable:read"]));
+        $this->assertNull($policy->ownReadPredicate($this->makeEntity("Ownable", OwnedToolEntityFixture::class)));
     }
 
     /** @throws Exception */
     #[Test]
-    public function ownershipPredicateNullWithoutOwnerField(): void
+    public function ownReadPredicateNullWithoutOwnerField(): void
     {
-        $tool = $this->makeTool($this->makeUser(), new ArrayClass(["Plain:read:own"]));
-        $this->assertNull($tool->exposedOwnershipPredicate($this->makeEntity("Plain", UnownedToolEntityFixture::class)));
+        $policy = $this->makePolicy($this->makeUser(), new ArrayClass(["Plain:read:own"]));
+        $this->assertNull($policy->ownReadPredicate($this->makeEntity("Plain", UnownedToolEntityFixture::class)));
     }
 
     /** @throws Exception */
     #[Test]
-    public function applySecurityScopeSetsPredicateWhenRequestHasNone(): void
+    public function applyReadScopeSetsPredicateWhenRequestHasNone(): void
     {
-        $tool = $this->makeTool($this->makeUser(), new ArrayClass(["Ownable:read:own"]));
+        $policy = $this->makePolicy($this->makeUser(), new ArrayClass(["Ownable:read:own"]));
         $request = new FetchRequest();
         $request->entity = $this->makeEntity("Ownable", OwnedToolEntityFixture::class);
-        $tool->exposedApplyOwnershipScope($request);
+        $policy->applyReadScope($request);
         $this->assertInstanceOf(ComparisonPredicate::class, $request->predicate);
     }
 
     /** @throws Exception */
     #[Test]
-    public function applySecurityScopeAndCombinesWithExistingPredicate(): void
+    public function applyReadScopeAndCombinesWithExistingPredicate(): void
     {
-        $tool = $this->makeTool($this->makeUser(), new ArrayClass(["Ownable:read:own"]));
+        $policy = $this->makePolicy($this->makeUser(), new ArrayClass(["Ownable:read:own"]));
         $request = new FetchRequest();
         $request->entity = $this->makeEntity("Ownable", OwnedToolEntityFixture::class);
         $request->predicate = Predicate::format("%K = %@", new ArrayClass(["title", "x"]));
-        $tool->exposedApplyOwnershipScope($request);
+        $policy->applyReadScope($request);
         $this->assertInstanceOf(CompoundPredicate::class, $request->predicate);
     }
 
     /** @throws Exception */
     #[Test]
-    public function applySecurityScopeLeavesRequestUntouchedWhenSecurityDisabled(): void
+    public function applyReadScopeLeavesRequestUntouchedWhenSecurityDisabled(): void
     {
-        $tool = $this->makeTool($this->makeUser(), new ArrayClass(["Ownable:read:own"]), false);
+        $policy = $this->makePolicy($this->makeUser(), new ArrayClass(["Ownable:read:own"]), false);
         $request = new FetchRequest();
         $request->entity = $this->makeEntity("Ownable", OwnedToolEntityFixture::class);
-        $tool->exposedApplyOwnershipScope($request);
+        $policy->applyReadScope($request);
         $this->assertNull($request->predicate);
     }
 
@@ -299,89 +274,79 @@ final class MCPToolSecurityTest extends TestCase
 
     /** @throws Exception */
     #[Test]
-    public function applySecurityScopeNarrowsObjectIDLookupWhenResourceReadExcludesTheSubject(): void
+    public function applyReadScopeNarrowsObjectIDLookupWhenResourceReadExcludesTheSubject(): void
     {
-        $tool = $this->makeTool($this->makeUser("Sales"), new ArrayClass());
+        $policy = $this->makePolicy($this->makeUser("Sales"), new ArrayClass());
         $request = $this->makeObjectIDRequest("Guarded", RoleGuardedReadToolEntityFixture::class);
-        $tool->exposedApplyOwnershipScope($request);
+        $policy->applyReadScope($request);
         $this->assertInstanceOf(CompoundPredicate::class, $request->predicate);
         $this->assertStringContainsStringIgnoringCase("FALSEPREDICATE", $request->predicate->predicateFormat);
     }
 
     /** @throws Exception */
     #[Test]
-    public function applySecurityScopeLeavesObjectIDLookupIntactForAllowedRole(): void
+    public function applyReadScopeLeavesObjectIDLookupIntactForAllowedRole(): void
     {
-        $tool = $this->makeTool($this->makeUser("Finance"), new ArrayClass());
+        $policy = $this->makePolicy($this->makeUser("Finance"), new ArrayClass());
         $request = $this->makeObjectIDRequest("Guarded", RoleGuardedReadToolEntityFixture::class);
-        $tool->exposedApplyOwnershipScope($request);
+        $policy->applyReadScope($request);
         $this->assertInstanceOf(ComparisonPredicate::class, $request->predicate);
     }
 
     /** @throws Exception */
     #[Test]
-    public function applySecurityScopeLeavesObjectIDLookupIntactForUnguardedClass(): void
+    public function applyReadScopeLeavesObjectIDLookupIntactForUnguardedClass(): void
     {
-        $tool = $this->makeTool($this->makeUser("Sales"), new ArrayClass());
+        $policy = $this->makePolicy($this->makeUser("Sales"), new ArrayClass());
         $request = $this->makeObjectIDRequest("Plain", UnownedToolEntityFixture::class);
-        $tool->exposedApplyOwnershipScope($request);
+        $policy->applyReadScope($request);
         $this->assertInstanceOf(ComparisonPredicate::class, $request->predicate);
     }
 
-    /** @throws Throwable */
+    /** @throws Exception */
     #[Test]
     public function enforceOwnershipThrowsForNonOwnerWithOwnScope(): void
     {
-        $tool = $this->makeTool($this->makeUser("User"), new ArrayClass(["Ownable:update:own"]));
-        $tool->target = $this->makeOwnedResource($this->makeUser("Other"));
-        $result = new ToolRegistry(new ArrayClass([$tool]))->call("security_probe", new Dictionary());
-        $this->assertTrue($result->isError);
-        $this->assertStringContainsString("belongs to another user", $result->text);
+        $policy = $this->makePolicy($this->makeUser("User"), new ArrayClass(["Ownable:update:own"]));
+        $this->expectException(ForbiddenException::class);
+        $this->expectExceptionMessageIsOrContains("belongs to another user");
+        $policy->enforceOwnership($this->makeOwnedResource($this->makeUser("Other")), AuthorizationType::update);
     }
 
-    /** @throws Throwable */
+    /** @throws Exception */
     #[Test]
     public function enforceOwnershipPassesForOwner(): void
     {
         $user = $this->makeUser("User");
-        $tool = $this->makeTool($user, new ArrayClass(["Ownable:update:own"]));
-        $tool->target = $this->makeOwnedResource($user);
-        $this->assertFalse(new ToolRegistry(new ArrayClass([$tool]))->call("security_probe", new Dictionary())->isError);
-    }
-
-    /** @throws Throwable */
-    #[Test]
-    public function enforceOwnershipChecksTheActionTheCallWasAuthorizedFor(): void
-    {
-        $tool = $this->makeTool($this->makeUser("User"), new ArrayClass(["Ownable:read:own", "Ownable:delete:all"]));
-        $tool->target = $this->makeOwnedResource($this->makeUser("Other"));
-        $this->assertFalse(new ToolRegistry(new ArrayClass([$tool]))->call("security_probe", new Dictionary(["action" => "delete"]))->isError);
-    }
-
-    /** @throws Throwable */
-    #[Test]
-    public function enforceOwnershipRestrictsTheActionTheCallWasAuthorizedFor(): void
-    {
-        $tool = $this->makeTool($this->makeUser("User"), new ArrayClass(["Ownable:update:all", "Ownable:delete:own"]));
-        $tool->target = $this->makeOwnedResource($this->makeUser("Other"));
-        $this->assertTrue(new ToolRegistry(new ArrayClass([$tool]))->call("security_probe", new Dictionary(["action" => "delete"]))->isError);
+        $policy = $this->makePolicy($user, new ArrayClass(["Ownable:update:own"]));
+        $policy->enforceOwnership($this->makeOwnedResource($user), AuthorizationType::update);
+        $this->assertTrue(true);
     }
 
     /** @throws Exception */
     #[Test]
-    public function enforceOwnershipOutsideAnAuthorizedCallIsAProgrammingError(): void
+    public function enforceOwnershipChecksTheActionItIsGiven(): void
     {
-        $tool = $this->makeTool($this->makeUser("User"), new ArrayClass(["Ownable:update:own"]));
-        $this->expectException(InternalInconsistencyException::class);
-        $tool->exposedEnforceOwnership($this->makeOwnedResource($this->makeUser("Other")));
+        $policy = $this->makePolicy($this->makeUser("User"), new ArrayClass(["Ownable:read:own", "Ownable:delete:all"]));
+        $policy->enforceOwnership($this->makeOwnedResource($this->makeUser("Other")), AuthorizationType::delete);
+        $this->assertTrue(true);
+    }
+
+    /** @throws Exception */
+    #[Test]
+    public function enforceOwnershipRestrictsTheActionItIsGiven(): void
+    {
+        $policy = $this->makePolicy($this->makeUser("User"), new ArrayClass(["Ownable:update:all", "Ownable:delete:own"]));
+        $this->expectException(ForbiddenException::class);
+        $policy->enforceOwnership($this->makeOwnedResource($this->makeUser("Other")), AuthorizationType::delete);
     }
 
     /** @throws Exception */
     #[Test]
     public function enforceOwnershipPassesWhenSecurityDisabled(): void
     {
-        $tool = $this->makeTool($this->makeUser(), new ArrayClass(["Ownable:update:own"]), false);
-        $tool->exposedEnforceOwnership($this->makeOwnedResource($this->makeUser("Other")));
+        $policy = $this->makePolicy($this->makeUser(), new ArrayClass(["Ownable:update:own"]), false);
+        $policy->enforceOwnership($this->makeOwnedResource($this->makeUser("Other")), AuthorizationType::update);
         $this->assertTrue(true);
     }
 

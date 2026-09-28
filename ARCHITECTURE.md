@@ -443,11 +443,11 @@ Place a class that extends `AbstractTool` in `src/MCPTools/`. The framework disc
 
 A custom tool must also apply the same security helpers the built-in tools use — the MCP request URL is always `/mcp`, so none of the URL-driven guards that protect a regular endpoint apply, and a tool that skips them reads or writes rows the caller is not entitled to:
 
-- **`fetch($request)` / `count($request)` / `fetchObjects($request)`** — execute every `FetchRequest` the tool builds through these. They run the `PersistentSpaceOperation` that HTTP's read strategy also runs, which AND-folds in the caller's `own` ownership scope and the resource-level `#[Readable]`; `fetch()` also filters each object to its readable fields as it is accessed. `applySecurityScope($request)` remains for tools not yet migrated and applies the same scope.
+- **`fetch($request)` / `count($request)` / `fetchObjects($request)`** — execute every `FetchRequest` the tool builds through these. They run the `PersistentSpaceOperation` that HTTP's read strategy also runs, which AND-folds in the caller's `own` ownership scope and the resource-level `#[Readable]`; `fetch()` also filters each object to its readable fields as it is accessed.
 - **`enforceFieldRead($entityName, $keyPath)`** — call on every key path an aggregate computes over or groups by. The read operations narrow which rows are read; this narrows which columns.
 - **`create()` / `update()` / `delete()`** — write through these. They run the write operations `PersistentSpace` runs over HTTP: the row is looked up within the read scope, ownership and the resource-level `#[Writable]` are enforced, values are filtered by the field-level `#[Writable]`, and the stored row is answered through `applySecureRead`.
 - **`authorizationResource($arguments)` / `authorizationAction($arguments)`** — the resource and action `call()` authorizes before `executeCore()`, through the same `AccessPolicy::allowsAccess()` that `AuthorizationEvaluator` asks by URL for regular endpoints. They default to the `entity` argument and to `read`, or `update` when the call is not read-only; override them only when the tool does not fit that default.
-- **`applySecureRead` / `applySecureUpdate` / `enforceOwnership` / `enforceResourceAccess`** — field-level read filtering, field-level write filtering, `#[Owner]` enforcement and the resource-level `#[Writable]`, for tools not yet migrated to the write helpers.
+- **`enforceEntityAuthorization($resource, $action)`** — for a tool that reads several entities, on each entity beyond the one `call()` authorized.
 
 ### In-process agents and subagents
 

@@ -8,7 +8,6 @@ namespace Sabatier\Service\MCP\Tools;
 
 use Closure;
 use Exception;
-use JetBrains\PhpStorm\Deprecated;
 use JsonException;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\FetchRequest;
@@ -124,16 +123,12 @@ abstract class AbstractTool
     protected ?Authorizable $user {
         get => $this->fieldSecurityPolicy->user;
     }
-    /** @var AuthorizationType|null The action the call in progress was authorized for, recorded by {@see self::authorize()}. */
-    private ?AuthorizationType $authorizedAction = null;
-    /** @var bool Whether {@see self::call()} is running the tool's core. */
-    private bool $isCalling = false;
 
     /**
      * @param ManagedObjectContext $context The context used to execute the tool's data operations.
      * @param ModelDescriptor $descriptor The model schema exposed to the tool.
      */
-    public function __construct(protected readonly ManagedObjectContext $context, protected readonly ModelDescriptor $descriptor)
+    public function __construct(private readonly ManagedObjectContext $context, protected readonly ModelDescriptor $descriptor)
     {
     }
 
@@ -167,19 +162,6 @@ abstract class AbstractTool
         return $this->isReadOnlyCall($arguments) ? AuthorizationType::read : AuthorizationType::update;
     }
 
-    /**
-     * Enforces the access policy on the resource and action this invocation declares; {@see self::call()} runs it before the tool's core.
-     *
-     * @param Dictionary<mixed> $arguments The arguments selecting the concrete operation.
-     * @throws Exception
-     */
-    public function authorize(Dictionary $arguments): void
-    {
-        $this->authorizedAction = $this->authorizationAction($arguments);
-        if ($resource = $this->authorizationResource($arguments)) {
-            $this->enforceEntityAuthorization($resource, $this->authorizedAction);
-        }
-    }
 
     /**
      * Invokes the tool: authorizes the call, then runs its core.
@@ -191,55 +173,15 @@ abstract class AbstractTool
     final public function call(Dictionary $arguments): ArrayClass
     {
         $this->authorize($arguments);
-        $this->isCalling = true;
-        $content = $this->executeCore($arguments);
-        $this->isCalling = false;
-        return $content;
+        return $this->executeCore($arguments);
     }
 
     /**
      * @param Dictionary<mixed> $arguments
      * @return ArrayClass<ContentItem>
      * @throws Exception
-     * @psalm-suppress DeprecatedMethod
      */
-    protected function executeCore(Dictionary $arguments): ArrayClass
-    {
-        return $this->execute($arguments);
-    }
-
-    /**
-     * Invokes the tool through {@see self::call()}.
-     *
-     * @param Dictionary<mixed> $arguments The validated arguments supplied by the caller.
-     * @return ArrayClass<ContentItem> The content returned to the caller.
-     * @throws Exception
-     */
-    #[Deprecated("since Service 1.4, use call() instead", "%class%->call(%parametersList%)")]
-    public function execute(Dictionary $arguments): ArrayClass
-    {
-        !$this->isCalling ?: fatal_error(static::class . " must implement executeCore().");
-        trigger_error(sprintf("%s() is deprecated, use call() instead", __METHOD__), E_USER_DEPRECATED);
-        return $this->call($arguments);
-    }
-
-    /**
-     * @throws Exception
-     */
-    protected function ownershipPredicate(EntityDescription $entity): ?Predicate
-    {
-        return $this->fieldSecurityPolicy->ownReadPredicate($entity);
-    }
-
-    /**
-     * Narrows a fetch request by every row-level rule that applies to the caller; {@see self::fetch()}, {@see self::count()} and {@see self::fetchObjects()} already do it.
-     *
-     * @throws Exception
-     */
-    protected function applySecurityScope(FetchRequest $request): void
-    {
-        $this->fieldSecurityPolicy->applyReadScope($request);
-    }
+    abstract protected function executeCore(Dictionary $arguments): ArrayClass;
 
     /**
      * Fetches the rows the caller may read, each object filtered to the fields the caller may read as it is accessed.
@@ -355,11 +297,11 @@ abstract class AbstractTool
 
     /**
      * Enforces the field-level `#[Readable]` on every key path a tool reads without materializing
-     * the rows behind it — the guard {@see self::applySecureRead()} provides for a tool that
-     * serializes objects, which an aggregate or a grouping never does.
+     * the rows behind it — the guard {@see self::fetch()} provides for a tool that serializes
+     * objects, which an aggregate or a grouping never does.
      *
      * Call this on each key path an aggregate computes over or groups by, before executing the
-     * request. `applySecurityScope()` narrows which rows are read; this narrows which columns,
+     * request. {@see self::fetchObjects()} narrows which rows are read; this narrows which columns,
      * and the two are not interchangeable: a protected column aggregated over permitted rows
      * still discloses the column.
      *
@@ -389,51 +331,6 @@ abstract class AbstractTool
         }
     }
 
-    /**
-     * @throws ForbiddenException
-     */
-    protected function enforceOwnership(ManagedObject $object): void
-    {
-        if ($this->isSecurityEnabled) {
-            $this->fieldSecurityPolicy->enforceOwnership($object, $this->authorizedAction ?? fatal_error("enforceOwnership() needs the action the call was authorized for; call authorize() first, as ToolRegistry does."));
-        }
-    }
-
-    /**
-     * Enforces the resource-level `#[Writable]` declared on the object's class — the write-side
-     * counterpart to the read narrowing {@see self::applySecurityScope()} performs.
-     *
-     * Call this on every object a tool creates, updates or deletes. Unlike a read, a write names
-     * the row it targets, so a denial is an error rather than an empty result.
-     *
-     * @throws ForbiddenException When the caller may not write the resource.
-     * @throws Exception
-     */
-    protected function enforceResourceAccess(ManagedObject $object): void
-    {
-        $this->fieldSecurityPolicy->enforceResourceAccess($object);
-    }
-
-    /**
-     * @param ManagedObject $object
-     * @param Dictionary<mixed> $body
-     * @throws Exception
-     */
-    protected function applySecureUpdate(ManagedObject $object, Dictionary $body): void
-    {
-        $this->fieldSecurityPolicy->applySecureUpdate($object, $body);
-    }
-
-    /**
-     * @param ManagedObject $object
-     * @param Dictionary<mixed> $data
-     * @return Dictionary<mixed>
-     * @throws Exception
-     */
-    protected function applySecureRead(ManagedObject $object, Dictionary $data): Dictionary
-    {
-        return $this->fieldSecurityPolicy->applySecureRead($object, $data);
-    }
 
     /**
      * Enforces per-entity RBAC for the resource this tool call targets — the check
@@ -449,6 +346,17 @@ abstract class AbstractTool
         }
         $user = $this->user ?? throw new ForbiddenException(localized_string("You must be authenticated to perform this action."));
         Application::shared()->accessPolicy->allowsAccess($resource, $action, $user, $this->fieldSecurityPolicy->scopes, $this->authorizationService, $this->context) ?: throw new ForbiddenException(sprintf(localized_string("You don't have permission to %s \"%s\"."), $action->name, $resource));
+    }
+
+    /**
+     * @param Dictionary<mixed> $arguments
+     * @throws Exception
+     */
+    private function authorize(Dictionary $arguments): void
+    {
+        if ($resource = $this->authorizationResource($arguments)) {
+            $this->enforceEntityAuthorization($resource, $this->authorizationAction($arguments));
+        }
     }
 
     protected function entity(string $name): EntitySchema

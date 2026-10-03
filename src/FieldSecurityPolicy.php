@@ -175,13 +175,10 @@ abstract readonly class FieldSecurityPolicy
         if (!$this->isSecurityEnabled) {
             return;
         }
-        $rule = ResourceRule::resolve($object::class, Writable::class);
-        if (!$rule) {
+        if (!($rule = ResourceRule::resolve($object::class, Writable::class))) {
             return;
         }
-        $allowed = $rule->allowsRoles($this->userRoles)
-            && ($rule->where === null || $this->evaluateCondition($rule->where, $rule->arguments, $object))
-            && (!$rule->requiresOwner || $this->ownsResource($object));
+        $allowed = $rule->allowsRoles($this->userRoles) && ($rule->where === null || $this->evaluateCondition($rule->where, $rule->arguments, $object)) && (!$rule->requiresOwner || $this->ownsResource($object));
         $allowed ?: throw new ForbiddenException(sprintf(localized_string("You don't have permission to modify this \"%s\" resource."), $object->entity->name));
     }
 
@@ -219,8 +216,7 @@ abstract readonly class FieldSecurityPolicy
      */
     public function applyReadScope(FetchRequest $request): void
     {
-        $entity = $request->entity;
-        if (!$entity instanceof EntityDescription) {
+        if (!($entity = $request->entity)) {
             return;
         }
         /** @var class-string<ManagedObject> $className */

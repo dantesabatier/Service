@@ -7,6 +7,10 @@ onward.
 
 ## [Unreleased]
 
+### Fixed
+
+- A `where` condition on `#[Readable]` that references a substitution variable (`$TODAY`, `$MONTH_START`, `$REMOTE_ADDRESS`, …) failed when narrowing a fetch: the read predicate reached SQL with the variable unbound, so it was emitted as a column name (`Unknown column '$REMOTE_ADDRESS' in 'WHERE'`). `FieldSecurityPolicy::resourceReadPredicate()` now binds the same variables `AccessConditionResolver::evaluate()` binds in memory.
+
 ## [1.6.2] - 2026-09-28
 
 ### Removed

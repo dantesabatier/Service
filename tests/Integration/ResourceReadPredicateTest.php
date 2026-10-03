@@ -14,6 +14,8 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Set;
 use Sabatier\Foundation\Predicates\ComparisonPredicate;
 use Sabatier\Foundation\Predicates\CompoundPredicate;
+use Sabatier\Foundation\Predicates\ExpressionType;
+use Sabatier\Service\AccessConditionResolver;
 use Sabatier\Service\Authorizable;
 use Sabatier\Service\AuthorizableRole;
 use Sabatier\Service\AuthorizationContext;
@@ -26,6 +28,11 @@ use Sabatier\Service\Readable;
 
 #[Readable(where: "day == \$TODAY")]
 class TodayGuardedResourceFixture extends ManagedObject
+{
+}
+
+#[Readable(where: "\$REMOTE_ADDRESS == %@", arguments: ["127.0.0.1"])]
+class RemoteAddressGuardedResourceFixture extends ManagedObject
 {
 }
 
@@ -115,8 +122,18 @@ final class ResourceReadPredicateTest extends TestCase
     public function resolvesWherePredicateFromClassReadable(): void
     {
         $predicate = $this->makePolicy(true)->resourceReadPredicate(TodayGuardedResourceFixture::class);
-        $this->assertNotNull($predicate);
-        $this->assertSame("day = \$TODAY", $predicate->predicateFormat);
+        $this->assertInstanceOf(ComparisonPredicate::class, $predicate);
+        $this->assertSame("day", $predicate->leftExpression->keyPath);
+        $this->assertSame(new AccessConditionResolver()->variables["\$TODAY"], $predicate->rightExpression->constantValue, "the fetch reaches SQL, so the variable is bound before it leaves");
+    }
+
+    /** @throws Exception */
+    #[Test]
+    public function bindsRemoteAddressBeforeTheFetch(): void
+    {
+        $predicate = $this->makePolicy(true)->resourceReadPredicate(RemoteAddressGuardedResourceFixture::class);
+        $this->assertInstanceOf(ComparisonPredicate::class, $predicate);
+        $this->assertSame(ExpressionType::constantValue, $predicate->leftExpression->expressionType, "an unbound variable would reach SQL as a column name");
     }
 
     /** @throws Exception */
@@ -180,7 +197,8 @@ final class ResourceReadPredicateTest extends TestCase
     {
         $predicate = $this->makePolicy(true, "Finance")->resourceReadPredicate(RoleAndConditionGuardedResourceFixture::class);
         $this->assertNotNull($predicate);
-        $this->assertSame("day = \$TODAY", $predicate->predicateFormat, "an admitted role is still narrowed by the rule's condition");
+        $this->assertInstanceOf(ComparisonPredicate::class, $predicate, "an admitted role is still narrowed by the rule's condition");
+        $this->assertSame("day", $predicate->leftExpression->keyPath);
     }
 
     // --- scope ---

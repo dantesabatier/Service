@@ -99,7 +99,7 @@ abstract readonly class FieldSecurityPolicy
             return Predicate::value(false);
         }
         $predicates = new ArrayClass([
-            $rule->where !== null ? $this->conditionResolver->predicate($rule->where, $rule->arguments) : null,
+            $rule->where !== null ? $this->conditionResolver->predicate($rule->where, $rule->arguments)->withSubstitutionVariables($this->conditionResolver->variables) : null,
             $rule->requiresOwner ? $this->resourceOwnershipPredicate($className) : null,
         ])->compactMap(fn(?Predicate $predicate): ?Predicate => $predicate);
         if ($predicates->isEmpty) {

@@ -192,7 +192,7 @@ When `fetchBatchSize` is set on the fetch request, the response is streamed: rec
 ### Mutations (POST, PATCH, DELETE)
 
 - **POST** inserts a new object. If the body includes an `objectID`, a uniqueness check runs first; a conflict throws `409`. The framework calls `applySecureUpdate` on the new object before saving, which hashes passwords for `Authorizable` entities and strips fields the user is not allowed to write.
-- **PATCH** fetches the object by `objectID` within the caller's read scope (a row the caller cannot read is `404`), enforces ownership for `update` and the resource-level `#[Writable]`, applies the secure write filter, and saves only if the context has actual changes (avoiding unnecessary writes).
+- **PATCH** fetches the object by `objectID` within the caller's read scope (a row the caller cannot read is `404`), enforces ownership for `update` and the resource-level `#[Writable]`, applies the secure write filter, and saves only if the context has actual changes (avoiding unnecessary writes). The body must carry at least one of the object's own attributes: changing only its relationships does not mark it as updated, so its `willSave()` does not run.
 - **DELETE** fetches by `objectID` within the read scope, enforces ownership for `delete` and the resource-level `#[Writable]`, deletes, and returns `204 No Content`.
 
 Every mutating operation re-fetches the object after saving and applies `applySecureRead` before returning it, so the response always reflects the committed state with fields filtered for the current user. Each is a `PersistentSpaceOperation` (`CreatePersistentSpaceOperation`, `UpdatePersistentSpaceOperation`, `DeletePersistentSpaceOperation`) that the MCP write tools run too.

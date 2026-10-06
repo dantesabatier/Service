@@ -197,6 +197,8 @@ Content-Type: application/json
 
 `objectID` is required and identifies the record to update. Only the fields present in the request body are written; omitted fields are left unchanged. Response: `200 OK` with the updated object.
 
+The body must include at least one of the record's own attributes, even at its current value. A body that carries only relationships writes the related records but leaves the record itself unmodified, so its `willSave()` does not run and any attribute it derives from those relationships keeps its previous value.
+
 ### Delete
 
 ```

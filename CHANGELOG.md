@@ -7,6 +7,10 @@ onward.
 
 ## [Unreleased]
 
+### Changed
+
+- The MCP `update` tool description, `MCP.md`, `API.md` and `ARCHITECTURE.md` state that an update must carry at least one of the row's own attributes. Values with only relationships leave the row unmodified, so its `willSave()` does not run and the attributes it derives keep their previous values.
+
 ## [1.6.3] - 2026-10-03
 
 ### Fixed

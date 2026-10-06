@@ -135,6 +135,8 @@ Update a single row by `objectID`.
 | `objectID` | integer | yes      | The row's `objectID`. |
 | `values`   | object  | yes      | Attribute and relationship values to write. |
 
+`values` must include at least one of the row's own attributes, even at its current value. Values that carry only relationships write the related rows but leave the row itself unmodified: it never reaches the context's updated objects, so its `willSave()` does not run and the attributes it derives from those relationships keep their previous values.
+
 The row is located through the security-scoped fetch, so a row the caller may not read is reported as not found rather than disclosed. Ownership and resource-level write access are then enforced. Saves only when the write actually changed something (`hasChanges`). Returns the updated object filtered through field-level read.
 
 ---

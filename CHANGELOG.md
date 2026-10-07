@@ -7,6 +7,8 @@ onward.
 
 ## [Unreleased]
 
+## [1.6.5] - 2026-10-07
+
 ### Changed
 
 - The MCP `describe_model` tool reports each relationship's `deleteRule` (`cascade`, `nullify`, `deny` or `noAction`), and the `delete` tool description explains how each rule affects the related rows, so an agent deletes only the parent of a cascading relationship instead of its children first.

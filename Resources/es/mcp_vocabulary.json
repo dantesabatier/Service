@@ -30,7 +30,7 @@
     },
     "delete": {
       "title": "Eliminar",
-      "description": "Elimina una entidad existente."
+      "description": "Elimina una fila existente. Sus filas relacionadas siguen el deleteRule que describe_model informa en cada una de sus relaciones, así que revísalo antes de eliminar: `cascade` elimina las filas relacionadas junto con esta, en la misma llamada — elimina solo el padre, nunca antes a sus hijos; `nullify` conserva las filas relacionadas y solo las desvincula; `deny` rechaza la eliminación mientras queden filas relacionadas, así que elimínalas o revincúlalas primero; `noAction` no hace nada con las filas relacionadas — según el store, la eliminación se rechaza o quedan apuntando a una fila que ya no existe —, así que elimínalas o revincúlalas primero."
     },
     "run_job": {
       "title": "Ejecutar tarea",

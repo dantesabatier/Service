@@ -36,7 +36,7 @@ final readonly class ModelSchemaExtractor
             /** @var Dictionary<RelationshipSchema> $relationships */
             $relationships = new Dictionary();
             foreach ($entity->relationshipsByName as $relName => $relationship) {
-                $relationships[$relName] = new RelationshipSchema($relName, $relationship->destinationEntity->name, $relationship->isToMany, $relationship->isOptional);
+                $relationships[$relName] = new RelationshipSchema($relName, $relationship->destinationEntity->name, $relationship->isToMany, $relationship->isOptional, $relationship->deleteRule);
             }
             $entities[$name] = new EntitySchema($name, $entity->managedObjectClassName ?? $name, $name, [], $attributes, $relationships, $entity->isAbstract);
         }

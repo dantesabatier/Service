@@ -11,6 +11,7 @@ use ReflectionException;
 use ReflectionProperty;
 use Sabatier\CoreData\AttributeDescription;
 use Sabatier\CoreData\AttributeType;
+use Sabatier\CoreData\DeleteRule;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\CoreData\ManagedObjectModel;
@@ -22,6 +23,7 @@ use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Service\MCP\Schema\AttributeSchemaFactory;
 use Sabatier\Service\MCP\Schema\EntitySchema;
 use Sabatier\Service\MCP\Schema\ModelSchemaExtractor;
+use Sabatier\Service\MCP\Schema\RelationshipSchema;
 use const Sabatier\CoreData\ManagedObjectEntityNameKey;
 use const Sabatier\CoreData\ManagedObjectObjectIDKey;
 
@@ -97,6 +99,19 @@ final class ModelSchemaExtractorTest extends TestCase
 
     /** @throws ReflectionException */
     #[Test]
+    public function aRelationshipCarriesItsDeleteRule(): void
+    {
+        $customer = $this->entity("Customer");
+        $order = $this->entity("Order", relationships: ["customer" => [$customer, false, true], "items" => [$customer, true, true, DeleteRule::cascadeDeleteRule], "invoices" => [$customer, true, true, DeleteRule::denyDeleteRule], "notes" => [$customer, true, true, DeleteRule::noActionDeleteRule]]);
+        /** @var EntitySchema $schema */
+        $schema = $this->extract(new ArrayClass([$order, $customer]))["Order"];
+        $this->assertSame(DeleteRule::nullifyDeleteRule, $schema->relationships["customer"]->deleteRule);
+        $this->assertSame(DeleteRule::cascadeDeleteRule, $schema->relationships["items"]->deleteRule);
+        $this->assertSame(["customer" => "nullify", "items" => "cascade", "invoices" => "deny", "notes" => "noAction"], $schema->relationships->mapValues(fn(RelationshipSchema $relationship): string => $relationship->jsonSerialize()["deleteRule"])->array);
+    }
+
+    /** @throws ReflectionException */
+    #[Test]
     public function theBackingClassIsCarriedOntoTheSchema(): void
     {
         /** @var EntitySchema $order */
@@ -124,7 +139,7 @@ final class ModelSchemaExtractorTest extends TestCase
 
     /**
      * @param array<string, AttributeType> $attributes
-     * @param array<string, array{EntityDescription, bool, bool}> $relationships
+     * @param array<string, array{0: EntityDescription, 1: bool, 2: bool, 3?: DeleteRule}> $relationships
      */
     private function entity(string $name, string $className = "", array $attributes = [], array $relationships = [], bool $isAbstract = false): EntityDescription
     {
@@ -142,12 +157,14 @@ final class ModelSchemaExtractorTest extends TestCase
             $attribute->type = $type;
             $properties->append($attribute);
         });
-        foreach ($relationships as $relationshipName => [$destination, $toMany, $optional]) {
+        foreach ($relationships as $relationshipName => $definition) {
+            [$destination, $toMany, $optional] = $definition;
             $relationship = new RelationshipDescription();
             $relationship->name = $relationshipName;
             new ReflectionProperty(RelationshipDescription::class, "destinationEntity")->setRawValue($relationship, $destination);
             $relationship->isToMany = $toMany;
             $relationship->isOptional = $optional;
+            $relationship->deleteRule = $definition[3] ?? DeleteRule::nullifyDeleteRule;
             $properties->append($relationship);
         }
         $entity->properties = $properties;

@@ -30,7 +30,7 @@
     },
     "delete": {
       "title": "Delete",
-      "description": "Delete an existing entity."
+      "description": "Delete one existing row. Its related rows follow the deleteRule that describe_model reports on each of its relationships, so check those before deleting: `cascade` deletes the related rows along with this one, in the same call — delete only the parent, never its children first; `nullify` keeps the related rows and only unlinks them; `deny` refuses the deletion while related rows remain, so delete or relink those first; `noAction` does nothing to the related rows — depending on the store the deletion is refused or they are left pointing at a row that no longer exists — so delete or relink them first."
     },
     "run_job": {
       "title": "Run Job",

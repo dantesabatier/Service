@@ -27,7 +27,7 @@ final class DeleteTool extends AbstractTool
     public array $inputSchema {
         get => [
             "type" => "object",
-            "properties" => ["entity" => ["type" => "string", "description" => "Always required. Entity name from the data model — call describe_model first if unsure."], "objectID" => ["type" => "integer"]],
+            "properties" => ["entity" => ["type" => "string", "description" => "Always required. Entity name from the data model — call describe_model first if unsure."], "objectID" => ["type" => "integer", "description" => "Always required. The row to delete; the rows related to it follow each relationship's deleteRule."]],
             "required" => ["entity", "objectID"],
         ];
     }

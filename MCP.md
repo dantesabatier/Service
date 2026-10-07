@@ -33,7 +33,7 @@ Schema introspection. Should be called first, before any other tool.
 
 **With no argument** it returns the index — every entity keyed by name under `entities`, each reduced to its class, label (`es`), aliases and the *counts* of its attributes and relationships — plus the `predicate_syntax` guide and a `usage` line naming how to ask for detail. This always fits in a single tool result, however large the model.
 
-**With `entity`** (one name or a list) it returns the full schema of just those entities: every attribute (type, nullability, enum cases), every relationship (target, cardinality, optionality), plus the `predicate_syntax` guide. An unknown name errors with a hint to call `describe_model` with no argument for the entity list.
+**With `entity`** (one name or a list) it returns the full schema of just those entities: every attribute (type, nullability, enum cases), every relationship (target, cardinality, optionality, delete rule), plus the `predicate_syntax` guide. An unknown name errors with a hint to call `describe_model` with no argument for the entity list.
 
 Pass `entity` as a real JSON array of strings — `["Order"]` for one, `["Order", "Customer"]` for several. Never send a *string that looks like* an array (`"[\"Order\"]"`): it is read as one entity name, and no entity is called that. A bare string (`"Order"`) is tolerated and treated as a one-element list, but the schema declares an array, so a strictly validating client will reject it — prefer the array form.
 
@@ -151,6 +151,8 @@ Delete a single row by `objectID`.
 | `objectID` | integer | yes      | The row's `objectID`. |
 
 Same security-scoped lookup, ownership and resource-level write enforcement as `update`. Deletes and saves. Returns `{"deleted": <objectID>}`.
+
+The related rows follow the `deleteRule` that `describe_model` reports on each relationship: `cascade` deletes them in the same save, so a client deletes only the parent; `nullify` unlinks them; `deny` refuses the deletion while any remain; `noAction` does nothing to them, leaving the outcome to the store's foreign key. The tool description tells the agent to read the rules before deleting rather than deleting children one by one.
 
 ---
 

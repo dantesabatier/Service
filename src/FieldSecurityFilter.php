@@ -8,7 +8,6 @@ use Exception;
 use ReflectionClass;
 use ReflectionProperty;
 use Sabatier\CoreData\ManagedObject;
-use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Set;
 
@@ -84,8 +83,8 @@ final class FieldSecurityFilter
         if ($rules === []) {
             return $data;
         }
-        /** @var ArrayClass<string> $restrictedFields */
-        $restrictedFields = new ArrayClass();
+        /** @var Set<string> $restrictedFields */
+        $restrictedFields = new Set();
         $isOwnerResolved = false;
         $isOwner = false;
         foreach ($rules as $fieldName => $rule) {
@@ -102,11 +101,11 @@ final class FieldSecurityFilter
                         continue;
                     }
                 }
-                $restrictedFields->append($fieldName);
+                $restrictedFields->insert($fieldName);
                 continue;
             }
             if ($rule->where !== null && !$this->conditionResolver?->evaluate($rule->where, $rule->arguments, $this->resource)) {
-                $restrictedFields->append($fieldName);
+                $restrictedFields->insert($fieldName);
             }
         }
         if ($restrictedFields->isEmpty) {

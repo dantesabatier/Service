@@ -18,9 +18,9 @@ use function Sabatier\Foundation\string_split_trimmed;
 /** @internal */
 final class DefaultStaticResourcePolicy implements StaticResourcePolicy
 {
-    /** @var ArrayClass<string> */
-    private ArrayClass $optionalResourceNames {
-        get => $this->optionalResourceNames ??= new ArrayClass(["favicon.ico", "favicon.png", "apple-touch-icon.png", "apple-touch-icon-precomposed.png", "browserconfig.xml", "robots.txt", "ads.txt", "manifest.json", "site.webmanifest"]);
+    /** @var Set<string> */
+    private Set $optionalResourceNames {
+        get => $this->optionalResourceNames ??= new Set(["favicon.ico", "favicon.png", "apple-touch-icon.png", "apple-touch-icon-precomposed.png", "browserconfig.xml", "robots.txt", "ads.txt", "manifest.json", "site.webmanifest"]);
     }
     /** @var list<string> */
     private const array resourceKeys = ["resourceURL", "privateFrameworksURL", "sharedFrameworksURL", "builtInPlugInsURL", "sharedSupportURL", "vendorURL", "nodeModulesURL"];

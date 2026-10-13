@@ -43,7 +43,10 @@ final class PersistentSpace extends Responder
                     }
                     $this->markInFlight($idempotencyKey);
                 }
-                $userResponse = new ResponsePipeline(new Set([JSONTransformer::class, ResponseHeaderSanitizerTransformer::class]), $this->transformerContext)->process(new PersistentSpaceResponseStrategyResolver($this->request, $this->entity, $this->managedObjectContext, $this->fieldSecurityPolicy)->strategy->response);
+                $response = new PersistentSpaceResponseStrategyResolver($this->request, $this->entity, $this->managedObjectContext, $this->fieldSecurityPolicy)->strategy->response;
+                // A stream encodes each batch as it is emitted; encoding its body here would load every batch at once and leave nothing to stream.
+                $transformers = $response instanceof StreamResponse ? new Set([ResponseHeaderSanitizerTransformer::class]) : new Set([JSONTransformer::class, ResponseHeaderSanitizerTransformer::class]);
+                $userResponse = new ResponsePipeline($transformers, $this->transformerContext)->process($response);
                 if ($idempotencyKey !== null) {
                     $this->storeIdempotentResponse($idempotencyKey, $userResponse);
                 }

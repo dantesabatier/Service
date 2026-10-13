@@ -39,6 +39,15 @@ final class StreamResponse extends Response implements IteratorAggregate
     }
 
     /**
+     * The emitter walks the response batch by batch, so the body, a lazy collection rather than encoded content, is not handed to it.
+     */
+    #[Override]
+    public function send(): never
+    {
+        $this->emitter->emit($this, $this->allHeaderFields);
+    }
+
+    /**
      * @return Generator<int, string, mixed, void>
      */
     #[Override]

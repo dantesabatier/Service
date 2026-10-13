@@ -31,7 +31,8 @@ final class ConditionalGetTransformer extends ResponseTransformer
         }
         $headers = $response->allHeaderFields;
         $cacheControl = (string)$headers["Cache-Control"];
-        if ($cacheControl === "" || str_contains($cacheControl, "no-store") || $context->cachePolicy?->etagEnabled === false) {
+        // A stream's body is emitted batch by batch and never exists whole: hashing it would walk every batch up front.
+        if ($cacheControl === "" || str_contains($cacheControl, "no-store") || $context->cachePolicy?->etagEnabled === false || $response instanceof StreamResponse) {
             parent::__construct($response, $context);
             return;
         }

@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
 
+use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use Sabatier\Foundation\ArrayClass;
+use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\URL;
+use Sabatier\Service\Emitter;
+use Sabatier\Service\Response;
 use Sabatier\Service\StreamEmitter;
 use Sabatier\Service\StreamResponse;
 
@@ -81,6 +86,26 @@ final class StreamResponseTest extends TestCase
     {
         $response = $this->response(new ArrayClass([1, 2, 3]), 2);
         $this->assertSame(iterator_to_array($response->getIterator()), iterator_to_array($response->getIterator()));
+    }
+
+    /**
+     * The body is a lazy collection, not the string an emitter takes as content: the stream emitter walks the
+     * response itself, so sending hands it no content. Passing the body failed the emitter's type before any
+     * batch went out.
+     */
+    #[Test]
+    public function sendingHandsTheEmitterNoContent(): void
+    {
+        $response = $this->response(new ArrayClass([1, 2, 3]), 2);
+        $response->emitter = new class extends Emitter {
+            #[Override]
+            public function emit(Response $response, Dictionary $headers, ?string $content = null, bool $useCompression = true): never
+            {
+                throw new RuntimeException(get_debug_type($content));
+            }
+        };
+        $this->expectExceptionObject(new RuntimeException("null"));
+        $response->send();
     }
 
     /**

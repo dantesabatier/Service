@@ -7,6 +7,7 @@ namespace Sabatier\Service\Tests\Integration;
 use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Networking\HTTPStatusCode;
 use Sabatier\Foundation\URL;
 use Sabatier\Service\ConditionalGetTransformer;
@@ -14,6 +15,7 @@ use Sabatier\Service\HTTPCachePolicy;
 use Sabatier\Service\Request;
 use Sabatier\Service\Response;
 use Sabatier\Service\ResponseTransformerContext;
+use Sabatier\Service\StreamResponse;
 
 final class ConditionalGetTransformerTest extends TestCase
 {
@@ -65,7 +67,7 @@ final class ConditionalGetTransformerTest extends TestCase
         return "\"" . md5($body) . "\"";
     }
 
-    // --- Condiciones que omiten ETag ---
+    // --- Conditions that skip the ETag ---
 
     #[Test]
     public function noETagWhenNoCacheControlHeader(): void
@@ -114,7 +116,21 @@ final class ConditionalGetTransformerTest extends TestCase
         $this->assertNull($result->allHeaderFields["ETag"]);
     }
 
-    // --- ETag generado ---
+    /**
+     * A stream is emitted batch by batch and its body never exists whole before it goes out: an ETag would have to
+     * walk all of it, which is exactly what the stream avoids. Its `no-cache` is not enough to skip it, because only
+     * `no-store` does.
+     */
+    #[Test]
+    public function noETagForAStreamedResponse(): void
+    {
+        $body = new ArrayClass([1, 2, 3]);
+        $result = $this->transform(new StreamResponse(new URL("http://localhost/"), $body, chunkSize: 2, transform: null), $this->request());
+        $this->assertNull($result->allHeaderFields["ETag"]);
+        $this->assertSame($body, $result->body);
+    }
+
+    // --- Generated ETag ---
 
     #[Test]
     public function eTagAddedForCacheableGetResponse(): void
@@ -182,7 +198,7 @@ final class ConditionalGetTransformerTest extends TestCase
         $this->assertSame(HTTPStatusCode::ok, $result->statusCode);
     }
 
-    // --- Headers en la respuesta 304 ---
+    // --- Headers in the 304 response ---
 
     #[Test]
     public function notModifiedResponsePreservesETagHeader(): void

@@ -7,6 +7,12 @@ onward.
 
 ## [Unreleased]
 
+## [1.6.7] - 2026-10-13
+
+### Fixed
+
+- A read with `fetchBatchSize` streams its batches as NDJSON. The response went through `JSONTransformer`, which encoded every batch at once, got an ETag computed over its whole body, and then failed to emit because `send()` handed the body to the stream emitter as content. Each batch is now encoded as it is emitted, so the memory of a large read no longer grows with its rows.
+
 ## [1.6.6] - 2026-10-08
 
 ## [1.6.5] - 2026-10-07

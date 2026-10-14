@@ -19,12 +19,21 @@ use Sabatier\Service\StreamResponse;
 final class StreamResponseTest extends TestCase
 {
     #[Test]
-    public function announcesItselfAsAnUncachedChunkedNDJSONStream(): void
+    public function announcesItselfAsAnUncachedNDJSONStream(): void
     {
         $headerFields = $this->response(new ArrayClass([1]), 1)->allHeaderFields;
         $this->assertSame("application/x-ndjson; charset=utf-8", $headerFields["Content-Type"]);
-        $this->assertSame("chunked", $headerFields["Transfer-Encoding"]);
         $this->assertSame("no-cache", $headerFields["Cache-Control"]);
+    }
+
+    /**
+     * Chunking is the web server's to apply to a body without a Content-Length. Declared by the application, the
+     * header announces a framing the body does not carry, and a client reading the chunks fails on the first one.
+     */
+    #[Test]
+    public function leavesTheTransferEncodingToTheServer(): void
+    {
+        $this->assertNull($this->response(new ArrayClass([1]), 1)->allHeaderFields["Transfer-Encoding"]);
     }
 
     #[Test]

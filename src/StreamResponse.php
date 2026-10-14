@@ -32,7 +32,7 @@ final class StreamResponse extends Response implements IteratorAggregate
      */
     public function __construct(URL $url, ArrayClass $body, int $chunkSize, ?Closure $transform)
     {
-        parent::__construct($url, headerFields: new Dictionary(["Content-Type" => "application/x-ndjson; charset=utf-8", "Transfer-Encoding" => "chunked", "Cache-Control" => "no-cache"]), body: $body);
+        parent::__construct($url, headerFields: new Dictionary(["Content-Type" => "application/x-ndjson; charset=utf-8", "Cache-Control" => "no-cache"]), body: $body);
         $this->chunkSize = $chunkSize;
         $this->transform = $transform;
         $this->emitter = new StreamEmitter();

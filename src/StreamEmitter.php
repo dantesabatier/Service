@@ -33,15 +33,12 @@ class StreamEmitter extends Emitter
             ob_end_flush();
         }
         header(sprintf("%s %s %s", $response->httpVersion, $response->statusCode, Response::localizedString($response->statusCode)));
-        header_register_callback(function () use ($headers): void {
-            foreach ($headers as $key => $value) {
-                $value
-                    |> human_readable_value(...)
-                    |> (fn(string $x): string => sprintf("%s: %s", $key, $x))
-                    |> header(...);
-                flush();
-            }
-        });
+        foreach ($headers as $key => $value) {
+            $value
+                |> human_readable_value(...)
+                |> (fn(string $x): string => sprintf("%s: %s", $key, $x))
+                |> header(...);
+        }
     }
 
     #[Override]

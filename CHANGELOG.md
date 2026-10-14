@@ -7,6 +7,13 @@ onward.
 
 ## [Unreleased]
 
+## [1.6.8] - 2026-10-14
+
+### Fixed
+
+- A streamed response carries all of its headers. The stream emitter flushed while registering them, so only the first one was sent and a browser blocked the response for lacking CORS.
+- A streamed response no longer declares `Transfer-Encoding: chunked`. The body is not framed in chunks; the web server applies the encoding to a body without a `Content-Length`.
+
 ## [1.6.7] - 2026-10-13
 
 ### Fixed

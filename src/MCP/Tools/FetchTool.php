@@ -43,6 +43,7 @@ final class FetchTool extends AbstractTool
                 "sort" => ["type" => "array", "items" => ["type" => "object", "properties" => ["key" => ["type" => "string"], "ascending" => ["type" => "boolean"]], "required" => ["key"]], "description" => "Sort descriptors, e.g. [{\"key\": \"creationDate\", \"ascending\": false}]."],
                 "limit" => ["type" => "integer", "description" => "Maximum rows to return. Omit to return all matching rows."],
                 "offset" => ["type" => "integer"],
+                "batchSize" => ["type" => "integer", "description" => "Rows read from the store at a time. The whole result is still returned; batching only bounds the server memory spent on large results. Omit to read everything at once."],
             ],
             "required" => ["entity"],
         ];
@@ -64,6 +65,7 @@ final class FetchTool extends AbstractTool
         $this->applySort($request, $arguments["sort"]);
         $request->fetchLimit = (int)$arguments["limit"];
         $request->fetchOffset = (int)$arguments["offset"];
+        $request->fetchBatchSize = (int)$arguments["batchSize"];
         if ($shape = $this->resolveShape($arguments)) {
             $request->serialization = $shape;
         }

@@ -7,6 +7,12 @@ onward.
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-10-15
+
+### Added
+
+- The `fetch` MCP tool takes a `batchSize` argument that reads the result from the store in batches. The result is returned whole and unchanged; each batch releases the objects already serialized, so a large result no longer holds its whole graph in memory.
+
 ## [1.6.8] - 2026-10-14
 
 ### Fixed

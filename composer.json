@@ -66,6 +66,7 @@
       "src/MCP/JSONRPCErrorCodes.php",
       "src/RateLimitConstants.php",
       "src/SecurityHeadersConstants.php",
+      "src/ServiceAdditions.php",
       "src/SessionAdditions.php"
     ]
   },

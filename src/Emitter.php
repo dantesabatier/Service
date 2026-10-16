@@ -15,6 +15,12 @@ class Emitter
     public function emit(Response $response, Dictionary $headers, ?string $content = null, bool $useCompression = true): never
     {
         $content ??= "";
+        // A stream already sent its status and part of its batches: the response, an error by now, is delivered as its last line.
+        if (stream_has_started()) {
+            echo "$content\n";
+            flush();
+            exit(0);
+        }
         $contentLength = strlen($content);
         $this->emitHeaders($response, $headers, $contentLength);
         $this->emitContent($content, $useCompression);

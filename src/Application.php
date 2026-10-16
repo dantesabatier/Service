@@ -295,7 +295,8 @@ class Application extends Responder
                 } catch (Throwable $throwable) {
                     error_log("$this->debugDescription applicationDidCrash threw: $throwable");
                 }
-                if (!headers_sent()) {
+                // Once a response went out, the error can only be delivered as the last line of a stream.
+                if (!headers_sent() || stream_has_started()) {
                     $this->handle($exception);
                 }
             }

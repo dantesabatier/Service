@@ -7,6 +7,16 @@ onward.
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-10-16
+
+### Added
+
+- `stream_has_started()` tells whether a streamed response already sent its headers, from what was actually sent.
+
+### Fixed
+
+- A stream that fails midway, by an exception or a fatal error, ends with its error response as the last line. The response used to end silently after the batches already sent, under a 200, so the client took a partial result as the whole one.
+
 ## [1.7.0] - 2026-10-15
 
 ### Added

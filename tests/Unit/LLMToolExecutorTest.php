@@ -98,6 +98,7 @@ final class LLMToolExecutorTest extends TestCase
         $this->assertTrue($run->isRetryable);
         $this->assertSame(LLMToolCallDisposition::providerFailure, $event->disposition);
         $this->assertNull($run->toolCallResults[0]->content);
+        $this->assertSame("tool provider unavailable", $run->failureReason);
     }
 
     #[Test]
@@ -112,6 +113,20 @@ final class LLMToolExecutorTest extends TestCase
         $this->assertFalse($run->isRetryable);
         $this->assertTrue($run->messages->isEmpty);
         $this->assertSame([], $client->toolNamesByCall);
+        $this->assertSame("catalogue unavailable", $run->failureReason);
+    }
+
+    /** A subagent's tool-provider failure stops the parent too, and the parent's caller is the one who has to correct it, so the provider's words travel up with the stop reason. */
+    #[Test]
+    public function subagentToolProviderFailureReachesTheRootWithItsReason(): void
+    {
+        $agent = new LLMAgent(new SubagentExecutorClient(), new ProviderFailingLLMToolExecutor(false));
+
+        $run = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]));
+
+        $this->assertSame(LLMRunStopReason::toolProviderFailure, $run->stopReason);
+        $this->assertFalse($run->isRetryable);
+        $this->assertSame("tool provider unavailable", $run->failureReason);
     }
 }
 

@@ -207,11 +207,29 @@ abstract class LLMClient
         return $statusCode === HTTPStatusCode::tooManyRequests || $statusCode === HTTPStatusCode::requestTimeout || $statusCode >= HTTPStatusCode::internalServerError;
     }
 
+    /**
+     * The provider's explanation, when its error body carries one, is the whole reason: the status and the JSON around it only repeat what the stop reason and `isRetryable` already say. OpenAI, Groq and Anthropic nest it as `error.message`, Ollama sends `error` as a plain string. A body that is not one of those is kept whole after the status, because it is still the provider's own words.
+     */
     private function failureReason(?int $statusCode, ?string $data): string
     {
         $body = trim((string)$data);
+        $message = $this->providerMessage($body);
+        if ($message !== null) {
+            return $message;
+        }
         $reason = $statusCode === null ? "The LLM provider returned no response" : sprintf("The LLM provider returned HTTP %d", $statusCode);
         return $body === "" ? $reason : "$reason: $body";
+    }
+
+    private function providerMessage(string $body): ?string
+    {
+        $decoded = json_decode($body);
+        if (!$decoded instanceof stdClass) {
+            return null;
+        }
+        $error = Dictionary::dictionaryWithArray($decoded, false)["error"];
+        $message = $error instanceof Dictionary ? $error["message"] : $error;
+        return is_string($message) && trim($message) !== "" ? trim($message) : null;
     }
 
     /**

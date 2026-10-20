@@ -326,6 +326,7 @@ final class LLMAgentTest extends TestCase
         $this->assertSame(9, $run->inputTokens);
         $this->assertSame(4, $run->outputTokens);
         $this->assertTrue($run->isRetryable);
+        $this->assertSame("The LLM provider returned HTTP 503", $run->failureReason);
     }
 
     /** The stop reason says the provider failed; whether that is worth another attempt is the separate question `$isRetryable` answers. */
@@ -338,6 +339,7 @@ final class LLMAgentTest extends TestCase
 
         $this->assertSame(LLMRunStopReason::providerFailure, $run->stopReason);
         $this->assertFalse($run->isRetryable);
+        $this->assertSame("The LLM provider returned HTTP 401", $run->failureReason);
     }
 
     /** A run the model concluded has nothing to retry, which is not the same as a retry that would fail. */
@@ -351,6 +353,7 @@ final class LLMAgentTest extends TestCase
 
         $this->assertSame(LLMRunStopReason::done, $run->stopReason);
         $this->assertNull($run->isRetryable);
+        $this->assertNull($run->failureReason);
     }
 
     /**

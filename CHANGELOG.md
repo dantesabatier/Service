@@ -7,6 +7,11 @@ onward.
 
 ## [Unreleased]
 
+### Fixed
+
+- A run that stops on `providerFailure` or `toolProviderFailure` keeps the provider's own account of the failure in `LLMRun::$failureReason`. The runtime caught the exception and kept only the stop reason, so a rejected key, an unknown model and a rate limit all reached the caller as the same failure; a subagent's tool-provider failure carries its reason up to the root run.
+- A provider failure whose body carries an error message reports that message alone, rather than the status followed by the raw JSON; a body without one is still appended whole.
+
 ## [1.8.0] - 2026-10-16
 
 ### Added

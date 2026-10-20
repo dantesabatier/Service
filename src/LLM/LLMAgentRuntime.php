@@ -45,6 +45,9 @@ final class LLMAgentRuntime implements LLMAgentSession
     private int $outputTokens = 0;
     private bool $wasExecuted = false;
     private ?LLMAgentLoopOutcome $terminalOutcome = null;
+    private ?string $failureReason = null;
+    /** @var string|null The failure reason of the latest subagent run, which a propagated stop reason carries up with it. */
+    private ?string $subagentFailureReason = null;
     #[Override]
     public int $maxIterations {
         get => $this->environment->maxIterations;
@@ -113,8 +116,11 @@ final class LLMAgentRuntime implements LLMAgentSession
             $this->emitFinished($run, $startedAt);
             return $run;
         } catch (LLMToolProviderException $exception) {
-            $outcome = $this->terminalOutcome ?? new LLMAgentLoopOutcome(LLMRunStopReason::toolProviderFailure, $exception->isTransient);
-            $run = $this->runForOutcome($outcome);
+            if ($this->terminalOutcome === null) {
+                $this->terminalOutcome = new LLMAgentLoopOutcome(LLMRunStopReason::toolProviderFailure, $exception->isTransient);
+                $this->failureReason = $exception->getMessage();
+            }
+            $run = $this->runForOutcome($this->terminalOutcome);
             $this->emitFinished($run, $startedAt);
             return $run;
         } catch (Throwable $exception) {
@@ -162,7 +168,7 @@ final class LLMAgentRuntime implements LLMAgentSession
             $this->interrupt(LLMRunStopReason::deadline, true);
         } catch (LLMProviderException $exception) {
             $this->emit(new LLMModelTurnFailedEvent($this->runContext, $this->environment->clock->timestamp, $iteration, $exception::class, $exception->getMessage(), $this->environment->clock->monotonicTime - $turnStartedAt));
-            $this->interrupt(LLMRunStopReason::providerFailure, $exception->isTransient);
+            $this->interrupt(LLMRunStopReason::providerFailure, $exception->isTransient, $exception->getMessage());
         } catch (Throwable $exception) {
             $this->emit(new LLMModelTurnFailedEvent($this->runContext, $this->environment->clock->timestamp, $iteration, $exception::class, $exception->getMessage(), $this->environment->clock->monotonicTime - $turnStartedAt));
             throw $exception;
@@ -173,7 +179,7 @@ final class LLMAgentRuntime implements LLMAgentSession
             if ($this->pendingToolCalls[$toolCall->id] !== null) {
                 $exception = new LLMProviderException("The model returned duplicate tool-call identifiers.");
                 $this->emit(new LLMModelTurnFailedEvent($this->runContext, $this->environment->clock->timestamp, $iteration, $exception::class, $exception->getMessage(), $this->environment->clock->monotonicTime - $turnStartedAt));
-                $this->interrupt(LLMRunStopReason::providerFailure, false);
+                $this->interrupt(LLMRunStopReason::providerFailure, false, $exception->getMessage());
             }
             $this->pendingToolCalls[$toolCall->id] = $toolCall;
         }
@@ -230,7 +236,9 @@ final class LLMAgentRuntime implements LLMAgentSession
         $this->enforceSyntheticCall($call);
         return $this->performToolCall($call, true, false, function () use ($request, $loop, $transform): LLMAgentToolResult {
             $runtime = new self($request, $this->environment->child(), $this->executionState, $this->deadline, $this->runContext->child(), $this);
-            return $transform($runtime->execute($loop));
+            $run = $runtime->execute($loop);
+            $this->subagentFailureReason = $run->failureReason;
+            return $transform($run);
         });
     }
 
@@ -292,7 +300,7 @@ final class LLMAgentRuntime implements LLMAgentSession
                 $this->toolCallCache[$cacheKey] = $outcome->text;
             }
             if ($outcome->stopReason !== null) {
-                $this->interrupt($outcome->stopReason, $outcome->isRetryable);
+                $this->interrupt($outcome->stopReason, $outcome->isRetryable, $isSubagent ? $this->subagentFailureReason : null);
             }
             if (($stopReason = $this->executionState->tokenStopReason($this->environment->executionPolicy, true)) !== null) {
                 $this->interrupt($stopReason, true);
@@ -308,7 +316,7 @@ final class LLMAgentRuntime implements LLMAgentSession
                 $didFinish = true;
                 $this->emit(new LLMToolCallFinishedEvent($this->runContext, $this->environment->clock->timestamp, $this->iterations, $call->id, $call->name, LLMToolCallDisposition::providerFailure, 0, $this->environment->clock->monotonicTime - $startedAt));
             }
-            $this->interrupt(LLMRunStopReason::toolProviderFailure, $exception->isTransient);
+            $this->interrupt(LLMRunStopReason::toolProviderFailure, $exception->isTransient, $exception->getMessage());
         } catch (Throwable $exception) {
             if (!$didFinish) {
                 $didFinish = true;
@@ -372,9 +380,12 @@ final class LLMAgentRuntime implements LLMAgentSession
     /**
      * @throws LLMRunInterruptedException
      */
-    private function interrupt(LLMRunStopReason $stopReason, ?bool $isRetryable): never
+    private function interrupt(LLMRunStopReason $stopReason, ?bool $isRetryable, ?string $failureReason = null): never
     {
-        $this->terminalOutcome ??= new LLMAgentLoopOutcome($stopReason, $isRetryable);
+        if ($this->terminalOutcome === null) {
+            $this->terminalOutcome = new LLMAgentLoopOutcome($stopReason, $isRetryable);
+            $this->failureReason = $failureReason;
+        }
         throw new LLMRunInterruptedException($this->terminalOutcome->stopReason, $this->terminalOutcome->isRetryable);
     }
 
@@ -407,7 +418,7 @@ final class LLMAgentRuntime implements LLMAgentSession
 
     private function runForOutcome(LLMAgentLoopOutcome $outcome): LLMRun
     {
-        $run = new LLMRun(clone $this->generatedMessages, $this->inputTokens, $this->outputTokens, $outcome->stopReason, $outcome->isRetryable);
+        $run = new LLMRun(clone $this->generatedMessages, $this->inputTokens, $this->outputTokens, $outcome->stopReason, $outcome->isRetryable, $this->failureReason);
         if ($outcome->stopReason === LLMRunStopReason::done && !$run->isComplete) {
             throw new LogicException("An agent loop cannot complete without a conclusive assistant turn recorded by its session.");
         }

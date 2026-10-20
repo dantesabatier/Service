@@ -16,6 +16,8 @@ use Sabatier\Foundation\Dictionary;
  *
  * The class marks its properties `readonly` one by one rather than declaring itself `final readonly`, which would be shorter: a `readonly` class forbids property hooks, and `$toolCallResults` is one. Every stored property still carries the keyword, so the run is as immutable as the shorter form would have made it — only the computed property is exempt, and it has nothing to store.
  *
+ * `$failureReason` carries what the stop reason cannot: the provider's own account of a failure. `providerFailure` covers a bad key, an unknown model, a rate limit and a dropped connection alike, and each one is corrected differently, so a caller that reports only the stop reason leaves its user guessing.
+ *
  * `$isComplete` stays derived rather than passed, so it cannot contradict the messages it summarizes: a run is complete when its last message is an assistant message carrying no tool calls — the same condition `LLMTurn::$isDone` expresses for a single turn — and only when the runtime retained `done` as its terminal outcome. A failed or capped run is never complete; however, its strategy left the conversation: the work did not reach a conclusion. An empty run is not complete either because nothing answered it.
  */
 final class LLMRun
@@ -46,8 +48,9 @@ final class LLMRun
      * @param int<0, max> $outputTokens
      * @param LLMRunStopReason $stopReason Why the loop stopped. Defaults to `done`, leaving `$isComplete` to the messages alone.
      * @param bool|null $isRetryable Whether running the same thing again is worth attempting, or `null` when the question does not apply — a run the model concluded has nothing to retry. A caller can tell that from a definite `false`, which says the ending will repeat itself.
+     * @param string|null $failureReason What the failing provider reported, in its own words, when the run stopped on `providerFailure` or `toolProviderFailure`; `null` for every other ending.
      */
-    public function __construct(public readonly ArrayClass $messages, public readonly int $inputTokens = 0, public readonly int $outputTokens = 0, public readonly LLMRunStopReason $stopReason = LLMRunStopReason::done, public readonly ?bool $isRetryable = null)
+    public function __construct(public readonly ArrayClass $messages, public readonly int $inputTokens = 0, public readonly int $outputTokens = 0, public readonly LLMRunStopReason $stopReason = LLMRunStopReason::done, public readonly ?bool $isRetryable = null, public readonly ?string $failureReason = null)
     {
         $last = $this->messages->last;
         $this->isComplete = $this->stopReason === LLMRunStopReason::done && $last !== null && $last->role === LLMMessageRole::assistant && $last->toolCalls?->isEmpty !== false;

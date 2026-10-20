@@ -107,9 +107,25 @@ final class LLMClientRetryTest extends TestCase
 
     /** @throws ReflectionException */
     #[Test]
-    public function theProvidersOwnBodyIsAppendedToTheFailureReason(): void
+    public function anErrorStringIsTheWholeFailureReason(): void
     {
-        $this->assertSame("The LLM provider returned HTTP 400: {\"error\":\"unknown model\"}", $this->failureReason(HTTPStatusCode::badRequest, "{\"error\":\"unknown model\"}"));
+        $this->assertSame("unknown model", $this->failureReason(HTTPStatusCode::badRequest, "{\"error\":\"unknown model\"}"));
+    }
+
+    /** @throws ReflectionException */
+    #[Test]
+    public function aNestedErrorMessageIsTheWholeFailureReason(): void
+    {
+        $body = "{\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"Rate limit reached. Please try again in 19s.\"}}";
+        $this->assertSame("Rate limit reached. Please try again in 19s.", $this->failureReason(HTTPStatusCode::tooManyRequests, $body));
+    }
+
+    /** @throws ReflectionException */
+    #[Test]
+    public function aBodyWithoutAnErrorMessageIsAppendedWhole(): void
+    {
+        $this->assertSame("The LLM provider returned HTTP 502: <html>Bad Gateway</html>", $this->failureReason(HTTPStatusCode::badGateway, "<html>Bad Gateway</html>"));
+        $this->assertSame("The LLM provider returned HTTP 400: {\"error\":{\"code\":\"x\"}}", $this->failureReason(HTTPStatusCode::badRequest, "{\"error\":{\"code\":\"x\"}}"));
     }
 
     /** @throws ReflectionException */

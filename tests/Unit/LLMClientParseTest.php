@@ -90,6 +90,18 @@ final class LLMClientParseTest extends TestCase
 
     /** @throws ReflectionException */
     #[Test]
+    public function standardClientKeepsTheExtraContentOfEachToolCall(): void
+    {
+        $turn = $this->parse(new StandardLLMClient(), "{\"choices\":[{\"message\":{\"tool_calls\":[{\"id\":\"call_1\",\"function\":{\"name\":\"probe_tool\",\"arguments\":\"{}\"},\"extra_content\":{\"google\":{\"thought_signature\":\"c2ln\"}}},{\"id\":\"call_2\",\"function\":{\"name\":\"probe_tool\",\"arguments\":\"{}\"}}]}}]}");
+
+        $extraContent = $turn->toolCalls[0]->extraContent;
+        $this->assertNotNull($extraContent);
+        $this->assertSame("c2ln", $extraContent["google"]["thought_signature"]);
+        $this->assertNull($turn->toolCalls[1]->extraContent);
+    }
+
+    /** @throws ReflectionException */
+    #[Test]
     public function standardClientPreservesObjectAndListArgumentShapes(): void
     {
         $turn = $this->parse(new StandardLLMClient(), "{\"choices\":[{\"message\":{\"tool_calls\":[{\"id\":\"call_1\",\"function\":{\"name\":\"probe_tool\",\"arguments\":\"{\\\"object\\\":{},\\\"list\\\":[]}\"}}]}}]}");

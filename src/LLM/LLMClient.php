@@ -208,7 +208,7 @@ abstract class LLMClient
     }
 
     /**
-     * The provider's explanation, when its error body carries one, is the whole reason: the status and the JSON around it only repeat what the stop reason and `isRetryable` already say. OpenAI, Groq and Anthropic nest it as `error.message`, Ollama sends `error` as a plain string. A body that is not one of those is kept whole after the status, because it is still the provider's own words.
+     * The provider's explanation, when its error body carries one, is the whole reason: the status and the JSON around it only repeat what the stop reason and `isRetryable` already say. OpenAI, Groq and Anthropic nest it as `error.message`, Ollama sends `error` as a plain string, and Gemini wraps the `error.message` object in a one-element array. A body that is not one of those is kept whole after the status, because it is still the provider's own words.
      */
     private function failureReason(?int $statusCode, ?string $data): string
     {
@@ -224,6 +224,9 @@ abstract class LLMClient
     private function providerMessage(string $body): ?string
     {
         $decoded = json_decode($body);
+        if (is_array($decoded)) {
+            $decoded = $decoded[0] ?? null;
+        }
         if (!$decoded instanceof stdClass) {
             return null;
         }

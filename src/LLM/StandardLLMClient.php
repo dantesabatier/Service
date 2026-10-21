@@ -22,6 +22,8 @@ use function Sabatier\Foundation\fatal_error;
  * to satisfy OpenAI's requirement that array-typed properties declare an `items` field.
  * Auth is passed via the `Authorization: Bearer` header.
  *
+ * A tool call's `extra_content` is kept on the call and sent back with it. Gemini puts the thought signature of each call there and rejects a following request whose calls arrive without it.
+ *
  * Token usage is read under both spellings the OpenAI-compatible surface uses: Chat Completions reports `prompt_tokens`/`completion_tokens`, the Responses API `input_tokens`/`output_tokens`. The Chat Completions pair is preferred, matching the request format this client builds.
  */
 final class StandardLLMClient extends LLMClient
@@ -38,7 +40,7 @@ final class StandardLLMClient extends LLMClient
     #[Override]
     protected function buildRequest(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): URLRequest
     {
-        $request = new URLRequest($this->endpoint ?? fatal_error("Endpoint URL must be provided for StandardLLMClient"));
+        $request = new URLRequest($this->endpoint ?? fatal_error("Endpoint URL must be provided for StandardLLMClient"), timeoutInterval: (float)$this->timeoutIntervalForRequest);
         $request->httpMethod = HTTPRequestMethod::post;
         $request->allHTTPHeaderFields = new Dictionary([
             "Authorization" => "Bearer $this->key",
@@ -80,7 +82,7 @@ final class StandardLLMClient extends LLMClient
             if ($toolCalls && !$toolCalls->isEmpty && $message->role === LLMMessageRole::assistant) {
                 $calls = [];
                 foreach ($toolCalls as $call) {
-                    $calls[] = [
+                    $wireCall = [
                         "id" => $call->id,
                         "type" => "function",
                         "function" => [
@@ -88,6 +90,10 @@ final class StandardLLMClient extends LLMClient
                             "arguments" => (string)json_encode($this->toolArguments($call->arguments)),
                         ],
                     ];
+                    if ($call->extraContent !== null) {
+                        $wireCall["extra_content"] = $this->toolArguments($call->extraContent);
+                    }
+                    $calls[] = $wireCall;
                 }
                 $entry = [
                     "role" => "assistant",
@@ -179,7 +185,9 @@ final class StandardLLMClient extends LLMClient
             foreach ($calls as $tc) {
                 /** @var Dictionary<mixed> $fn */
                 $fn = $tc["function"] ?? new Dictionary();
-                $toolCalls->append($this->toolCallParser->parseEncoded($tc["id"], $fn["name"], $fn["arguments"]));
+                $call = $this->toolCallParser->parseEncoded($tc["id"], $fn["name"], $fn["arguments"]);
+                $extraContent = $tc["extra_content"];
+                $toolCalls->append($extraContent instanceof Dictionary ? new LLMToolCall($call->id, $call->name, $call->arguments, $extraContent) : $call);
             }
             break;
         }

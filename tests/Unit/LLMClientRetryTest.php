@@ -122,6 +122,21 @@ final class LLMClientRetryTest extends TestCase
 
     /** @throws ReflectionException */
     #[Test]
+    public function anErrorWrappedInAnArrayIsTheWholeFailureReason(): void
+    {
+        $body = "[{
+  \"error\": {
+    \"code\": 503,
+    \"message\": \"This model is currently experiencing high demand. Please try again later.\",
+    \"status\": \"UNAVAILABLE\"
+  }
+}
+]";
+        $this->assertSame("This model is currently experiencing high demand. Please try again later.", $this->failureReason(HTTPStatusCode::serviceUnavailable, $body));
+    }
+
+    /** @throws ReflectionException */
+    #[Test]
     public function aBodyWithoutAnErrorMessageIsAppendedWhole(): void
     {
         $this->assertSame("The LLM provider returned HTTP 502: <html>Bad Gateway</html>", $this->failureReason(HTTPStatusCode::badGateway, "<html>Bad Gateway</html>"));

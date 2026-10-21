@@ -42,7 +42,7 @@ final class OllamaClient extends LLMClient
     #[Override]
     protected function buildRequest(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): URLRequest
     {
-        $request = new URLRequest($this->endpoint ?? fatal_error("Endpoint URL must be provided for OllamaClient"));
+        $request = new URLRequest($this->endpoint ?? fatal_error("Endpoint URL must be provided for OllamaClient"), timeoutInterval: (float)$this->timeoutIntervalForRequest);
         $request->httpMethod = HTTPRequestMethod::post;
         /** @var Dictionary<mixed> $headers */
         $headers = new Dictionary(["Content-Type" => "application/json"]);

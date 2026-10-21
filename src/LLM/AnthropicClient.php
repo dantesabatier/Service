@@ -40,7 +40,7 @@ final class AnthropicClient extends LLMClient
     #[Override]
     protected function buildRequest(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): URLRequest
     {
-        $request = new URLRequest($this->endpoint ?? fatal_error("Endpoint URL must be provided for AnthropicClient"));
+        $request = new URLRequest($this->endpoint ?? fatal_error("Endpoint URL must be provided for AnthropicClient"), timeoutInterval: (float)$this->timeoutIntervalForRequest);
         $request->httpMethod = HTTPRequestMethod::post;
         $headers = new Dictionary([
             "anthropic-version" => $this->version,

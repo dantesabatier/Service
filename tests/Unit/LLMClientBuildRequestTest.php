@@ -138,6 +138,42 @@ final class LLMClientBuildRequestTest extends TestCase
         $this->assertArgumentShapes($ollama->messages[0]->tool_calls[0]->function->arguments, $ollama->messages[0]->tool_calls[1]->function->arguments);
     }
 
+    /**
+     * Gemini rejects a request whose earlier tool calls come back without the thought signature it attached to them.
+     *
+     * @throws JsonException
+     * @throws ReflectionException
+     */
+    #[Test]
+    public function standardClientSendsEachToolCallsExtraContentBack(): void
+    {
+        $calls = new ArrayClass([
+            new LLMToolCall("signed", "probe", new Dictionary(), new Dictionary(["google" => new Dictionary(["thought_signature" => "c2ln"])])),
+            new LLMToolCall("unsigned", "probe", new Dictionary()),
+        ]);
+        $messages = new ArrayClass([new LLMMessage(LLMMessageRole::assistant, null, $calls)]);
+
+        $standard = $this->buildRequestObject(new StandardLLMClient(endpoint: new URL("https://example.test/v1/chat/completions")), $messages);
+
+        $this->assertSame("c2ln", $standard->messages[0]->tool_calls[0]->extra_content->google->thought_signature);
+        $this->assertObjectNotHasProperty("extra_content", $standard->messages[0]->tool_calls[1]);
+    }
+
+    /**
+     * The transport times out at the lesser of the request's interval and the session's, so a request left at `URLRequest`'s 60-second default cut every model off there, whatever the client was configured to wait.
+     *
+     * @throws ReflectionException
+     */
+    #[Test]
+    public function everyClientsRequestWaitsAsLongAsTheClientIsConfiguredTo(): void
+    {
+        foreach ([new AnthropicClient(endpoint: new URL("https://example.test/v1/messages")), new StandardLLMClient(endpoint: new URL("https://example.test/v1/chat/completions")), new OllamaClient(endpoint: new URL("http://localhost:11434/api/chat"))] as $client) {
+            $client->timeoutIntervalForRequest = 900;
+            $request = new ReflectionMethod($client, "buildRequest")->invoke($client, new ArrayClass([new LLMMessage(LLMMessageRole::user, "hello")]), new ArrayClass(), null);
+            $this->assertSame(900.0, $request->timeoutInterval, $client::class);
+        }
+    }
+
     private function assertArgumentShapes(mixed $empty, mixed $nested): void
     {
         $this->assertInstanceOf(stdClass::class, $empty);

@@ -7,6 +7,12 @@ onward.
 
 ## [Unreleased]
 
+### Fixed
+
+- Tool use works with Gemini 3 through the OpenAI-compatible client. Gemini attaches a thought signature to each tool call under `extra_content` and rejects the next request without it; `LLMToolCall::$extraContent` now keeps that data and `StandardLLMClient` sends it back with the call.
+- A model request waits as long as `LLMClient::$timeoutIntervalForRequest` says. The clients built their requests with `URLRequest`'s 60-second default, and the transport uses the lesser of the request's and the session's interval, so every model was cut off at 60 seconds whatever the client was configured to wait.
+- A provider error wrapped in an array, as Gemini sends it, reports its message alone like the others instead of the raw JSON.
+
 ## [1.8.1] - 2026-10-20
 
 ### Fixed

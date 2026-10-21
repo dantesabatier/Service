@@ -7,6 +7,8 @@ onward.
 
 ## [Unreleased]
 
+## [1.8.2] - 2026-10-21
+
 ### Fixed
 
 - Tool use works with Gemini 3 through the OpenAI-compatible client. Gemini attaches a thought signature to each tool call under `extra_content` and rejects the next request without it; `LLMToolCall::$extraContent` now keeps that data and `StandardLLMClient` sends it back with the call.

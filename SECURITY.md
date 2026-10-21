@@ -2,16 +2,18 @@
 
 ## Supported versions
 
-Before the initial public release, security fixes are made on `master`. No
-released version is supported until `1.0.0` is published.
+Security fixes land on `master` and ship in the next release of the current
+minor line. Only that line is supported.
 
-| Version              | Supported |
-|----------------------|-----------|
-| `master` (pre-1.0)   | yes       |
+| Version   | Supported |
+|-----------|-----------|
+| `1.8.x`   | yes       |
+| `< 1.8`   | no        |
 
-When `1.0.0` is tagged, this table will be updated in the release commit and
-support will move to the latest `1.0.x` release. Versions not listed in this
-table do not receive security fixes.
+Earlier minor lines receive no backports: upgrading within `1.x` is the
+supported path, since the project treats a breaking change as a note in a
+minor release rather than a reason to maintain parallel lines. Versions not
+listed in this table do not receive security fixes.
 
 ## Reporting a vulnerability
 

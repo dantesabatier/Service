@@ -7,6 +7,8 @@ onward.
 
 ## [Unreleased]
 
+## [1.8.3] - 2026-10-21
+
 ### Added
 
 - MCP Apps. The server serves `resources/list` and `resources/read` and advertises the `resources` capability, so an application can publish a user interface a host renders beside the conversation. Drop a class extending `AbstractResource` in `src/MCPResources/` and it is discovered, exactly as a tool in `src/MCPTools/` is; `uiResourceUri` on a tool ties its answer to that interface, emitted as `_meta.ui.resourceUri`. A resource carries no data — it is handed no `ManagedObjectContext`, and the rows a UI shows arrive through ordinary tool calls where the caller's own rules apply. Two parts of the extension are not implemented yet: the client's `capabilities.extensions` declaration is not read, so resources are served to every client, and tool `visibility` (a tool only the UI may call) is absent.

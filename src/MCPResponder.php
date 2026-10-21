@@ -13,6 +13,10 @@ use Sabatier\Service\MCP\JSONRPCRequestParser;
 use Sabatier\Service\MCP\MCPRequestHandler;
 use Sabatier\Service\MCP\MCPTransportGuard;
 use Sabatier\Service\MCP\MethodDispatcher;
+use Sabatier\Service\MCP\Resources\ResourceRegistry;
+use Sabatier\Service\MCP\Resources\ResourceResolver;
+use Sabatier\Service\MCP\ResourcesListHandler;
+use Sabatier\Service\MCP\ResourcesReadHandler;
 use Sabatier\Service\MCP\Schema\AttributeSchemaFactory;
 use Sabatier\Service\MCP\Schema\ModelDescriptor;
 use Sabatier\Service\MCP\Schema\ModelSchemaExtractor;
@@ -49,6 +53,9 @@ final class MCPResponder extends Responder
     private ToolRegistry $registry {
         get => $this->registry ??= new ToolRegistry(new ToolResolver($this->managedObjectContext, $this->descriptor)->resolve());
     }
+    private ResourceRegistry $resourceRegistry {
+        get => $this->resourceRegistry ??= new ResourceRegistry(new ResourceResolver()->resolve());
+    }
     /** @var string The username of the authenticated identity, or an empty string when the request carries none. Scopes every session this responder reads or writes. */
     private string $subject {
         get => $this->subject ??= Application::shared()->authenticationManager->authentication->authenticatedUser?->username ?? "";
@@ -73,6 +80,14 @@ final class MCPResponder extends Responder
         get => $this->data ??= $this->handle();
     }
 
+    /**
+     * Dispatches the request, handing the call handler the revision this session negotiated so a structured payload
+     * is only carried to a client whose revision defines it.
+     *
+     * A request without a session falls back to the latest revision rather than the earliest: the guard admits only
+     * the handshake and a ping without one, and neither reaches a tool, so the fallback governs no real call —
+     * and were that to change, hiding the field from a modern client would be the worse answer.
+     */
     private function handle(): mixed
     {
         $request = $this->request;
@@ -83,8 +98,8 @@ final class MCPResponder extends Responder
             $this->statusCode = HTTPStatusCode::noContent;
             return null;
         }
-        $this->guard->touchSession($request);
-        return new MCPRequestHandler(new JSONRPCRequestParser(), new MethodDispatcher($this->initializeHandler, new ToolsListHandler($this->registry), new ToolsCallHandler($this->registry)))->handle($request);
+        $session = $this->guard->touchSession($request);
+        return new MCPRequestHandler(new JSONRPCRequestParser(), new MethodDispatcher($this->initializeHandler, new ToolsListHandler($this->registry), new ToolsCallHandler($this->registry, $session?->protocolVersion ?? MCPProtocolVersionLatestStable), new ResourcesListHandler($this->resourceRegistry), new ResourcesReadHandler($this->resourceRegistry)))->handle($request);
     }
 
     /**

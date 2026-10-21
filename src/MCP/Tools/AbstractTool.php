@@ -98,6 +98,13 @@ abstract class AbstractTool
     public bool $isOpenWorld {
         get => true;
     }
+    /** @var string|null The `ui://` uri of the resource a host renders this tool's answer in, or null for a tool answering as text alone. */
+    public ?string $uiResourceUri {
+        get => null;
+    }
+
+    /** @var array<array-key, mixed>|null The structured payload the running call contributed, or null when it contributed none. The registry reuses one instance of each tool across calls, so `call()` clears this before the core runs and the value is read once after it returns; it never carries from one call into the next. */
+    private(set) ?array $structuredContent = null;
 
     /** @var ToolVocabulary The vocabulary of the bundle that owns this concrete tool class. */
     private ToolVocabulary $vocabulary {
@@ -166,6 +173,9 @@ abstract class AbstractTool
     /**
      * Invokes the tool: authorizes the call, then runs its core.
      *
+     * The structured payload of any earlier call is cleared first, so what {@see self::$structuredContent} holds
+     * afterwards was contributed by this call or by nothing at all.
+     *
      * @param Dictionary<mixed> $arguments The validated arguments supplied by the caller.
      * @return ArrayClass<ContentItem> The content returned to the caller.
      * @throws Exception
@@ -173,6 +183,7 @@ abstract class AbstractTool
     final public function call(Dictionary $arguments): ArrayClass
     {
         $this->authorize($arguments);
+        $this->structuredContent = null;
         return $this->executeCore($arguments);
     }
 
@@ -539,11 +550,39 @@ abstract class AbstractTool
     }
 
     /**
+     * Serializes the data as the text the model reads, and keeps it as the call's structured payload.
+     *
+     * The payload is taken from the serialization rather than from the argument, so a `Dictionary`, an `ArrayClass`
+     * or a managed object answers with the same shape the client is sent. A payload that serializes to a JSON array
+     * is left out: `structuredContent` is defined as an object.
+     *
      * @return ArrayClass<ContentItem>
      * @throws JsonException
      */
     protected function jsonResult(mixed $data): ArrayClass
     {
-        return $this->textResult(json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+        $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        $decoded = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
+        if (is_array($decoded) && !array_is_list($decoded)) {
+            $this->structuredContent = $decoded;
+        }
+        return $this->textResult($json);
+    }
+
+    /**
+     * Contributes a structured payload alongside content the tool has already built, for a tool whose text is prose
+     * rather than the serialization of that payload.
+     *
+     * A tool that answers with {@see self::jsonResult()} needs none of this: the payload it passes there is captured
+     * as it is serialized.
+     *
+     * @param ArrayClass<ContentItem> $content The content the caller reads, returned unchanged.
+     * @param array<array-key, mixed> $data The structured payload a UI reads.
+     * @return ArrayClass<ContentItem>
+     */
+    protected function structuredResult(ArrayClass $content, array $data): ArrayClass
+    {
+        $this->structuredContent = $data;
+        return $content;
     }
 }

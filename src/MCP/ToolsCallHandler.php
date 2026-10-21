@@ -9,11 +9,22 @@ use Sabatier\Service\MCP\Response\ToolCallResult;
 use Sabatier\Service\MCP\Tools\ToolRegistry;
 use Throwable;
 use const Sabatier\Foundation\LocalizedFailureReasonErrorKey;
+use const Sabatier\Service\MCPProtocolVersionLatestStable;
+use const Sabatier\Service\MCPProtocolVersionLegacy;
 
 /** @internal */
-final readonly class ToolsCallHandler
+final class ToolsCallHandler
 {
-    public function __construct(private ToolRegistry $registry)
+    /** @var bool Whether the negotiated revision defines `structuredContent`. */
+    private bool $carriesStructuredContent {
+        get => $this->protocolVersion !== MCPProtocolVersionLegacy;
+    }
+
+    /**
+     * @param ToolRegistry $registry The catalogue the call is dispatched against.
+     * @param string $protocolVersion The revision the session negotiated, which decides whether a structured payload can be carried.
+     */
+    public function __construct(private readonly ToolRegistry $registry, private readonly string $protocolVersion = MCPProtocolVersionLatestStable)
     {
     }
 
@@ -25,6 +36,9 @@ final readonly class ToolsCallHandler
      * JSON-RPC protocol error. A real program fault propagates past the registry and is caught once
      * in `MCPRequestHandler` as an Internal Error envelope. Only a missing tool name, a malformed
      * request, is reported here as a JSON-RPC `InvalidParams` error.
+     *
+     * A structured payload is dropped when the session negotiated the 2025-03-26 revision, which does not define the
+     * field: a client validating the envelope against the revision it asked for would reject it.
      *
      * @param RPCMessage $message The parsed `tools/call` request carrying the tool name and arguments in its params.
      * @return ToolCallResult|JSONRPCError The tool result (success or `isError`), or an `InvalidParams` error if the tool name is missing.
@@ -38,6 +52,6 @@ final readonly class ToolsCallHandler
         /** @var Dictionary<mixed> $arguments */
         $arguments = $message->params["arguments"] ?? new Dictionary();
         $result = $this->registry->call($name, $arguments);
-        return new ToolCallResult($result->content, $result->isError);
+        return new ToolCallResult($result->content, $result->isError, $this->carriesStructuredContent ? $result->structuredContent : null);
     }
 }

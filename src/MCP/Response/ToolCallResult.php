@@ -19,15 +19,17 @@ final class ToolCallResult implements JsonSerializable
     /**
      * @param ArrayClass<ContentItem> $content The content items returned by the tool.
      * @param bool $isError Whether the call failed; serialized as the MCP `isError` flag so the model is told.
+     * @param array<array-key, mixed>|null $structuredContent The same answer as data for a UI to render, or null when the tool contributed none or the session cannot carry it.
      */
-    public function __construct(public readonly ArrayClass $content, public readonly bool $isError = false)
+    public function __construct(public readonly ArrayClass $content, public readonly bool $isError = false, public readonly ?array $structuredContent = null)
     {
     }
 
     /**
-     * Serializes the result into the MCP `tools/call` shape, adding `isError` only when the call failed.
+     * Serializes the result into the MCP `tools/call` shape, adding `isError` only when the call failed and
+     * `structuredContent` only when there is a payload to carry.
      *
-     * @return array{content: ArrayClass<ContentItem>, isError?: true} The MCP result payload.
+     * @return array{content: ArrayClass<ContentItem>, isError?: true, structuredContent?: array<array-key, mixed>} The MCP result payload.
      */
     #[Override]
     public function jsonSerialize(): array
@@ -35,6 +37,9 @@ final class ToolCallResult implements JsonSerializable
         $data = ["content" => $this->content];
         if ($this->isError) {
             $data["isError"] = true;
+        }
+        if ($this->structuredContent !== null) {
+            $data["structuredContent"] = $this->structuredContent;
         }
         return $data;
     }

@@ -64,6 +64,7 @@ try {
             RemoveUnusedPublicMethodParameterRector::class => [
                 __DIR__ . "/src/MCP/InitializeHandler.php",
                 __DIR__ . "/src/MCP/ToolsListHandler.php",
+                __DIR__ . "/src/MCP/ResourcesListHandler.php",
             ],
             RemoveMixedDocblockOverruledByNativeTypeRector::class,
             RemoveUselessUnionReturnDocblockRector::class,

@@ -19,6 +19,9 @@ use Sabatier\Service\MCP\Response\ContentItem;
  * A failure is a *correctable* error: the LLM mis-called the tool (bad key path, unknown enum,
  * malformed predicate) and `$content` holds the descriptive message it needs to fix the call.
  * Fatal program errors do not become a `ToolResult` — they propagate out of `call` to the caller.
+ *
+ * A tool may also contribute `$structuredContent`, the same answer as data for a UI to render. It travels beside the
+ * content rather than inside it, so `$text` — what the model is fed — is exactly what it was before any UI existed.
  */
 final class ToolResult
 {
@@ -30,8 +33,9 @@ final class ToolResult
     /**
      * @param ArrayClass<ContentItem> $content The content items the tool produced, or the failure message wrapped as text.
      * @param bool $isError Whether the call failed with a correctable error the model should be told about.
+     * @param array<array-key, mixed>|null $structuredContent The payload a UI reads, or null when the tool contributed none.
      */
-    private function __construct(public readonly ArrayClass $content, public readonly bool $isError)
+    private function __construct(public readonly ArrayClass $content, public readonly bool $isError, public readonly ?array $structuredContent = null)
     {
     }
 
@@ -39,11 +43,12 @@ final class ToolResult
      * Wraps the content of a successful tool invocation.
      *
      * @param ArrayClass<ContentItem> $content The content items the tool produced.
+     * @param array<array-key, mixed>|null $structuredContent The payload the tool contributed for a UI to read, if any.
      * @return self A result flagged as successful.
      */
-    public static function success(ArrayClass $content): self
+    public static function success(ArrayClass $content, ?array $structuredContent = null): self
     {
-        return new self($content, false);
+        return new self($content, false, $structuredContent);
     }
 
     /**

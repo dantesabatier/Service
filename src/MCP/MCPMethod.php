@@ -16,6 +16,8 @@ final readonly class MCPMethod
     public const string initialized = "notifications/initialized";
     public const string toolsList = "tools/list";
     public const string toolsCall = "tools/call";
+    public const string resourcesList = "resources/list";
+    public const string resourcesRead = "resources/read";
 
     /**
      * Returns whether the given method may be invoked before a session exists.

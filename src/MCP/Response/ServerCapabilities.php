@@ -10,13 +10,13 @@ use Override;
 /** @internal */
 final readonly class ServerCapabilities implements JsonSerializable
 {
-    public function __construct(public ToolsCapability $tools)
+    public function __construct(public ToolsCapability $tools, public ResourcesCapability $resources = new ResourcesCapability())
     {
     }
 
     #[Override]
     public function jsonSerialize(): array
     {
-        return ["tools" => $this->tools];
+        return ["tools" => $this->tools, "resources" => $this->resources];
     }
 }

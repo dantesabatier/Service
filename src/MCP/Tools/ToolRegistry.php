@@ -39,7 +39,7 @@ final class ToolRegistry
             "destructiveHint" => $tool->isDestructive,
             "idempotentHint" => $tool->isIdempotent,
             "openWorldHint" => $tool->isOpenWorld,
-        ]));
+        ], $tool->uiResourceUri === null ? null : ["ui" => ["resourceUri" => $tool->uiResourceUri]]));
     }
 
     /** @param ArrayClass<AbstractTool> $toolList The resolved tool implementations to register by name. */
@@ -112,7 +112,8 @@ final class ToolRegistry
             if ($complaint !== null) {
                 return ToolResult::failure($complaint);
             }
-            return ToolResult::success($tool->call($arguments));
+            $content = $tool->call($arguments);
+            return ToolResult::success($content, $tool->structuredContent);
         } catch (InternalInconsistencyException $exception) {
             error_log((string)$exception);
             $reason = $this->reason($exception);

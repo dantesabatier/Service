@@ -20,12 +20,15 @@ use Sabatier\Service\MCP\JSONRPCError;
 use Sabatier\Service\MCP\JSONRPCRequestParser;
 use Sabatier\Service\MCP\MCPRequestHandler;
 use Sabatier\Service\MCP\MethodDispatcher;
+use Sabatier\Service\MCP\ResourcesListHandler;
+use Sabatier\Service\MCP\ResourcesReadHandler;
 use Sabatier\Service\MCP\ToolsCallHandler;
 use Sabatier\Service\MCP\ToolsListHandler;
 use Sabatier\Service\Request;
 use const Sabatier\Foundation\LocalizedFailureReasonErrorKey;
 use const Sabatier\Service\MCP\JSONRPCErrorCodeInternalError;
 use const Sabatier\Service\MCP\JSONRPCErrorCodeInvalidRequest;
+use const Sabatier\Service\MCP\JSONRPCErrorCodeMethodNotFound;
 use const Sabatier\Service\MCP\JSONRPCErrorCodeParseErrorCode;
 
 /**
@@ -69,7 +72,10 @@ final class MCPRequestHandlerTest extends TestCase
     #[Test]
     public function anUnknownMethodComesBackAsAJSONRPCError(): void
     {
-        $this->assertInstanceOf(JSONRPCError::class, $this->handle(["jsonrpc" => "2.0", "id" => 1, "method" => "tools/destroy"]));
+        /** @var JSONRPCError $result */
+        $result = $this->handle(["jsonrpc" => "2.0", "id" => 1, "method" => "tools/destroy"]);
+        $this->assertInstanceOf(JSONRPCError::class, $result);
+        $this->assertSame(JSONRPCErrorCodeMethodNotFound, $result->code);
     }
 
     /** @throws Exception */
@@ -142,7 +148,9 @@ final class MCPRequestHandlerTest extends TestCase
         $dispatcher = new MethodDispatcher(
             new ReflectionClass(InitializeHandler::class)->newInstanceWithoutConstructor(),
             new ReflectionClass(ToolsListHandler::class)->newInstanceWithoutConstructor(),
-            new ReflectionClass(ToolsCallHandler::class)->newInstanceWithoutConstructor()
+            new ReflectionClass(ToolsCallHandler::class)->newInstanceWithoutConstructor(),
+            new ReflectionClass(ResourcesListHandler::class)->newInstanceWithoutConstructor(),
+            new ReflectionClass(ResourcesReadHandler::class)->newInstanceWithoutConstructor()
         );
         return new MCPRequestHandler(new JSONRPCRequestParser(), $dispatcher)->handle($this->request($parameters));
     }

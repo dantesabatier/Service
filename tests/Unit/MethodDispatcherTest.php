@@ -13,11 +13,13 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\MCP\InitializeHandler;
 use Sabatier\Service\MCP\JSONRPCError;
 use Sabatier\Service\MCP\MethodDispatcher;
+use Sabatier\Service\MCP\ResourcesListHandler;
+use Sabatier\Service\MCP\ResourcesReadHandler;
 use Sabatier\Service\MCP\RPCMessage;
 use Sabatier\Service\MCP\ToolsCallHandler;
 use Sabatier\Service\MCP\ToolsListHandler;
 use const Sabatier\Foundation\LocalizedFailureReasonErrorKey;
-use const Sabatier\Service\MCP\JSONRPCErrorCodeInvalidParams;
+use const Sabatier\Service\MCP\JSONRPCErrorCodeMethodNotFound;
 
 /**
  * Fixes which handler each JSON-RPC method reaches, and how an unknown one is answered. The
@@ -46,7 +48,7 @@ final class MethodDispatcherTest extends TestCase
     {
         $result = $this->dispatcher()->dispatch($this->message("tools/destroy"));
         $this->assertInstanceOf(JSONRPCError::class, $result);
-        $this->assertSame(JSONRPCErrorCodeInvalidParams, $result->code);
+        $this->assertSame(JSONRPCErrorCodeMethodNotFound, $result->code);
     }
 
     /** @throws ReflectionException */
@@ -84,7 +86,9 @@ final class MethodDispatcherTest extends TestCase
         return new MethodDispatcher(
             new ReflectionClass(InitializeHandler::class)->newInstanceWithoutConstructor(),
             new ReflectionClass(ToolsListHandler::class)->newInstanceWithoutConstructor(),
-            new ReflectionClass(ToolsCallHandler::class)->newInstanceWithoutConstructor()
+            new ReflectionClass(ToolsCallHandler::class)->newInstanceWithoutConstructor(),
+            new ReflectionClass(ResourcesListHandler::class)->newInstanceWithoutConstructor(),
+            new ReflectionClass(ResourcesReadHandler::class)->newInstanceWithoutConstructor()
         );
     }
 }

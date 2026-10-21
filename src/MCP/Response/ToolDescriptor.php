@@ -19,8 +19,9 @@ final readonly class ToolDescriptor implements JsonSerializable
      * @param array<array-key, mixed> $inputSchema The JSON Schema for the tool's arguments.
      * @param string|null $title An optional human-readable display name.
      * @param array<string, mixed>|null $annotations Optional MCP hints, retained independently of trusted execution classifiers.
+     * @param array<string, mixed>|null $meta Optional MCP `_meta`, carrying the `ui` declaration that ties the tool to the resource a host renders its answer in.
      */
-    public function __construct(public string $name, public string $description, public array $inputSchema, public ?string $title = null, public ?array $annotations = null)
+    public function __construct(public string $name, public string $description, public array $inputSchema, public ?string $title = null, public ?array $annotations = null, public ?array $meta = null)
     {
     }
 
@@ -33,6 +34,9 @@ final readonly class ToolDescriptor implements JsonSerializable
         }
         if ($this->annotations !== null) {
             $data["annotations"] = $this->annotations === [] ? new stdClass() : $this->annotations;
+        }
+        if ($this->meta !== null) {
+            $data["_meta"] = $this->meta;
         }
         return $data;
     }

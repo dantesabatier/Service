@@ -19,6 +19,10 @@ const MCPProtocolVersionStable = "2025-06-18";
 const MCPProtocolVersionLatestStable = "2025-11-25";
 /** @var string Name of the directory under src/ where the app's MCP tool classes are discovered. */
 const MCPToolsDirectory = "MCPTools";
+/** @var string Name of the directory under src/ where the app's MCP resource classes are discovered. */
+const MCPResourcesDirectory = "MCPResources";
+/** @var string The media type of an MCP App's user interface, which a host renders in a sandboxed frame. */
+const MCPAppMimeType = "text/html;profile=mcp-app";
 /** @var string Response and request header carrying the Streamable HTTP session identifier. */
 const MCPSessionHeader = "Mcp-Session-Id";
 /** @var string Request header carrying the protocol version negotiated during initialization. */

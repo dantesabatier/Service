@@ -88,6 +88,7 @@ abstract class AbstractResource
     {
         $bundle = Bundle::bundleForClass(static::class);
         $url = $bundle->url($this->filename) ?? fatal_error("\"$this->filename\" is missing from the bundle that owns " . static::class . ".");
+        /** @noinspection PhpStrictTypeCheckingInspection */
         return FileManager::default()->contents($url->path) ?: fatal_error("\"$this->filename\" could not be read from the bundle that owns " . static::class . ".");
     }
 }

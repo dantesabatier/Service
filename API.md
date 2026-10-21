@@ -110,6 +110,8 @@ The JSON object supports the following fields:
 | `returnsDistinctResults` | boolean                          | Deduplicate results                                            |
 | `includesSubentities`    | boolean                          | Whether to include subentity records (default `true`)          |
 
+`propertiesToFetch` projects the record's own attributes. To project across relationships, send a `Serialization` header alongside the request — it is a separate channel, not a field of this JSON, and the two combine freely. See [Shaping the response](#shaping-the-response).
+
 **Example — paginated fetch, newest first:**
 
 ```json
@@ -152,6 +154,41 @@ A count response returns `{"count": 7}` rather than an array.
 ```
 
 The inner expression's `resultType` is the raw `AttributeType` value (`500` is `double`), not a `FetchRequestResultType`. The outer `resultType` remains `2` for a dictionary result.
+
+### Shaping the response
+
+A client decides the shape of what comes back. The `Serialization` request header carries a JSON object describing which attributes and relationships to include: map an attribute to `true`, and a relationship to a nested object describing the related entity's shape. The traversal has no depth limit, and `objectID` is always included at every level.
+
+```
+GET /Order
+Authorization: Bearer <jwt>
+Serialization: {"orderNumber":true,"total":true,"customer":{"name":true,"area":{"name":true}}}
+```
+
+```json
+[
+  {
+    "objectID": 118,
+    "orderNumber": "A-2043",
+    "total": 1480.00,
+    "customer": {
+      "objectID": 27,
+      "name": "Talleres Uribe",
+      "area": { "objectID": 4, "name": "Norte" }
+    }
+  }
+]
+```
+
+The shape drives the fetch itself, not just the output: relationships named in it are resolved in the same query rather than one request per record.
+
+Field-level security applies to the **top level** of the response. `#[Readable]` removes restricted attributes of the entity being fetched, and ownership scoping narrows which of its records are returned, regardless of what the shape asks for — the header narrows the projection, never the permissions. Attributes reached through a nested relationship are **not** filtered by `#[Readable]`: the shape returns them as named.
+
+Two things still hold at any depth. An attribute marked **sensitive in the model** never serialises its value anywhere in the graph — it is replaced by a description of its type — so that flag, not `#[Readable]`, is what protects a field a client may reach through a relationship. And the walk is bounded: a cycle terminates, and an object reached twice emits the union of what both branches asked for.
+
+A key the entity does not define is dropped silently. A shape whose keys are *all* unknown leaves the object with its default representation, so a misspelled shape returns more than was asked for, not less.
+
+The header is independent of the `fetchRequest` parameter, so the two combine: `fetchRequest` says which records and in what order, `Serialization` says what each one carries. Sent together, both apply.
 
 ### Streaming large result sets
 
@@ -354,7 +391,7 @@ If more than one scope parameter is supplied, the framework uses this precedence
 |--------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `Authorization`          | `Bearer <jwt>` for JWT auth; `Basic <base64>` for Basic; `Digest …` for Digest                                                                                                                              |
 | `Idempotency-Key`        | Client-generated unique key (max 255 chars) for POST/PATCH. The framework stores the response for 24 hours (default) and replays it on retry. Concurrent requests with the same key receive `409 Conflict`. |
-| `Serialization`          | JSON object controlling which attributes and relationships are included in entity responses. Keys are attribute names; values are `true` (include) or a nested serialization object for relationships.      |
+| `Serialization`          | JSON object controlling which attributes and relationships are included in entity responses. Keys are attribute names; values are `true` (include) or a nested serialization object for relationships. See [Shaping the response](#shaping-the-response). |
 | `If-None-Match`          | ETag value from a previous response. Returns `304 Not Modified` when the resource has not changed.                                                                                                          |
 | `X-Http-Method-Override` | Overrides the HTTP method for clients that cannot send `PUT`/`PATCH`/`DELETE`. Honored only on a real `POST`, and only to `PUT`, `PATCH`, or `DELETE`; ignored otherwise.                                   |
 

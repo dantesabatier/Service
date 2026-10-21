@@ -55,7 +55,7 @@ Query rows with filtering, sorting, pagination and relationship projection.
 | `limit`          | integer | no       | Maximum rows. Omit to return all matching rows. |
 | `offset`         | integer | no       | Row offset. |
 
-Returns `{"rowCount": N, "summary": "…", "results": [ … ]}`. Field-level read filtering applies to top-level fields; nested relationship leaves in a serialization shape are not filtered. The `summary` ends with a note that the result is final — it is not a signal to retry.
+Returns `{"rowCount": N, "summary": "…", "results": [ … ]}`. Field-level read filtering applies to top-level fields; nested relationship leaves in a serialization shape are not filtered by `#[Readable]`, though an attribute marked sensitive in the model never serialises its value at any depth. The `summary` ends with a note that the result is final — it is not a signal to retry.
 
 ---
 

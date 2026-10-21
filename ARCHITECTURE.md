@@ -183,11 +183,35 @@ Every endpoint is immediately functional, secured, and consistent.
 Queries are expressed as URL parameters. There are two modes:
 
 - **Simple filters**: each query parameter becomes a `field = value` predicate. Multiple parameters are AND-combined. Example: `GET /Post?status=published&authorID=42`.
-- **Full fetch request**: a single `fetchRequest` parameter containing a base64-encoded JSON object that encodes the complete `FetchRequest` — including predicates, sort descriptors, pagination, result type, and serialization shape. This is the mode used by rich clients and by the MCP tools.
+- **Full fetch request**: a single `fetchRequest` parameter containing a base64-encoded JSON object that encodes the complete `FetchRequest` — predicates, sort descriptors, pagination, result type, projection and grouping. This is the mode used by rich clients and by the MCP tools.
+
+Orthogonal to both is the `Serialization` header, which carries the response shape. `RequestToFetchRequestAdapter` builds the `FetchRequest` from the URL and then assigns the header's shape onto it, so the two compose rather than compete: the parameters select the rows, the header decides what each row carries. The header is the only channel for it over HTTP — the `fetchRequest` JSON has no `serialization` field.
 
 When a user's authorization scope is `own`, the framework automatically appends an ownership predicate to the query, so users only see records they own — at the database level, not by post-filtering in PHP.
 
 When `fetchBatchSize` is set on the fetch request, the response is streamed: records are serialised and flushed incrementally rather than accumulated in memory, which is important for large result sets.
+
+### Projection: the client's query, without a query language
+
+A client states the shape it wants and receives exactly that. The shape is a nested dictionary — an attribute mapped to `true`, a relationship mapped to a nested shape — and it nests to any depth. This is the capability a separate query layer is usually introduced to provide, and the framework reaches it without one: no schema language, no resolvers, no query runtime, and no second description of a model Core Data already describes.
+
+The shape is not a filter over an assembled response. `FetchRequest::$serialization` **determines what is retrieved from the store**: `SQLGenerator` derives the SELECT column list from it, emits a JOIN for every relationship it names, and computes `needsDistinct` from its structure. An object graph three levels deep is one statement, not one query per record — the N+1 problem is absent by construction rather than solved by a batching layer.
+
+Default and override meet in the same property. Left alone, `$serialization` derives itself from the entity: every serializable attribute, shaped by the model. Assigning the `Serialization` header's shape replaces that derivation. Lazily, in a property hook — so a request that asks for nothing pays for nothing.
+
+Three properties follow from putting the shape in the fetch rather than beside it:
+
+- **It composes with security at the top level.** `applyReadScope` narrows the fetch before it runs and `applySecureRead` filters what comes back, both against the entity being fetched. A shape asking for one of its restricted fields widens nothing. But both act on the root: `FieldSecurityFilter::filterByAttribute` resolves rules from `$this->resource::class` against first-level keys, so attributes reached through a nested relationship are returned unfiltered by `#[Readable]`. Depth is the boundary of that attribute. What does hold at any depth belongs to the model, not to Service: `ManagedObject::serializedProperties` wraps an attribute whose `PropertyDescription::$isSensitive` is set in a `SensitiveValue`, which serialises as its type's description rather than its value. A field reachable through a relationship is protected by that flag or not at all.
+- **It composes with the rest of the request.** Predicate, sort, pagination, ownership scoping and batching are unaffected by the shape, and it is unaffected by them. `fetchBatchSize` streams a projected graph as readily as a flat one.
+- **It stays inside HTTP.** The shape rides a header on an ordinary `GET`, so the response stays cacheable and conditional. `ConditionalGetTransformer` hashes the projected body, so an `ETag` already distinguishes two shapes of the same rows and a repeated request answers `304`. A shared cache keyed on the URL alone would not: it needs `HTTP_CACHE_VARY` set to name the `Serialization` header. A single POSTed query endpoint forfeits the whole mechanism.
+
+Applying the shape to the results is CoreData's work, not Service's. `SQLFetchRequestContext` calls `ManagedObject::serialized($serialization)` on each row, and `ManagedObjectSerializationPreparer` walks the graph from there, setting each reached object's serialization keys to what the shape asks of it. Three consequences are worth knowing before designing against it:
+
+- **A shape grows where branches meet.** The graph can reach one object down two paths asking for different things — an author by email, the same user by name under a comment. The preparer merges the shapes rather than letting the second visit overwrite the first, so the object emits the union of both. An object's projection is therefore a property of the whole request, not of the branch that reached it first.
+- **Cycles terminate by exhaustion, not by depth.** The walk stops at a visit that adds nothing to a shape already merged. A cycle's second lap contributes nothing and ends there, while a branch that still has something to add is followed even if the object was seen before. There is no depth counter to tune and no fixed limit to hit.
+- **Unknown keys are dropped, not rejected.** `applySerializationShape` keeps only keys the entity defines. If none survives, it returns early and the object falls back to `defaultSerializationKeys` — a shape that is entirely misspelled is ignored, and the response is the full default representation rather than an error.
+
+The MCP `fetch` tool exposes the same mechanism as a `serialization` argument, over the same `FetchRequest`. One projection engine, two transports — differing in validation: `FetchTool::validateShape` checks every key against the schema and fails with the list of valid names, which the HTTP header does not do.
 
 ### Mutations (POST, PATCH, DELETE)
 
@@ -390,15 +414,27 @@ Every request is parsed as a JSON-RPC 2.0 message. Notifications (messages witho
 
 Independently of the guard, `JSONWebTokenAudienceEvaluator` in the access chain binds a token to this endpoint when `MCP_TOKEN_AUDIENCE` is set: only a bearer token carrying that audience reaches `/mcp`, so the credential a user receives by signing in to the application does not open MCP as a side effect. Note that the framework's own `/login` and `/refresh` issue tokens without an `aud` claim, so setting this variable closes `/mcp` to them — it is for deployments that mint MCP tokens through `JSONWebTokenIssuer::issue()` with an explicit audience.
 
-Five methods are dispatched:
+Seven methods are dispatched:
 
-| Method                      | Handler             | Purpose                                                                        |
-|-----------------------------|---------------------|--------------------------------------------------------------------------------|
-| `initialize`                | `InitializeHandler` | Returns server name, version, protocol version, capabilities, and instructions |
-| `tools/list`                | `ToolsListHandler`  | Returns the catalogue of available tools with their input schemas              |
-| `tools/call`                | `ToolsCallHandler`  | Invokes a tool by name with supplied arguments                                 |
-| `ping`                      | —                   | No-op; acknowledged without a result                                           |
-| `notifications/initialized` | —                   | No-op                                                                          |
+| Method                      | Handler                 | Purpose                                                                        |
+|-----------------------------|-------------------------|--------------------------------------------------------------------------------|
+| `initialize`                | `InitializeHandler`     | Returns server name, version, protocol version, capabilities, and instructions |
+| `tools/list`                | `ToolsListHandler`      | Returns the catalogue of available tools with their input schemas              |
+| `tools/call`                | `ToolsCallHandler`      | Invokes a tool by name with supplied arguments                                 |
+| `resources/list`            | `ResourcesListHandler`  | Returns the catalogue of published resources                                   |
+| `resources/read`            | `ResourcesReadHandler`  | Returns the contents of the resource a uri names                              |
+| `ping`                      | —                       | No-op; acknowledged without a result                                           |
+| `notifications/initialized` | —                       | No-op                                                                          |
+
+A method the server does not implement is answered with JSON-RPC `Method not found` (-32601).
+
+### Resources and structured results
+
+`resources/list` and `resources/read` serve MCP Apps: a user interface published as markup with a `ui://` uri and the `text/html;profile=mcp-app` media type. Discovery mirrors the tool and job mechanisms — `ResourceResolver` scans the application's `src/MCPResources/`, reconstructing each class as `App\MCPResources\{basename}`, and `ResourceRegistry` keys them by uri. The framework ships none of its own, so the catalogue is entirely the application's. A caller's uri is matched only against the registry's keys and never reaches the filesystem; one naming nothing published is refused rather than answered with empty contents.
+
+`AbstractResource` receives no `ManagedObjectContext`. A resource is a template: the rows a UI shows arrive through ordinary `tools/call` requests, where `AbstractTool::call()` applies the same RBAC, ownership and row- and field-level rules as for any caller. The absent context is what enforces that, rather than leaving it to convention.
+
+A tool's answer also travels as `structuredContent` beside the text `content`, for a UI to render without parsing prose. `jsonResult()` keeps the payload it is handed as it serializes it, so every tool built on that helper contributes one unchanged; `structuredResult()` covers a tool whose text is prose. The payload is carried on `ToolResult`, beside the content rather than inside it, so the text fed to a model is untouched. `ToolsCallHandler` omits the field for a session that negotiated `2025-03-26`, which does not define it — the revision comes from the `MCPSession` the transport guard already resolves for every non-handshake request.
 
 ### Schema
 

@@ -21,8 +21,8 @@ This checklist separates work that can be completed before the release decision 
 3. Add a new empty `## [Unreleased]` section above the released version.
 4. Add comparison links at the bottom of `CHANGELOG.md`: `Unreleased` compares the release tag with `HEAD`; the released version links to its tag for the first release and to a tag comparison thereafter.
 5. Replace the pre-1.0 `master` row in `SECURITY.md` with the actual supported release line. State the branch policy separately if `master` continues receiving fixes.
-6. Set `CFBundleShortVersionString` in `Info.plist` to the version being tagged — `1.0.1`, not `v1.0.1` — and increment `CFBundleVersion`, which is the build number and belongs to no one else. Nothing derives either from the tag. Confirm the version MCP reports identifies the same release. `Tools/verify-release.sh` in Foundation checks the bundle against what Packagist actually serves.
-7. Create the annotated tag from the exact verified commit and publish release notes derived from the finalized changelog entry.
+6. Set `CFBundleShortVersionString` in `Info.plist` to the version being tagged, with no prefix — `1.0.1`, not `v1.0.1` — and increment `CFBundleVersion`, which is the build number and belongs to no one else. The tag created in step 7 carries the `v`; the bundle string never does. Nothing derives either from the tag. Confirm the version MCP reports identifies the same release. `Tools/verify-release.sh` in Foundation checks the bundle against what Packagist actually serves.
+7. Create the annotated tag — named `v<version>`, as every tag since `v1.0.0` is — from the exact verified commit, and publish release notes derived from the finalized changelog entry.
 
 ## After publishing
 

@@ -214,7 +214,7 @@ Abstract classes used as polymporphic bases (`ResponseTransformer`, etc.) must c
 
 ## Releasing
 
-`Info.plist` carries the released version, and nothing derives it from the git tag. When a release is cut, `CFBundleShortVersionString` becomes the tagged version (`1.0.1`, never `v1.0.1`) and `CFBundleVersion` — the build number — is incremented. `composer.json` declares no `version`: Packagist reads the tag.
+`Info.plist` carries the released version, and nothing derives it from the git tag. When a release is cut, `CFBundleShortVersionString` becomes the tagged version with no prefix (`1.0.1`, never `v1.0.1`) and `CFBundleVersion` — the build number — is incremented. The **tag itself is named `v1.0.1`**, with the prefix: the bundle string and the tag name differ by exactly that `v`. `composer.json` declares no `version`: Packagist reads the tag.
 
 `CHANGELOG.md` is written as the change is made, under `## [Unreleased]`, when a consumer would notice it — behaviour, a signature, a default, a message they read. Tagging renames that section and opens an empty one; it does not gather entries.
 

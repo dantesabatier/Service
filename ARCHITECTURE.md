@@ -436,6 +436,8 @@ A method the server does not implement is answered with JSON-RPC `Method not fou
 
 A tool's answer also travels as `structuredContent` beside the text `content`, for a UI to render without parsing prose. `jsonResult()` keeps the payload it is handed as it serializes it, so every tool built on that helper contributes one unchanged; `structuredResult()` covers a tool whose text is prose. The payload is carried on `ToolResult`, beside the content rather than inside it, so the text fed to a model is untouched. `ToolsCallHandler` omits the field for a session that negotiated `2025-03-26`, which does not define it — the revision comes from the `MCPSession` the transport guard already resolves for every non-handshake request.
 
+Two parts of the `io.modelcontextprotocol/ui` extension are not implemented. The client's own declaration (`capabilities.extensions`, naming the mime types it renders) is not read, so resources and `_meta.ui` are served to every client, whether or not it renders them; and tool `visibility` — marking a tool callable only by the UI — is absent, so every tool is visible to the model and the UI alike. Both are additive and wait for an App in production to justify them.
+
 ### Schema
 
 On first access, `ModelDescriptor` builds a `ModelSchema` from the Core Data model:

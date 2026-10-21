@@ -44,7 +44,7 @@ Do **not** introduce a `$response` override when overriding `$data` is sufficien
 
 `ViewController` extends `Responder` and adds a view rendering lifecycle (`viewWillLoad` / `viewDidLoad`).
 
-Custom responders are **auto-discovered** from `src/Responders/` and `src/ViewControllers/` and prepended to the chain ahead of built-in responders. Custom MCP tools are auto-discovered from `src/MCPTools/`, and background jobs from `src/Jobs/`.
+Custom responders are **auto-discovered** from `src/Responders/` and `src/ViewControllers/` and prepended to the chain ahead of built-in responders. Custom MCP tools are auto-discovered from `src/MCPTools/`, MCP resources (an App's user interface) from `src/MCPResources/`, and background jobs from `src/Jobs/`.
 
 ### Scheduled Jobs (CLI)
 
@@ -171,6 +171,16 @@ An MCP request URL is always `/mcp`, so none of the URL-driven guards protecting
 - **`create($entityName, $values)` / `update($entityName, $objectID, $values)` / `delete($entityName, $objectID)`** — write through these. They run the same write operations as `PersistentSpace`: the row is looked up within the read scope, so a write never reaches a row its read would not see, then `enforceOwnership` for the operation's own action, `enforceResourceAccess` (after populating the object on create, so a `where` sees the values being written) and `applySecureUpdate`, and the answer is the stored row filtered by `applySecureRead`. `modify($entityName, $objectID, $modification)` runs the same sequence for a domain change passed as a closure instead of values, with the rules applied to the row named.
 
 This applies to custom tools in an application's `src/MCPTools/` exactly as it does to the built-in ones.
+
+#### MCP resources carry no data
+
+An MCP App's user interface is a resource in `src/MCPResources/`: markup with a `ui://` uri, read through `resources/read`. **A resource is a template and must never embed rows.** The data a UI shows arrives through ordinary `tools/call` requests, where `AbstractTool::call()` applies RBAC, ownership and the row- and field-level rules for the caller making them. Markup that carried rows would hand them to anyone who can read the resource, with `FieldSecurityPolicy` never consulted.
+
+`AbstractResource` is therefore constructed with **no `ManagedObjectContext`** — unlike `AbstractTool`, which needs one to query. That omission is the guardrail; do not add the context to make a resource "convenient", and do not render one through `ViewController`'s template machinery, whose `#[Outlet]` reflection exists to put data into a template.
+
+A tool names the App that renders its answer with `uiResourceUri`, emitted as `_meta.ui.resourceUri`. A tool's own answer also travels as `structuredContent` for that UI to read — contributed automatically by `jsonResult()`, or explicitly with `structuredResult()` when the text is prose. Do **not** reach for a mutable `$this->data` hook to carry it: the registry reuses one instance of each tool across calls.
+
+`structuredContent` is an addition, never a replacement: a client that renders no UI receives `content` alone, so a tool that moves its real answer into the payload and leaves the text a stub answers nothing at all on most clients. The negotiation the extension defines (`capabilities.extensions["io.modelcontextprotocol/ui"]`) is **not** read, and tool `visibility` is not implemented — both deliberately out of scope until an App in production needs them, so do not assume a tool can tell whether a UI is rendering it.
 
 ### Property Hooks
 

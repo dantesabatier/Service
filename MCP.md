@@ -2,7 +2,7 @@
 
 The framework exposes the generated application's Core Data model to LLM agents as a JSON-RPC 2.0 tool catalogue at `/mcp`. The built-in data tools are derived from that model without programmer-written tool definitions. This document is the per-tool reference and the contract for optional custom tools.
 
-For the transport, the JSON-RPC methods (`initialize`, `tools/list`, `tools/call`, …) and how the schema is built from the model, see [Section 12 of ARCHITECTURE.md](ARCHITECTURE.md#12-mcp-server).
+For the transport, the JSON-RPC methods (`initialize`, `tools/list`, `tools/call`, `resources/list`, `resources/read`, …) and how the schema is built from the model, see [Section 12 of ARCHITECTURE.md](ARCHITECTURE.md#12-mcp-server).
 
 ## Protocol compatibility
 
@@ -316,3 +316,93 @@ The URL is always `/mcp`, so the endpoint guards never fire. A custom tool that 
 | `enforceEntityAuthorization(string $resource, AuthorizationType $action)` | for a tool that reads several entities: on each entity beyond the one `call()` authorized. |
 
 The rule of thumb: the read helpers narrow *which rows* a read sees; `fetch()` and `enforceFieldRead` narrow *which columns*; the write helpers turn a forbidden mutation into a `ForbiddenException` rather than a silent no-op.
+
+## Structured results
+
+A tool's answer travels twice: `content` is the text the model reads, and `structuredContent` is the same answer as data, for a client that renders it. Every tool answering through `jsonResult()` contributes it already — the payload passed there is kept as the call's structured content while it is serialized, so no tool needed changing.
+
+A tool whose text is prose rather than the serialization of its data contributes one explicitly:
+
+```php
+return $this->structuredResult($this->textResult("Widget \"$title\" saved."), ["objectID" => $identifier]);
+```
+
+Two rules the framework applies on its own:
+
+- A payload that serializes to a JSON **array** is left out. `structuredContent` is defined as an object. A tool answering with a list wraps it in one — `{"rowCount": 12, "results": [...]}`, which is what `fetch` and `group_by` already do.
+- The field is omitted entirely for a session that negotiated `2025-03-26`, which does not define it. A tool never has to ask which revision it is answering.
+
+The payload is taken from the serialization, not from the argument, so a `Dictionary`, an `ArrayClass` or a managed object all answer with the shape the client is sent — a tool does not have to flatten anything by hand.
+
+**The text still has to stand on its own.** A client that renders no UI receives `content` and nothing else, so `structuredContent` is an addition for a UI, never a substitute for an answer the model can read. A tool that moves its real answer into the payload and leaves `content` a stub degrades to saying nothing on every client that does not render it.
+
+## MCP Apps (resources)
+
+An App is a user interface a host renders beside the conversation. It is published as a **resource**: markup with a `ui://` uri and the `text/html;profile=mcp-app` media type, which the host reads with `resources/read`. The framework serves `resources/list` and `resources/read`, and advertises the `resources` capability during the handshake.
+
+Drop a class extending `AbstractResource` in the application's `src/MCPResources/` directory and the framework discovers it — no registration step, exactly as with a tool:
+
+```php
+final class DashboardResource extends AbstractResource
+{
+    #[Override]
+    public string $uri { get => "ui://dashboard/main"; }
+
+    #[Override]
+    public string $filename { get => "dashboard.html"; }
+
+    #[Override]
+    public ?array $ui {
+        get => ["csp" => ["connectDomains" => [], "resourceDomains" => []], "prefersBorder" => true];
+    }
+}
+```
+
+`dashboard.html` sits in the application's `Resources/` directory beside the vocabulary files, and the class takes no constructor arguments — `ResourceResolver` instantiates it with `new $class()`.
+
+Only `uri` and `filename` are abstract; everything else has a default.
+
+- **`uri`** — the identifier the host reads by, and the key the registry holds. A caller's uri is only ever matched against those keys, so it never reaches the filesystem and cannot be steered at one. The scheme is `ui://` by convention; the framework treats the whole string as opaque.
+- **`filename`** — the markup in the bundle that owns the class, resolved through `Bundle::url()` and localizable like any other bundle resource. A single-file page with its script inline, since a host fetches nothing else on the page's behalf. A filename missing from the bundle fails loudly, naming the file and the class: it is a packaging fault, not something a caller can correct by asking differently.
+- **`ui`** — the `_meta.ui` declaration the host reads before rendering: `csp` (`connectDomains`, `resourceDomains`, `frameDomains`, `baseUriDomains`), `permissions`, `domain`, `prefersBorder`. Return `null` to leave `_meta` off entirely, which a host reads as its defaults.
+- **`name`** — the uri's last segment (`main`, above).
+- **`title`** and **`description`** — looked up in the bundle's `mcp_vocabulary.json` under the resource's `name`, through the same `ToolVocabulary` that localizes a tool's title, and therefore under that file's **`"tools"`** section — the mechanism is shared, so the section name is the tools one even for a resource. An entry that is absent leaves the title as the name and the description empty; override either member to fix it in code instead.
+- **`mimeType`** — `text/html;profile=mcp-app`. Override only to publish something that is not an App.
+
+Tie a tool to the App that renders its answer with `uiResourceUri`, which `tools/list` emits as `_meta.ui.resourceUri`:
+
+```php
+public ?string $uiResourceUri { get => "ui://dashboard/main"; }
+```
+
+That is a declaration for the host, not a restriction the server enforces: the tool stays callable by a model with no UI in sight, and keeps answering text as it always did.
+
+The specification requires the uri to name a resource that exists on this server, but the framework does not check it — a typo surfaces as a host that renders nothing. Read the value back from `resources/list` after wiring one up, and keep the uri in one place when a tool and its resource are written together.
+
+### How the data reaches the UI
+
+The markup is served once and holds no rows. The page asks for them the way any other client does — a `tools/call` the host forwards on its behalf — and reads the answer from `structuredContent`:
+
+1. The host reads the resource and renders the markup in a sandboxed iframe.
+2. The page sends a `tools/call` to the host — JSON-RPC 2.0 over `postMessage`, which needs no SDK in the page, though `@modelcontextprotocol/sdk` can be used instead of hand-rolling it.
+3. The host forwards it to `/mcp` as an ordinary `tools/call`, carrying the connection's credentials.
+4. `AbstractTool::call()` authorizes it and the tool answers; the page reads `structuredContent`, the model reads `content`.
+
+Step 3 is the whole security argument: the UI is a caller like any other, and gets exactly what that caller is entitled to. A tool reached from the UI needs no special casing — and must not be given any.
+
+### A resource carries no data
+
+**This is the rule, not a convention: a resource is a template, and the rows come from tools.**
+
+`AbstractResource` is handed no `ManagedObjectContext`, which is what keeps this true rather than merely advised. Data reaches the UI through ordinary `tools/call` requests — through the host, with the connection's own credentials — so `AbstractTool::call()` applies RBAC, ownership and the row- and field-level rules exactly as it does for any other caller. Markup that embedded rows would answer them to anyone who can read the resource, with `FieldSecurityPolicy` never consulted.
+
+The iframe's CSP is applied by the host from `_meta.ui.csp`; `SecurityHeadersTransformer` plays no part, because the markup travels inside the JSON-RPC body rather than as an HTTP response of its own.
+
+### What this implementation does not do yet
+
+The extension is opt-in: a host declares it in `initialize` under `capabilities.extensions["io.modelcontextprotocol/ui"]`, with the `mimeTypes` it renders. Two consequences, both deliberate omissions rather than oversights:
+
+- **The server does not read that declaration.** It serves `resources/list`, `resources/read` and `_meta.ui.resourceUri` to every client, including one that renders no UI. Nothing breaks — a client that did not ask for the extension ignores the resources and the `_meta` — but the specification's advice to register UI-enabled tools only for a host that announced support is not followed, and a tool cannot ask whether it is answering a host that renders.
+- **Tool `visibility` is not implemented.** The specification lets a tool be marked `["app"]` so only the UI may call it — paging, refreshing — and lets a host reject an app call to a tool whose visibility excludes it. Every tool here is visible to both the model and the UI.
+
+Both wait for an App in production to justify them. See [SEP-1865](https://modelcontextprotocol.io/seps/1865-mcp-apps-interactive-user-interfaces-for-mcp) and the [ext-apps specification](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx) for the full extension.

@@ -57,6 +57,11 @@ misconfiguration:
 - **Field- and resource-level security** — reading a field or a row that
   `#[Readable]` excludes, or writing one that `#[Writable]` denies, by any
   route: `PersistentSpace`, a custom responder, or an MCP tool call.
+- **MCP resources** — reaching application data through `resources/read`. A
+  resource is markup carrying no data, and the rows a UI shows arrive through
+  ordinary tool calls under the caller's own rules; a resource that answers
+  rows of its own bypasses `FieldSecurityPolicy` entirely and is a
+  vulnerability, not a design choice.
 - **Ownership** — mutating or deleting a row owned by another subject, whether
   `#[Owner]` is enforced by `OwnershipService` or by a rule declaring
   `AuthorizationScope::own`.

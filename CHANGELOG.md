@@ -7,6 +7,15 @@ onward.
 
 ## [Unreleased]
 
+### Added
+
+- MCP Apps. The server serves `resources/list` and `resources/read` and advertises the `resources` capability, so an application can publish a user interface a host renders beside the conversation. Drop a class extending `AbstractResource` in `src/MCPResources/` and it is discovered, exactly as a tool in `src/MCPTools/` is; `uiResourceUri` on a tool ties its answer to that interface, emitted as `_meta.ui.resourceUri`. A resource carries no data — it is handed no `ManagedObjectContext`, and the rows a UI shows arrive through ordinary tool calls where the caller's own rules apply. Two parts of the extension are not implemented yet: the client's `capabilities.extensions` declaration is not read, so resources are served to every client, and tool `visibility` (a tool only the UI may call) is absent.
+- A tool's answer also travels as data. `tools/call` carries `structuredContent` beside `content`, so a client that renders a UI reads the rows themselves rather than parsing the text written for the model. Every tool answering through `jsonResult()` contributes it without changing a line, and `AbstractTool::structuredResult()` lets a tool whose text is prose contribute one too. The field is left out of a session that negotiated 2025-03-26, which does not define it.
+
+### Fixed
+
+- An unknown JSON-RPC method is answered with `Method not found` (-32601) rather than `Invalid params` (-32602). A client probing for a method the server does not implement was told its parameters were wrong, which says nothing about what it actually asked.
+
 ## [1.8.2] - 2026-10-21
 
 ### Fixed

@@ -3,7 +3,7 @@
 ## Quick facts
 
 - **PHPUnit suite** under `tests/` (`tests/Unit`, `tests/Integration`). The full suite passes in a clean tree — run it with `php vendor/bin/phpunit`, or per directory (`php vendor/bin/phpunit tests/Unit`, `php vendor/bin/phpunit tests/Integration`).
-- Most source files live flat in `src/`. Exceptions: `src/MCP/` (subsystem with `Tools/`, `Response/`, `Schema/`) and `src/Jobs/` (the `Job` base class, `JobResolver`, `JobRegistry`).
+- Most source files live flat in `src/`. Exceptions: `src/MCP/` (subsystem with `Tools/`, `Resources/`, `Response/`, `Schema/`) and `src/Jobs/` (the `Job` base class, `JobResolver`, `JobRegistry`).
 - Requires PHP 8.5+. Property hooks (`private(set) Type $prop { get => ... }`) are used throughout for lazy initialization — never convert to constructor injection or traditional getters.
 - Sibling libraries `sabatier/foundation` and `sabatier/coredata` are loaded via composer path repos (`../Foundation`, `../CoreData`).
 
@@ -23,7 +23,8 @@ Always the project's own `vendor/bin` (require-dev), never the global Composer b
 Rector config (`rector.php`) skips:
 - `ClassPropertyAssignToConstructorPromotionRector` — no constructor promotion by design
 - `ReadOnlyPropertyRector` — no `readonly` conversion
-- File-specific skips on `Application.php`, `FirstResponderResolver.php`, `MCP/Tools/AbstractTool.php`, `OwnerResolver.php`, `ResponseTransformer.php`, `MCP/InitializeHandler.php`, `MCP/ToolsListHandler.php`
+- File-specific skips on `Application.php`, `FirstResponderResolver.php`, `MCP/Tools/AbstractTool.php`, `OwnerResolver.php`, `ResponseTransformer.php`, `MCP/InitializeHandler.php`, `MCP/ToolsListHandler.php`, `MCP/ResourcesListHandler.php`
+  - The last three are `RemoveUnusedPublicMethodParameterRector`: each `handle()` takes the `RPCMessage` because `MethodDispatcher` calls every handler with the same signature, so a handler that ignores it still has to accept it.
 
 ## Patterns to preserve
 
@@ -57,7 +58,7 @@ A responder never constructs a `Response` directly. It **provides data** and let
 - **`#[Action(method: HTTPRequestMethod::patch, transformers: [...])]`** — mutation handler (POST/PATCH/DELETE).
 - **`#[Outlet]`** — on `ViewController` properties; reflects data into view templates.
 
-Custom responders auto-discover from `src/Responders/` and `src/ViewControllers/`. Custom MCP tools from `src/MCPTools/`. Background jobs from the app's `src/Jobs/`.
+Custom responders auto-discover from `src/Responders/` and `src/ViewControllers/`. Custom MCP tools from `src/MCPTools/`, MCP resources from `src/MCPResources/`. Background jobs from the app's `src/Jobs/`.
 
 ## Scheduled jobs (CLI)
 
@@ -66,7 +67,7 @@ A parallel entry point to the responder chain, for cron and one-shot provisionin
 - **`Sabatier\Service\Jobs\Job`** — abstract base. `run(ManagedObjectContext $context): void` is the only abstract member; the context is pre-configured, so a job never calls `save()`/`reset()`.
 - **`name`** — concrete property hook, defaults to `class_name(static::class)`; the registry key the CLI matches its argument against. Override only to decouple the key from the class name.
 - **`log(string)`** — concrete `protected` helper; `error_log` with a `[date] [name]` prefix. The pipe idiom is `… |> $this->log(...)`.
-- **`JobResolver`** scans the app's `src/Jobs/` (FQCN `App\Jobs\{basename}`, `is_subclass_of(Job)` + instantiable); **`JobRegistry`** keys the result `Dictionary<Job>` by `name`. No manifest, no registration step — same as `ToolResolver`, which also hardcodes the `App\` prefix. Note `FirstResponderResolver` differs: it derives the namespace from the delegate's own (`new ReflectionClass($delegate)->getNamespaceName()`), so responders work under any namespace while jobs and MCP tools must live under `App\`.
+- **`JobResolver`** scans the app's `src/Jobs/` (FQCN `App\Jobs\{basename}`, `is_subclass_of(Job)` + instantiable); **`JobRegistry`** keys the result `Dictionary<Job>` by `name`. No manifest, no registration step — same as `ToolResolver` and `ResourceResolver`, which also hardcode the `App\` prefix. Note `FirstResponderResolver` differs: it derives the namespace from the delegate's own (`new ReflectionClass($delegate)->getNamespaceName()`), so responders work under any namespace while jobs, MCP tools and MCP resources must live under `App\`.
 - **`JobRunner::run(): never`** — the CLI run loop, counterpart to `Application::run()`. Boots the delegate, resolves `argv[1]` against the registry, runs the job (`save` only if `hasChanges`, `reset` in `finally`), `exit`s 0/1. `transactionAuthor` is a constructor arg (default `"system"`). The app's `cli.php` is one line: `new JobRunner()->run();`.
 
 ## PersistentSpace

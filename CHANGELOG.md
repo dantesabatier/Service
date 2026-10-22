@@ -7,6 +7,10 @@ onward.
 
 ## [Unreleased]
 
+### Documentation
+
+- MCP.md states what an App's markup must send to be rendered at all: `ui/initialize` with `appInfo`, `appCapabilities` and the extension's own `protocolVersion`, then `ui/notifications/initialized`, then `ui/notifications/size-changed` — an iframe cannot size itself, so a view that never reports its size is given no room whatever it draws. It also lists how to debug a view that stays blank while every server-side probe passes, and warns that a hand-written host simulator proves nothing: it answers what the page sends and ignores what the page omits.
+
 ## [1.8.3] - 2026-10-21
 
 ### Added

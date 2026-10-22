@@ -379,16 +379,34 @@ That is a declaration for the host, not a restriction the server enforces: the t
 
 The specification requires the uri to name a resource that exists on this server, but the framework does not check it — a typo surfaces as a host that renders nothing. Read the value back from `resources/list` after wiring one up, and keep the uri in one place when a tool and its resource are written together.
 
+### What the page has to do to be rendered at all
+
+The page and the host speak JSON-RPC 2.0 over `postMessage` — no SDK required, though `@modelcontextprotocol/sdk` saves hand-rolling it. Three things are **mandatory**, and a page missing any of them is read as text while every server-side probe still looks correct. This is the part that costs an afternoon:
+
+1. **`ui/initialize` carries real parameters.** `appInfo` (a `name` and `version` of the page's own), `appCapabilities`, and `protocolVersion` — the extension's revision, `"2026-01-26"`, which is **not** the one the server negotiated on `/mcp`. Sending `{}` leaves the host nothing to negotiate.
+2. **`ui/notifications/initialized`** follows the initialize result.
+3. **`ui/notifications/size-changed`** reports `{width, height}`. An iframe cannot size itself: without this the host gives the view no room, so a page that renders perfectly still shows nothing. Send it once after initializing and again whenever the content reflows — a `ResizeObserver` on the root, with the last reported size remembered so an unchanged size sends nothing.
+
+The host then pushes the data: `ui/notifications/tool-result`, whose `params` is the whole `CallToolResult` — `content`, `structuredContent` and `_meta`. There is no way to ask for it; it arrives when the tool finishes.
+
 ### How the data reaches the UI
 
 The markup is served once and holds no rows. The page asks for them the way any other client does — a `tools/call` the host forwards on its behalf — and reads the answer from `structuredContent`:
 
 1. The host reads the resource and renders the markup in a sandboxed iframe.
-2. The page sends a `tools/call` to the host — JSON-RPC 2.0 over `postMessage`, which needs no SDK in the page, though `@modelcontextprotocol/sdk` can be used instead of hand-rolling it.
+2. The page sends a `tools/call` to the host over the same bridge.
 3. The host forwards it to `/mcp` as an ordinary `tools/call`, carrying the connection's credentials.
 4. `AbstractTool::call()` authorizes it and the tool answers; the page reads `structuredContent`, the model reads `content`.
 
 Step 3 is the whole security argument: the UI is a caller like any other, and gets exactly what that caller is entitled to. A tool reached from the UI needs no special casing — and must not be given any.
+
+### Debugging a view that will not render
+
+Every check below can pass while the view stays blank, because none of them cover the page's own handshake. Work from the server outwards and stop at the first thing missing:
+
+- `initialize` answers with `resources` among its capabilities; `resources/list` returns the `ui://` uri; `tools/list` carries `_meta.ui.resourceUri`; `tools/call` carries `structuredContent`. A probe with `curl` settles all four.
+- The host's log is the next witness. It records the client's own `capabilities.extensions["io.modelcontextprotocol/ui"]` declaration, and whether it asked for `resources/read` before the `tools/call` — a host only reads the resource when it intends to render it, so that pair in the log means everything above it worked and the remaining fault is inside the page.
+- Then the three mandatory messages above. **A hand-written host simulator does not test them**: it answers whatever the page happens to send and ignores what the page fails to send, so it confirms the author's reading of the protocol rather than the protocol. Use a real host.
 
 ### A resource carries no data
 

@@ -102,10 +102,8 @@ abstract class AbstractTool
     public ?string $uiResourceUri {
         get => null;
     }
-
     /** @var array<array-key, mixed>|null The structured payload the running call contributed, or null when it contributed none. The registry reuses one instance of each tool across calls, so `call()` clears this before the core runs and the value is read once after it returns; it never carries from one call into the next. */
     private(set) ?array $structuredContent = null;
-
     /** @var ToolVocabulary The vocabulary of the bundle that owns this concrete tool class. */
     private ToolVocabulary $vocabulary {
         get => $this->vocabulary ??= ToolVocabulary::forBundle(Bundle::bundleForClass(static::class));

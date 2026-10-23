@@ -27,7 +27,6 @@ use const Sabatier\Service\ServiceResponseStatusKey;
 final class PersistentHistoryTool extends AbstractTool
 {
     private const array operations = ["fetch", "purge"];
-
     /** @var Dictionary<PersistentHistoryResultType> */
     private Dictionary $resultTypes {
         get => $this->resultTypes ??= new Dictionary([
@@ -43,7 +42,6 @@ final class PersistentHistoryTool extends AbstractTool
     private ArrayClass $resultTypeNames {
         get => $this->resultTypeNames ??= $this->resultTypes->keys;
     }
-
     #[Override]
     public string $name {
         get => "persistent_history";

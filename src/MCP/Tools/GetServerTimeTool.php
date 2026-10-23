@@ -37,7 +37,6 @@ final class GetServerTimeTool extends AbstractTool
     public bool $isCacheable {
         get => false;
     }
-
     #[Override]
     public bool $isOpenWorld {
         get => false;

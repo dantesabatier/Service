@@ -26,7 +26,6 @@ final class AggregateTool extends AbstractTool
     private const array allowedFunctions = ["sum", "average", "min", "max", "count", "median", "mode", "stddev"];
     private const array expressionNames = ["sum" => "sum:", "average" => "average:", "min" => "min:", "max" => "max:", "count" => "count:", "median" => "median:", "mode" => "mode:", "stddev" => "stddev:"];
     private const array resultTypes = ["sum" => AttributeType::double, "average" => AttributeType::double, "min" => AttributeType::double, "max" => AttributeType::double, "count" => AttributeType::integer64];
-
     #[Override]
     public string $name {
         get => "aggregate";
@@ -35,7 +34,6 @@ final class AggregateTool extends AbstractTool
     public bool $isReadOnly {
         get => true;
     }
-
     #[Override]
     public bool $isOpenWorld {
         get => false;

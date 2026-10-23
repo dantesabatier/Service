@@ -22,7 +22,6 @@ final class CountTool extends AbstractTool
     public bool $isReadOnly {
         get => true;
     }
-
     #[Override]
     public bool $isOpenWorld {
         get => false;

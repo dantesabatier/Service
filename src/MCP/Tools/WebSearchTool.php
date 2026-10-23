@@ -26,7 +26,6 @@ use function Sabatier\Foundation\fatal_error;
 final class WebSearchTool extends AbstractTool
 {
     private const int maxResultsLimit = 10;
-
     #[Override]
     public string $name {
         get => "web_search";
@@ -35,7 +34,6 @@ final class WebSearchTool extends AbstractTool
     public bool $isReadOnly {
         get => true;
     }
-
     #[Override]
     public array $inputSchema {
         get => [

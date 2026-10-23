@@ -27,7 +27,6 @@ final class GroupByTool extends AbstractTool
     private const array expressionNames = ["sum" => "sum:", "average" => "average:", "min" => "min:", "max" => "max:", "count" => "count:"];
     /** @var array<string, AttributeType> */
     private const array resultTypes = ["sum" => AttributeType::double, "average" => AttributeType::double, "min" => AttributeType::double, "max" => AttributeType::double, "count" => AttributeType::integer64];
-
     #[Override]
     public string $name {
         get => "group_by";
@@ -36,7 +35,6 @@ final class GroupByTool extends AbstractTool
     public bool $isReadOnly {
         get => true;
     }
-
     #[Override]
     public bool $isOpenWorld {
         get => false;

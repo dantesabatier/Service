@@ -66,6 +66,6 @@ final class MCPToolExecutor implements LLMToolExecutor
             throw new LLMToolProviderException($exception->getMessage(), $exception->isTransient, $exception);
         }
         $deadline?->enforce();
-        return new LLMToolExecutionResult($result->text, $result->isError);
+        return new LLMToolExecutionResult($result->text, $result->isError, $result->structuredContent);
     }
 }

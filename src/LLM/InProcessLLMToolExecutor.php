@@ -45,6 +45,6 @@ final class InProcessLLMToolExecutor implements LLMToolExecutor
         $deadline?->enforce();
         $result = $this->registry->call($call->name, $call->arguments);
         $deadline?->enforce();
-        return new LLMToolExecutionResult($result->text, $result->isError);
+        return new LLMToolExecutionResult($result->text, $result->isError, $result->structuredContent);
     }
 }

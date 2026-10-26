@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sabatier\Service\Tests\Unit;
 
 use Exception;
+use LogicException;
 use Override;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -12,7 +13,16 @@ use ReflectionClass;
 use ReflectionException;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
+use Sabatier\Foundation\Networking\URLRequest;
+use Sabatier\Service\LLM\LLMAgent;
+use Sabatier\Service\LLM\LLMClient;
+use Sabatier\Service\LLM\LLMExecutionDeadline;
+use Sabatier\Service\LLM\LLMMessage;
+use Sabatier\Service\LLM\LLMMessageRole;
+use Sabatier\Service\LLM\LLMToolCall;
+use Sabatier\Service\LLM\LLMTurn;
 use Sabatier\Service\MCP\Response\ContentItem;
+use Sabatier\Service\MCP\Response\ToolDescriptor;
 use Sabatier\Service\MCP\Response\ToolCallResult;
 use Sabatier\Service\MCP\RPCMessage;
 use Sabatier\Service\MCP\Tools\AbstractTool;
@@ -104,6 +114,24 @@ final class StructuredContentTest extends TestCase
 
     /** @throws Throwable */
     #[Test]
+    public function anAgentRunKeepsThePayloadBesideTheTextTheModelRead(): void
+    {
+        $agent = new LLMAgent(new StructuredProbeCallClient(), new ToolRegistry(new ArrayClass([$this->tool(StructuredProbeTool::class)])), canSpawnSubagents: false);
+        $result = $agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]))->toolCallResults[0];
+        $this->assertSame("{\"rowCount\":1,\"results\":[\"ok\"]}", $result->content);
+        $this->assertSame(["rowCount" => 1, "results" => ["ok"]], $result->structuredContent);
+    }
+
+    /** @throws Throwable */
+    #[Test]
+    public function anAgentRunOverAProseToolKeepsNoPayload(): void
+    {
+        $agent = new LLMAgent(new StructuredProbeCallClient(), new ToolRegistry(new ArrayClass([$this->tool(AlternatingStructuredProbeTool::class)])), canSpawnSubagents: false);
+        $this->assertNull($agent->run(new ArrayClass([new LLMMessage(LLMMessageRole::user, "task")]))->toolCallResults[0]->structuredContent);
+    }
+
+    /** @throws Throwable */
+    #[Test]
     public function aNegotiatedRevisionThatDefinesTheFieldCarriesIt(): void
     {
         foreach ([MCPProtocolVersionStable, MCPProtocolVersionLatestStable] as $version) {
@@ -151,6 +179,10 @@ abstract class StructuredProbeToolBase extends AbstractTool
     #[Override]
     public string $name {
         get => "structured_probe";
+    }
+    #[Override]
+    public bool $isReadOnly {
+        get => true;
     }
     #[Override]
     public array $inputSchema {
@@ -211,5 +243,49 @@ final class AlternatingStructuredProbeTool extends StructuredProbeToolBase
     protected function executeCore(Dictionary $arguments): ArrayClass
     {
         return $arguments["structured"] === true ? $this->jsonResult(["rowCount" => 1, "results" => ["ok"]]) : $this->textResult("nothing structured here");
+    }
+}
+
+final class StructuredProbeCallClient extends LLMClient
+{
+    private int $call = 0;
+    #[Override]
+    public string $version {
+        get => "test";
+    }
+    #[Override]
+    public int $maxTokens {
+        get => 1024;
+    }
+
+    /**
+     * @param ArrayClass<LLMMessage> $messages
+     * @param ArrayClass<ToolDescriptor> $tools
+     */
+    #[Override]
+    public function complete(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null, ?LLMExecutionDeadline $deadline = null): LLMTurn
+    {
+        return match ($this->call++) {
+            0 => new LLMTurn(null, new ArrayClass([new LLMToolCall("probe-1", "structured_probe", new Dictionary())])),
+            1 => new LLMTurn("done", new ArrayClass()),
+            default => throw new LogicException("Unexpected LLM call."),
+        };
+    }
+
+    /**
+     * @param ArrayClass<LLMMessage> $messages
+     * @param ArrayClass<ToolDescriptor> $tools
+     */
+    #[Override]
+    protected function buildRequest(ArrayClass $messages, ArrayClass $tools, ?string $systemPrompt = null): URLRequest
+    {
+        throw new LogicException("Scripted client does not build requests.");
+    }
+
+    /** @param Dictionary<mixed> $body */
+    #[Override]
+    protected function parse(Dictionary $body): LLMTurn
+    {
+        throw new LogicException("Scripted client does not parse responses.");
     }
 }

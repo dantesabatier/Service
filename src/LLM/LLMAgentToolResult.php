@@ -14,8 +14,9 @@ final readonly class LLMAgentToolResult
      * @param bool $isError Whether the content describes a failed invocation.
      * @param LLMRunStopReason|null $stopReason A run-level condition the result must propagate, or `null` to continue.
      * @param bool|null $isRetryable Whether another run may succeed when `$stopReason` is present.
+     * @param array<array-key, mixed>|null $structuredContent The same answer as data for a UI to render, kept beside the text the model reads.
      */
-    public function __construct(public string $text, public bool $isError = false, public ?LLMRunStopReason $stopReason = null, public ?bool $isRetryable = null)
+    public function __construct(public string $text, public bool $isError = false, public ?LLMRunStopReason $stopReason = null, public ?bool $isRetryable = null, public ?array $structuredContent = null)
     {
         if ($stopReason === LLMRunStopReason::done) {
             throw new InvalidArgumentException("A tool result cannot complete an agent run before the model answers.");

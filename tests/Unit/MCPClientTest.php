@@ -96,6 +96,37 @@ final class MCPClientTest extends TestCase
     }
 
     #[Test]
+    public function remoteExecutorCarriesTheStructuredContentBesideTheText(): void
+    {
+        $transport = new RecordingMCPTransport(new ArrayClass([
+            $this->response(1, ["protocolVersion" => "2025-11-25"], new Dictionary([MCPSessionHeader => "session-structured"])),
+            new MCPClientResponse(202),
+            $this->response(2, ["content" => [["type" => "text", "text" => "2 rows"]], "structuredContent" => ["rowCount" => 2]]),
+        ]));
+        $executor = new MCPToolExecutor(new MCPClient($transport));
+
+        $result = $executor->execute(new LLMToolCall("call-structured", "search", new Dictionary()));
+
+        $this->assertSame("2 rows", $result->text);
+        $this->assertSame(["rowCount" => 2], $result->structuredContent);
+    }
+
+    #[Test]
+    public function structuredContentThatIsNotAnObjectIsAProtocolFailure(): void
+    {
+        $transport = new RecordingMCPTransport(new ArrayClass([
+            $this->response(1, ["protocolVersion" => "2025-11-25"], new Dictionary([MCPSessionHeader => "session-list"])),
+            new MCPClientResponse(202),
+            $this->response(2, ["content" => [["type" => "text", "text" => "2 rows"]], "structuredContent" => ["first", "second"]]),
+        ]));
+        $client = new MCPClient($transport);
+
+        $this->expectException(MCPClientException::class);
+        $this->expectExceptionMessageIsOrContains("structured content that is not an object");
+        $client->callTool("search", new Dictionary());
+    }
+
+    #[Test]
     public function remoteExecutorPreservesCorrectableToolFailureForTheAgent(): void
     {
         $transport = new RecordingMCPTransport(new ArrayClass([

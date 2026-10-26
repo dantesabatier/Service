@@ -27,18 +27,15 @@ final class LLMRun
     /** @var ArrayClass<LLMToolCallResult> Every tool call the model made, rejoined with the result that came back for it, in the order the calls were made. The run stores the two apart, as the wire format does: a call rides on an assistant message and its result arrives later as a `tool` message keyed by `toolCallId`. A call the run stopped before answering keeps a `null` content rather than being left out, so the caller sees that it was made. */
     public ArrayClass $toolCallResults {
         get {
-            /** @var Dictionary<string> $contents */
-            $contents = new Dictionary();
-            /** @var Dictionary<bool> $failures */
-            $failures = new Dictionary();
+            /** @var Dictionary<LLMMessage> $results */
+            $results = new Dictionary();
             foreach ($this->messages as $message) {
                 if ($message->role !== LLMMessageRole::tool || $message->toolCallId === null) {
                     continue;
                 }
-                $contents[$message->toolCallId] = $message->content;
-                $failures[$message->toolCallId] = $message->isError;
+                $results[$message->toolCallId] = $message;
             }
-            return $this->messages->flatMap(fn(LLMMessage $message): ArrayClass => $message->toolCalls ?? new ArrayClass())->map(fn(LLMToolCall $call): LLMToolCallResult => new LLMToolCallResult($call, $contents[$call->id], $failures[$call->id] === true));
+            return $this->messages->flatMap(fn(LLMMessage $message): ArrayClass => $message->toolCalls ?? new ArrayClass())->map(fn(LLMToolCall $call): LLMToolCallResult => new LLMToolCallResult($call, $results[$call->id]?->content, $results[$call->id]?->isError === true, $results[$call->id]?->structuredContent));
         }
     }
 

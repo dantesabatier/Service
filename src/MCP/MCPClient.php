@@ -75,7 +75,11 @@ final class MCPClient
         if ($isError !== null && !is_bool($isError)) {
             throw new MCPClientException("The MCP server returned a non-boolean tool error flag.", false);
         }
-        return new ToolCallResult($items, $isError === true);
+        $structuredContent = $result["structuredContent"] ?? null;
+        if ($structuredContent !== null && (!is_array($structuredContent) || ($structuredContent !== [] && array_is_list($structuredContent)))) {
+            throw new MCPClientException("The MCP server returned structured content that is not an object.", false);
+        }
+        return new ToolCallResult($items, $isError === true, $structuredContent);
     }
 
     /** @return ArrayClass<ToolDescriptor> */

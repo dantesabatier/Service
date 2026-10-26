@@ -7,6 +7,12 @@ onward.
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-10-26
+
+### Added
+
+- An agent run keeps the `structuredContent` a tool contributed. `LLMToolExecutionResult`, `LLMAgentToolResult`, the tool-result `LLMMessage` and `LLMToolCallResult` carry it as an optional `?array`, so `LLMRun::$toolCallResults` hands an application's chat the same data an MCP client receives — what it needs to render a tool's MCP App beside the answer. `InProcessLLMToolExecutor` takes it from the registry and `MCPToolExecutor` from the remote server, whose `MCPClient::callTool()` now reads the field and refuses one that is not an object. Providers never send it to the model, and a call answered from the run's cache carries none: it repeats no result. Every new parameter defaults to `null`, so existing callers are unchanged.
+
 ## [1.9.0] - 2026-10-26
 
 ### Changed

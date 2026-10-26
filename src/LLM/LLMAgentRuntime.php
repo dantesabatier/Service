@@ -203,7 +203,7 @@ final class LLMAgentRuntime implements LLMAgentSession
     {
         return $this->performToolCall($call, false, true, function () use ($call): LLMAgentToolResult {
             $result = $this->environment->toolExecutor->execute($call, $this->deadline);
-            return new LLMAgentToolResult($result->text, $result->isError);
+            return new LLMAgentToolResult($result->text, $result->isError, structuredContent: $result->structuredContent);
         });
     }
 
@@ -295,7 +295,7 @@ final class LLMAgentRuntime implements LLMAgentSession
             $outcome = $operation();
             $this->deadline->enforce();
             $disposition = $outcome->isError ? LLMToolCallDisposition::failed : LLMToolCallDisposition::executed;
-            $this->finishToolCall($call, $outcome->text, $outcome->isError, $disposition, $this->environment->clock->monotonicTime - $startedAt, $didFinish);
+            $this->finishToolCall($call, $outcome->text, $outcome->isError, $disposition, $this->environment->clock->monotonicTime - $startedAt, $didFinish, $outcome->structuredContent);
             if (!$outcome->isError && $isCacheable) {
                 $this->toolCallCache[$cacheKey] = $outcome->text;
             }
@@ -305,7 +305,7 @@ final class LLMAgentRuntime implements LLMAgentSession
             if (($stopReason = $this->executionState->tokenStopReason($this->environment->executionPolicy, true)) !== null) {
                 $this->interrupt($stopReason, true);
             }
-            return new LLMToolExecutionResult($outcome->text, $outcome->isError);
+            return new LLMToolExecutionResult($outcome->text, $outcome->isError, $outcome->structuredContent);
         } catch (LLMRunInterruptedException $exception) {
             throw $exception;
         } catch (LLMDeadlineExceededException) {
@@ -336,11 +336,12 @@ final class LLMAgentRuntime implements LLMAgentSession
     }
 
     /**
+     * @param array<array-key, mixed>|null $structuredContent
      * @throws Throwable
      */
-    private function finishToolCall(LLMToolCall $call, string $text, bool $isError, LLMToolCallDisposition $disposition, float $duration, bool &$didFinish): void
+    private function finishToolCall(LLMToolCall $call, string $text, bool $isError, LLMToolCallDisposition $disposition, float $duration, bool &$didFinish, ?array $structuredContent = null): void
     {
-        $this->append(new LLMMessage(LLMMessageRole::tool, $text, toolCallId: $call->id, isError: $isError));
+        $this->append(new LLMMessage(LLMMessageRole::tool, $text, toolCallId: $call->id, isError: $isError, structuredContent: $structuredContent));
         $this->pendingToolCalls->removeValueForKey($call->id);
         $didFinish = true;
         $this->emit(new LLMToolCallFinishedEvent($this->runContext, $this->environment->clock->timestamp, $this->iterations, $call->id, $call->name, $disposition, strlen($text), $duration));

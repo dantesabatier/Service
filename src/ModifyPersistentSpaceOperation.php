@@ -8,6 +8,7 @@ use Closure;
 use Exception;
 use Override;
 use Sabatier\CoreData\EntityDescription;
+use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\CoreData\ManagedObjectID;
 use Sabatier\Foundation\Dictionary;
@@ -18,33 +19,36 @@ use Sabatier\Foundation\Dictionary;
  * The rules apply to the object named, not to the objects the change reaches through it.
  *
  * @internal
- * @extends PersistentSpaceOperation<Dictionary<mixed>>
+ * @extends WritePersistentSpaceOperation<Dictionary<mixed>>
  */
-final class ModifyPersistentSpaceOperation extends PersistentSpaceOperation
+class ModifyPersistentSpaceOperation extends WritePersistentSpaceOperation
 {
-    /**
-     * @param Closure $modification
-     * @param Dictionary<mixed>|null $serialization
-     */
-    public function __construct(ManagedObjectContext $context, FieldSecurityPolicy $fieldSecurityPolicy, private readonly EntityDescription $entity, private readonly ManagedObjectID|int|string $objectID, private readonly Closure $modification, private readonly ?Dictionary $serialization = null)
-    {
-        parent::__construct($context, $fieldSecurityPolicy);
+    #[Override]
+    protected AuthorizationType $authorizationType {
+        get => AuthorizationType::update;
+    }
+    #[Override]
+    protected ManagedObject $subject {
+        /** @throws Exception */
+        get => $this->subject ??= $this->objectForWriting($this->entity, $this->objectID, $this->serialization);
     }
 
     /**
-     * @return Dictionary<mixed>
-     * @throws Exception
+     * @param ManagedObjectContext $context
+     * @param FieldSecurityPolicy $fieldSecurityPolicy
+     * @param EntityDescription $entity
+     * @param ManagedObjectID|int|string $objectID
+     * @param Closure $modification
+     * @param Dictionary<mixed>|null $serialization
      */
-    #[Override]
-    protected function performCore(): Dictionary
+    public function __construct(ManagedObjectContext $context, FieldSecurityPolicy $fieldSecurityPolicy, EntityDescription $entity, private readonly ManagedObjectID|int|string $objectID, private readonly Closure $modification, ?Dictionary $serialization = null)
     {
-        $object = $this->objectForWriting($this->entity, $this->objectID, $this->serialization);
-        $this->fieldSecurityPolicy->enforceOwnership($object, AuthorizationType::update);
-        $this->fieldSecurityPolicy->enforceResourceAccess($object);
+        parent::__construct($context, $fieldSecurityPolicy, $entity, $serialization);
+    }
+
+    #[Override]
+    protected function mutate(ManagedObject $object): void
+    {
         ($this->modification)($object);
-        if ($this->context->hasChanges) {
-            $this->context->save();
-        }
-        return $this->storedRepresentation($object, $this->serialization);
     }
 }

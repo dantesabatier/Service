@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace Sabatier\Service;
 
-use Exception;
-use Override;
 use Sabatier\CoreData\EntityDescription;
+use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\CoreData\ManagedObjectID;
 use Sabatier\Foundation\Dictionary;
@@ -14,34 +13,24 @@ use Sabatier\Foundation\Dictionary;
 /**
  * Updates an object the subject may read and write with the values the subject may write, and returns it as stored, filtered to the fields the subject may read.
  *
+ * An update is a modification whose change the framework already knows how to make — applying the values the subject may write — so it is one, with that change named rather than supplied.
+ *
  * @internal
- * @extends PersistentSpaceOperation<Dictionary<mixed>>
  */
-final class UpdatePersistentSpaceOperation extends PersistentSpaceOperation
+final class UpdatePersistentSpaceOperation extends ModifyPersistentSpaceOperation
 {
     /**
+     * @param ManagedObjectContext $context
+     * @param FieldSecurityPolicy $fieldSecurityPolicy
+     * @param EntityDescription $entity
+     * @param ManagedObjectID|int|string $objectID
      * @param Dictionary<mixed> $values
      * @param Dictionary<mixed>|null $serialization
      */
-    public function __construct(ManagedObjectContext $context, FieldSecurityPolicy $fieldSecurityPolicy, private readonly EntityDescription $entity, private readonly ManagedObjectID|int|string $objectID, private readonly Dictionary $values, private readonly ?Dictionary $serialization = null)
+    public function __construct(ManagedObjectContext $context, FieldSecurityPolicy $fieldSecurityPolicy, EntityDescription $entity, ManagedObjectID|int|string $objectID, Dictionary $values, ?Dictionary $serialization = null)
     {
-        parent::__construct($context, $fieldSecurityPolicy);
-    }
-
-    /**
-     * @return Dictionary<mixed>
-     * @throws Exception
-     */
-    #[Override]
-    protected function performCore(): Dictionary
-    {
-        $object = $this->objectForWriting($this->entity, $this->objectID, $this->serialization);
-        $this->fieldSecurityPolicy->enforceOwnership($object, AuthorizationType::update);
-        $this->fieldSecurityPolicy->enforceResourceAccess($object);
-        $this->fieldSecurityPolicy->applySecureUpdate($object, $this->values);
-        if ($this->context->hasChanges) {
-            $this->context->save();
-        }
-        return $this->storedRepresentation($object, $this->serialization);
+        parent::__construct($context, $fieldSecurityPolicy, $entity, $objectID, static function (ManagedObject $object) use ($fieldSecurityPolicy, $values): void {
+            $fieldSecurityPolicy->applySecureUpdate($object, $values);
+        }, $serialization);
     }
 }

@@ -17,6 +17,11 @@ use Sabatier\CoreData\ManagedObjectContext;
  */
 abstract class FetchPersistentSpaceOperation extends PersistentSpaceOperation
 {
+    /**
+     * @param ManagedObjectContext $context
+     * @param FieldSecurityPolicy $fieldSecurityPolicy
+     * @param FetchRequest $fetchRequest The request every subclass reads through, narrowed to the subject's read scope before it runs.
+     */
     public function __construct(ManagedObjectContext $context, FieldSecurityPolicy $fieldSecurityPolicy, protected readonly FetchRequest $fetchRequest)
     {
         parent::__construct($context, $fieldSecurityPolicy);

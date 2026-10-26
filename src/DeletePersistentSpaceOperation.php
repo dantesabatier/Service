@@ -7,6 +7,7 @@ namespace Sabatier\Service;
 use Exception;
 use Override;
 use Sabatier\CoreData\EntityDescription;
+use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\CoreData\ManagedObjectID;
 
@@ -14,26 +15,42 @@ use Sabatier\CoreData\ManagedObjectID;
  * Deletes an object the subject may read and delete.
  *
  * @internal
- * @extends PersistentSpaceOperation<null>
+ * @extends WritePersistentSpaceOperation<null>
  */
-final class DeletePersistentSpaceOperation extends PersistentSpaceOperation
+final class DeletePersistentSpaceOperation extends WritePersistentSpaceOperation
 {
-    public function __construct(ManagedObjectContext $context, FieldSecurityPolicy $fieldSecurityPolicy, private readonly EntityDescription $entity, private readonly ManagedObjectID|int|string $objectID)
+    #[Override]
+    protected AuthorizationType $authorizationType {
+        get => AuthorizationType::delete;
+    }
+    #[Override]
+    protected ManagedObject $subject {
+        /** @throws Exception */
+        get => $this->subject ??= $this->objectForWriting($this->entity, $this->objectID);
+    }
+    /** @var null A deleted row has no stored representation to read back. */
+    #[Override]
+    protected mixed $answer {
+        get => null;
+    }
+
+    /**
+     * @param ManagedObjectContext $context
+     * @param FieldSecurityPolicy $fieldSecurityPolicy
+     * @param EntityDescription $entity
+     * @param ManagedObjectID|int|string $objectID
+     */
+    public function __construct(ManagedObjectContext $context, FieldSecurityPolicy $fieldSecurityPolicy, EntityDescription $entity, private readonly ManagedObjectID|int|string $objectID)
     {
-        parent::__construct($context, $fieldSecurityPolicy);
+        parent::__construct($context, $fieldSecurityPolicy, $entity);
     }
 
     /**
      * @throws Exception
      */
     #[Override]
-    protected function performCore(): null
+    protected function mutate(ManagedObject $object): void
     {
-        $object = $this->objectForWriting($this->entity, $this->objectID);
-        $this->fieldSecurityPolicy->enforceOwnership($object, AuthorizationType::delete);
-        $this->fieldSecurityPolicy->enforceResourceAccess($object);
         $this->context->delete($object);
-        $this->context->save();
-        return null;
     }
 }

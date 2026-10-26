@@ -30,7 +30,6 @@ use Sabatier\Service\CountPersistentSpaceOperation;
 use Sabatier\Service\CreatePersistentSpaceOperation;
 use Sabatier\Service\DefaultAccessPolicy;
 use Sabatier\Service\DeletePersistentSpaceOperation;
-use Sabatier\Service\FetchPersistentSpaceOperation;
 use Sabatier\Service\FieldLevelSecurityPolicy;
 use Sabatier\Service\FieldSecurityPolicy;
 use Sabatier\Service\ForbiddenException;
@@ -211,17 +210,6 @@ abstract class AbstractTool
     protected function count(FetchRequest $request): int
     {
         return new CountPersistentSpaceOperation($this->context, $this->fieldSecurityPolicy, $request)->perform();
-    }
-
-    /**
-     * Fetches the objects the caller may read, unserialized, for a tool that computes over them rather than returning them.
-     *
-     * @return ArrayClass<ManagedObject>
-     * @throws Exception
-     */
-    protected function fetchObjects(FetchRequest $request): ArrayClass
-    {
-        return new FetchPersistentSpaceOperation($this->context, $this->fieldSecurityPolicy, $request)->perform();
     }
 
     /**

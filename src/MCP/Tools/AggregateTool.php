@@ -11,7 +11,6 @@ use Sabatier\CoreData\AttributeType;
 use Sabatier\CoreData\ExpressionDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\FetchRequestResultType;
-use Sabatier\CoreData\ManagedObject;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Predicates\Expression;
@@ -89,8 +88,7 @@ final class AggregateTool extends AbstractTool
     /** @throws Exception */
     private function computeInMemory(FetchRequest $request, string $property, string $function): float
     {
-        $objects = $this->fetchObjects($request);
-        $values = $objects->map(fn(ManagedObject $object): float => (float)($object->valueForKeyPath($property) ?? 0.0));
+        $values = $this->fetch($request)->map(fn(Dictionary $row): float => (float)($row->valueForKeyPath($property) ?? 0.0));
         return Expression::expressionForFunction(self::expressionNames[$function], new ArrayClass([Expression::expressionForConstantValue($values)]))->expressionValue()?->floatValue ?? 0.0;
     }
 

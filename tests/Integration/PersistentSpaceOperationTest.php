@@ -35,7 +35,6 @@ use Sabatier\Service\ConflictException;
 use Sabatier\Service\CountPersistentSpaceOperation;
 use Sabatier\Service\CreatePersistentSpaceOperation;
 use Sabatier\Service\DeletePersistentSpaceOperation;
-use Sabatier\Service\FetchPersistentSpaceOperation;
 use Sabatier\Service\FieldLevelSecurityPolicy;
 use Sabatier\Service\FieldSecurityPolicy;
 use Sabatier\Service\ForbiddenException;
@@ -245,15 +244,6 @@ final class PersistentSpaceOperationTest extends TestCase
     {
         $this->assertSame(1, new CountPersistentSpaceOperation($this->context, $this->policy(true), $this->request())->perform());
         $this->assertSame(2, new CountPersistentSpaceOperation($this->context, $this->policy(false), $this->request())->perform());
-    }
-
-    /** @throws Exception */
-    #[Test]
-    public function objectsFetchedToComputeOverAreNarrowedButNotSerialized(): void
-    {
-        $objects = new FetchPersistentSpaceOperation($this->context, $this->policy(true), $this->request())->perform();
-        $this->assertSame(1, $objects->count);
-        $this->assertInstanceOf(OperationRowFixture::class, $objects->first);
     }
 
     /** @throws Exception */

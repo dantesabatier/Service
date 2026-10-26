@@ -7,6 +7,11 @@ onward.
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking.** The read side of the persistent space is one hierarchy. `FetchPersistentSpaceOperation` is now the abstract base that holds the fetch request and folds the subject's read scope into it, and `ReadPersistentSpaceOperation` and `CountPersistentSpaceOperation` extend it, each overriding nothing but how that one request is consumed. The scope is applied in one place, so no subclass can read a row the subject may not see.
+- **Breaking.** `AbstractTool::fetchObjects()` is gone, and with it the operation that returned unserialized objects. It was `fetch()` without the field filtering — a read with the `#[Readable]` enforcement left off, not an operation of its own. A tool computing over rows reads them through `fetch()` like every other, and enforces the columns it touches with `enforceFieldRead()` as before.
+
 ### Documentation
 
 - MCP.md states what an App's markup must send to be rendered at all: `ui/initialize` with `appInfo`, `appCapabilities` and the extension's own `protocolVersion`, then `ui/notifications/initialized`, then `ui/notifications/size-changed` — an iframe cannot size itself, so a view that never reports its size is given no room whatever it draws. It also lists how to debug a view that stays blank while every server-side probe passes, and warns that a hand-written host simulator proves nothing: it answers what the page sends and ignores what the page omits.

@@ -6,29 +6,16 @@ namespace Sabatier\Service;
 
 use Exception;
 use Override;
-use Sabatier\CoreData\FetchRequest;
-use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
 
 /**
  * Fetches the rows the subject may read, each object filtered to the fields the subject may read as it is accessed.
  *
  * @internal
- * @extends PersistentSpaceOperation<ArrayClass<mixed>>
+ * @extends FetchPersistentSpaceOperation<ArrayClass<mixed>>
  */
-final class ReadPersistentSpaceOperation extends PersistentSpaceOperation
+final class ReadPersistentSpaceOperation extends FetchPersistentSpaceOperation
 {
-    public function __construct(ManagedObjectContext $context, FieldSecurityPolicy $fieldSecurityPolicy, private readonly FetchRequest $fetchRequest)
-    {
-        parent::__construct($context, $fieldSecurityPolicy);
-    }
-
-    #[Override]
-    protected function willPerform(): void
-    {
-        $this->fieldSecurityPolicy->applyReadScope($this->fetchRequest);
-    }
-
     /**
      * @return ArrayClass<mixed>
      * @throws Exception

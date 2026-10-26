@@ -26,7 +26,7 @@ use Sabatier\Service\MCP\Schema\ModelDescriptor;
 use Sabatier\Service\MCP\Schema\ModelSchema;
 use Sabatier\Service\MCP\Schema\PredicateGuideFactory;
 use Sabatier\Service\MCP\Schema\RelationshipSchema;
-use Sabatier\Service\MCP\Tools\AbstractTool;
+use Sabatier\Service\MCP\Tools\WriteTool;
 use const Sabatier\CoreData\ManagedObjectObjectIDKey;
 
 enum SchemaToolStatusFixture: int
@@ -35,7 +35,7 @@ enum SchemaToolStatusFixture: int
     case paid = 2;
 }
 
-final class KeyPathProbeTool extends AbstractTool
+final class KeyPathProbeTool extends WriteTool
 {
     #[Override]
     public string $name {
@@ -54,18 +54,7 @@ final class KeyPathProbeTool extends AbstractTool
 
     public function exposedEntity(string $name): EntitySchema
     {
-        return $this->entity($name);
-    }
-
-    public function exposedValidateKeyPath(string $entityName, string $keyPath): void
-    {
-        $this->validateKeyPath($entityName, $keyPath);
-    }
-
-    /** @param ArrayClass<mixed> $arguments */
-    public function exposedValidatePredicateKeyPaths(string $entityName, string $format, ArrayClass $arguments): void
-    {
-        $this->validatePredicateKeyPaths($entityName, $format, $arguments);
+        return $this->entitySchema($name);
     }
 
     /** @param Dictionary<mixed> $values */
@@ -78,18 +67,6 @@ final class KeyPathProbeTool extends AbstractTool
     public function exposedShapeFromValues(string $entityName, Dictionary $values): Dictionary
     {
         return $this->shapeFromValues($entityName, $values);
-    }
-
-    /** @throws ReflectionException */
-    public function exposedResolveAttribute(string $entityName, string $keyPath): ?AttributeSchema
-    {
-        /** @var AttributeSchema|null */
-        return new ReflectionMethod(AbstractTool::class, "resolveAttribute")->invoke($this, $entityName, $keyPath);
-    }
-
-    public function exposedFetchRequest(string $entityName): FetchRequest
-    {
-        return $this->fetchRequest($entityName);
     }
 }
 
@@ -108,156 +85,6 @@ final class AbstractToolSchemaTest extends TestCase
     {
         $this->expectException(InternalInconsistencyException::class);
         $this->tool()->exposedEntity("Ghost");
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function acceptsAnAttributeAsTheLastKeyPathComponent(): void
-    {
-        $this->tool()->exposedValidateKeyPath("Order", "total");
-        $this->expectNotToPerformAssertions();
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function acceptsARelationshipAsTheLastKeyPathComponent(): void
-    {
-        $this->tool()->exposedValidateKeyPath("Order", "customer");
-        $this->expectNotToPerformAssertions();
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function acceptsAKeyPathTraversingARelationship(): void
-    {
-        $this->tool()->exposedValidateKeyPath("Order", "customer.name");
-        $this->expectNotToPerformAssertions();
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function rejectsAnUnknownFinalProperty(): void
-    {
-        $this->expectException(InternalInconsistencyException::class);
-        $this->tool()->exposedValidateKeyPath("Order", "nope");
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function rejectsTraversingSomethingThatIsNotARelationship(): void
-    {
-        $this->expectException(InternalInconsistencyException::class);
-        $this->tool()->exposedValidateKeyPath("Order", "total.name");
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function rejectsAnUnknownPropertyBeyondARelationship(): void
-    {
-        $this->expectException(InternalInconsistencyException::class);
-        $this->tool()->exposedValidateKeyPath("Order", "customer.nope");
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function acceptsAPredicateWhoseArgumentsMatchItsPlaceholders(): void
-    {
-        $this->tool()->exposedValidatePredicateKeyPaths("Order", "%K = %s", new ArrayClass(["total", "10"]));
-        $this->expectNotToPerformAssertions();
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function rejectsAPredicateWithTooFewArguments(): void
-    {
-        $this->expectException(InternalInconsistencyException::class);
-        $this->tool()->exposedValidatePredicateKeyPaths("Order", "%K = %s", new ArrayClass(["total"]));
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function rejectsAPredicateWithTooManyArguments(): void
-    {
-        $this->expectException(InternalInconsistencyException::class);
-        $this->tool()->exposedValidatePredicateKeyPaths("Order", "%K = %s", new ArrayClass(["total", "10", "extra"]));
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function everyKeyPathPlaceholderIsValidated(): void
-    {
-        $this->expectException(InternalInconsistencyException::class);
-        $this->tool()->exposedValidatePredicateKeyPaths("Order", "%K = %s AND %K = %s", new ArrayClass(["total", "10", "nope", "x"]));
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function aNonKeyPathPlaceholderIsNotTakenForAKeyPath(): void
-    {
-        $this->tool()->exposedValidatePredicateKeyPaths("Order", "%K = %s", new ArrayClass(["total", "nope"]));
-        $this->expectNotToPerformAssertions();
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function acceptsAMappedEnumValue(): void
-    {
-        $this->tool()->exposedValidatePredicateKeyPaths("Order", "%K = %d", new ArrayClass(["status", 2]));
-        $this->expectNotToPerformAssertions();
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function rejectsAnEnumCaseNameInPlaceOfItsValue(): void
-    {
-        $this->expectException(InternalInconsistencyException::class);
-        $this->tool()->exposedValidatePredicateKeyPaths("Order", "%K = %d", new ArrayClass(["status", "paid"]));
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function everyMemberOfAnEnumListIsChecked(): void
-    {
-        $this->expectException(InternalInconsistencyException::class);
-        $this->tool()->exposedValidatePredicateKeyPaths("Order", "%K IN %@", new ArrayClass(["status", new ArrayClass([1, 99])]));
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function theEnumRejectionNamesEveryCaseAgainstItsMappedValue(): void
-    {
-        try {
-            $this->tool()->exposedValidatePredicateKeyPaths("Order", "%K = %d", new ArrayClass(["status", "paid"]));
-            $this->fail("An unmapped enum value must be rejected.");
-        } catch (InternalInconsistencyException $exception) {
-            $reason = (string)$exception->error->localizedFailureReason;
-            $this->assertStringContainsString("\"draft\" → 1", $reason);
-            $this->assertStringContainsString("\"paid\" → 2", $reason);
-        }
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function anEnumListOfMappedValuesIsAccepted(): void
-    {
-        $this->tool()->exposedValidatePredicateKeyPaths("Order", "%K IN %@", new ArrayClass(["status", new ArrayClass([1, 2])]));
-        $this->expectNotToPerformAssertions();
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function aTrailingEnumKeyPathWithNoValueIsNotChecked(): void
-    {
-        $this->tool()->exposedValidatePredicateKeyPaths("Order", "%K", new ArrayClass(["status"]));
-        $this->expectNotToPerformAssertions();
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function aNonEnumAttributeAcceptsAnyValue(): void
-    {
-        $this->tool()->exposedValidatePredicateKeyPaths("Order", "%K = %s", new ArrayClass(["total", "anything"]));
-        $this->expectNotToPerformAssertions();
     }
 
     /** @throws ReflectionException */
@@ -315,82 +142,6 @@ final class AbstractToolSchemaTest extends TestCase
     {
         $shape = $this->tool()->exposedShapeFromValues("Order", new Dictionary(["lines" => new ArrayClass([new Dictionary(["name" => "a"]), new Dictionary(["total" => 1])])]));
         $this->assertSame(["name" => true, "total" => true], $shape["lines"]->array);
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function anAttributeIsResolvedThroughItsKeyPath(): void
-    {
-        $this->assertSame("total", $this->tool()->exposedResolveAttribute("Order", "total")?->name);
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function anAttributeBeyondARelationshipIsResolvedToo(): void
-    {
-        $this->assertSame("name", $this->tool()->exposedResolveAttribute("Order", "customer.name")?->name);
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function aRelationshipIsNotAnAttribute(): void
-    {
-        $this->assertNull($this->tool()->exposedResolveAttribute("Order", "customer"));
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function anUnknownPropertyResolvesToNoAttribute(): void
-    {
-        $this->assertNull($this->tool()->exposedResolveAttribute("Order", "nope"));
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function traversingSomethingThatIsNotARelationshipResolvesToNothing(): void
-    {
-        $this->assertNull($this->tool()->exposedResolveAttribute("Order", "total.name"));
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function aFetchRequestIsScopedToTheNamedEntity(): void
-    {
-        $this->assertSame("Order", $this->toolWithModel()->exposedFetchRequest("Order")->entity?->name);
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function aFetchRequestForAnUnknownEntityIsRefused(): void
-    {
-        $this->expectException(InternalInconsistencyException::class);
-        $this->toolWithModel()->exposedFetchRequest("Ghost");
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function aFetchRequestWithoutAModelBehindTheContextIsRefused(): void
-    {
-        try {
-            $this->tool()->exposedFetchRequest("Order");
-            $this->fail("A context with no model must be refused.");
-        } catch (InternalInconsistencyException $exception) {
-            // A missing model and an unknown entity both raise, so the message is what tells them apart.
-            $this->assertStringContainsString("No managed object model", (string)$exception->error->localizedFailureReason);
-        }
-    }
-
-    /** @throws ReflectionException */
-    private function toolWithModel(): KeyPathProbeTool
-    {
-        $entity = new EntityDescription();
-        $entity->name = "Order";
-        $entity->properties = new ArrayClass();
-        $model = new ManagedObjectModel();
-        $model->entities = new ArrayClass([$entity]);
-        $context = new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor();
-        $context->persistentStoreCoordinator = new PersistentStoreCoordinator($model);
-        return $this->tool($context);
     }
 
     /** @throws ReflectionException */

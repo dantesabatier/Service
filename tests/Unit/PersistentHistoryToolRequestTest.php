@@ -7,7 +7,6 @@ declare(strict_types=1);
 namespace Sabatier\Service\Tests\Unit;
 
 use Exception;
-use Override;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -15,7 +14,6 @@ use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
 use ReflectionProperty;
-use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\CoreData\PersistentHistoryChangeRequest;
 use Sabatier\CoreData\PersistentHistoryResult;
 use Sabatier\CoreData\PersistentHistoryResultType;
@@ -23,234 +21,126 @@ use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Foundation\Number;
-use Sabatier\Service\AccessPolicy;
-use Sabatier\Service\Application;
-use Sabatier\Service\MCP\Schema\ModelDescriptor;
-use Sabatier\Service\MCP\Tools\PersistentHistoryTool;
-use Sabatier\Service\PublicAccessPolicy;
+use Sabatier\Service\MCP\ToolCallToPersistentHistoryChangeRequestAdapter;
+use Sabatier\Service\MCP\Tools\FetchHistoryTool;
 use const Sabatier\Service\ServiceResponseCountKey;
 use const Sabatier\Service\ServiceResponseStatusKey;
 
 /**
- * Fixes how the tool turns its arguments into a `PersistentHistoryChangeRequest`, and how it shapes
- * the result. Executing the request is not exercised: that needs a store with history tracking on.
+ * Fixes how the arguments of a history tool call become a `PersistentHistoryChangeRequest`, and how a fetch shapes its result. Executing the request is not exercised: that needs a store with history tracking on.
  */
 final class PersistentHistoryToolRequestTest extends TestCase
 {
-    private AccessPolicy $previousAccessPolicy;
-
-    #[Override]
-    protected function setUp(): void
-    {
-        $this->previousAccessPolicy = Application::shared()->accessPolicy;
-        Application::shared()->accessPolicy = new PublicAccessPolicy();
-    }
-
-    #[Override]
-    protected function tearDown(): void
-    {
-        Application::shared()->accessPolicy = $this->previousAccessPolicy;
-    }
-
-    /** @throws Exception */
-    #[Test]
-    public function anOperationIsRequiredBeforeAnythingElseHappens(): void
-    {
-        try {
-            $this->tool()->call(new Dictionary(["date" => "2026-01-15"]));
-            $this->fail("A call without an operation must be refused.");
-        } catch (InternalInconsistencyException $exception) {
-            $this->assertStringContainsString("operation is required", (string)$exception->error->localizedFailureReason);
-        }
-    }
-
-    /** @throws Exception */
-    #[Test]
-    public function anUnknownOperationIsRefusedAndNamesTheAllowedOnes(): void
-    {
-        try {
-            $this->tool()->call(new Dictionary(["operation" => "truncate"]));
-            $this->fail("An unknown operation must be refused.");
-        } catch (InternalInconsistencyException $exception) {
-            $reason = (string)$exception->error->localizedFailureReason;
-            $this->assertStringContainsString("truncate", $reason);
-            $this->assertStringContainsString("fetch, purge", $reason);
-        }
-    }
-
-    /** @throws Exception */
-    #[Test]
-    public function anOperationThatOnlyMatchesLooselyIsStillRefused(): void
-    {
-        try {
-            $this->tool()->call(new Dictionary(["operation" => true]));
-            $this->fail("An operation that is not one of the two names must be refused.");
-        } catch (InternalInconsistencyException $exception) {
-            // `true` compares equal to any non-empty operation name under a loose in_array, and a
-            // looser check would let it through to fail later for an unrelated reason.
-            $this->assertStringContainsString("Invalid operation", (string)$exception->error->localizedFailureReason);
-        }
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function theToolAdvertisesItselfAsReadOnlyOnlyForAFetch(): void
-    {
-        $tool = $this->tool();
-        $this->assertTrue($tool->isReadOnlyCall(new Dictionary(["operation" => "fetch"])));
-        $this->assertFalse($tool->isReadOnlyCall(new Dictionary(["operation" => "purge"])));
-    }
-
-    /** @throws ReflectionException */
     #[Test]
     public function aPurgeScopedByDateDeletesBeforeThatDate(): void
     {
-        $request = $this->purgeRequest(["date" => "2026-01-15"]);
+        $request = $this->changeRequest(["beforeDate" => "2026-01-15"]);
         $this->assertTrue($request->isDelete);
-        $this->assertSame("2026-01-15", $request->date?->description ? substr($request->date->description, 0, 10) : null);
+        $this->assertSame("2026-01-15", substr((string)$request->date?->description, 0, 10));
     }
 
-    /** @throws ReflectionException */
     #[Test]
     public function aPurgeScopedByTransactionDeletesBeforeThatNumber(): void
     {
-        $request = $this->purgeRequest(["transaction" => "42"]);
+        $request = $this->changeRequest(["beforeTransaction" => "42"]);
         $this->assertTrue($request->isDelete);
         $this->assertSame(42, $request->transactionNumber?->intValue);
     }
 
-    /** @throws ReflectionException */
     #[Test]
     public function aPurgeKeepsZeroAsAnExplicitTransactionBoundary(): void
     {
-        $this->assertSame(0, $this->purgeRequest(["transaction" => 0])->transactionNumber?->intValue);
+        $this->assertSame(0, $this->changeRequest(["beforeTransaction" => 0])->transactionNumber?->intValue);
     }
 
-    /** @throws ReflectionException */
     #[Test]
     public function aPurgeScopedByTokenDeletesBeforeThatToken(): void
     {
-        $request = $this->purgeRequest(["token" => new Dictionary(["store-1" => 7])]);
+        $request = $this->changeRequest(["beforeToken" => new Dictionary(["store-1" => 7])]);
         $this->assertTrue($request->isDelete);
         $this->assertNotNull($request->token);
     }
 
-    /** @throws ReflectionException */
-    #[Test]
-    public function aPurgeWithoutAScopeIsRefused(): void
-    {
-        $this->expectException(InternalInconsistencyException::class);
-        $this->purgeRequest([]);
-    }
-
-    /** @throws ReflectionException */
     #[Test]
     public function aFetchScopedByDateReadsAfterThatDate(): void
     {
-        $request = $this->fetchRequestFor(["date" => "2026-01-15"]);
+        $request = $this->changeRequest(["afterDate" => "2026-01-15"]);
         $this->assertFalse($request->isDelete);
-        $this->assertNotNull($request->date);
+        $this->assertSame("2026-01-15", substr((string)$request->date?->description, 0, 10));
     }
 
-    /** @throws ReflectionException */
     #[Test]
     public function aFetchScopedByTransactionReadsAfterThatNumber(): void
     {
-        $request = $this->fetchRequestFor(["transaction" => "42"]);
+        $request = $this->changeRequest(["afterTransaction" => "42"]);
         $this->assertFalse($request->isDelete);
         $this->assertSame(42, $request->transactionNumber?->intValue);
     }
 
-    /** @throws ReflectionException */
     #[Test]
     public function aFetchKeepsZeroAsAnExplicitTransactionBoundary(): void
     {
-        $this->assertSame(0, $this->fetchRequestFor(["transaction" => 0])->transactionNumber?->intValue);
+        $this->assertSame(0, $this->changeRequest(["afterTransaction" => 0])->transactionNumber?->intValue);
     }
 
-    /** @throws ReflectionException */
     #[Test]
     public function aFetchScopedByTokenReadsAfterThatToken(): void
     {
-        $this->assertNotNull($this->fetchRequestFor(["token" => new Dictionary(["store-1" => 7])])->token);
+        $request = $this->changeRequest(["afterToken" => new Dictionary(["store-1" => 7])]);
+        $this->assertFalse($request->isDelete);
+        $this->assertNotNull($request->token);
     }
 
-    /** @throws ReflectionException */
+    /**
+     * A purge boundary names the direction it purges in, so a call carrying none is a fetch with no scope rather than a purge with one.
+     */
     #[Test]
-    public function aFetchWithoutAScopeIsRefused(): void
+    public function aCallWithoutAScopeIsRefused(): void
     {
         $this->expectException(InternalInconsistencyException::class);
-        $this->fetchRequestFor([]);
+        $this->changeRequest([]);
     }
 
-    /** @throws ReflectionException */
     #[Test]
     public function theDefaultResultTypeIsLeftUntouched(): void
     {
-        $request = $this->fetchRequestFor(["transaction" => "1"]);
-        $this->assertSame(PersistentHistoryResultType::transactionsAndChanges, $request->resultType);
+        $this->assertSame(PersistentHistoryResultType::transactionsAndChanges, $this->changeRequest(["afterTransaction" => 1])->resultType);
     }
 
-    /** @return iterable<string, array{string, PersistentHistoryResultType}> */
-    public static function resultTypeProvider(): iterable
-    {
-        yield "statusOnly" => ["statusOnly", PersistentHistoryResultType::statusOnly];
-        yield "count" => ["count", PersistentHistoryResultType::count];
-        yield "objectIDs" => ["objectIDs", PersistentHistoryResultType::objectIDs];
-        yield "transactionsOnly" => ["transactionsOnly", PersistentHistoryResultType::transactionsOnly];
-        yield "changesOnly" => ["changesOnly", PersistentHistoryResultType::changesOnly];
-        yield "transactionsAndChanges" => ["transactionsAndChanges", PersistentHistoryResultType::transactionsAndChanges];
-    }
-
-    /** @throws ReflectionException */
     #[Test]
     #[DataProvider("resultTypeProvider")]
-    public function eachNamedResultTypeIsMappedOntoItsCase(string $name, PersistentHistoryResultType $expected): void
+    public function eachResultTypeIsMappedOntoItsCase(int $rawValue, PersistentHistoryResultType $expected): void
     {
-        $this->assertSame($expected, $this->fetchRequestFor(["transaction" => "1", "resultType" => $name])->resultType);
+        $this->assertSame($expected, $this->changeRequest(["afterTransaction" => 1, "resultType" => $rawValue])->resultType);
     }
 
-    /** @throws ReflectionException */
-    #[Test]
-    public function anUnknownResultTypeIsRefusedAndNamesTheAllowedOnes(): void
+    /** @return iterable<string, array{int, PersistentHistoryResultType}> */
+    public static function resultTypeProvider(): iterable
     {
-        try {
-            $this->fetchRequestFor(["transaction" => "1", "resultType" => "nope"]);
-            $this->fail("An unknown resultType must be refused.");
-        } catch (InternalInconsistencyException $exception) {
-            $reason = (string)$exception->error->localizedFailureReason;
-            $this->assertStringContainsString("nope", $reason);
-            $this->assertStringContainsString("transactionsAndChanges", $reason);
+        foreach (PersistentHistoryResultType::cases() as $case) {
+            yield $case->name => [$case->value, $case];
         }
     }
 
-    /** @throws ReflectionException */
+    #[Test]
+    public function anUnknownResultTypeIsRefused(): void
+    {
+        $this->expectException(InternalInconsistencyException::class);
+        $this->changeRequest(["afterTransaction" => 1, "resultType" => 99]);
+    }
+
     #[Test]
     public function aTokenMustBeAnObjectOfStoreIdentifiersToNumbers(): void
     {
         $this->expectException(InternalInconsistencyException::class);
-        $this->purgeRequest(["token" => "not-an-object"]);
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function aRequestWithoutAPredicateIsNotFiltered(): void
-    {
-        $this->assertNull($this->invoke("transactionFilter", new Dictionary([])));
-    }
-
-    /** @throws ReflectionException */
-    #[Test]
-    public function anEmptyPredicateDoesNotFilterEither(): void
-    {
-        $this->assertNull($this->invoke("transactionFilter", new Dictionary(["predicate" => ""])));
+        $this->changeRequest(["afterToken" => "not-an-object"]);
     }
 
     /** @throws ReflectionException */
     #[Test]
     public function aStatusOnlyResultIsReportedUnderTheStatusKey(): void
     {
-        $shaped = $this->invoke("shapeResult", $this->historyResult(PersistentHistoryResultType::statusOnly, new Number(1)));
+        $shaped = $this->shape($this->historyResult(PersistentHistoryResultType::statusOnly, new Number(1)));
         $this->assertSame(1, $shaped[ServiceResponseStatusKey]->intValue);
     }
 
@@ -258,7 +148,7 @@ final class PersistentHistoryToolRequestTest extends TestCase
     #[Test]
     public function aCountResultIsReportedUnderTheCountKey(): void
     {
-        $shaped = $this->invoke("shapeResult", $this->historyResult(PersistentHistoryResultType::count, new Number(17)));
+        $shaped = $this->shape($this->historyResult(PersistentHistoryResultType::count, new Number(17)));
         $this->assertSame(17, $shaped[ServiceResponseCountKey]->intValue);
     }
 
@@ -267,7 +157,24 @@ final class PersistentHistoryToolRequestTest extends TestCase
     public function anyOtherResultIsReturnedAsItCame(): void
     {
         $payload = new ArrayClass(["a", "b"]);
-        $this->assertSame($payload, $this->invoke("shapeResult", $this->historyResult(PersistentHistoryResultType::transactionsAndChanges, $payload)));
+        $this->assertSame($payload, $this->shape($this->historyResult(PersistentHistoryResultType::transactionsAndChanges, $payload)));
+    }
+
+    /**
+     * @param array<string, mixed> $arguments
+     */
+    private function changeRequest(array $arguments): PersistentHistoryChangeRequest
+    {
+        return new ToolCallToPersistentHistoryChangeRequestAdapter(new Dictionary($arguments))->changeRequest;
+    }
+
+    /**
+     * @throws ReflectionException
+     */
+    private function shape(PersistentHistoryResult $result): mixed
+    {
+        $tool = new ReflectionClass(FetchHistoryTool::class)->newInstanceWithoutConstructor();
+        return new ReflectionMethod(FetchHistoryTool::class, "shape")->invoke($tool, $result);
     }
 
     /** @throws ReflectionException */
@@ -277,37 +184,5 @@ final class PersistentHistoryToolRequestTest extends TestCase
         new ReflectionProperty(PersistentHistoryResult::class, "resultType")->setValue($instance, $resultType);
         new ReflectionProperty(PersistentHistoryResult::class, "result")->setValue($instance, $result);
         return $instance;
-    }
-
-    /**
-     * @param array<string, mixed> $arguments
-     * @throws ReflectionException
-     */
-    private function purgeRequest(array $arguments): PersistentHistoryChangeRequest
-    {
-        /** @var PersistentHistoryChangeRequest */
-        return $this->invoke("purgeRequest", new Dictionary($arguments));
-    }
-
-    /**
-     * @param array<string, mixed> $arguments
-     * @throws ReflectionException
-     */
-    private function fetchRequestFor(array $arguments): PersistentHistoryChangeRequest
-    {
-        /** @var PersistentHistoryChangeRequest */
-        return $this->invoke("fetchRequestFor", new Dictionary($arguments));
-    }
-
-    /** @throws ReflectionException */
-    private function tool(): PersistentHistoryTool
-    {
-        return new PersistentHistoryTool(new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor(), new ReflectionClass(ModelDescriptor::class)->newInstanceWithoutConstructor());
-    }
-
-    /** @throws ReflectionException */
-    private function invoke(string $method, mixed ...$arguments): mixed
-    {
-        return new ReflectionMethod(PersistentHistoryTool::class, $method)->invoke($this->tool(), ...$arguments);
     }
 }

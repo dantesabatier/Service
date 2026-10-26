@@ -18,7 +18,6 @@ use Sabatier\Service\AccessPolicy;
 use Sabatier\Service\Application;
 use Sabatier\Service\MCP\Schema\ModelDescriptor;
 use Sabatier\Service\MCP\Tools\AbstractTool;
-use Sabatier\Service\MCP\Tools\AggregateTool;
 use Sabatier\Service\MCP\Tools\CreateTool;
 use Sabatier\Service\MCP\Tools\DeleteTool;
 use Sabatier\Service\MCP\Tools\UpdateTool;
@@ -48,16 +47,13 @@ final class MutatingToolArgumentTest extends TestCase
     /** @return iterable<string, array{class-string<AbstractTool>, array<string, mixed>, string}> */
     public static function missingArgumentProvider(): iterable
     {
-        yield "update without an entity" => [UpdateTool::class, ["objectID" => 1, "values" => []], "entity is required"];
-        yield "update without an objectID" => [UpdateTool::class, ["entity" => "Order", "values" => []], "objectID is required"];
-        yield "update without values" => [UpdateTool::class, ["entity" => "Order", "objectID" => 1], "values is required"];
-        yield "delete without an entity" => [DeleteTool::class, ["objectID" => 1], "entity is required"];
-        yield "delete without an objectID" => [DeleteTool::class, ["entity" => "Order"], "objectID is required"];
-        yield "create without an entity" => [CreateTool::class, ["values" => []], "entity is required"];
-        yield "create without values" => [CreateTool::class, ["entity" => "Order"], "values is required"];
-        yield "aggregate without an entity" => [AggregateTool::class, ["function" => "sum", "property" => "total"], "entity required"];
-        yield "aggregate without a function" => [AggregateTool::class, ["entity" => "Order", "property" => "total"], "function required"];
-        yield "aggregate without a property" => [AggregateTool::class, ["entity" => "Order", "function" => "sum"], "property required"];
+        yield "update without an entity" => [UpdateTool::class, ["objectID" => 1, "values" => []], "entityName is required"];
+        yield "update without an objectID" => [UpdateTool::class, ["entityName" => "Order", "values" => []], "objectID is required"];
+        yield "update without values" => [UpdateTool::class, ["entityName" => "Order", "objectID" => 1], "values is required"];
+        yield "delete without an entity" => [DeleteTool::class, ["objectID" => 1], "entityName is required"];
+        yield "delete without an objectID" => [DeleteTool::class, ["entityName" => "Order"], "objectID is required"];
+        yield "create without an entity" => [CreateTool::class, ["values" => []], "entityName is required"];
+        yield "create without values" => [CreateTool::class, ["entityName" => "Order"], "values is required"];
     }
 
     /**
@@ -80,9 +76,9 @@ final class MutatingToolArgumentTest extends TestCase
     /** @return iterable<string, array{class-string<AbstractTool>, string, list<string>}> */
     public static function toolShapeProvider(): iterable
     {
-        yield "update" => [UpdateTool::class, "update", ["entity", "objectID", "values"]];
-        yield "delete" => [DeleteTool::class, "delete", ["entity", "objectID"]];
-        yield "create" => [CreateTool::class, "create", ["entity", "values"]];
+        yield "update" => [UpdateTool::class, "update", ["entityName", "objectID", "values"]];
+        yield "delete" => [DeleteTool::class, "delete", ["entityName", "objectID"]];
+        yield "create" => [CreateTool::class, "create", ["entityName", "values"]];
     }
 
     /**

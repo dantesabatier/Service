@@ -30,7 +30,7 @@ final class ToolResolverTest extends TestCase
     #[Test]
     public function everyBuiltInToolIsResolved(): void
     {
-        $this->assertSame(12, $this->resolve()->count);
+        $this->assertSame(13, $this->resolve()->count);
     }
 
     /** @throws ReflectionException */
@@ -39,7 +39,7 @@ final class ToolResolverTest extends TestCase
     {
         $names = $this->resolve()->map(fn(AbstractTool $tool): string => $tool->name)->array;
         sort($names);
-        $this->assertSame(["aggregate", "count", "create", "delete", "describe_model", "fetch", "get_server_time", "group_by", "persistent_history", "run_job", "update", "web_search"], $names);
+        $this->assertSame(["aggregate", "count", "create", "delete", "describe_model", "fetch", "fetch_history", "get_server_time", "group_by", "purge_history", "run_job", "update", "web_search"], $names);
     }
 
     /** @throws ReflectionException */

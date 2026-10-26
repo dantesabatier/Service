@@ -27,7 +27,8 @@ use Sabatier\Service\MCP\Tools\FetchTool;
 use Sabatier\Service\MCP\Tools\GetServerTimeTool;
 use Sabatier\Service\MCP\Tools\GroupByTool;
 use Sabatier\Service\MCP\Tools\JobTool;
-use Sabatier\Service\MCP\Tools\PersistentHistoryTool;
+use Sabatier\Service\MCP\Tools\FetchHistoryTool;
+use Sabatier\Service\MCP\Tools\PurgeHistoryTool;
 use Sabatier\Service\MCP\Tools\ToolRegistry;
 use Sabatier\Service\MCP\Tools\UpdateTool;
 use Sabatier\Service\MCP\Tools\WebSearchTool;
@@ -56,19 +57,24 @@ final class MCPToolAnnotationsTest extends TestCase
         $this->assertFalse($registry->isCacheable($tool->name));
     }
 
-    /** @throws ReflectionException */
+    /**
+     * Reading history and purging it are separate tools, so each advertises what it is rather than the weaker claim a tool answering to both would have to make.
+     *
+     * @throws ReflectionException
+     */
     #[Test]
-    public function mixedHistoryToolIsNotAdvertisedAsReadOnlyEvenForFetch(): void
+    public function eachHistoryToolAdvertisesWhatItIs(): void
     {
-        $tool = new ReflectionClass(PersistentHistoryTool::class)->newInstanceWithoutConstructor();
-        $registry = new ToolRegistry(new ArrayClass([$tool]));
+        $fetch = new ReflectionClass(FetchHistoryTool::class)->newInstanceWithoutConstructor();
+        $purge = new ReflectionClass(PurgeHistoryTool::class)->newInstanceWithoutConstructor();
 
-        $this->assertTrue($registry->isReadOnlyCall($tool->name, new Dictionary(["operation" => "fetch"])));
-        $this->assertFalse($registry->isReadOnlyCall($tool->name, new Dictionary(["operation" => "purge"])));
-        $annotations = $this->descriptor($registry)->annotations;
-        $this->assertNotNull($annotations);
-        $this->assertFalse($annotations["readOnlyHint"]);
-        $this->assertTrue($annotations["destructiveHint"]);
+        $fetchAnnotations = $this->descriptor(new ToolRegistry(new ArrayClass([$fetch])))->annotations;
+        $this->assertNotNull($fetchAnnotations);
+        $this->assertTrue($fetchAnnotations["readOnlyHint"]);
+        $purgeAnnotations = $this->descriptor(new ToolRegistry(new ArrayClass([$purge])))->annotations;
+        $this->assertNotNull($purgeAnnotations);
+        $this->assertFalse($purgeAnnotations["readOnlyHint"]);
+        $this->assertTrue($purgeAnnotations["destructiveHint"]);
     }
 
     /** @throws ReflectionException */
@@ -125,7 +131,8 @@ final class MCPToolAnnotationsTest extends TestCase
             "create" => [CreateTool::class, false, false],
             "update" => [UpdateTool::class, false, false],
             "delete" => [DeleteTool::class, false, false],
-            "persistent_history" => [PersistentHistoryTool::class, false, false],
+            "fetch_history" => [FetchHistoryTool::class, true, false],
+            "purge_history" => [PurgeHistoryTool::class, false, false],
             "run_job" => [JobTool::class, false, true],
         ];
     }

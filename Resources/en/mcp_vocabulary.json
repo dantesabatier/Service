@@ -1,52 +1,56 @@
 {
-  "tools": {
-    "describe_model": {
-      "title": "Describe Model",
-      "description": "Return the complete schema of all entities, attributes, relationships, and enum cases. Call this before any other tool — attribute names are system-specific and cannot be guessed (e.g. isEnabled, not isActive)."
-    },
-    "fetch": {
-      "title": "Fetch",
-      "description": "Fetch entity rows with optional filtering, sorting and pagination. Call once per query — trust the result even if count is 0; do not retry with rephrased predicates."
-    },
-    "count": {
-      "title": "Count",
-      "description": "Count entities matching an optional predicate."
-    },
-    "aggregate": {
-      "title": "Aggregate",
-      "description": "Compute aggregate values for an entity."
-    },
-    "group_by": {
-      "title": "Group By",
-      "description": "Group rows and compute aggregates. Call once per query — if rowCount is 0, data is absent; do not retry with different arguments or aliases."
-    },
-    "create": {
-      "title": "Create",
-      "description": "Create one entity row, including any related objects nested under `values` (attributes, to-one and to-many relationships, and deeper graphs) in a single call. Use this whenever a row has relationships or nested objects — even when creating several related rows at once. To insert many independent flat rows of the same entity, call it once per row."
-    },
-    "update": {
-      "title": "Update",
-      "description": "Update an existing entity."
-    },
-    "delete": {
-      "title": "Delete",
-      "description": "Delete one existing row. Its related rows follow the deleteRule that describe_model reports on each of its relationships, so check those before deleting: `cascade` deletes the related rows along with this one, in the same call — delete only the parent, never its children first; `nullify` keeps the related rows and only unlinks them; `deny` refuses the deletion while related rows remain, so delete or relink those first; `noAction` does nothing to the related rows — depending on the store the deletion is refused or they are left pointing at a row that no longer exists — so delete or relink them first."
-    },
-    "run_job": {
-      "title": "Run Job",
-      "description": "Run a named application job."
-    },
-    "persistent_history": {
-      "title": "Persistent History",
-      "description": "Fetch or purge the Core Data persistent history change log.\n\"operation\":\"purge\" is destructive and permanently removes history transactions.\nBoth operations require exactly one scope parameter — \"date\", \"transaction\" or \"token\" — that marks the boundary: fetch returns history after it, purge removes history before it. When more than one is given, precedence is date > transaction > token.\n\"predicate\" further filters the history in scope; it applies to both operations. It runs against \"entity\" — PersistentHistoryTransaction by default, or PersistentHistoryChange.\n\"resultType\" applies to fetch only and is ignored for purge.\nOnly meaningful when persistent history tracking is enabled for the store."
-    },
-    "get_server_time": {
-      "title": "Get Server Time",
-      "description": "Return the server's current date, time and timezone."
-    },
-    "web_search": {
-      "title": "Web Search",
-      "description": "Search the web using the provider configured by the application."
+    "tools": {
+        "describe_model": {
+            "title": "Describe Model",
+            "description": "Return the complete schema of all entities, attributes, relationships, and enum cases. Call this before any other tool — attribute names are system-specific and cannot be guessed (e.g. isEnabled, not isActive)."
+        },
+        "fetch": {
+            "title": "Fetch",
+            "description": "Fetch entity rows with optional filtering, sorting and pagination. Call once per query — trust the result even if count is 0; do not retry with rephrased predicates."
+        },
+        "count": {
+            "title": "Count",
+            "description": "Count entities matching an optional predicate."
+        },
+        "aggregate": {
+            "title": "Aggregate",
+            "description": "Compute aggregate values for an entity."
+        },
+        "group_by": {
+            "title": "Group By",
+            "description": "Group rows and compute aggregates. Call once per query — if rowCount is 0, data is absent; do not retry with different arguments or aliases."
+        },
+        "create": {
+            "title": "Create",
+            "description": "Create one entity row, including any related objects nested under `values` (attributes, to-one and to-many relationships, and deeper graphs) in a single call. Use this whenever a row has relationships or nested objects — even when creating several related rows at once. To insert many independent flat rows of the same entity, call it once per row."
+        },
+        "update": {
+            "title": "Update",
+            "description": "Update an existing entity."
+        },
+        "delete": {
+            "title": "Delete",
+            "description": "Delete one existing row. Its related rows follow the deleteRule that describe_model reports on each of its relationships, so check those before deleting: `cascade` deletes the related rows along with this one, in the same call — delete only the parent, never its children first; `nullify` keeps the related rows and only unlinks them; `deny` refuses the deletion while related rows remain, so delete or relink those first; `noAction` does nothing to the related rows — depending on the store the deletion is refused or they are left pointing at a row that no longer exists — so delete or relink them first."
+        },
+        "run_job": {
+            "title": "Run Job",
+            "description": "Run a named application job."
+        },
+        "fetch_history": {
+            "title": "Fetch History",
+            "description": "Read the Core Data persistent history change log.\nRequires exactly one scope marking the boundary history is read after — \"afterDate\", \"afterTransaction\" or \"afterToken\". When more than one is given, precedence is date > transaction > token.\n\"predicate\" further narrows the history in scope, running against \"entityName\" — PersistentHistoryTransaction by default, or PersistentHistoryChange.\n\"resultType\" is the raw value of PersistentHistoryResultType and shapes what comes back.\nOnly meaningful when persistent history tracking is enabled for the store."
+        },
+        "purge_history": {
+            "title": "Purge History",
+            "description": "Permanently remove transactions from the Core Data persistent history change log. This is destructive and cannot be undone.\nRequires exactly one scope marking the boundary history is removed before — \"beforeDate\", \"beforeTransaction\" or \"beforeToken\". When more than one is given, precedence is date > transaction > token.\n\"predicate\" further narrows which transactions are purged, running against \"entityName\" — PersistentHistoryTransaction by default, or PersistentHistoryChange.\nOnly meaningful when persistent history tracking is enabled for the store."
+        },
+        "get_server_time": {
+            "title": "Get Server Time",
+            "description": "Return the server's current date, time and timezone."
+        },
+        "web_search": {
+            "title": "Web Search",
+            "description": "Search the web using the provider configured by the application."
+        }
     }
-  }
 }

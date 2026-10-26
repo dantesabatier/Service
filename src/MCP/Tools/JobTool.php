@@ -9,6 +9,7 @@ use Override;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\AuthorizationType;
+use Sabatier\Service\Jobs\JobOperation;
 use Sabatier\Service\Jobs\JobRegistry;
 use Sabatier\Service\Jobs\JobResolver;
 use Sabatier\Service\MCP\Response\ContentItem;
@@ -85,7 +86,7 @@ final class JobTool extends AbstractTool
         /** @var string $name */
         $name = $arguments["job"] ?? fatal_error("job is required");
         $job = $this->registry->job($name) ?? fatal_error("Unknown job \"$name\". Available: {$this->registry->names->join(", ")}.");
-        $this->runJob($job);
+        new JobOperation($this->context, $job, $this->user?->username ?? "system")->perform();
         return $this->jsonResult(["status" => "completed", "job" => $name]);
     }
 }

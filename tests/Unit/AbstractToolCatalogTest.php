@@ -31,7 +31,7 @@ final class CatalogProbeTool extends AbstractTool
     /** @return Dictionary<AbstractTool> */
     public function catalog(): Dictionary
     {
-        return $this->tools();
+        return $this->tools;
     }
 
     /** @return ArrayClass<ContentItem> */
@@ -49,7 +49,7 @@ final class AbstractToolCatalogTest extends TestCase
     public function theCatalogKeysEveryResolvedToolByItsName(): void
     {
         $catalog = new CatalogProbeTool(new ReflectionClass(ManagedObjectContext::class)->newInstanceWithoutConstructor(), new ReflectionClass(ModelDescriptor::class)->newInstanceWithoutConstructor())->catalog();
-        $this->assertSame(12, $catalog->count);
+        $this->assertSame(13, $catalog->count);
         $this->assertInstanceOf(FetchTool::class, $catalog["fetch"]);
     }
 }

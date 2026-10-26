@@ -9,173 +9,86 @@ use Override;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\PersistentHistoryChangeRequest;
 use Sabatier\CoreData\PersistentHistoryResult;
-use Sabatier\CoreData\PersistentHistoryResultType;
-use Sabatier\CoreData\PersistentHistoryToken;
-use Sabatier\CoreData\PersistentHistoryTransaction;
-use Sabatier\Foundation\ArrayClass;
-use Sabatier\Foundation\Date;
 use Sabatier\Foundation\Dictionary;
-use Sabatier\Foundation\Number;
-use Sabatier\Service\AuthorizationType;
-use Sabatier\Service\MCP\Response\ContentItem;
-use function Sabatier\Foundation\fatal_error;
-use const Sabatier\Service\PersistentHistoryTransactionNumberKey;
-use const Sabatier\Service\ServiceResponseCountKey;
-use const Sabatier\Service\ServiceResponseStatusKey;
+use Sabatier\Service\MCP\ToolCallToFetchRequestAdapter;
+use Sabatier\Service\MCP\ToolCallToPersistentHistoryChangeRequestAdapter;
+use Sabatier\Service\PersistentHistoryOperation;
+use const Sabatier\Service\PersistentHistoryAfterDateKey;
+use const Sabatier\Service\PersistentHistoryAfterTokenKey;
+use const Sabatier\Service\PersistentHistoryAfterTransactionKey;
+use const Sabatier\Service\PersistentHistoryBeforeDateKey;
+use const Sabatier\Service\PersistentHistoryBeforeTokenKey;
+use const Sabatier\Service\PersistentHistoryBeforeTransactionKey;
 
-/** @internal */
-final class PersistentHistoryTool extends AbstractTool
+/**
+ * @internal
+ * @psalm-consistent-constructor
+ * @phpstan-consistent-constructor
+ */
+abstract class PersistentHistoryTool extends AbstractTool
 {
-    private const array operations = ["fetch", "purge"];
-    /** @var Dictionary<PersistentHistoryResultType> */
-    private Dictionary $resultTypes {
-        get => $this->resultTypes ??= new Dictionary([
-            "statusOnly" => PersistentHistoryResultType::statusOnly,
-            "objectIDs" => PersistentHistoryResultType::objectIDs,
-            "count" => PersistentHistoryResultType::count,
-            "transactionsOnly" => PersistentHistoryResultType::transactionsOnly,
-            "changesOnly" => PersistentHistoryResultType::changesOnly,
-            "transactionsAndChanges" => PersistentHistoryResultType::transactionsAndChanges,
-        ]);
-    }
-    /** @var ArrayClass<string> */
-    private ArrayClass $resultTypeNames {
-        get => $this->resultTypeNames ??= $this->resultTypes->keys;
-    }
-    #[Override]
-    public string $name {
-        get => "persistent_history";
-    }
+    /** @var array<array-key, mixed> The scoping arguments a fetch of history accepts, named after the Core Data factory methods they select. */
+    protected const array fetchScopeSchema = [
+        PersistentHistoryAfterDateKey => ["type" => "string", "description" => "ISO 8601 date. History after this date."],
+        PersistentHistoryAfterTransactionKey => ["type" => "integer", "description" => "History after this transaction number."],
+        PersistentHistoryAfterTokenKey => ["type" => "object", "description" => "History after this token, as a map of store identifier (string) to token number."],
+    ];
+    /** @var array<array-key, mixed> The scoping arguments a purge of history accepts. */
+    protected const array purgeScopeSchema = [
+        PersistentHistoryBeforeDateKey => ["type" => "string", "description" => "ISO 8601 date. History before this date."],
+        PersistentHistoryBeforeTransactionKey => ["type" => "integer", "description" => "History before this transaction number."],
+        PersistentHistoryBeforeTokenKey => ["type" => "object", "description" => "History before this token, as a map of store identifier (string) to token number."],
+    ];
+    /** @var array<array-key, mixed> The arguments narrowing which transactions the scope reaches, read by the same adapter an ordinary query uses. */
+    protected const array transactionFilterSchema = [
+        "entityName" => ["type" => "string", "enum" => ["PersistentHistoryTransaction", "PersistentHistoryChange"], "description" => "History entity the predicate filters on. PersistentHistoryTransaction filters transactions (reach their changes through the \"changes\" relationship, e.g. \"ANY changes.changeType = %d\"); PersistentHistoryChange filters change rows directly."],
+        "predicate" => ["type" => "object", "description" => "Filters the history in scope by the chosen entity's properties — \"author\", \"contextName\", \"bundleID\", \"changes.changeType\": {\"format\": \"%K == %@\", \"arguments\": [...]}."],
+    ];
+
     #[Override]
     public bool $isOpenWorld {
         get => false;
     }
-    #[Override]
-    public array $inputSchema {
-        get => [
-            "type" => "object",
-            "properties" => [
-                "operation" => ["type" => "string", "enum" => self::operations, "description" => "\"fetch\" to read history, \"purge\" to permanently delete it."],
-                "date" => ["type" => "string", "description" => "ISO 8601 date. fetch: history after this date; purge: history before this date."],
-                "transaction" => ["type" => "integer", "description" => "Transaction number boundary. fetch: history after it; purge: history before it."],
-                "token" => ["type" => "object", "description" => "Persistent history token as a map of store identifier (string) to token number."],
-                "entity" => ["type" => "string", "enum" => ["PersistentHistoryTransaction", "PersistentHistoryChange"], "description" => "History entity the predicate filters on. Defaults to PersistentHistoryTransaction (filter changes via the \"changes\" relationship, e.g. \"ANY changes.changeType = %d\"); use PersistentHistoryChange to filter change rows directly. Ignored when no predicate is given."],
-                "predicate" => ["type" => "string", "description" => "Optional. NSPredicate format string filtering the history in scope by the chosen entity's properties (e.g. \"author\", \"contextName\", \"bundleID\", \"changes.changeType\"). Use %K for key paths, %@ for strings, %d for integers."],
-                "arguments" => ["type" => "array", "items" => ["type" => ["string", "number", "boolean", "array"]], "description" => "Positional arguments for the predicate placeholders, one per placeholder in order."],
-                "resultType" => ["type" => "string", "enum" => $this->resultTypeNames->array, "description" => "fetch only, ignored for purge. Shape of the returned history. Defaults to transactionsAndChanges."],
-            ],
-            "required" => ["operation"],
-        ];
-    }
 
-    #[Override]
-    public function isReadOnlyCall(Dictionary $arguments): bool
-    {
-        return $arguments["operation"] === "fetch";
-    }
-
+    /**
+     * The history resource is one: `/history` is a single endpoint, and both tools are authorized against it.
+     *
+     * @param Dictionary<mixed> $arguments The arguments selecting the concrete operation.
+     */
     #[Override]
     public function authorizationResource(Dictionary $arguments): string
     {
         return "history";
     }
 
-    #[Override]
-    public function authorizationAction(Dictionary $arguments): AuthorizationType
+    /**
+     * @param Dictionary<mixed> $arguments
+     * @throws Exception
+     */
+    protected function perform(Dictionary $arguments): PersistentHistoryResult
     {
-        return $arguments["operation"] === "purge" ? AuthorizationType::delete : AuthorizationType::read;
+        return new PersistentHistoryOperation($this->context, $this->changeRequest($arguments), $this->transactionFilter($arguments))->perform();
     }
 
     /**
-     * @return ArrayClass<ContentItem>
+     * @param Dictionary<mixed> $arguments
+     */
+    protected function changeRequest(Dictionary $arguments): PersistentHistoryChangeRequest
+    {
+        return new ToolCallToPersistentHistoryChangeRequestAdapter($arguments)->changeRequest;
+    }
+
+    /**
+     * The transactions the scope reaches are narrowed by an ordinary fetch request, exactly as `PersistentHistoryResponseStrategy` narrows them for HTTP.
+     *
+     * @param Dictionary<mixed> $arguments
      * @throws Exception
      */
-    #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function transactionFilter(Dictionary $arguments): ?FetchRequest
     {
-        /** @var string $operation */
-        $operation = $arguments["operation"] ?? fatal_error("operation is required");
-        in_array($operation, self::operations, true) ?: fatal_error("Invalid operation \"$operation\". Allowed: " . new ArrayClass(self::operations)->join(", ") . ".");
-        $changeRequest = $operation === "purge" ? $this->purgeRequest($arguments) : $this->fetchRequestFor($arguments);
-        $result = $this->executeHistory($changeRequest, $this->transactionFilter($arguments));
-        if ($operation === "purge") {
-            return $this->jsonResult(["purged" => true]);
-        }
-        return $this->jsonResult($this->shapeResult($result));
-    }
-
-    private function purgeRequest(Dictionary $arguments): PersistentHistoryChangeRequest
-    {
-        if ($date = $arguments["date"]) {
-            return PersistentHistoryChangeRequest::deleteHistoryBeforeDate(Date::dateWithTimeIntervalSince1970((float)strtotime((string)$date)));
-        }
-        if (($transaction = $arguments["transaction"]) !== null) {
-            return PersistentHistoryChangeRequest::deleteHistoryBeforeTransaction($this->transaction($transaction));
-        }
-        if ($token = $arguments["token"]) {
-            return PersistentHistoryChangeRequest::deleteHistoryBeforeToken($this->token($token));
-        }
-        fatal_error("purge requires a scope parameter: \"date\", \"transaction\" or \"token\".");
-    }
-
-    private function fetchRequestFor(Dictionary $arguments): PersistentHistoryChangeRequest
-    {
-        $changeRequest = $this->fetchScope($arguments);
-        if ($resultType = $arguments["resultType"]) {
-            /** @var PersistentHistoryResultType $mapped */
-            $mapped = $this->resultTypes[(string)$resultType] ?? fatal_error("Invalid resultType \"$resultType\". Allowed: {$this->resultTypeNames->join(", ")}.");
-            $changeRequest->resultType = $mapped;
-        }
-        return $changeRequest;
-    }
-
-    private function fetchScope(Dictionary $arguments): PersistentHistoryChangeRequest
-    {
-        if ($date = $arguments["date"]) {
-            return PersistentHistoryChangeRequest::fetchHistoryAfterDate(Date::dateWithTimeIntervalSince1970((float)strtotime((string)$date)));
-        }
-        if (($transaction = $arguments["transaction"]) !== null) {
-            return PersistentHistoryChangeRequest::fetchHistoryAfterTransaction($this->transaction($transaction));
-        }
-        if ($token = $arguments["token"]) {
-            return PersistentHistoryChangeRequest::fetchHistoryAfterToken($this->token($token));
-        }
-        fatal_error("fetch requires a scope parameter: \"date\", \"transaction\" or \"token\".");
-    }
-
-    private function transactionFilter(Dictionary $arguments): ?FetchRequest
-    {
-        /** @var string|null $predicate */
-        $predicate = $arguments["predicate"];
-        if (!$predicate) {
+        if (!$arguments["predicate"]) {
             return null;
         }
-        /** @var ArrayClass<mixed> $params */
-        $params = $arguments["arguments"] ?? new ArrayClass();
-        $entityName = (string)($arguments["entity"] ?? "PersistentHistoryTransaction");
-        $fetchRequest = new FetchRequest();
-        $fetchRequest->entity = $this->entityDescription($entityName) ?? fatal_error("Unknown history entity \"$entityName\". Use \"PersistentHistoryTransaction\" or \"PersistentHistoryChange\". History tracking may be disabled for the store.");
-        $fetchRequest->predicate = $this->buildPredicate($predicate, $this->resolveVariables($params));
-        return $fetchRequest;
-    }
-
-    private function transaction(mixed $transaction): PersistentHistoryTransaction
-    {
-        return new PersistentHistoryTransaction(new Dictionary([PersistentHistoryTransactionNumberKey => (int)(string)$transaction]));
-    }
-
-    private function token(mixed $token): PersistentHistoryToken
-    {
-        $token instanceof Dictionary ?: fatal_error("token must be an object mapping store identifier to token number.");
-        return new PersistentHistoryToken($token->mapValues(fn(int|string $value): Number => new Number($value)));
-    }
-
-    private function shapeResult(PersistentHistoryResult $result): Dictionary|ArrayClass|Number
-    {
-        return match ($result->resultType) {
-            PersistentHistoryResultType::statusOnly => new Dictionary([ServiceResponseStatusKey => $result->result]),
-            PersistentHistoryResultType::count => new Dictionary([ServiceResponseCountKey => $result->result]),
-            default => $result->result,
-        };
+        return new ToolCallToFetchRequestAdapter($arguments, $this->context)->fetchRequest;
     }
 }

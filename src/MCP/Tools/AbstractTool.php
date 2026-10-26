@@ -6,49 +6,25 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\MCP\Tools;
 
-use Closure;
 use Exception;
 use JsonException;
-use Sabatier\CoreData\EntityDescription;
-use Sabatier\CoreData\FetchRequest;
-use Sabatier\CoreData\ManagedObject;
 use Sabatier\CoreData\ManagedObjectContext;
-use Sabatier\CoreData\ManagedObjectID;
-use Sabatier\CoreData\PersistentHistoryChangeRequest;
-use Sabatier\CoreData\PersistentHistoryResult;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Dictionary;
-use Sabatier\Foundation\Predicates\Predicate;
-use Sabatier\Service\AccessConditionResolver;
 use Sabatier\Service\Application;
 use Sabatier\Service\Authorizable;
 use Sabatier\Service\AuthorizationContext;
 use Sabatier\Service\AuthorizationService;
 use Sabatier\Service\AuthorizationType;
-use Sabatier\Service\CountPersistentSpaceOperation;
-use Sabatier\Service\CreatePersistentSpaceOperation;
 use Sabatier\Service\DefaultAccessPolicy;
-use Sabatier\Service\DeletePersistentSpaceOperation;
 use Sabatier\Service\FieldLevelSecurityPolicy;
 use Sabatier\Service\FieldSecurityPolicy;
 use Sabatier\Service\ForbiddenException;
-use Sabatier\Service\Jobs\Job;
-use Sabatier\Service\Jobs\JobOperation;
 use Sabatier\Service\MCP\Response\ContentItem;
-use Sabatier\Service\MCP\Schema\AttributeSchema;
-use Sabatier\Service\MCP\Schema\EntitySchema;
 use Sabatier\Service\MCP\Schema\ModelDescriptor;
-use Sabatier\Service\MCP\Schema\RelationshipSchema;
 use Sabatier\Service\MCP\ToolResolver;
-use Sabatier\Service\ModifyPersistentSpaceOperation;
-use Sabatier\Service\PersistentHistoryOperation;
-use Sabatier\Service\ReadPersistentSpaceOperation;
-use Sabatier\Service\UpdatePersistentSpaceOperation;
-use function Sabatier\Foundation\fatal_error;
-use function Sabatier\Foundation\human_readable_value;
 use function Sabatier\Foundation\localized_string;
-use const Sabatier\CoreData\ManagedObjectObjectIDKey;
 
 /**
  * Base class for all MCP tools, both built-in and custom.
@@ -127,12 +103,24 @@ abstract class AbstractTool
     protected ?Authorizable $user {
         get => $this->fieldSecurityPolicy->user;
     }
+    /** @var Dictionary<AbstractTool> Every tool the application resolves, keyed by name. Resolving the catalogue is the responder's work, not a tool's; this is here for a tool that was written against it and will be removed. @internal */
+    protected Dictionary $tools {
+        get => $this->tools ??= new ToolResolver($this->context, $this->descriptor)->resolve()->reduce(new Dictionary(),
+            /**
+             * @param Dictionary<AbstractTool> $tools
+             * @return Dictionary<AbstractTool>
+             */
+            function (Dictionary $tools, AbstractTool $tool): Dictionary {
+                $tools[$tool->name] = $tool;
+                return $tools;
+            });
+    }
 
     /**
      * @param ManagedObjectContext $context The context used to execute the tool's data operations.
      * @param ModelDescriptor $descriptor The model schema exposed to the tool.
      */
-    public function __construct(private readonly ManagedObjectContext $context, protected readonly ModelDescriptor $descriptor)
+    public function __construct(protected readonly ManagedObjectContext $context, protected readonly ModelDescriptor $descriptor)
     {
     }
 
@@ -141,7 +129,7 @@ abstract class AbstractTool
      *
      * @param Dictionary<mixed> $arguments The arguments selecting the concrete operation.
      */
-    public function isReadOnlyCall(Dictionary $arguments): bool
+    public function isReadOnlyCall(/** @noinspection PhpUnusedParameterInspection */ Dictionary $arguments): bool
     {
         return $this->isReadOnly;
     }
@@ -165,7 +153,6 @@ abstract class AbstractTool
     {
         return $this->isReadOnlyCall($arguments) ? AuthorizationType::read : AuthorizationType::update;
     }
-
 
     /**
      * Invokes the tool: authorizes the call, then runs its core.
@@ -192,144 +179,6 @@ abstract class AbstractTool
     abstract protected function executeCore(Dictionary $arguments): ArrayClass;
 
     /**
-     * Fetches the rows the caller may read, each object filtered to the fields the caller may read as it is accessed.
-     *
-     * @return ArrayClass<mixed>
-     * @throws Exception
-     */
-    protected function fetch(FetchRequest $request): ArrayClass
-    {
-        return new ReadPersistentSpaceOperation($this->context, $this->fieldSecurityPolicy, $request)->perform();
-    }
-
-    /**
-     * Counts the rows the caller may read.
-     *
-     * @throws Exception
-     */
-    protected function count(FetchRequest $request): int
-    {
-        return new CountPersistentSpaceOperation($this->context, $this->fieldSecurityPolicy, $request)->perform();
-    }
-
-    /**
-     * @param Dictionary<mixed> $values
-     * @param Dictionary<mixed>|null $serialization
-     * @return Dictionary<mixed>
-     * @throws Exception
-     */
-    protected function create(string $entityName, Dictionary $values, ?Dictionary $serialization = null): Dictionary
-    {
-        return new CreatePersistentSpaceOperation($this->context, $this->fieldSecurityPolicy, EntityDescription::entity($entityName, $this->context), $values, $serialization)->perform();
-    }
-
-    /**
-     * @param Dictionary<mixed> $values
-     * @param Dictionary<mixed>|null $serialization
-     * @return Dictionary<mixed>
-     * @throws Exception
-     */
-    protected function update(string $entityName, ManagedObjectID|int|string $objectID, Dictionary $values, ?Dictionary $serialization = null): Dictionary
-    {
-        return new UpdatePersistentSpaceOperation($this->context, $this->fieldSecurityPolicy, EntityDescription::entity($entityName, $this->context), $objectID, $values, $serialization)->perform();
-    }
-
-    /**
-     * @throws Exception
-     */
-    protected function delete(string $entityName, ManagedObjectID|int|string $objectID): void
-    {
-        new DeletePersistentSpaceOperation($this->context, $this->fieldSecurityPolicy, EntityDescription::entity($entityName, $this->context), $objectID)->perform();
-    }
-
-    /**
-     * @template T of ManagedObject
-     * @param Closure(T): void $modification
-     * @param Dictionary<mixed>|null $serialization
-     * @return Dictionary<mixed>
-     * @throws Exception
-     */
-    protected function modify(string $entityName, ManagedObjectID|int|string $objectID, Closure $modification, ?Dictionary $serialization = null): Dictionary
-    {
-        return new ModifyPersistentSpaceOperation($this->context, $this->fieldSecurityPolicy, EntityDescription::entity($entityName, $this->context), $objectID, $modification, $serialization)->perform();
-    }
-
-    /**
-     * @throws Exception
-     */
-    protected function executeHistory(PersistentHistoryChangeRequest $changeRequest, ?FetchRequest $transactionFilter = null): PersistentHistoryResult
-    {
-        return new PersistentHistoryOperation($this->context, $changeRequest, $transactionFilter)->perform();
-    }
-
-    /**
-     * @throws Exception
-     */
-    protected function runJob(Job $job): void
-    {
-        new JobOperation($this->context, $job, $this->user?->username ?? "system")->perform();
-    }
-
-    protected function entityDescription(string $entityName): ?EntityDescription
-    {
-        /** @var EntityDescription|null */
-        return $this->context->persistentStoreCoordinator?->managedObjectModel?->entitiesByName[$entityName];
-    }
-
-    /**
-     * @return Dictionary<AbstractTool>
-     */
-    protected function tools(): Dictionary
-    {
-        return new ToolResolver($this->context, $this->descriptor)->resolve()->reduce(new Dictionary(),
-            /**
-             * @param Dictionary<AbstractTool> $tools
-             * @return Dictionary<AbstractTool>
-             */
-            function (Dictionary $tools, AbstractTool $tool): Dictionary {
-                $tools[$tool->name] = $tool;
-                return $tools;
-            });
-    }
-
-    /**
-     * Enforces the field-level `#[Readable]` on every key path a tool reads without materializing
-     * the rows behind it — the guard {@see self::fetch()} provides for a tool that serializes
-     * objects, which an aggregate or a grouping never does.
-     *
-     * Call this on each key path an aggregate computes over or groups by, before executing the
-     * request. {@see self::fetchObjects()} narrows which rows are read; this narrows which columns,
-     * and the two are not interchangeable: a protected column aggregated over permitted rows
-     * still discloses the column.
-     *
-     * @throws ForbiddenException When the caller may not read the key path.
-     * @throws Exception
-     */
-    protected function enforceFieldRead(string $entityName, string $keyPath): void
-    {
-        if (!$this->isSecurityEnabled) {
-            return;
-        }
-        $parts = new ArrayClass(explode(".", $keyPath));
-        $schema = $this->entity($entityName);
-        /** @var string $field */
-        $field = $parts->last;
-        foreach ($parts->dropLast(1) as $part) {
-            $relationship = $schema->relationships[$part];
-            if (!$relationship instanceof RelationshipSchema) {
-                return;
-            }
-            $schema = $this->entity($relationship->target);
-        }
-        /** @var class-string<ManagedObject> $className */
-        $className = $schema->className;
-        if (class_exists($className)) {
-            $this->fieldSecurityPolicy->enforceFieldRead($className, $field, $keyPath);
-        }
-    }
-
-
-    /**
      * Enforces per-entity RBAC for the resource this tool call targets — the check
      * `AuthorizationEvaluator` performs by URL for regular endpoints, which never sees the
      * entity an MCP tool operates on because the request URL is always `/mcp`. Both ask
@@ -354,179 +203,6 @@ abstract class AbstractTool
         if ($resource = $this->authorizationResource($arguments)) {
             $this->enforceEntityAuthorization($resource, $this->authorizationAction($arguments));
         }
-    }
-
-    protected function entity(string $name): EntitySchema
-    {
-        /** @var EntitySchema */
-        return $this->descriptor->schema->entities[$name] ?? fatal_error("Unknown entity: \"$name\"");
-    }
-
-    protected function validateKeyPath(string $entityName, string $keyPath): void
-    {
-        $parts = explode(".", $keyPath);
-        $current = $this->entity($entityName);
-        $last = count($parts) - 1;
-        foreach ($parts as $index => $part) {
-            if ($index === $last) {
-                if (!$current->attributes[$part] && !$current->relationships[$part]) {
-                    fatal_error("Unknown property \"$part\" on $current->name. Attributes: {$current->attributes->keys}. Relationships: {$current->relationships->keys}.");
-                }
-                return;
-            }
-            /** @var RelationshipSchema $relationship */
-            $relationship = $current->relationships[$part] ?? fatal_error("\"$part\" is not a relationship on $current->name. Relationships: {$current->relationships->keys}.");
-            $current = $this->entity($relationship->target);
-        }
-    }
-
-    /**
-     * @param string $entityName
-     * @param string $format
-     * @param ArrayClass<string> $arguments
-     */
-    protected function validatePredicateKeyPaths(string $entityName, string $format, ArrayClass $arguments): void
-    {
-        preg_match_all("/%[K@sdf]/", $format, $matches);
-        $placeholders = new ArrayClass($matches[0]);
-        $arguments->count === $placeholders->count ?: $arguments
-                |> human_readable_value(...)
-                |> (fn(string $x): string => sprintf("Invalid predicate: %d argument(s) provided but %d placeholder(s) found in \"%s\". Each placeholder (%s) requires exactly one argument in the same position.\n%s", $arguments->count, $placeholders->count, $format, $placeholders->join(", "), $x))
-                |> fatal_error(...);
-        foreach ($placeholders as $index => $placeholder) {
-            if ($placeholder !== "%K") {
-                continue;
-            }
-            $keyPath = $arguments[$index];
-            $this->validateKeyPath($entityName, $keyPath);
-            $attribute = $this->resolveAttribute($entityName, $keyPath);
-            if (!$attribute?->enum) {
-                continue;
-            }
-            if ($arguments->count <= $index + 1) {
-                continue;
-            }
-            $value = $arguments[$index + 1];
-            /** @var Dictionary<string|int> $cases */
-            $cases = $attribute?->enum->cases ?? new Dictionary();
-            $invalid = $value instanceof ArrayClass ? $value->filter(fn(mixed $v): bool => !$cases->containsElement($v)) : ($cases->containsElement($value) ? new ArrayClass() : new ArrayClass([$value]));
-            if ($invalid->isEmpty) {
-                continue;
-            }
-            $map = $cases->map(fn(string|int $v, string $k): string => "\"$k\" → $v")->join(", ");
-            fatal_error(sprintf("Invalid enum value for \"%s\": %s. Pass the mapped value, not the case name. Cases: %s", $keyPath, $invalid->description, $map));
-        }
-    }
-
-    private function resolveAttribute(string $entityName, string $keyPath): ?AttributeSchema
-    {
-        $parts = explode(".", $keyPath);
-        $current = $this->entity($entityName);
-        $last = count($parts) - 1;
-        foreach ($parts as $index => $part) {
-            if ($index === $last) {
-                return $current->attributes[$part];
-            }
-            /** @var RelationshipSchema|null $relationship */
-            $relationship = $current->relationships[$part];
-            if (!$relationship) {
-                return null;
-            }
-            $current = $this->entity($relationship->target);
-        }
-        return null;
-    }
-
-    protected function fetchRequest(string $entityName): FetchRequest
-    {
-        $model = $this->context->persistentStoreCoordinator?->managedObjectModel ?? fatal_error("No managed object model");
-        /** @var EntityDescription $entity */
-        $entity = $model->entitiesByName[$entityName] ?? fatal_error("Unknown entity: $entityName");
-        $request = new FetchRequest();
-        $request->entity = $entity;
-        return $request;
-    }
-
-    /**
-     * Rejects an attempt to create a row for an abstract entity. Abstract entities have
-     * no table of their own and cannot be instantiated — a concrete sub-entity must be
-     * created instead. Call this before inserting.
-     */
-    protected function assertConcreteEntity(string $entityName): void
-    {
-        $entity = EntityDescription::entity($entityName, $this->context);
-        if (!$entity->isAbstract) {
-            return;
-        }
-        $concrete = $entity->subentities->filter(fn(EntityDescription $subentity): bool => !$subentity->isAbstract)->map(fn(EntityDescription $subentity): string => $subentity->name);
-        $hint = $concrete->isEmpty ? "It has no concrete sub-entities." : "Create one of its concrete sub-entities instead: {$concrete->join(", ")}.";
-        fatal_error("\"$entityName\" is an abstract entity and cannot be instantiated. $hint");
-    }
-
-    protected function buildPredicate(string $format, ArrayClass $arguments): Predicate
-    {
-        return Predicate::format($format, $arguments) ?? fatal_error("Invalid predicate format");
-    }
-
-    protected function normalizeRelationships(string $entityName, Dictionary $values): Dictionary
-    {
-        $schema = $this->entity($entityName);
-        $normalized = clone $values;
-        foreach ($values as $key => $value) {
-            if ($schema->relationships[$key] && is_numeric($value)) {
-                $normalized[$key] = new Dictionary([ManagedObjectObjectIDKey => $value]);
-            }
-        }
-        return $normalized;
-    }
-
-    /**
-     * Derives a serialization shape from the values passed to a create/update, so the response can
-     * echo back exactly the graph that was written — attributes as leaves, related objects (nested
-     * dictionaries, or arrays of them) recursed into — without an extra fetch. The shape is the
-     * structure of what was created, which is already known at write time.
-     *
-     * @param string $entityName
-     * @param Dictionary<mixed> $values
-     * @return Dictionary<mixed>
-     */
-    protected function shapeFromValues(string $entityName, Dictionary $values): Dictionary
-    {
-        $schema = $this->entity($entityName);
-        /** @var Dictionary<mixed> $shape */
-        $shape = new Dictionary();
-        foreach ($values as $key => $value) {
-            $relationship = $schema->relationships[$key];
-            if (!$relationship instanceof RelationshipSchema) {
-                $shape[$key] = true;
-                continue;
-            }
-            /** @var ArrayClass<mixed> $children */
-            $children = $value instanceof Dictionary ? new ArrayClass([$value]) : ($value instanceof ArrayClass ? $value : new ArrayClass());
-            /** @var Dictionary<mixed> $subShape */
-            $subShape = new Dictionary();
-            $children->forEach(function (mixed $child) use ($relationship, $subShape): void {
-                if ($child instanceof Dictionary) {
-                    $subShape->merge($this->shapeFromValues($relationship->target, $child));
-                }
-            });
-            $shape[$key] = $subShape->isEmpty ? true : $subShape;
-        }
-        return $shape;
-    }
-
-    /**
-     * Resolves the temporal substitution tokens in a predicate arguments array to literal date strings.
-     * Handles one level of nesting (e.g. BETWEEN ["$WEEK_START","$WEEK_END"]).
-     *
-     * @param ArrayClass<mixed> $params
-     * @return ArrayClass<mixed>
-     */
-    protected function resolveVariables(ArrayClass $params): ArrayClass
-    {
-        $dateMappings = new AccessConditionResolver()->variables;
-        $resolve = fn(mixed $v): mixed => is_string($v) && $dateMappings[$v] !== null ? $dateMappings[$v] : $v;
-        return $params->map(fn(mixed $value): mixed => $value instanceof ArrayClass ? $value->map($resolve) : $resolve($value));
     }
 
     /** @return ArrayClass<ContentItem> */

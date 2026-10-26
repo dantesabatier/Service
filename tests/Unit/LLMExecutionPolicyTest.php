@@ -12,7 +12,8 @@ use ReflectionException;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\LLM\LLMExecutionPolicy;
 use Sabatier\Service\LLM\LLMToolCall;
-use Sabatier\Service\MCP\Tools\PersistentHistoryTool;
+use Sabatier\Service\MCP\Tools\FetchHistoryTool;
+use Sabatier\Service\MCP\Tools\PurgeHistoryTool;
 
 final class LLMExecutionPolicyTest extends TestCase
 {
@@ -43,12 +44,14 @@ final class LLMExecutionPolicyTest extends TestCase
 
     /** @throws ReflectionException */
     #[Test]
-    public function mixedToolsClassifyTheConcreteOperation(): void
+    public function readingAndPurgingHistoryAreSeparateTools(): void
     {
-        /** @var PersistentHistoryTool $tool */
-        $tool = new ReflectionClass(PersistentHistoryTool::class)->newInstanceWithoutConstructor();
+        /** @var FetchHistoryTool $fetch */
+        $fetch = new ReflectionClass(FetchHistoryTool::class)->newInstanceWithoutConstructor();
+        /** @var PurgeHistoryTool $purge */
+        $purge = new ReflectionClass(PurgeHistoryTool::class)->newInstanceWithoutConstructor();
 
-        $this->assertTrue($tool->isReadOnlyCall(new Dictionary(["operation" => "fetch"])));
-        $this->assertFalse($tool->isReadOnlyCall(new Dictionary(["operation" => "purge"])));
+        $this->assertTrue($fetch->isReadOnlyCall(new Dictionary()));
+        $this->assertFalse($purge->isReadOnlyCall(new Dictionary()));
     }
 }

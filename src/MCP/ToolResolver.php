@@ -19,11 +19,12 @@ use Sabatier\Service\MCP\Tools\CountTool;
 use Sabatier\Service\MCP\Tools\CreateTool;
 use Sabatier\Service\MCP\Tools\DeleteTool;
 use Sabatier\Service\MCP\Tools\DescribeModelTool;
+use Sabatier\Service\MCP\Tools\FetchHistoryTool;
 use Sabatier\Service\MCP\Tools\FetchTool;
 use Sabatier\Service\MCP\Tools\GetServerTimeTool;
 use Sabatier\Service\MCP\Tools\GroupByTool;
 use Sabatier\Service\MCP\Tools\JobTool;
-use Sabatier\Service\MCP\Tools\PersistentHistoryTool;
+use Sabatier\Service\MCP\Tools\PurgeHistoryTool;
 use Sabatier\Service\MCP\Tools\UpdateTool;
 use Sabatier\Service\MCP\Tools\WebSearchTool;
 use function Sabatier\Foundation\string_is_equal;
@@ -50,7 +51,8 @@ final readonly class ToolResolver
         UpdateTool::class,
         DeleteTool::class,
         JobTool::class,
-        PersistentHistoryTool::class,
+        FetchHistoryTool::class,
+        PurgeHistoryTool::class,
         GetServerTimeTool::class,
         WebSearchTool::class
     ];

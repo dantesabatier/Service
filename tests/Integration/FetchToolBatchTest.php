@@ -151,10 +151,10 @@ final class FetchToolBatchTest extends TestCase
     private function fetch(ManagedObjectContext $context): array
     {
         $arguments = new Dictionary([
-            "entity" => self::entityName,
+            "entityName" => self::entityName,
             "serialization" => new Dictionary(["n" => true, "label" => true]),
-            "sort" => new ArrayClass([new Dictionary(["key" => "n", "ascending" => true])]),
-            "batchSize" => self::batchSize,
+            "sortDescriptors" => new ArrayClass([new Dictionary(["key" => "n", "ascending" => true])]),
+            "fetchBatchSize" => self::batchSize,
         ]);
         $content = $this->tool($context)->call($arguments)->first;
         $this->assertNotNull($content);

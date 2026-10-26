@@ -1,52 +1,56 @@
 {
-  "tools": {
-    "describe_model": {
-      "title": "Describir modelo",
-      "description": "Devuelve el esquema completo de todas las entidades, atributos, relaciones y casos de enumeración. Llámalo antes que cualquier otra herramienta: los nombres de atributo son específicos del sistema y no pueden adivinarse (p. ej. isEnabled, no isActive)."
-    },
-    "fetch": {
-      "title": "Consultar",
-      "description": "Consulta filas de una entidad con filtrado, ordenación y paginación opcionales. Llámala una sola vez por consulta: confía en el resultado aunque el conteo sea 0; no reintentes con predicados reformulados."
-    },
-    "count": {
-      "title": "Contar",
-      "description": "Cuenta las entidades que cumplen un predicado opcional."
-    },
-    "aggregate": {
-      "title": "Agregar",
-      "description": "Calcula valores agregados de una entidad."
-    },
-    "group_by": {
-      "title": "Agrupar",
-      "description": "Agrupa filas y calcula agregados. Llámala una sola vez por consulta: si rowCount es 0, no hay datos; no reintentes con argumentos o alias distintos."
-    },
-    "create": {
-      "title": "Crear",
-      "description": "Crea una fila de entidad, incluyendo cualquier objeto relacionado anidado bajo `values` (atributos, relaciones a-uno y a-muchos, y grafos más profundos) en una sola llamada. Úsala siempre que una fila tenga relaciones u objetos anidados, incluso al crear varias filas relacionadas a la vez. Para insertar muchas filas planas independientes de la misma entidad, llámala una vez por fila."
-    },
-    "update": {
-      "title": "Actualizar",
-      "description": "Actualiza una entidad existente."
-    },
-    "delete": {
-      "title": "Eliminar",
-      "description": "Elimina una fila existente. Sus filas relacionadas siguen el deleteRule que describe_model informa en cada una de sus relaciones, así que revísalo antes de eliminar: `cascade` elimina las filas relacionadas junto con esta, en la misma llamada — elimina solo el padre, nunca antes a sus hijos; `nullify` conserva las filas relacionadas y solo las desvincula; `deny` rechaza la eliminación mientras queden filas relacionadas, así que elimínalas o revincúlalas primero; `noAction` no hace nada con las filas relacionadas — según el store, la eliminación se rechaza o quedan apuntando a una fila que ya no existe —, así que elimínalas o revincúlalas primero."
-    },
-    "run_job": {
-      "title": "Ejecutar tarea",
-      "description": "Ejecuta una tarea de la aplicación por su nombre."
-    },
-    "persistent_history": {
-      "title": "Historial persistente",
-      "description": "Consulta o purga el registro de cambios del historial persistente de Core Data.\n\"operation\":\"purge\" es destructivo y elimina permanentemente las transacciones del historial.\nAmbas operaciones requieren exactamente un parámetro de alcance — \"date\", \"transaction\" o \"token\" — que marca el límite: la consulta devuelve el historial posterior a él, la purga elimina el historial anterior. Cuando se indica más de uno, la precedencia es date > transaction > token.\n\"predicate\" filtra adicionalmente el historial dentro del alcance; se aplica a ambas operaciones. Actúa sobre \"entity\": PersistentHistoryTransaction por defecto, o PersistentHistoryChange.\n\"resultType\" solo aplica a la consulta y se ignora en la purga.\nSolo tiene sentido cuando el seguimiento de historial persistente está habilitado para el almacén."
-    },
-    "get_server_time": {
-      "title": "Obtener hora del servidor",
-      "description": "Devuelve la fecha, hora y zona horaria actuales del servidor."
-    },
-    "web_search": {
-      "title": "Búsqueda web",
-      "description": "Busca en la web con el proveedor configurado por la aplicación."
+    "tools": {
+        "describe_model": {
+            "title": "Describir modelo",
+            "description": "Devuelve el esquema completo de todas las entidades, atributos, relaciones y casos de enumeración. Llámalo antes que cualquier otra herramienta: los nombres de atributo son específicos del sistema y no pueden adivinarse (p. ej. isEnabled, no isActive)."
+        },
+        "fetch": {
+            "title": "Consultar",
+            "description": "Consulta filas de una entidad con filtrado, ordenación y paginación opcionales. Llámala una sola vez por consulta: confía en el resultado aunque el conteo sea 0; no reintentes con predicados reformulados."
+        },
+        "count": {
+            "title": "Contar",
+            "description": "Cuenta las entidades que cumplen un predicado opcional."
+        },
+        "aggregate": {
+            "title": "Agregar",
+            "description": "Calcula valores agregados de una entidad."
+        },
+        "group_by": {
+            "title": "Agrupar",
+            "description": "Agrupa filas y calcula agregados. Llámala una sola vez por consulta: si rowCount es 0, no hay datos; no reintentes con argumentos o alias distintos."
+        },
+        "create": {
+            "title": "Crear",
+            "description": "Crea una fila de entidad, incluyendo cualquier objeto relacionado anidado bajo `values` (atributos, relaciones a-uno y a-muchos, y grafos más profundos) en una sola llamada. Úsala siempre que una fila tenga relaciones u objetos anidados, incluso al crear varias filas relacionadas a la vez. Para insertar muchas filas planas independientes de la misma entidad, llámala una vez por fila."
+        },
+        "update": {
+            "title": "Actualizar",
+            "description": "Actualiza una entidad existente."
+        },
+        "delete": {
+            "title": "Eliminar",
+            "description": "Elimina una fila existente. Sus filas relacionadas siguen el deleteRule que describe_model informa en cada una de sus relaciones, así que revísalo antes de eliminar: `cascade` elimina las filas relacionadas junto con esta, en la misma llamada — elimina solo el padre, nunca antes a sus hijos; `nullify` conserva las filas relacionadas y solo las desvincula; `deny` rechaza la eliminación mientras queden filas relacionadas, así que elimínalas o revincúlalas primero; `noAction` no hace nada con las filas relacionadas — según el store, la eliminación se rechaza o quedan apuntando a una fila que ya no existe —, así que elimínalas o revincúlalas primero."
+        },
+        "run_job": {
+            "title": "Ejecutar tarea",
+            "description": "Ejecuta una tarea de la aplicación por su nombre."
+        },
+        "fetch_history": {
+            "title": "Consultar historial",
+            "description": "Lee el registro de cambios del historial persistente de Core Data.\nRequiere exactamente un alcance que marque el límite a partir del cual se lee — \"afterDate\", \"afterTransaction\" o \"afterToken\". Cuando se indica más de uno, la precedencia es date > transaction > token.\n\"predicate\" acota adicionalmente el historial dentro del alcance y actúa sobre \"entityName\": PersistentHistoryTransaction por defecto, o PersistentHistoryChange.\n\"resultType\" es el valor bruto de PersistentHistoryResultType y define la forma de lo que se devuelve.\nSolo tiene sentido cuando el seguimiento de historial persistente está habilitado para el almacén."
+        },
+        "purge_history": {
+            "title": "Purgar historial",
+            "description": "Elimina permanentemente transacciones del registro de cambios del historial persistente de Core Data. Es destructivo y no se puede deshacer.\nRequiere exactamente un alcance que marque el límite anterior al cual se elimina — \"beforeDate\", \"beforeTransaction\" o \"beforeToken\". Cuando se indica más de uno, la precedencia es date > transaction > token.\n\"predicate\" acota adicionalmente qué transacciones se purgan y actúa sobre \"entityName\": PersistentHistoryTransaction por defecto, o PersistentHistoryChange.\nSolo tiene sentido cuando el seguimiento de historial persistente está habilitado para el almacén."
+        },
+        "get_server_time": {
+            "title": "Obtener hora del servidor",
+            "description": "Devuelve la fecha, hora y zona horaria actuales del servidor."
+        },
+        "web_search": {
+            "title": "Búsqueda web",
+            "description": "Busca en la web con el proveedor configurado por la aplicación."
+        }
     }
-  }
 }

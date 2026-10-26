@@ -9,26 +9,23 @@ use Override;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\AuthorizationType;
+use Sabatier\Service\DeletePersistentSpaceOperation;
 use Sabatier\Service\MCP\Response\ContentItem;
 use function Sabatier\Foundation\fatal_error;
 
 /** @internal */
-final class DeleteTool extends AbstractTool
+final class DeleteTool extends WriteTool
 {
     #[Override]
     public string $name {
         get => "delete";
     }
     #[Override]
-    public bool $isOpenWorld {
-        get => false;
-    }
-    #[Override]
     public array $inputSchema {
         get => [
             "type" => "object",
-            "properties" => ["entity" => ["type" => "string", "description" => "Always required. Entity name from the data model — call describe_model first if unsure."], "objectID" => ["type" => "integer", "description" => "Always required. The row to delete; the rows related to it follow each relationship's deleteRule."]],
-            "required" => ["entity", "objectID"],
+            "properties" => ["entityName" => self::entityNameArgument, "objectID" => ["type" => "integer", "description" => "Always required. The row to delete; the rows related to it follow each relationship's deleteRule."]],
+            "required" => ["entityName", "objectID"],
         ];
     }
 
@@ -45,10 +42,9 @@ final class DeleteTool extends AbstractTool
     #[Override]
     protected function executeCore(Dictionary $arguments): ArrayClass
     {
-        /** @var string $entity */
-        $entity = $arguments["entity"] ?? fatal_error("entity is required");
+        $entityName = $this->entityName($arguments);
         $objectID = $arguments["objectID"] ?? fatal_error("objectID is required");
-        $this->delete($entity, $objectID);
+        new DeletePersistentSpaceOperation($this->context, $this->fieldSecurityPolicy, $this->entity($entityName), $objectID)->perform();
         return $this->jsonResult(["deleted" => $objectID]);
     }
 }

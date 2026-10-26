@@ -150,9 +150,8 @@ final class TemporalVariableResolutionTest extends TestCase
     private function arguments(): Dictionary
     {
         return new Dictionary([
-            "entity" => self::entityName,
-            "predicate" => "%K == %@",
-            "arguments" => new ArrayClass(["creationDate", "\$WEEK_START"]),
+            "entityName" => self::entityName,
+            "predicate" => new Dictionary(["format" => "%K == %@", "arguments" => new ArrayClass(["creationDate", "\$WEEK_START"])]),
         ]);
     }
 
@@ -162,7 +161,7 @@ final class TemporalVariableResolutionTest extends TestCase
     {
         $tool = new CountTool($this->context(), $this->descriptor());
         $this->disableSecurity($tool);
-        $this->assertSame(["count" => 1], $this->decode($tool->call($this->arguments())));
+        $this->assertSame(1, $this->decode($tool->call($this->arguments()))["count"]);
     }
 
     /** @throws Exception */
@@ -170,12 +169,11 @@ final class TemporalVariableResolutionTest extends TestCase
     public function aggregateResolvesTemporalPredicateArguments(): void
     {
         $arguments = $this->arguments();
-        $arguments["function"] = "median";
-        $arguments["property"] = "amount";
+        $arguments["propertiesToFetch"] = new ArrayClass([new Dictionary(["name" => "result", "expression" => new Dictionary(["format" => "median:(%K)", "arguments" => new ArrayClass(["amount"])]), "resultType" => AttributeType::double->value])]);
         $tool = new AggregateTool($this->context(), $this->descriptor());
         $this->disableSecurity($tool);
         $decoded = $this->decode($tool->call($arguments));
-        $this->assertSame(42, $decoded["result"]);
+        $this->assertEquals(42, $decoded["results"]["result"]);
     }
 
     /** @throws Exception */
@@ -193,8 +191,8 @@ final class TemporalVariableResolutionTest extends TestCase
     public function groupByResolvesTemporalPredicateArguments(): void
     {
         $arguments = $this->arguments();
-        $arguments["group_by"] = new ArrayClass(["creationDate"]);
-        $arguments["aggregates"] = new ArrayClass([new Dictionary(["function" => "count", "property" => "amount", "as" => "total"])]);
+        $arguments["propertiesToGroupBy"] = new ArrayClass(["creationDate"]);
+        $arguments["propertiesToFetch"] = new ArrayClass(["creationDate", new Dictionary(["name" => "total", "expression" => new Dictionary(["format" => "count:(%K)", "arguments" => new ArrayClass(["amount"])]), "resultType" => AttributeType::integer64->value])]);
         $tool = new GroupByTool($this->context(), $this->descriptor());
         $this->disableSecurity($tool);
         $decoded = $this->decode($tool->call($arguments));
@@ -202,7 +200,7 @@ final class TemporalVariableResolutionTest extends TestCase
     }
 
     /**
-     * `having_arguments` is resolved on its own line, independently of `arguments`, so it needs its
+     * The having predicate is resolved on its own line, independently of the row predicate, so it needs its
      * own case: the group predicate can regress while the row predicate keeps working.
      * @throws Exception
      */
@@ -210,11 +208,10 @@ final class TemporalVariableResolutionTest extends TestCase
     public function groupByResolvesTemporalHavingArguments(): void
     {
         $arguments = new Dictionary([
-            "entity" => self::entityName,
-            "group_by" => new ArrayClass(["creationDate"]),
-            "aggregates" => new ArrayClass([new Dictionary(["function" => "count", "property" => "amount", "as" => "total"])]),
-            "having_predicate" => "%K == %@",
-            "having_arguments" => new ArrayClass(["creationDate", "\$WEEK_START"]),
+            "entityName" => self::entityName,
+            "propertiesToGroupBy" => new ArrayClass(["creationDate"]),
+            "propertiesToFetch" => new ArrayClass(["creationDate", new Dictionary(["name" => "total", "expression" => new Dictionary(["format" => "count:(%K)", "arguments" => new ArrayClass(["amount"])]), "resultType" => AttributeType::integer64->value])]),
+            "havingPredicate" => new Dictionary(["format" => "%K == %@", "arguments" => new ArrayClass(["creationDate", "\$WEEK_START"])]),
         ]);
         $tool = new GroupByTool($this->context(), $this->descriptor());
         $this->disableSecurity($tool);

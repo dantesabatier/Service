@@ -9,25 +9,22 @@ use Override;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\MCP\Response\ContentItem;
+use Sabatier\Service\UpdatePersistentSpaceOperation;
 use function Sabatier\Foundation\fatal_error;
 
 /** @internal */
-final class UpdateTool extends AbstractTool
+final class UpdateTool extends WriteTool
 {
     #[Override]
     public string $name {
         get => "update";
     }
     #[Override]
-    public bool $isOpenWorld {
-        get => false;
-    }
-    #[Override]
     public array $inputSchema {
         get => [
             "type" => "object",
-            "properties" => ["entity" => ["type" => "string", "description" => "Always required. Entity name from the data model — call describe_model first if unsure."], "objectID" => ["type" => "integer", "description" => "Always required. The row to update."], "values" => ["type" => "object", "description" => "Only the fields to change — anything you omit is left as it is, so a single attribute is a valid update: {\"status\": 2} touches one column. Relationships take the same shape as in create and write the whole graph in this one call: a nested object with no objectID is created, one carrying an objectID is the row that already exists and any fields alongside it update that row. So {\"customer\": 42} relinks, {\"customer\": {\"objectID\": 42, \"email\": \"a@b.c\"}} also updates that customer rather than adding a second one, and {\"items\": [{\"sku\": \"X\"}]} adds an item to the to-many. When the relationship targets an entity the schema marks `\"abstract\": true`, every nested object must name the concrete sub-entity with \"entityName\", since the abstract one cannot be instantiated. Sending a to-many REPLACES its contents: a row you leave out is not merely unlinked but deleted if the relationship cascades, so send every row you mean to keep, each carrying its objectID. To touch one child, fetch the relationship first and send it back whole. Always include at least one of the row's own attributes, even at its current value: values that carry only relationships write the related rows but leave the row itself unmodified, so the values it derives from them are not recomputed. Only fields you are authorized to write are applied; the rest are discarded."]],
-            "required" => ["entity", "objectID", "values"],
+            "properties" => ["entityName" => self::entityNameArgument, "objectID" => ["type" => "integer", "description" => "Always required. The row to update."], "values" => ["type" => "object", "description" => "Only the fields to change — anything you omit is left as it is, so a single attribute is a valid update: {\"status\": 2} touches one column. Relationships take the same shape as in create and write the whole graph in this one call: a nested object with no objectID is created, one carrying an objectID is the row that already exists and any fields alongside it update that row. So {\"customer\": 42} relinks, {\"customer\": {\"objectID\": 42, \"email\": \"a@b.c\"}} also updates that customer rather than adding a second one, and {\"items\": [{\"sku\": \"X\"}]} adds an item to the to-many. When the relationship targets an entity the schema marks `\"abstract\": true`, every nested object must name the concrete sub-entity with \"entityName\", since the abstract one cannot be instantiated. Sending a to-many REPLACES its contents: a row you leave out is not merely unlinked but deleted if the relationship cascades, so send every row you mean to keep, each carrying its objectID. To touch one child, fetch the relationship first and send it back whole. Always include at least one of the row's own attributes, even at its current value: values that carry only relationships write the related rows but leave the row itself unmodified, so the values it derives from them are not recomputed. Only fields you are authorized to write are applied; the rest are discarded."]],
+            "required" => ["entityName", "objectID", "values"],
         ];
     }
 
@@ -38,10 +35,10 @@ final class UpdateTool extends AbstractTool
     #[Override]
     protected function executeCore(Dictionary $arguments): ArrayClass
     {
-        /** @var string $entity */
-        $entity = $arguments["entity"] ?? fatal_error("entity is required");
+        $entityName = $this->entityName($arguments);
         $objectID = $arguments["objectID"] ?? fatal_error("objectID is required");
+        /** @var Dictionary<mixed> $values */
         $values = $arguments["values"] ?? fatal_error("values is required");
-        return $this->jsonResult($this->update($entity, $objectID, $this->normalizeRelationships($entity, $values)));
+        return $this->jsonResult(new UpdatePersistentSpaceOperation($this->context, $this->fieldSecurityPolicy, $this->entity($entityName), $objectID, $this->normalizeRelationships($entityName, $values))->perform());
     }
 }

@@ -8,35 +8,19 @@ use Exception;
 use Override;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
+use Sabatier\Service\CountPersistentSpaceOperation;
 use Sabatier\Service\MCP\Response\ContentItem;
-use function Sabatier\Foundation\fatal_error;
 
 /** @internal */
-final class CountTool extends AbstractTool
+final class CountTool extends FetchTool
 {
     #[Override]
     public string $name {
         get => "count";
     }
     #[Override]
-    public bool $isReadOnly {
-        get => true;
-    }
-    #[Override]
-    public bool $isOpenWorld {
-        get => false;
-    }
-    #[Override]
     public array $inputSchema {
-        get => [
-            "type" => "object",
-            "properties" => [
-                "entity" => ["type" => "string", "description" => "Always required. Entity name from the data model — call describe_model first if unsure."],
-                "predicate" => ["type" => "string"],
-                "arguments" => ["type" => "array"],
-            ],
-            "required" => ["entity"],
-        ];
+        get => ["type" => "object", "properties" => ["entityName" => self::requestSchema["entityName"], "predicate" => self::requestSchema["predicate"], "includesSubentities" => self::requestSchema["includesSubentities"]], "required" => ["entityName"]];
     }
 
     /**
@@ -46,17 +30,6 @@ final class CountTool extends AbstractTool
     #[Override]
     protected function executeCore(Dictionary $arguments): ArrayClass
     {
-        /** @var string $entity */
-        $entity = $arguments["entity"] ?? fatal_error("entity is required");
-        $request = $this->fetchRequest($entity);
-        /** @var string|null $predicate */
-        $predicate = $arguments["predicate"];
-        /** @var ArrayClass<mixed> $params */
-        $params = $this->resolveVariables($arguments["arguments"] ?? new ArrayClass());
-        if ($predicate) {
-            $this->validatePredicateKeyPaths($entity, $predicate, $params);
-            $request->predicate = $this->buildPredicate($predicate, $params);
-        }
-        return $this->jsonResult(["count" => $this->count($request)]);
+        return $this->jsonResult(["entityName" => $arguments["entityName"], "count" => new CountPersistentSpaceOperation($this->context, $this->fieldSecurityPolicy, $this->fetchRequest($arguments))->perform()]);
     }
 }

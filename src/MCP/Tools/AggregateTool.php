@@ -5,105 +5,58 @@ declare(strict_types=1);
 namespace Sabatier\Service\MCP\Tools;
 
 use Exception;
-use JsonException;
 use Override;
-use Sabatier\CoreData\AttributeType;
-use Sabatier\CoreData\ExpressionDescription;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\FetchRequestResultType;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
-use Sabatier\Foundation\Predicates\Expression;
 use Sabatier\Service\MCP\Response\ContentItem;
-use Sabatier\Service\MCP\Schema\AttributeSchema;
-use function Sabatier\Foundation\fatal_error;
+use Sabatier\Service\ReadPersistentSpaceOperation;
 
 /** @internal */
-final class AggregateTool extends AbstractTool
+final class AggregateTool extends GroupByTool
 {
-    private const array inMemoryFunctions = ["median", "mode", "stddev"];
-    private const array allowedFunctions = ["sum", "average", "min", "max", "count", "median", "mode", "stddev"];
-    private const array expressionNames = ["sum" => "sum:", "average" => "average:", "min" => "min:", "max" => "max:", "count" => "count:", "median" => "median:", "mode" => "mode:", "stddev" => "stddev:"];
-    private const array resultTypes = ["sum" => AttributeType::double, "average" => AttributeType::double, "min" => AttributeType::double, "max" => AttributeType::double, "count" => AttributeType::integer64];
     #[Override]
     public string $name {
         get => "aggregate";
     }
     #[Override]
-    public bool $isReadOnly {
-        get => true;
-    }
-    #[Override]
-    public bool $isOpenWorld {
-        get => false;
-    }
-    #[Override]
     public array $inputSchema {
-        get => [
-            "type" => "object",
-            "properties" => [
-                "entity" => ["type" => "string", "description" => "Always required. Entity name from the data model — call describe_model first if unsure."],
-                "function" => ["type" => "string", "enum" => self::allowedFunctions],
-                "property" => ["type" => "string"],
-                "predicate" => ["type" => "string"],
-                "arguments" => ["type" => "array"],
-            ],
-            "required" => ["entity", "function", "property"],
-        ];
+        get => ["type" => "object", "properties" => [...self::requestSchema, "propertiesToFetch" => self::computationSchema["propertiesToFetch"]], "required" => ["entityName", "propertiesToFetch"]];
+    }
+
+    /**
+     * An aggregate computes over the whole result rather than over groups of it, so nothing narrows the rows into groups and the result type has to be asked for.
+     *
+     * @param Dictionary<mixed> $arguments
+     * @throws Exception
+     */
+    #[Override]
+    protected function fetchRequest(Dictionary $arguments): FetchRequest
+    {
+        $request = parent::fetchRequest($arguments);
+        $request->resultType = FetchRequestResultType::dictionaryResultType;
+        return $request;
     }
 
     /**
      * @return ArrayClass<ContentItem>
-     * @throws JsonException
      * @throws Exception
      */
     #[Override]
     protected function executeCore(Dictionary $arguments): ArrayClass
     {
-        /** @var string $entity */
-        $entity = $arguments["entity"] ?? fatal_error("entity required");
-        /** @var string $function */
-        $function = $arguments["function"] ?? fatal_error("function required");
-        /** @var string $property */
-        $property = $arguments["property"] ?? fatal_error("property required");
-        in_array($function, self::allowedFunctions, true) ?: fatal_error("Invalid function");
-        $this->validateKeyPath($entity, $property);
-        $this->enforceFieldRead($entity, $property);
-        /** @var AttributeSchema|null $attribute */
-        $attribute = $this->entity($entity)->attributes[$property];
-        if ($attribute instanceof AttributeSchema && in_array($function, ["sum", "average"], true)) {
-            in_array($attribute->type, ["integer", "float", "enum"], true) ?: fatal_error("Property must be numeric type \"$attribute->type\" given");
-        }
-        $request = $this->fetchRequest($entity);
-        $predicate = $arguments["predicate"];
-        $params = $this->resolveVariables($arguments["arguments"] ?? new ArrayClass());
-        if ($predicate) {
-            $this->validatePredicateKeyPaths($entity, $predicate, $params);
-            $request->predicate = $this->buildPredicate($predicate, $params);
-        }
-        $result = in_array($function, self::inMemoryFunctions, true) ? $this->computeInMemory($request, $property, $function) : $this->computeDatabase($request, $property, $function);
-        return $this->jsonResult(["entity" => $entity, "function" => $function, "property" => $property, "result" => round($result, 4)]);
+        $rows = new ReadPersistentSpaceOperation($this->context, $this->fieldSecurityPolicy, $this->fetchRequest($arguments))->perform();
+        return $this->jsonResult(["entityName" => $arguments["entityName"], "results" => $rows->first, "summary" => $this->summary($arguments, $rows->count)]);
     }
 
-    /** @throws Exception */
-    private function computeInMemory(FetchRequest $request, string $property, string $function): float
+    /**
+     * @param Dictionary<mixed> $arguments The arguments the call was made with.
+     * @param int $rowCount How many rows came back.
+     */
+    #[Override]
+    protected function summary(Dictionary $arguments, int $rowCount): string
     {
-        $values = $this->fetch($request)->map(fn(Dictionary $row): float => (float)($row->valueForKeyPath($property) ?? 0.0));
-        return Expression::expressionForFunction(self::expressionNames[$function], new ArrayClass([Expression::expressionForConstantValue($values)]))->expressionValue()?->floatValue ?? 0.0;
-    }
-
-    /** @throws Exception */
-    private function computeDatabase(FetchRequest $request, string $property, string $function): float
-    {
-        $description = new ExpressionDescription();
-        $description->entity = $request->entity ?? fatal_error("Missing entity");
-        $description->name = "value";
-        $description->expression = Expression::expressionWithFormat(self::expressionNames[$function] . "(%K)", new ArrayClass([$property]));
-        $description->resultType = self::resultTypes[$function];
-        $request->propertiesToFetch = new ArrayClass([$description]);
-        $request->resultType = FetchRequestResultType::dictionaryResultType;
-        /** @var ArrayClass<Dictionary> $rows */
-        $rows = $this->fetch($request);
-        return (float)($rows[0]["value"] ?? 0.0);
+        return "Aggregated {$arguments["entityName"]} — result is final, do not retry";
     }
 }

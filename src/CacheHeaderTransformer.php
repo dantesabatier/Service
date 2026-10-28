@@ -15,6 +15,10 @@ namespace Sabatier\Service;
  */
 class CacheHeaderTransformer extends ResponseTransformer
 {
+    /**
+     * @param Response $response The response to transform.
+     * @param ResponseTransformerContext $context The request and the active policies the transformation reads.
+     */
     public function __construct(Response $response, ResponseTransformerContext $context = new ResponseTransformerContext())
     {
         $policy = $context->cachePolicy;

@@ -387,13 +387,13 @@ If more than one scope parameter is supplied, the framework uses this precedence
 
 ### Request headers
 
-| Header                   | Usage                                                                                                                                                                                                       |
-|--------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `Authorization`          | `Bearer <jwt>` for JWT auth; `Basic <base64>` for Basic; `Digest …` for Digest                                                                                                                              |
-| `Idempotency-Key`        | Client-generated unique key (max 255 chars) for POST/PATCH. The framework stores the response for 24 hours (default) and replays it on retry. Concurrent requests with the same key receive `409 Conflict`. |
+| Header                   | Usage                                                                                                                                                                                                                                                     |
+|--------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Authorization`          | `Bearer <jwt>` for JWT auth; `Basic <base64>` for Basic; `Digest …` for Digest                                                                                                                                                                            |
+| `Idempotency-Key`        | Client-generated unique key (max 255 chars) for POST/PATCH. The framework stores the response for 24 hours (default) and replays it on retry. Concurrent requests with the same key receive `409 Conflict`.                                               |
 | `Serialization`          | JSON object controlling which attributes and relationships are included in entity responses. Keys are attribute names; values are `true` (include) or a nested serialization object for relationships. See [Shaping the response](#shaping-the-response). |
-| `If-None-Match`          | ETag value from a previous response. Returns `304 Not Modified` when the resource has not changed.                                                                                                          |
-| `X-Http-Method-Override` | Overrides the HTTP method for clients that cannot send `PUT`/`PATCH`/`DELETE`. Honored only on a real `POST`, and only to `PUT`, `PATCH`, or `DELETE`; ignored otherwise.                                   |
+| `If-None-Match`          | ETag value from a previous response. Returns `304 Not Modified` when the resource has not changed.                                                                                                                                                        |
+| `X-Http-Method-Override` | Overrides the HTTP method for clients that cannot send `PUT`/`PATCH`/`DELETE`. Honored only on a real `POST`, and only to `PUT`, `PATCH`, or `DELETE`; ignored otherwise.                                                                                 |
 
 ### Response headers
 

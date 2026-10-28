@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Sabatier\Service;
 
-use const Sabatier\Service\MCPSessionHeader;
-
 /**
  * Writes the `Mcp-Session-Id` header on the response to an MCP handshake.
  *
@@ -19,6 +17,10 @@ use const Sabatier\Service\MCPSessionHeader;
  */
 final class MCPSessionTransformer extends ResponseTransformer
 {
+    /**
+     * @param Response $response The response to transform.
+     * @param ResponseTransformerContext $context The request and the active policies the transformation reads.
+     */
     public function __construct(Response $response, ResponseTransformerContext $context = new ResponseTransformerContext())
     {
         if ($identifier = $context->mcpSessionIdentifier) {

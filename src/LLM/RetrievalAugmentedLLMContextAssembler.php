@@ -9,6 +9,7 @@ use Override;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
 use Throwable;
+use function Sabatier\Foundation\read_random;
 
 /** Decorates context assembly with bounded, explicitly untrusted external reference material. */
 final readonly class RetrievalAugmentedLLMContextAssembler implements LLMContextAssembler
@@ -75,7 +76,7 @@ final readonly class RetrievalAugmentedLLMContextAssembler implements LLMContext
     {
         $content = "";
         $included = 0;
-        $nonce = bin2hex(random_bytes(8));
+        $nonce = bin2hex(read_random(8));
         foreach ($documents as $document) {
             if ($this->maximumDocuments !== null && $included >= $this->maximumDocuments) {
                 break;
@@ -95,19 +96,7 @@ final readonly class RetrievalAugmentedLLMContextAssembler implements LLMContext
         return $content === "" ? null : new LLMMessage(LLMMessageRole::user, $content);
     }
 
-    /**
-     * Renders one document between boundaries it cannot forge.
-     *
-     * The boundary carries a nonce drawn per assembly, so a document whose text spells out a
-     * closing boundary cannot end its own block early and continue outside it: without the nonce
-     * the delimiters are `Retrieved document $index`, which a hostile document guesses by counting.
-     * Escaping the content instead would mean deciding what to strip from evidence the model is
-     * meant to read; an unguessable boundary leaves the text intact and makes the frame reliable.
-     *
-     * Provenance is attacker-supplied too, and each field occupies one `Key: value` line, so a
-     * newline inside one would forge the others. They are flattened to a single line rather than
-     * rejected, since a title that merely wrapped is not an attack and dropping it loses evidence.
-     */
+    /** The nonce keeps a hostile document from forging its closing boundary without escaping evidence the model must read; provenance is flattened rather than rejected, since a wrapped title is not an attack. */
     private function documentBlock(LLMRetrievedDocument $document, int $index, string $nonce): ?string
     {
         $content = trim($document->content);

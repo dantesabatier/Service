@@ -13,6 +13,10 @@ use Sabatier\Foundation\URLFileTypeMappings;
 /** @internal */
 final class ContentTypeTransformer extends ResponseTransformer
 {
+    /**
+     * @param Response $response
+     * @param ResponseTransformerContext $context
+     */
     public function __construct(Response $response, ResponseTransformerContext $context = new ResponseTransformerContext())
     {
         $headers = $response->allHeaderFields;

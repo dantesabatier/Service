@@ -416,15 +416,15 @@ Independently of the guard, `JSONWebTokenAudienceEvaluator` in the access chain 
 
 Seven methods are dispatched:
 
-| Method                      | Handler                 | Purpose                                                                        |
-|-----------------------------|-------------------------|--------------------------------------------------------------------------------|
-| `initialize`                | `InitializeHandler`     | Returns server name, version, protocol version, capabilities, and instructions |
-| `tools/list`                | `ToolsListHandler`      | Returns the catalogue of available tools with their input schemas              |
-| `tools/call`                | `ToolsCallHandler`      | Invokes a tool by name with supplied arguments                                 |
-| `resources/list`            | `ResourcesListHandler`  | Returns the catalogue of published resources                                   |
-| `resources/read`            | `ResourcesReadHandler`  | Returns the contents of the resource a uri names                              |
-| `ping`                      | —                       | No-op; acknowledged without a result                                           |
-| `notifications/initialized` | —                       | No-op                                                                          |
+| Method                      | Handler                | Purpose                                                                        |
+|-----------------------------|------------------------|--------------------------------------------------------------------------------|
+| `initialize`                | `InitializeHandler`    | Returns server name, version, protocol version, capabilities, and instructions |
+| `tools/list`                | `ToolsListHandler`     | Returns the catalogue of available tools with their input schemas              |
+| `tools/call`                | `ToolsCallHandler`     | Invokes a tool by name with supplied arguments                                 |
+| `resources/list`            | `ResourcesListHandler` | Returns the catalogue of published resources                                   |
+| `resources/read`            | `ResourcesReadHandler` | Returns the contents of the resource a uri names                               |
+| `ping`                      | —                      | No-op; acknowledged without a result                                           |
+| `notifications/initialized` | —                      | No-op                                                                          |
 
 A method the server does not implement is answered with JSON-RPC `Method not found` (-32601).
 
@@ -456,20 +456,20 @@ Two files enrich the raw schema:
 
 The framework registers twelve tools automatically — nine of them backed by the managed object context, `run_job` by the domain job catalogue, and `get_server_time` and `web_search` by the framework itself:
 
-| Tool             | Operation                                                   | Notes                                                                          |
-|------------------|-------------------------------------------------------------|--------------------------------------------------------------------------------|
-| `describe_model` | Schema introspection                                        | Should be called first. With no argument returns a lightweight index of every entity (class, label, aliases, attribute/relationship counts) plus the predicate guide; pass `entity` (one name or an array of names) for the full attributes, relationships and enum cases of those entities |
-| `fetch`          | Query with filters, sort, pagination, projection            | Field/relationship projection; `serialization` shape traverses relationships to any depth; no default limit — `limit` is passed through as given, and omitting it fetches every matching row |
-| `count`          | Count matching records                                      |                                                                                |
-| `aggregate`      | Compute sum, average, min, max, count, median, mode, stddev | `median`, `mode`, `stddev` are computed in-memory; others push to the database |
-| `group_by`       | GROUP BY with aggregates, HAVING, sort, pagination          | Fully database-side                                                            |
-| `create`         | Insert a single record                                      | Returns the created object                                                     |
-| `update`         | Update a single record by `objectID`                        | Saves only if there are actual changes                                         |
-| `delete`         | Delete a single record by `objectID`                        |                                                                                |
-| `persistent_history` | Fetch or purge the persistent history change log        | Mirrors the `/history` endpoint; purge is destructive                          |
-| `run_job`         | Run a domain job by name                                 | Backed by the `src/Jobs/` catalogue, not the data model; same transaction boundary as the CRUD tools; gate on the `Jobs` resource |
-| `get_server_time` | Return the server's current date and time                | App-agnostic; reads no entities, so no security scope                           |
-| `web_search`      | Search the web via a pluggable provider                 | Backed by `src/Search/` (`WebSearchProvider`, `TavilySearchProvider`); the application picks the provider by identifier in its `.env` (`WEB_SEARCH_PROVIDER`). Note the `LLMClient` backing an agent is *not* environment-driven — it is constructed and injected in code |
+| Tool                 | Operation                                                   | Notes                                                                                                                                                                                                                                                                                       |
+|----------------------|-------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `describe_model`     | Schema introspection                                        | Should be called first. With no argument returns a lightweight index of every entity (class, label, aliases, attribute/relationship counts) plus the predicate guide; pass `entity` (one name or an array of names) for the full attributes, relationships and enum cases of those entities |
+| `fetch`              | Query with filters, sort, pagination, projection            | Field/relationship projection; `serialization` shape traverses relationships to any depth; no default limit — `limit` is passed through as given, and omitting it fetches every matching row                                                                                                |
+| `count`              | Count matching records                                      |                                                                                                                                                                                                                                                                                             |
+| `aggregate`          | Compute sum, average, min, max, count, median, mode, stddev | `median`, `mode`, `stddev` are computed in-memory; others push to the database                                                                                                                                                                                                              |
+| `group_by`           | GROUP BY with aggregates, HAVING, sort, pagination          | Fully database-side                                                                                                                                                                                                                                                                         |
+| `create`             | Insert a single record                                      | Returns the created object                                                                                                                                                                                                                                                                  |
+| `update`             | Update a single record by `objectID`                        | Saves only if there are actual changes                                                                                                                                                                                                                                                      |
+| `delete`             | Delete a single record by `objectID`                        |                                                                                                                                                                                                                                                                                             |
+| `persistent_history` | Fetch or purge the persistent history change log            | Mirrors the `/history` endpoint; purge is destructive                                                                                                                                                                                                                                       |
+| `run_job`            | Run a domain job by name                                    | Backed by the `src/Jobs/` catalogue, not the data model; same transaction boundary as the CRUD tools; gate on the `Jobs` resource                                                                                                                                                           |
+| `get_server_time`    | Return the server's current date and time                   | App-agnostic; reads no entities, so no security scope                                                                                                                                                                                                                                       |
+| `web_search`         | Search the web via a pluggable provider                     | Backed by `src/Search/` (`WebSearchProvider`, `TavilySearchProvider`); the application picks the provider by identifier in its `.env` (`WEB_SEARCH_PROVIDER`). Note the `LLMClient` backing an agent is *not* environment-driven — it is constructed and injected in code                   |
 
 Every tool validates all key paths and predicate placeholders against the in-memory schema before touching the database, so invalid field names produce a clear error message rather than a SQL error.
 
@@ -680,11 +680,11 @@ The tables below name the **PHP constants** the framework declares for each sett
 
 ### Authentication and JWT
 
-| Key                          | Default | Description                                                                               |
-|------------------------------|---------|-------------------------------------------------------------------------------------------|
-| `JWTPrivateKey`              | —       | Enables JWT mode when set. Value is the signing key (HMAC secret or RSA private key PEM). |
-| `JWTSignatureAlgorithmKey`   | `HS256` | Signing algorithm. Values: `HS256`, `RS256` — the two coder strategies the framework registers. |
-| `JWTValidityTimeIntervalKey` | 1800    | Token lifetime in seconds.                                                                  |
+| Key                          | Default | Description                                                                                                                                  |
+|------------------------------|---------|----------------------------------------------------------------------------------------------------------------------------------------------|
+| `JWTPrivateKey`              | —       | Enables JWT mode when set. Value is the signing key (HMAC secret or RSA private key PEM).                                                    |
+| `JWTSignatureAlgorithmKey`   | `HS256` | Signing algorithm. Values: `HS256`, `RS256` — the two coder strategies the framework registers.                                              |
+| `JWTValidityTimeIntervalKey` | 1800    | Token lifetime in seconds.                                                                                                                   |
 | `JWTIssuerEnvironmentKey`    | —       | Canonical `iss` claim, used for both issuance and validation. When unset, issuer validation is skipped. Never derived from the request host. |
 
 ### CORS
@@ -699,32 +699,32 @@ The tables below name the **PHP constants** the framework declares for each sett
 
 ### Security Headers
 
-| Key                                  | Default           | Description                             |
-|--------------------------------------|-------------------|-----------------------------------------|
-| `SECURITY_X_CONTENT_TYPE_OPTIONS`    | `nosniff`         |                                         |
-| `SECURITY_X_FRAME_OPTIONS`           | `SAMEORIGIN`      |                                         |
-| `SECURITY_REFERRER_POLICY`           | `strict-origin-when-cross-origin` |                         |
-| `SECURITY_PERMISSIONS_POLICY`        | `camera=(), microphone=(), geolocation=()` |                |
-| `SECURITY_CSP`                       | —                 | Not set by default; must be configured. |
-| `SECURITY_HSTS`                      | —                 | Not set by default; only meaningful over HTTPS. |
+| Key                               | Default                                    | Description                                     |
+|-----------------------------------|--------------------------------------------|-------------------------------------------------|
+| `SECURITY_X_CONTENT_TYPE_OPTIONS` | `nosniff`                                  |                                                 |
+| `SECURITY_X_FRAME_OPTIONS`        | `SAMEORIGIN`                               |                                                 |
+| `SECURITY_REFERRER_POLICY`        | `strict-origin-when-cross-origin`          |                                                 |
+| `SECURITY_PERMISSIONS_POLICY`     | `camera=(), microphone=(), geolocation=()` |                                                 |
+| `SECURITY_CSP`                    | —                                          | Not set by default; must be configured.         |
+| `SECURITY_HSTS`                   | —                                          | Not set by default; only meaningful over HTTPS. |
 
 ### Rate Limiting
 
-| Key                           | Description                                                |
-|-------------------------------|------------------------------------------------------------|
-| `RateLimitEnabledKey`         | Enable or disable rate limiting.                           |
+| Key                           | Description                                                             |
+|-------------------------------|-------------------------------------------------------------------------|
+| `RateLimitEnabledKey`         | Enable or disable rate limiting.                                        |
 | `RateLimitMaxRequestsIPKey`   | Request quota for anonymous clients per window, keyed on `REMOTE_ADDR`. |
-| `RateLimitMaxRequestsUserKey` | Request quota for authenticated users per window.          |
-| `RateLimitWindowSecondsKey`   | Window duration in seconds.                                |
+| `RateLimitMaxRequestsUserKey` | Request quota for authenticated users per window.                       |
+| `RateLimitWindowSecondsKey`   | Window duration in seconds.                                             |
 
 ### MCP
 
-| Key                               | Default                   | Description                              |
-|-----------------------------------|---------------------------|------------------------------------------|
-| `MCPServerNameKey`                | `MCP Server`              | Server name reported in `initialize`.    |
-| `MCPServerVersionKey`             | `1.0.0`                   | Server version reported in `initialize`. |
-| `MCPInstructionsFilenameKey`      | `mcp_instructions.txt`    | Localised instructions file for the LLM. |
-| `MCPVocabularyFilenameKey`        | `mcp_vocabulary.json`     | Localised schema vocabulary file.        |
+| Key                               | Default                       | Description                                                     |
+|-----------------------------------|-------------------------------|-----------------------------------------------------------------|
+| `MCPServerNameKey`                | `MCP Server`                  | Server name reported in `initialize`.                           |
+| `MCPServerVersionKey`             | `1.0.0`                       | Server version reported in `initialize`.                        |
+| `MCPInstructionsFilenameKey`      | `mcp_instructions.txt`        | Localised instructions file for the LLM.                        |
+| `MCPVocabularyFilenameKey`        | `mcp_vocabulary.json`         | Localised schema vocabulary file.                               |
 | `MCPPredicateExamplesFilenameKey` | `mcp_predicate_examples.json` | Localised predicate examples file, supplied by the application. |
 
 ### Application

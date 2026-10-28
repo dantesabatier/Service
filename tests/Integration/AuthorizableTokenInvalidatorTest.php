@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpInternalEntityUsedInspection */
+
 declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Integration;
@@ -210,6 +212,9 @@ final class AuthorizableTokenInvalidatorTest extends TestCase
         $this->resetVersions();
     }
 
+    /**
+     * @throws Exception
+     */
     #[Override]
     protected function tearDown(): void
     {

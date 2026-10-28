@@ -20,16 +20,17 @@ final readonly class EntitySchema implements JsonSerializable
      * @param list<string> $aliases
      * @param Dictionary<AttributeSchema> $attributes
      * @param Dictionary<RelationshipSchema> $relationships
+     * @param bool $abstract
      */
     public function __construct(public string $name, public string $className, public string $label, public array $aliases, public Dictionary $attributes, public Dictionary $relationships, public bool $abstract = false)
     {
     }
 
+    /** `abstract` is emitted only when true: an abstract entity cannot be created, yet a fetch on it reaches every concrete sub-entity, and without the flag a client learns that only when the create fails. */
     #[Override]
     public function jsonSerialize(): array
     {
         $data = ["class" => $this->className, "es" => $this->label, "aliases" => $this->aliases];
-        // Declared only when true: an abstract entity has no table and cannot be instantiated, but a fetch against it does reach the rows of every concrete sub-entity. Without this the client cannot tell one from the other until the attempt to create fails.
         if ($this->abstract) {
             $data["abstract"] = true;
         }

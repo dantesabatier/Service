@@ -17,7 +17,7 @@ final class ToolsCallHandler
 {
     /** @var bool Whether the negotiated revision defines `structuredContent`. */
     private bool $carriesStructuredContent {
-        get => $this->protocolVersion !== MCPProtocolVersionLegacy;
+        get => $this->carriesStructuredContent ??= $this->protocolVersion !== MCPProtocolVersionLegacy;
     }
 
     /**
@@ -29,20 +29,11 @@ final class ToolsCallHandler
     }
 
     /**
-     * Dispatches a `tools/call` request to the registry and shapes the outcome into the MCP envelope.
+     * The structured payload is dropped under the 2025-03-26 revision, which does not define it: a client validating against that revision would reject the envelope.
      *
-     * A correctable LLM mistake returns from the registry as a failed `ToolResult` and is carried,
-     * per the MCP spec, as a result with `isError` — actionable content the model can fix — not a
-     * JSON-RPC protocol error. A real program fault propagates past the registry and is caught once
-     * in `MCPRequestHandler` as an Internal Error envelope. Only a missing tool name, a malformed
-     * request, is reported here as a JSON-RPC `InvalidParams` error.
-     *
-     * A structured payload is dropped when the session negotiated the 2025-03-26 revision, which does not define the
-     * field: a client validating the envelope against the revision it asked for would reject it.
-     *
-     * @param RPCMessage $message The parsed `tools/call` request carrying the tool name and arguments in its params.
-     * @return ToolCallResult|JSONRPCError The tool result (success or `isError`), or an `InvalidParams` error if the tool name is missing.
-     * @throws Throwable A fatal program fault raised by the tool, left to propagate to `MCPRequestHandler`.
+     * @param RPCMessage $message
+     * @return ToolCallResult|JSONRPCError
+     * @throws Throwable
      */
     public function handle(RPCMessage $message): ToolCallResult|JSONRPCError
     {

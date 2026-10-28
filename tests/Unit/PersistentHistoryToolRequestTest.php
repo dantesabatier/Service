@@ -6,7 +6,6 @@ declare(strict_types=1);
 
 namespace Sabatier\Service\Tests\Unit;
 
-use Exception;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

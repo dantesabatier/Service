@@ -43,7 +43,7 @@ final class AbstractToolCallTest extends TestCase
      * @param class-string<T> $toolClass
      * @return T
      * @throws ReflectionException
-     * @noinspection PhpIncompatibleReturnTypeInspection
+     * @noinspection PhpIncompatibleReturnTypeInspection, PhpSameParameterValueInspection
      */
     private function tool(string $toolClass): CallProbeTool
     {

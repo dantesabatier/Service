@@ -81,11 +81,11 @@ final class DomainLoopConformanceTest extends LLMAgentLoopConformanceTestCase
 
 All clients normalize provider responses into `LLMTurn` and share timeout and retry controls from `LLMClient`.
 
-| Client | Wire API | Authentication |
-|--------|----------|----------------|
+| Client              | Wire API                           | Authentication          |
+|---------------------|------------------------------------|-------------------------|
 | `StandardLLMClient` | OpenAI-compatible Chat Completions | `Authorization: Bearer` |
-| `AnthropicClient` | Anthropic Messages | `x-api-key` |
-| `OllamaClient` | Native Ollama `/api/chat` | Optional bearer token |
+| `AnthropicClient`   | Anthropic Messages                 | `x-api-key`             |
+| `OllamaClient`      | Native Ollama `/api/chat`          | Optional bearer token   |
 
 Each constructor accepts `model`, `endpoint` and `key`. `endpoint` must identify the complete provider operation, not only its host. Provider-specific body fields can be assigned through `extraBody`:
 
@@ -182,17 +182,17 @@ Budgets, the monotonic deadline and write approval are shared with every child r
 
 Treat `isComplete` as the success check and `stopReason` as the recovery instruction. Partial text from an incomplete run is not a completed answer.
 
-| Stop reason | Typical caller response |
-|-------------|-------------------------|
-| `done` | Persist and return the final assistant message. |
-| `iterationCap` | Raise the turn cap only after checking for a loop. |
-| `deadline` | Retry only if the caller can grant a larger execution window. |
-| `providerFailure` | Report `failureReason`; inspect `isRetryable`; do not retry invalid credentials or requests. |
-| `toolProviderFailure` | Report `failureReason`; restore the remote tool service; inspect `isRetryable`. |
-| `outputLimit` or `refusal` | Do not present the partial response as completion. |
-| `toolCallLimit`, `subagentCallLimit` or a token limit | Ask for a narrower task or grant an explicit larger budget. |
-| `writeApprovalRequired` | Obtain user approval for that concrete call, then start a new run with a matching policy. |
-| `contextLimit` | Increase the context limit or use compaction/retrieval. |
+| Stop reason                                           | Typical caller response                                                                      |
+|-------------------------------------------------------|----------------------------------------------------------------------------------------------|
+| `done`                                                | Persist and return the final assistant message.                                              |
+| `iterationCap`                                        | Raise the turn cap only after checking for a loop.                                           |
+| `deadline`                                            | Retry only if the caller can grant a larger execution window.                                |
+| `providerFailure`                                     | Report `failureReason`; inspect `isRetryable`; do not retry invalid credentials or requests. |
+| `toolProviderFailure`                                 | Report `failureReason`; restore the remote tool service; inspect `isRetryable`.              |
+| `outputLimit` or `refusal`                            | Do not present the partial response as completion.                                           |
+| `toolCallLimit`, `subagentCallLimit` or a token limit | Ask for a narrower task or grant an explicit larger budget.                                  |
+| `writeApprovalRequired`                               | Obtain user approval for that concrete call, then start a new run with a matching policy.    |
+| `contextLimit`                                        | Increase the context limit or use compaction/retrieval.                                      |
 
 ## Context windows and retrieval
 

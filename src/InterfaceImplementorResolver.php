@@ -44,18 +44,20 @@ final class InterfaceImplementorResolver
         }
     }
 
+    /**
+     * @param ManagedObjectModel $model
+     */
     public function __construct(private readonly ManagedObjectModel $model)
     {
     }
 
     /**
-     * Resolves the entity description for the given interface.
-     *
-     * @param class-string<Authorizable>|class-string<Authorization> $interface The interface to resolve.
-     * @return class-string<ManagedObject> The managed object class implementing the interface.
+     * @param class-string<Authorizable>|class-string<Authorization> $interface
+     * @return class-string<ManagedObject>
      */
     public function resolve(string $interface): string
     {
+        /** @noinspection PhpStrictTypeCheckingInspection */
         return $this->index[$interface] ?? fatal_error("No implementor found for interface \"$interface\". You must define an entity whose managed object class implements this interface and register it in the ManagedObjectModel.");
     }
 }

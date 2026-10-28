@@ -5,8 +5,7 @@ declare(strict_types=1);
 use Rector\CodeQuality\Rector\Class_\ConvertStaticToSelfRector;
 use Rector\CodeQuality\Rector\ClassMethod\ExplicitReturnNullRector;
 use Rector\CodeQuality\Rector\ClassMethod\LocallyCalledStaticMethodToNonStaticRector;
-use Rector\CodeQuality\Rector\Identical\FlipTypeControlToUseExclusiveTypeRector;
-use Rector\CodeQuality\Rector\If_\ObjectExplicitBoolCompareRector;
+use Rector\CodeQuality\Rector\If_\ExplicitNullableObjectInstanceRector;
 use Rector\Config\RectorConfig;
 use Rector\DeadCode\Rector\ClassMethod\RemoveMixedDocblockOverruledByNativeTypeRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedConstructorParamRector;
@@ -33,7 +32,6 @@ try {
         ])->withPhpSets()->withSkip([
             SensitiveConstantNameRector::class,
             ClassPropertyAssignToConstructorPromotionRector::class,
-            FlipTypeControlToUseExclusiveTypeRector::class,
             LocallyCalledStaticMethodToNonStaticRector::class,
             ExplicitReturnNullRector::class,
             RemoveUselessReturnTagRector::class,
@@ -46,8 +44,11 @@ try {
             ],
             RemoveNonExistingVarAnnotationRector::class => [
                 __DIR__ . "/src/FirstResponderResolver.php",
+                __DIR__ . "/src/PersistentSpaceOperation.php",
+                __DIR__ . "/src/LLM/AnthropicClient.php",
                 __DIR__ . "/src/MCP/Tools/AbstractTool.php",
                 __DIR__ . "/src/MCP/MCPClient.php",
+                __DIR__ . "/src/MCP/Tools/WriteTool.php",
             ],
             ConvertStaticToSelfRector::class => [
                 __DIR__ . "/src/Application.php"
@@ -70,8 +71,7 @@ try {
             RemoveUselessUnionReturnDocblockRector::class,
             RemoveDeadInstanceOfAssertRector::class,
             RemoveDefaultValueFromAssignedPropertyRector::class,
-            ObjectExplicitBoolCompareRector::class,
-            RemoveNonExistingVarAnnotationRector::class,
+            ExplicitNullableObjectInstanceRector::class,
         ])->withPreparedSets(deadCode: true, codeQuality: true, earlyReturn: true);
 } catch (InvalidConfigurationException $e) {
     error_log($e->getMessage());

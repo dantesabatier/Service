@@ -27,8 +27,8 @@ These hold across every tool:
 
 Schema introspection. Should be called first, before any other tool.
 
-| Parameter | Type            | Required | Description |
-|-----------|-----------------|----------|-------------|
+| Parameter | Type            | Required | Description                                                                                                                                          |
+|-----------|-----------------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `entity`  | array of string | no       | Omit for a lightweight index of every entity. Pass an array of entity names for the full attributes, relationships and enum cases of those entities. |
 
 **With no argument** it returns the index — every entity keyed by name under `entities`, each reduced to its class, label (`es`), aliases and the *counts* of its attributes and relationships — plus the `predicate_syntax` guide and a `usage` line naming how to ask for detail. This always fits in a single tool result, however large the model.
@@ -43,17 +43,17 @@ Pass `entity` as a real JSON array of strings — `["Order"]` for one, `["Order"
 
 Query rows with filtering, sorting, pagination and relationship projection.
 
-| Parameter        | Type    | Required | Description |
-|------------------|---------|----------|-------------|
-| `entity`         | string  | yes      | Entity name from the data model. |
-| `predicate`      | string  | no       | `NSPredicate` format string, e.g. `"%K == %@"`. |
-| `arguments`      | array   | no       | Positional arguments for the predicate placeholders, one per placeholder in order. |
-| `properties`     | array   | no       | Attribute names to return, e.g. `["objectID", "name", "sku"]`. A JSON array of strings, never a single bracketed string. For nested traversal use `serialization`. |
-| `relationships`  | object  | no       | Shallow relationship include, one level deep. Keys are relationship names; values are arrays of attribute names, e.g. `{"customer": ["name", "email"]}`. For nested traversal use `serialization`. |
-| `serialization`  | object  | no       | Declarative projection shape traversing relationships to any depth. Map an attribute to `true` to include it, and a relationship to a nested object describing the related entity's shape. `objectID` and the entity name are always included at every level. Example: `{"orderNumber": true, "total": true, "customer": {"name": true, "area": {"name": true}}}`. Takes precedence over `properties` and `relationships`. |
-| `sort`           | array   | no       | Sort descriptors, e.g. `[{"key": "creationDate", "ascending": false}]`. `ascending` defaults to `true`. |
-| `limit`          | integer | no       | Maximum rows. Omit to return all matching rows. |
-| `offset`         | integer | no       | Row offset. |
+| Parameter       | Type    | Required | Description                                                                                                                                                                                                                                                                                                                                                                                                                |
+|-----------------|---------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `entity`        | string  | yes      | Entity name from the data model.                                                                                                                                                                                                                                                                                                                                                                                           |
+| `predicate`     | string  | no       | `NSPredicate` format string, e.g. `"%K == %@"`.                                                                                                                                                                                                                                                                                                                                                                            |
+| `arguments`     | array   | no       | Positional arguments for the predicate placeholders, one per placeholder in order.                                                                                                                                                                                                                                                                                                                                         |
+| `properties`    | array   | no       | Attribute names to return, e.g. `["objectID", "name", "sku"]`. A JSON array of strings, never a single bracketed string. For nested traversal use `serialization`.                                                                                                                                                                                                                                                         |
+| `relationships` | object  | no       | Shallow relationship include, one level deep. Keys are relationship names; values are arrays of attribute names, e.g. `{"customer": ["name", "email"]}`. For nested traversal use `serialization`.                                                                                                                                                                                                                         |
+| `serialization` | object  | no       | Declarative projection shape traversing relationships to any depth. Map an attribute to `true` to include it, and a relationship to a nested object describing the related entity's shape. `objectID` and the entity name are always included at every level. Example: `{"orderNumber": true, "total": true, "customer": {"name": true, "area": {"name": true}}}`. Takes precedence over `properties` and `relationships`. |
+| `sort`          | array   | no       | Sort descriptors, e.g. `[{"key": "creationDate", "ascending": false}]`. `ascending` defaults to `true`.                                                                                                                                                                                                                                                                                                                    |
+| `limit`         | integer | no       | Maximum rows. Omit to return all matching rows.                                                                                                                                                                                                                                                                                                                                                                            |
+| `offset`        | integer | no       | Row offset.                                                                                                                                                                                                                                                                                                                                                                                                                |
 
 Returns `{"rowCount": N, "summary": "…", "results": [ … ]}`. Field-level read filtering applies to top-level fields; nested relationship leaves in a serialization shape are not filtered by `#[Readable]`, though an attribute marked sensitive in the model never serialises its value at any depth. The `summary` ends with a note that the result is final — it is not a signal to retry.
 
@@ -63,10 +63,10 @@ Returns `{"rowCount": N, "summary": "…", "results": [ … ]}`. Field-level rea
 
 Count matching rows.
 
-| Parameter   | Type   | Required | Description |
-|-------------|--------|----------|-------------|
-| `entity`    | string | yes      | Entity name from the data model. |
-| `predicate` | string | no       | `NSPredicate` format string. |
+| Parameter   | Type   | Required | Description                                                                                                                 |
+|-------------|--------|----------|-----------------------------------------------------------------------------------------------------------------------------|
+| `entity`    | string | yes      | Entity name from the data model.                                                                                            |
+| `predicate` | string | no       | `NSPredicate` format string.                                                                                                |
 | `arguments` | array  | no       | Positional arguments for the predicate placeholders. Temporal tokens (`$TODAY`, `$WEEK_START`, …) are resolved server-side. |
 
 Returns `{"count": N}`.
@@ -77,12 +77,12 @@ Returns `{"count": N}`.
 
 Compute a single aggregate over an attribute across matching rows.
 
-| Parameter   | Type   | Required | Description |
-|-------------|--------|----------|-------------|
-| `entity`    | string | yes      | Entity name from the data model. |
-| `function`  | string | yes      | One of `sum`, `average`, `min`, `max`, `count`, `median`, `mode`, `stddev`. |
-| `property`  | string | yes      | Attribute key path to aggregate. |
-| `predicate` | string | no       | `NSPredicate` format string scoping the rows. |
+| Parameter   | Type   | Required | Description                                                                                                                 |
+|-------------|--------|----------|-----------------------------------------------------------------------------------------------------------------------------|
+| `entity`    | string | yes      | Entity name from the data model.                                                                                            |
+| `function`  | string | yes      | One of `sum`, `average`, `min`, `max`, `count`, `median`, `mode`, `stddev`.                                                 |
+| `property`  | string | yes      | Attribute key path to aggregate.                                                                                            |
+| `predicate` | string | no       | `NSPredicate` format string scoping the rows.                                                                               |
 | `arguments` | array  | no       | Positional arguments for the predicate placeholders. Temporal tokens (`$TODAY`, `$WEEK_START`, …) are resolved server-side. |
 
 `sum` and `average` require a numeric (`integer`, `float` or `enum`) attribute — a check that only applies to an attribute on the named entity, so a dotted key path (`customer.total`) reaches the database unchecked. `median`, `mode` and `stddev` are computed in memory (the rows are materialized); the others are pushed to the database. The result is rounded to four decimal places. Returns `{"entity": …, "function": …, "property": …, "result": …}`.
@@ -95,18 +95,18 @@ Compute a single aggregate over an attribute across matching rows.
 
 `GROUP BY` with per-group aggregates, `HAVING`, sorting and pagination. Fully database-side.
 
-| Parameter          | Type    | Required | Description |
-|--------------------|---------|----------|-------------|
-| `entity`           | string  | yes      | Entity name from the data model. |
-| `group_by`         | array   | yes      | Property key paths to group by. Plain names or dot-notation key paths (`"status"`, `"customer.name"`). No transforms or expressions. |
+| Parameter          | Type    | Required | Description                                                                                                                                                                       |
+|--------------------|---------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `entity`           | string  | yes      | Entity name from the data model.                                                                                                                                                  |
+| `group_by`         | array   | yes      | Property key paths to group by. Plain names or dot-notation key paths (`"status"`, `"customer.name"`). No transforms or expressions.                                              |
 | `aggregates`       | array   | yes      | Aggregate functions per group. Each item: `{"function": "sum\|average\|min\|max\|count", "property": "keyPath", "as": "resultName"}`. `as` defaults to `"{function}_{property}"`. |
-| `predicate`        | string  | no       | `NSPredicate` format string scoping the rows before grouping. |
-| `arguments`        | array   | no       | Positional arguments for `predicate`. |
-| `having_predicate` | string  | no       | `NSPredicate` format string applied to the grouped rows (`HAVING`). |
-| `having_arguments` | array   | no       | Positional arguments for `having_predicate`. |
-| `sort`             | array   | no       | Sort descriptors over the grouped result. |
-| `limit`            | integer | no       | Maximum rows. Omit to return all. |
-| `offset`           | integer | no       | Row offset. |
+| `predicate`        | string  | no       | `NSPredicate` format string scoping the rows before grouping.                                                                                                                     |
+| `arguments`        | array   | no       | Positional arguments for `predicate`.                                                                                                                                             |
+| `having_predicate` | string  | no       | `NSPredicate` format string applied to the grouped rows (`HAVING`).                                                                                                               |
+| `having_arguments` | array   | no       | Positional arguments for `having_predicate`.                                                                                                                                      |
+| `sort`             | array   | no       | Sort descriptors over the grouped result.                                                                                                                                         |
+| `limit`            | integer | no       | Maximum rows. Omit to return all.                                                                                                                                                 |
+| `offset`           | integer | no       | Row offset.                                                                                                                                                                       |
 
 The `aggregates` function set is narrower than `aggregate`'s — no `median`, `mode` or `stddev`, since those are in-memory only. Every group-by key and aggregate property is gated by `enforceFieldRead`. Returns `{"rowCount": N, "summary": "…", "results": [ … ]}`.
 
@@ -116,9 +116,9 @@ The `aggregates` function set is narrower than `aggregate`'s — no `median`, `m
 
 Insert a single row.
 
-| Parameter | Type   | Required | Description |
-|-----------|--------|----------|-------------|
-| `entity`  | string | yes      | Concrete entity name from the data model. |
+| Parameter | Type   | Required | Description                                                                                                                                |
+|-----------|--------|----------|--------------------------------------------------------------------------------------------------------------------------------------------|
+| `entity`  | string | yes      | Concrete entity name from the data model.                                                                                                  |
 | `values`  | object | yes      | Attribute and relationship values for the new row. A relationship value may be an `objectID` (linking an existing row) or a nested object. |
 
 Rejects an abstract entity — a concrete sub-entity must be named instead. Resource-level `#[Writable]` is enforced *after* the values are populated, so a `where` condition reading the new row's own values sees what is being written. Saves, then returns the created object serialized to the shape of the values that were written, filtered through field-level read.
@@ -129,10 +129,10 @@ Rejects an abstract entity — a concrete sub-entity must be named instead. Reso
 
 Update a single row by `objectID`.
 
-| Parameter  | Type    | Required | Description |
-|------------|---------|----------|-------------|
-| `entity`   | string  | yes      | Entity name from the data model. |
-| `objectID` | integer | yes      | The row's `objectID`. |
+| Parameter  | Type    | Required | Description                                 |
+|------------|---------|----------|---------------------------------------------|
+| `entity`   | string  | yes      | Entity name from the data model.            |
+| `objectID` | integer | yes      | The row's `objectID`.                       |
 | `values`   | object  | yes      | Attribute and relationship values to write. |
 
 `values` must include at least one of the row's own attributes, even at its current value. Values that carry only relationships write the related rows but leave the row itself unmodified: it never reaches the context's updated objects, so its `willSave()` does not run and the attributes it derives from those relationships keep their previous values.
@@ -145,10 +145,10 @@ The row is located through the security-scoped fetch, so a row the caller may no
 
 Delete a single row by `objectID`.
 
-| Parameter  | Type    | Required | Description |
-|------------|---------|----------|-------------|
+| Parameter  | Type    | Required | Description                      |
+|------------|---------|----------|----------------------------------|
 | `entity`   | string  | yes      | Entity name from the data model. |
-| `objectID` | integer | yes      | The row's `objectID`. |
+| `objectID` | integer | yes      | The row's `objectID`.            |
 
 Same security-scoped lookup, ownership and resource-level write enforcement as `update`. Deletes and saves. Returns `{"deleted": <objectID>}`.
 
@@ -160,16 +160,16 @@ The related rows follow the `deleteRule` that `describe_model` reports on each r
 
 Read or purge the Core Data persistent history change log — the MCP counterpart of the `/history` endpoint. Only meaningful when persistent history tracking is enabled for the store.
 
-| Parameter     | Type    | Required | Description |
-|---------------|---------|----------|-------------|
-| `operation`   | string  | yes      | `"fetch"` to read history, `"purge"` to permanently delete it. |
-| `date`        | string  | no       | ISO 8601 date. fetch: history *after* this date; purge: history *before* it. |
-| `transaction` | integer | no       | Transaction-number boundary. fetch: history after it; purge: history before it. |
-| `token`       | object  | no       | Persistent history token as a map of store identifier → token number. |
+| Parameter     | Type    | Required | Description                                                                                                                                                                                                                                                                                                              |
+|---------------|---------|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `operation`   | string  | yes      | `"fetch"` to read history, `"purge"` to permanently delete it.                                                                                                                                                                                                                                                           |
+| `date`        | string  | no       | ISO 8601 date. fetch: history *after* this date; purge: history *before* it.                                                                                                                                                                                                                                             |
+| `transaction` | integer | no       | Transaction-number boundary. fetch: history after it; purge: history before it.                                                                                                                                                                                                                                          |
+| `token`       | object  | no       | Persistent history token as a map of store identifier → token number.                                                                                                                                                                                                                                                    |
 | `entity`      | string  | no       | History entity a `predicate` filters on: `PersistentHistoryTransaction` (default) or `PersistentHistoryChange`. Filter changes from the transaction via the `changes` relationship (`"ANY changes.changeType = %d"`), or filter change rows directly with `PersistentHistoryChange`. Ignored when no predicate is given. |
-| `predicate`   | string  | no       | `NSPredicate` format string filtering the history in scope by the chosen entity's properties (`author`, `contextName`, `bundleID`, `changes.changeType`, …). |
-| `arguments`   | array   | no       | Positional arguments for the predicate placeholders. |
-| `resultType`  | string  | no       | fetch only. Shape of the returned history: `statusOnly`, `objectIDs`, `count`, `transactionsOnly`, `changesOnly`, `transactionsAndChanges` (default). |
+| `predicate`   | string  | no       | `NSPredicate` format string filtering the history in scope by the chosen entity's properties (`author`, `contextName`, `bundleID`, `changes.changeType`, …).                                                                                                                                                             |
+| `arguments`   | array   | no       | Positional arguments for the predicate placeholders.                                                                                                                                                                                                                                                                     |
+| `resultType`  | string  | no       | fetch only. Shape of the returned history: `statusOnly`, `objectIDs`, `count`, `transactionsOnly`, `changesOnly`, `transactionsAndChanges` (default).                                                                                                                                                                    |
 
 The scope parameters `date`, `transaction` and `token` are evaluated in that fixed precedence — only the first one present is used, they are not combined — and a fetch or purge requires at least one of them, failing with a message naming the three when none is given. Passing more than one is not an error: the extras are silently ignored, so send exactly the one you mean. **Purge is destructive** and permanently removes history; it is authorized against the `history` resource with delete rights, whereas fetch requires read rights. Purge returns `{"purged": true}`; fetch returns the history shaped by `resultType`.
 
@@ -179,8 +179,8 @@ The scope parameters `date`, `transaction` and `token` are evaluated in that fix
 
 Run a named domain job in the current request — the MCP surface over the same job catalogue the CLI entry point (`JobRunner`) matches its command-line argument against. A job is an application `Job` subclass discovered from `src/Jobs/`, not a data-model operation.
 
-| Parameter | Type   | Required | Description |
-|-----------|--------|----------|-------------|
+| Parameter | Type   | Required | Description                                                                                          |
+|-----------|--------|----------|------------------------------------------------------------------------------------------------------|
 | `job`     | string | yes      | Name of the job to run. Matches the job's class short name unless the job overrides its `name` hook. |
 
 The job runs against the request context, and its changes are saved in the same transaction boundary the CRUD tools keep. An unknown name comes back as a correctable failure listing the available jobs; a job that throws propagates its fault out of the registry funnel. Running a job is a coarse action that may read or write, so authorization is enforced per call against the `Jobs` resource with `AuthorizationType::any` — seed a `Jobs` permission of type `any` on the roles allowed to invoke jobs. Returns `{"status": "completed", "job": <name>}`.
@@ -218,9 +218,9 @@ Searches the web — the generic counterpart to the data tools for questions the
 
 The tool is provider-agnostic and **built in**: the framework ships the `WebSearchTool` (name, schema, argument validation) in `src/MCP/Tools/` and the provider machinery in `src/Search/` — `WebSearchProvider` (abstract), `TavilySearchProvider`, `WebSearchResult` — and the application picks the backing provider through its environment. `WebSearchProvider::provider()` resolves the identifier in `WEB_SEARCH_PROVIDER` (default `tavily`) to a concrete provider and hands it the `WEB_SEARCH_API_KEY` from the same source; no subclassing is required. This is the only environment-driven provider selection in the framework — the `LLMClient` backing an agent is constructed in code and injected into `LLMAgent`, with its model, endpoint and key as constructor arguments.
 
-| Parameter    | Type    | Required | Description |
-|--------------|---------|----------|-------------|
-| `query`      | string  | yes      | The web search query, in natural language. |
+| Parameter    | Type    | Required | Description                                            |
+|--------------|---------|----------|--------------------------------------------------------|
+| `query`      | string  | yes      | The web search query, in natural language.             |
 | `maxResults` | integer | no       | Maximum number of results to return (1–10, default 5). |
 
 The Tavily provider reads its key from the `WEB_SEARCH_API_KEY` environment variable; a provider without its key fails the call with a message telling the model the tool is not configured. Returns:
@@ -243,12 +243,12 @@ The Tavily provider reads its key from the `WEB_SEARCH_API_KEY` environment vari
 
 `tools/list` includes advisory `annotations` built by `ToolRegistry` from each `AbstractTool`:
 
-| Property | MCP field | Default |
-|----------|-----------|---------|
-| `isReadOnly` | `readOnlyHint` | `false` |
-| `isDestructive` | `destructiveHint` | `true` |
-| `isIdempotent` | `idempotentHint` | `false` |
-| `isOpenWorld` | `openWorldHint` | `true` |
+| Property        | MCP field         | Default |
+|-----------------|-------------------|---------|
+| `isReadOnly`    | `readOnlyHint`    | `false` |
+| `isDestructive` | `destructiveHint` | `true`  |
+| `isIdempotent`  | `idempotentHint`  | `false` |
+| `isOpenWorld`   | `openWorldHint`   | `true`  |
 
 Override these property hooks when the implementation can guarantee a narrower effect. `isReadOnly` describes **every** operation the tool exposes: `persistent_history` advertises `false` because it can purge, even though `isReadOnlyCall()` permits individual fetch calls as reads.
 
@@ -303,17 +303,17 @@ final class MyTool extends AbstractTool
 
 The URL is always `/mcp`, so the endpoint guards never fire. A custom tool that skips these reads or writes rows the caller is not entitled to. Match each to the operation:
 
-| Helper | Call it… |
-|--------|----------|
-| `fetch(FetchRequest $request)` / `count(FetchRequest $request)` / `fetchObjects(FetchRequest $request)` | to execute **every** `FetchRequest` — they fold in the `own` ownership scope and the resource-level `#[Readable]`, and `fetch()` filters each object to the fields the caller may read. `fetchObjects()` returns unserialized objects for a tool that computes over them. |
-| `enforceFieldRead(string $entityName, string $keyPath)` | on every key path an aggregate computes over or groups by — a protected column stays protected even over permitted rows. |
-| `modify(string $entityName, $objectID, Closure $modification)` | to write through a domain change rather than a set of values — the same lookup and rules as `update()`, applied to the row named; the change runs, the context is saved and the stored row is answered. |
-| `executeHistory(PersistentHistoryChangeRequest $changeRequest, ?FetchRequest $transactionFilter)` / `runJob(Job $job)` | to run a persistent history request or a job through the same operations `/history` and the CLI use. |
-| `tools(): Dictionary` | the tool catalogue, keyed by name — to validate what another tool will be asked to do. |
-| `entityDescription(string $entityName): ?EntityDescription` | an entity of the model, or null when there is none. |
-| `authorizationResource(Dictionary $arguments): ?string` / `authorizationAction(Dictionary $arguments): AuthorizationType` | to override the resource and action `call()` authorizes before `executeCore()` — the `entity` argument and `read` (or `update` when the call is not read-only) by default. Return a null resource for a call that needs no authorization. |
-| `create(string $entityName, Dictionary $values)` / `update(string $entityName, $objectID, Dictionary $values)` / `delete(string $entityName, $objectID)` | to write — they look the row up within the read scope, enforce `#[Owner]` for their own action and the resource-level `#[Writable]`, filter the values by the field-level `#[Writable]`, and answer the stored row filtered to the fields the caller may read. |
-| `enforceEntityAuthorization(string $resource, AuthorizationType $action)` | for a tool that reads several entities: on each entity beyond the one `call()` authorized. |
+| Helper                                                                                                                                                   | Call it…                                                                                                                                                                                                                                                                  |
+|----------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `fetch(FetchRequest $request)` / `count(FetchRequest $request)` / `fetchObjects(FetchRequest $request)`                                                  | to execute **every** `FetchRequest` — they fold in the `own` ownership scope and the resource-level `#[Readable]`, and `fetch()` filters each object to the fields the caller may read. `fetchObjects()` returns unserialized objects for a tool that computes over them. |
+| `enforceFieldRead(string $entityName, string $keyPath)`                                                                                                  | on every key path an aggregate computes over or groups by — a protected column stays protected even over permitted rows.                                                                                                                                                  |
+| `modify(string $entityName, $objectID, Closure $modification)`                                                                                           | to write through a domain change rather than a set of values — the same lookup and rules as `update()`, applied to the row named; the change runs, the context is saved and the stored row is answered.                                                                   |
+| `executeHistory(PersistentHistoryChangeRequest $changeRequest, ?FetchRequest $transactionFilter)` / `runJob(Job $job)`                                   | to run a persistent history request or a job through the same operations `/history` and the CLI use.                                                                                                                                                                      |
+| `tools(): Dictionary`                                                                                                                                    | the tool catalogue, keyed by name — to validate what another tool will be asked to do.                                                                                                                                                                                    |
+| `entityDescription(string $entityName): ?EntityDescription`                                                                                              | an entity of the model, or null when there is none.                                                                                                                                                                                                                       |
+| `authorizationResource(Dictionary $arguments): ?string` / `authorizationAction(Dictionary $arguments): AuthorizationType`                                | to override the resource and action `call()` authorizes before `executeCore()` — the `entity` argument and `read` (or `update` when the call is not read-only) by default. Return a null resource for a call that needs no authorization.                                 |
+| `create(string $entityName, Dictionary $values)` / `update(string $entityName, $objectID, Dictionary $values)` / `delete(string $entityName, $objectID)` | to write — they look the row up within the read scope, enforce `#[Owner]` for their own action and the resource-level `#[Writable]`, filter the values by the field-level `#[Writable]`, and answer the stored row filtered to the fields the caller may read.            |
+| `enforceEntityAuthorization(string $resource, AuthorizationType $action)`                                                                                | for a tool that reads several entities: on each entity beyond the one `call()` authorized.                                                                                                                                                                                |
 
 The rule of thumb: the read helpers narrow *which rows* a read sees; `fetch()` and `enforceFieldRead` narrow *which columns*; the write helpers turn a forbidden mutation into a `ForbiddenException` rather than a silent no-op.
 

@@ -20,13 +20,9 @@ use Sabatier\Service\MCP\Tools\FetchTool;
 final class CatalogProbeTool extends AbstractTool
 {
     #[Override]
-    public string $name {
-        get => "catalog_probe";
-    }
+    protected(set) string $name = "catalog_probe";
     #[Override]
-    public array $inputSchema {
-        get => ["type" => "object"];
-    }
+    protected(set) array $inputSchema = ["type" => "object"];
 
     /** @return Dictionary<AbstractTool> */
     public function catalog(): Dictionary
@@ -36,7 +32,7 @@ final class CatalogProbeTool extends AbstractTool
 
     /** @return ArrayClass<ContentItem> */
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
         return new ArrayClass();
     }

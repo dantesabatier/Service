@@ -8,7 +8,6 @@ use JsonException;
 use Override;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Date;
-use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\MCP\Response\ContentItem;
 use stdClass;
 
@@ -25,22 +24,16 @@ use stdClass;
 final class GetServerTimeTool extends AbstractTool
 {
     #[Override]
-    public string $name {
-        get => "get_server_time";
-    }
+    protected(set) string $name = "get_server_time";
     #[Override]
-    public bool $isReadOnly {
-        get => true;
-    }
+    protected(set) bool $isReadOnly = true;
     /** @var bool The clock is the one thing a run must never remember: this tool takes no arguments, so every call in a run would share one cache key, and the first answer would stand as the time for the rest of it. */
     #[Override]
     public bool $isCacheable {
         get => false;
     }
     #[Override]
-    public bool $isOpenWorld {
-        get => false;
-    }
+    protected(set) bool $isOpenWorld = false;
     #[Override]
     public array $inputSchema {
         get => [
@@ -54,7 +47,7 @@ final class GetServerTimeTool extends AbstractTool
      * @throws JsonException
      */
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
         $now = Date::now();
         return $this->jsonResult([

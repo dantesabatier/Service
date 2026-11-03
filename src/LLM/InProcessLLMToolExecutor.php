@@ -30,7 +30,7 @@ final class InProcessLLMToolExecutor implements LLMToolExecutor
     #[Override]
     public function isReadOnly(LLMToolCall $call): bool
     {
-        return $this->registry->isReadOnlyCall($call->name, $call->arguments);
+        return $this->registry->isReadOnly($call->name);
     }
 
     #[Override]

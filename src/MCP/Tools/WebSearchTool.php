@@ -7,7 +7,6 @@ namespace Sabatier\Service\MCP\Tools;
 use JsonException;
 use Override;
 use Sabatier\Foundation\ArrayClass;
-use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\Search\WebSearchProvider;
 use function Sabatier\Foundation\fatal_error;
@@ -27,24 +26,18 @@ final class WebSearchTool extends AbstractTool
 {
     private const int maxResultsLimit = 10;
     #[Override]
-    public string $name {
-        get => "web_search";
-    }
+    protected(set) string $name = "web_search";
     #[Override]
-    public bool $isReadOnly {
-        get => true;
-    }
+    protected(set) bool $isReadOnly = true;
     #[Override]
-    public array $inputSchema {
-        get => [
-            "type" => "object",
-            "properties" => [
-                "query" => ["type" => "string", "description" => "The web search query, in natural language."],
-                "maxResults" => ["type" => "integer", "description" => "Maximum number of results to return (1-10, default 5).", "minimum" => 1, "maximum" => self::maxResultsLimit],
-            ],
-            "required" => ["query"],
-        ];
-    }
+    protected(set) array $inputSchema = [
+        "type" => "object",
+        "properties" => [
+            "query" => ["type" => "string", "description" => "The web search query, in natural language."],
+            "maxResults" => ["type" => "integer", "description" => "Maximum number of results to return (1-10, default 5).", "minimum" => 1, "maximum" => self::maxResultsLimit],
+        ],
+        "required" => ["query"],
+    ];
     /** @var WebSearchProvider The search provider backing this tool, resolved by identifier from the environment. */
     public WebSearchProvider $provider {
         get => $this->provider ??= WebSearchProvider::provider();
@@ -55,11 +48,11 @@ final class WebSearchTool extends AbstractTool
      * @throws JsonException
      */
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
-        $query = trim((string)$arguments["query"]);
+        $query = trim((string)$this->arguments["query"]);
         $query ?: fatal_error("web_search requires a non-empty query.");
-        $maxResults = min(max((int)($arguments["maxResults"] ?? 5), 1), self::maxResultsLimit);
+        $maxResults = min(max((int)($this->arguments["maxResults"] ?? 5), 1), self::maxResultsLimit);
         $result = $this->provider->search($query, $maxResults);
         return $this->jsonResult([
             "query" => $result->query !== "" ? $result->query : $query,

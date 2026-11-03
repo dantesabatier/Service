@@ -7,7 +7,6 @@ namespace Sabatier\Service\MCP\Tools;
 use Exception;
 use Override;
 use Sabatier\Foundation\ArrayClass;
-use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\AuthorizationType;
 use Sabatier\Service\Jobs\JobOperation;
 use Sabatier\Service\Jobs\JobRegistry;
@@ -50,30 +49,22 @@ final class JobTool extends AbstractTool
         get => $this->registry ??= new JobRegistry(new JobResolver()->resolve());
     }
     #[Override]
-    public string $name {
-        get => "run_job";
+    protected(set) string $name = "run_job";
+    #[Override]
+    protected(set) array $inputSchema = [
+        "type" => "object",
+        "properties" => [
+            "job" => ["type" => "string", "description" => "Name of the job to run. Matches the job's class short name unless the job overrides its `name` hook."],
+        ],
+        "required" => ["job"],
+    ];
+    #[Override]
+    public ?string $authorizationResource {
+        get => self::jobsResource;
     }
     #[Override]
-    public array $inputSchema {
-        get => [
-            "type" => "object",
-            "properties" => [
-                "job" => ["type" => "string", "description" => "Name of the job to run. Matches the job's class short name unless the job overrides its `name` hook."],
-            ],
-            "required" => ["job"],
-        ];
-    }
-
-    #[Override]
-    public function authorizationResource(Dictionary $arguments): string
-    {
-        return self::jobsResource;
-    }
-
-    #[Override]
-    public function authorizationAction(Dictionary $arguments): AuthorizationType
-    {
-        return AuthorizationType::any;
+    public AuthorizationType $authorizationAction {
+        get => AuthorizationType::any;
     }
 
     /**
@@ -81,10 +72,10 @@ final class JobTool extends AbstractTool
      * @throws Exception
      */
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
         /** @var string $name */
-        $name = $arguments["job"] ?? fatal_error("job is required");
+        $name = $this->arguments["job"] ?? fatal_error("job is required");
         $job = $this->registry->job($name) ?? fatal_error("Unknown job \"$name\". Available: {$this->registry->names->join(", ")}.");
         new JobOperation($this->context, $job, $this->user?->username ?? "system")->perform();
         return $this->jsonResult(["status" => "completed", "job" => $name]);

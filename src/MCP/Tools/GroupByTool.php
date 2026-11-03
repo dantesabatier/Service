@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Sabatier\Service\MCP\Tools;
 
 use Override;
-use Sabatier\Foundation\Dictionary;
+use Sabatier\CoreData\FetchRequest;
+use Sabatier\CoreData\FetchRequestResultType;
 
 /** @internal */
 class GroupByTool extends FetchTool
@@ -18,21 +19,25 @@ class GroupByTool extends FetchTool
     ];
 
     #[Override]
-    public string $name {
-        get => "group_by";
-    }
+    protected(set) string $name = "group_by";
     #[Override]
-    public array $inputSchema {
-        get => ["type" => "object", "properties" => [...self::requestSchema, ...self::computationSchema], "required" => ["entityName", "propertiesToFetch", "propertiesToGroupBy"]];
+    protected(set) array $inputSchema = ["type" => "object", "properties" => [...self::requestSchema, ...self::computationSchema], "required" => ["entityName", "propertiesToFetch", "propertiesToGroupBy"]];
+    /** @var FetchRequest A grouped or computed query answers dictionaries, one per group, rather than objects. */
+    #[Override]
+    protected FetchRequest $fetchRequest {
+        get {
+            $request = parent::$fetchRequest::get();
+            $request->resultType = FetchRequestResultType::dictionaryResultType;
+            return $request;
+        }
     }
 
     /**
-     * @param Dictionary<mixed> $arguments The arguments the call was made with.
      * @param int $rowCount How many rows came back.
      */
     #[Override]
-    protected function summary(Dictionary $arguments, int $rowCount): string
+    protected function summary(int $rowCount): string
     {
-        return "Grouped {$arguments["entityName"]}. $rowCount group(s) returned — result is final, do not retry";
+        return "Grouped {$this->arguments["entityName"]}. $rowCount group(s) returned — result is final, do not retry";
     }
 }

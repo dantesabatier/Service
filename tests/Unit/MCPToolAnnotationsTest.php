@@ -14,7 +14,6 @@ use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use ReflectionException;
 use Sabatier\Foundation\ArrayClass;
-use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\Response\ToolDescriptor;
 use Sabatier\Service\MCP\Tools\AbstractTool;
@@ -53,7 +52,7 @@ final class MCPToolAnnotationsTest extends TestCase
         $registry = new ToolRegistry(new ArrayClass([$tool]));
 
         $this->assertSame(["readOnlyHint" => false, "destructiveHint" => false, "idempotentHint" => true, "openWorldHint" => false], $this->descriptor($registry)->annotations);
-        $this->assertFalse($registry->isReadOnlyCall($tool->name, new Dictionary()));
+        $this->assertFalse($registry->isReadOnly($tool->name));
         $this->assertFalse($registry->isCacheable($tool->name));
     }
 
@@ -141,17 +140,13 @@ final class MCPToolAnnotationsTest extends TestCase
 class AnnotationProbeTool extends AbstractTool
 {
     #[Override]
-    public string $name {
-        get => "annotation_probe";
-    }
+    protected(set) string $name = "annotation_probe";
     #[Override]
-    public array $inputSchema {
-        get => ["type" => "object"];
-    }
+    protected(set) array $inputSchema = ["type" => "object"];
 
     /** @return ArrayClass<ContentItem> */
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
         return new ArrayClass();
     }
@@ -160,15 +155,9 @@ class AnnotationProbeTool extends AbstractTool
 final class AdditiveAnnotationProbeTool extends AnnotationProbeTool
 {
     #[Override]
-    public bool $isDestructive {
-        get => false;
-    }
+    protected(set) bool $isDestructive = false;
     #[Override]
-    public bool $isIdempotent {
-        get => true;
-    }
+    protected(set) bool $isIdempotent = true;
     #[Override]
-    public bool $isOpenWorld {
-        get => false;
-    }
+    protected(set) bool $isOpenWorld = false;
 }

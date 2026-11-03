@@ -114,7 +114,6 @@ final class MutatingToolArgumentTest extends TestCase
     {
         $tool = $this->tool($toolClass);
         $this->assertFalse($tool->isReadOnly);
-        $this->assertFalse($tool->isReadOnlyCall(new Dictionary()));
     }
 
     /**

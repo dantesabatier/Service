@@ -53,29 +53,29 @@ abstract class AbstractTool
     abstract public array $inputSchema {
         get;
     }
-    /** @var bool Whether every call only reads state; also published as MCP readOnlyHint. Defaults to `false`; mixed tools classify individual calls through isReadOnlyCall() without advertising the whole tool as read-only. */
-    public bool $isReadOnly {
-        get => false;
-    }
+    /** @var bool Whether every call only reads state; also published as MCP readOnlyHint. Defaults to `false`. A tool that reads and writes is two tools, each declaring what it is. */
+    protected(set) bool $isReadOnly = false;
     /** @var bool Whether a repeated call with identical arguments may be served from the run's cache instead of executed again. Reading state is necessary but not sufficient: a tool that reads something which moves on its own — the clock, a queue depth — answers differently to the same arguments, and caching it would freeze the first answer for the rest of the run. Such a tool stays read-only and overrides this to `false`. */
     public bool $isCacheable {
         get => $this->isReadOnly;
     }
     /** @var bool MCP hint: a writing tool may overwrite or remove state. Defaults to `true`; meaningful only when `isReadOnly` is false. */
-    public bool $isDestructive {
-        get => true;
-    }
+    protected(set) bool $isDestructive = true;
     /** @var bool MCP hint: repeating identical arguments has no additional effects. Defaults to `false`; this does not authorize retries or imply cacheability. */
-    public bool $isIdempotent {
-        get => false;
-    }
+    protected(set) bool $isIdempotent = false;
     /** @var bool MCP hint: the tool may interact with an open world of external entities. Override to `false` for a closed application domain. */
-    public bool $isOpenWorld {
-        get => true;
-    }
+    protected(set) bool $isOpenWorld = true;
     /** @var string|null The `ui://` uri of the resource a host renders this tool's answer in, or null for a tool answering as text alone. */
-    public ?string $uiResourceUri {
-        get => null;
+    protected(set) ?string $uiResourceUri = null;
+    /** @var Dictionary<mixed> The validated arguments of the running call, assigned by `call()` before anything reads them; a hook derived from them is never memoized, since the registry reuses each instance across calls. */
+    protected(set) Dictionary $arguments;
+    /** @var string|null The resource the running call is authorized against, or null when it needs no authorization; the `entityName` argument by default. */
+    public ?string $authorizationResource {
+        get => is_string($entityName = $this->arguments["entityName"]) ? $entityName : null;
+    }
+    /** @var AuthorizationType The action the running call is authorized for; `read` for a read-only tool and `update` otherwise by default. */
+    public AuthorizationType $authorizationAction {
+        get => $this->isReadOnly ? AuthorizationType::read : AuthorizationType::update;
     }
     /** @var array<array-key, mixed>|null The structured payload the running call contributed, or null when it contributed none. The registry reuses one instance of each tool across calls, so `call()` clears this before the core runs and the value is read once after it returns; it never carries from one call into the next. */
     private(set) ?array $structuredContent = null;
@@ -125,37 +125,7 @@ abstract class AbstractTool
     }
 
     /**
-     * Whether this concrete invocation only reads state.
-     *
-     * @param Dictionary<mixed> $arguments The arguments selecting the concrete operation.
-     */
-    public function isReadOnlyCall(/** @noinspection PhpUnusedParameterInspection */ Dictionary $arguments): bool
-    {
-        return $this->isReadOnly;
-    }
-
-    /**
-     * The resource this invocation is authorized against, or null when it needs no authorization; the `entity` argument by default.
-     *
-     * @param Dictionary<mixed> $arguments The arguments selecting the concrete operation.
-     */
-    public function authorizationResource(Dictionary $arguments): ?string
-    {
-        return is_string($entity = $arguments["entity"]) ? $entity : null;
-    }
-
-    /**
-     * The action this invocation is authorized for; `read` for a read-only call and `update` otherwise by default.
-     *
-     * @param Dictionary<mixed> $arguments The arguments selecting the concrete operation.
-     */
-    public function authorizationAction(Dictionary $arguments): AuthorizationType
-    {
-        return $this->isReadOnlyCall($arguments) ? AuthorizationType::read : AuthorizationType::update;
-    }
-
-    /**
-     * Invokes the tool: authorizes the call, then runs its core.
+     * Invokes the tool: keeps the arguments as {@see self::$arguments}, authorizes the call, then runs its core.
      *
      * The structured payload of any earlier call is cleared first, so what {@see self::$structuredContent} holds
      * afterwards was contributed by this call or by nothing at all.
@@ -166,17 +136,17 @@ abstract class AbstractTool
      */
     final public function call(Dictionary $arguments): ArrayClass
     {
-        $this->authorize($arguments);
+        $this->arguments = $arguments;
+        $this->authorize();
         $this->structuredContent = null;
-        return $this->executeCore($arguments);
+        return $this->executeCore();
     }
 
     /**
-     * @param Dictionary<mixed> $arguments
      * @return ArrayClass<ContentItem>
      * @throws Exception
      */
-    abstract protected function executeCore(Dictionary $arguments): ArrayClass;
+    abstract protected function executeCore(): ArrayClass;
 
     /**
      * Enforces per-entity RBAC for the resource this tool call targets — the check
@@ -195,13 +165,12 @@ abstract class AbstractTool
     }
 
     /**
-     * @param Dictionary<mixed> $arguments
      * @throws Exception
      */
-    private function authorize(Dictionary $arguments): void
+    private function authorize(): void
     {
-        if ($resource = $this->authorizationResource($arguments)) {
-            $this->enforceEntityAuthorization($resource, $this->authorizationAction($arguments));
+        if ($resource = $this->authorizationResource) {
+            $this->enforceEntityAuthorization($resource, $this->authorizationAction);
         }
     }
 

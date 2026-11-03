@@ -7,7 +7,6 @@ namespace Sabatier\Service\MCP\Tools;
 use Exception;
 use Override;
 use Sabatier\Foundation\ArrayClass;
-use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\AuthorizationType;
 use Sabatier\Service\MCP\Response\ContentItem;
 
@@ -15,18 +14,12 @@ use Sabatier\Service\MCP\Response\ContentItem;
 final class PurgeHistoryTool extends PersistentHistoryTool
 {
     #[Override]
-    public string $name {
-        get => "purge_history";
-    }
+    protected(set) string $name = "purge_history";
     #[Override]
-    public array $inputSchema {
-        get => ["type" => "object", "properties" => [...self::purgeScopeSchema, ...self::transactionFilterSchema]];
-    }
-
+    protected(set) array $inputSchema = ["type" => "object", "properties" => [...self::purgeScopeSchema, ...self::transactionFilterSchema]];
     #[Override]
-    public function authorizationAction(Dictionary $arguments): AuthorizationType
-    {
-        return AuthorizationType::delete;
+    public AuthorizationType $authorizationAction {
+        get => AuthorizationType::delete;
     }
 
     /**
@@ -34,9 +27,9 @@ final class PurgeHistoryTool extends PersistentHistoryTool
      * @throws Exception
      */
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
-        $this->perform($arguments);
+        $this->perform();
         return $this->jsonResult(["purged" => true]);
     }
 }

@@ -1203,13 +1203,9 @@ final class LLMAgentMovingTool extends AbstractTool
     public static int $calls = 0;
 
     #[Override]
-    public string $name {
-        get => "counting_tool";
-    }
+    protected(set) string $name = "counting_tool";
     #[Override]
-    public bool $isReadOnly {
-        get => true;
-    }
+    protected(set) bool $isReadOnly = true;
     #[Override]
     public bool $isCacheable {
         get => false;
@@ -1219,13 +1215,11 @@ final class LLMAgentMovingTool extends AbstractTool
         get => "Moving tool.";
     }
     #[Override]
-    public array $inputSchema {
-        get => ["type" => "object"];
-    }
+    protected(set) array $inputSchema = ["type" => "object"];
 
     /** @return ArrayClass<ContentItem> */
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
         self::$calls++;
         return new ArrayClass([new ContentItem("text", "moved " . self::$calls)]);
@@ -1237,25 +1231,19 @@ final class LLMAgentCountingTool extends AbstractTool
     public static int $calls = 0;
 
     #[Override]
-    public string $name {
-        get => "counting_tool";
-    }
+    protected(set) string $name = "counting_tool";
     #[Override]
-    public bool $isReadOnly {
-        get => true;
-    }
+    protected(set) bool $isReadOnly = true;
     #[Override]
     public string $description {
         get => "Counting tool.";
     }
     #[Override]
-    public array $inputSchema {
-        get => ["type" => "object"];
-    }
+    protected(set) array $inputSchema = ["type" => "object"];
 
     /** @return ArrayClass<ContentItem> */
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
         self::$calls++;
         return new ArrayClass([new ContentItem("text", "counted " . self::$calls)]);
@@ -1268,21 +1256,17 @@ final class LLMAgentWritingTool extends AbstractTool
     public static int $calls = 0;
 
     #[Override]
-    public string $name {
-        get => "writing_tool";
-    }
+    protected(set) string $name = "writing_tool";
     #[Override]
     public string $description {
         get => "Writing tool.";
     }
     #[Override]
-    public array $inputSchema {
-        get => ["type" => "object"];
-    }
+    protected(set) array $inputSchema = ["type" => "object"];
 
     /** @return ArrayClass<ContentItem> */
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
         self::$calls++;
         return new ArrayClass([new ContentItem("text", "wrote " . self::$calls)]);
@@ -1292,25 +1276,19 @@ final class LLMAgentWritingTool extends AbstractTool
 final class LLMAgentProbeTool extends AbstractTool
 {
     #[Override]
-    public string $name {
-        get => "probe_tool";
-    }
+    protected(set) string $name = "probe_tool";
     #[Override]
     public string $description {
         get => "Probe tool.";
     }
     #[Override]
-    public bool $isReadOnly {
-        get => true;
-    }
+    protected(set) bool $isReadOnly = true;
     #[Override]
-    public array $inputSchema {
-        get => ["type" => "object"];
-    }
+    protected(set) array $inputSchema = ["type" => "object"];
 
     /** @return ArrayClass<ContentItem> */
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
         return new ArrayClass([new ContentItem("text", "probe result")]);
     }

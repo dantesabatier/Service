@@ -7,6 +7,24 @@ onward.
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-11-03
+
+### Changed
+
+- **Breaking.** A tool's arguments are its state for the call. `AbstractTool::call()` keeps them as `$this->arguments` before it authorizes the call, and `executeCore()` takes no parameter. `authorizationResource()` and `authorizationAction()` are now the property hooks `$authorizationResource` and `$authorizationAction`, read from `$this->arguments`; a tool that overrides them overrides the hook, `#[Override] public ?string $authorizationResource { get => … }`. The built-in tools follow: `fetchRequest`, `changeRequest`, `transactionFilter` and `entityName` are hooks, and `summary()` and `perform()` lose their `$arguments` parameter. The registry reuses one instance of each tool across calls, so a hook derived from the arguments must not memoize with `??=`.
+- **Breaking.** `AbstractTool::isReadOnlyCall()` is gone, and `ToolRegistry::isReadOnlyCall($name, $arguments)` is `isReadOnly($name)`. A tool declares whether it only reads with `$isReadOnly`, for every call: classifying each call by its arguments existed for `persistent_history`, which became two tools in 1.9.0 so that each declares what it is, and no tool has varied by call since. The default `$authorizationAction` now follows `$isReadOnly` — `read` for a read-only tool, `update` otherwise — so it needs no arguments to answer, and the agent loop and an App's tool gate ask it before the call as before.
+- **Breaking.** `isReadOnly`, `isDestructive`, `isIdempotent`, `isOpenWorld` and `uiResourceUri` are plain `protected(set)` properties rather than hooks, and the built-in tools declare `$name` and `$inputSchema` the same way: a value fixed per tool is a property the tool sets, `#[Override] protected(set) bool $isReadOnly = true;`, readable by anyone and writable by no one outside the tool. A subclass that overrides one with a `get` hook keeps working. `$authorizationResource` and `$authorizationAction` stay hooks, because their default reads the call's arguments; a subclass overrides them with a hook, since a plain redeclaration leaves the parent's hook running.
+- `update` answers in the shape of the values written, as `create` does, so the related rows it wrote come back with it rather than the row's attributes alone.
+- `ToolCallToFetchRequestAdapter` no longer chooses the result type: it translates the arguments, and `group_by` asks for a dictionary result itself, which `aggregate` inherits.
+
+### Added
+
+- `FetchPersistentSpaceOperation` is no longer abstract. Performed as it is, it answers the objects of its fetch request narrowed to the subject's read scope — the ownership scope and the resource-level `#[Readable]` — for a tool that computes over them rather than returning them. Their fields are not filtered: nothing is serialized, and a tool that returns rows reads them through `ReadPersistentSpaceOperation`. The result type is not inferred from the request, so the caller pins it, `/** @var ArrayClass<Production> $productions */`.
+
+### Fixed
+
+- **Security.** `create`, `update` and `delete` ran without the entity-level RBAC check. `AbstractTool::$authorizationResource` read the `entity` argument by default, but since 1.9.0 the data tools name it `entityName`, and only the query tools overrode the hook, so a write tool resolved no resource and `call()` authorized nothing. Ownership and `#[Writable]` were still enforced by the operations; whether the subject's role may create, update or delete that entity at all was not. The default now reads `entityName`, which covers every data tool, and the query tools' override is gone.
+
 ## [1.10.0] - 2026-10-26
 
 ### Added

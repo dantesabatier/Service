@@ -19,29 +19,23 @@ use const Sabatier\Service\ServiceResponseStatusKey;
 final class FetchHistoryTool extends PersistentHistoryTool
 {
     #[Override]
-    public string $name {
-        get => "fetch_history";
-    }
+    protected(set) string $name = "fetch_history";
     #[Override]
-    public bool $isReadOnly {
-        get => true;
-    }
+    protected(set) bool $isReadOnly = true;
     #[Override]
-    public array $inputSchema {
-        get => [
-            "type" => "object",
-            "properties" => [...self::fetchScopeSchema, ...self::transactionFilterSchema, PersistentHistoryResultTypeKey => ["type" => "integer", "description" => "Shape of the returned history, the raw value of PersistentHistoryResultType: 0 statusOnly, 1 objectIDs, 2 count, 3 transactionsOnly, 4 changesOnly, 5 transactionsAndChanges. Defaults to transactionsAndChanges."]],
-        ];
-    }
+    protected(set) array $inputSchema = [
+        "type" => "object",
+        "properties" => [...self::fetchScopeSchema, ...self::transactionFilterSchema, PersistentHistoryResultTypeKey => ["type" => "integer", "description" => "Shape of the returned history, the raw value of PersistentHistoryResultType: 0 statusOnly, 1 objectIDs, 2 count, 3 transactionsOnly, 4 changesOnly, 5 transactionsAndChanges. Defaults to transactionsAndChanges."]],
+    ];
 
     /**
      * @return ArrayClass<ContentItem>
      * @throws Exception
      */
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
-        return $this->jsonResult($this->shape($this->perform($arguments)));
+        return $this->jsonResult($this->shape($this->perform()));
     }
 
     /**

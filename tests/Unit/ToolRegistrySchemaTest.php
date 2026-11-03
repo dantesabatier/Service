@@ -106,34 +106,29 @@ final class ToolRegistrySchemaTest extends TestCase
 final class SchemaProbeTool extends AbstractTool
 {
     #[Override]
-    public string $name {
-        get => "probe";
-    }
+    protected(set) string $name = "probe";
     #[Override]
     public string $description {
         get => "Probe tool.";
     }
     #[Override]
-    public array $inputSchema {
-        get => [
-            "type" => "object",
-            "properties" => [
-                "entity" => ["type" => "string"],
-                "predicate" => ["type" => "string"],
-            ],
-            "required" => ["entity"],
-        ];
-    }
+    protected(set) array $inputSchema = [
+        "type" => "object",
+        "properties" => [
+            "entity" => ["type" => "string"],
+            "predicate" => ["type" => "string"],
+        ],
+        "required" => ["entity"],
+    ];
 
     #[Override]
-    public function authorizationResource(Dictionary $arguments): ?string
-    {
-        return null;
+    public ?string $authorizationResource {
+        get => null;
     }
 
     /** @return ArrayClass<ContentItem> */
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
         return new ArrayClass([new ContentItem("text", "ran")]);
     }
@@ -142,21 +137,17 @@ final class SchemaProbeTool extends AbstractTool
 final class OpenProbeTool extends AbstractTool
 {
     #[Override]
-    public string $name {
-        get => "open_probe";
-    }
+    protected(set) string $name = "open_probe";
     #[Override]
     public string $description {
         get => "Open probe tool.";
     }
     #[Override]
-    public array $inputSchema {
-        get => ["type" => "object"];
-    }
+    protected(set) array $inputSchema = ["type" => "object"];
 
     /** @return ArrayClass<ContentItem> */
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
         return new ArrayClass([new ContentItem("text", "ran")]);
     }

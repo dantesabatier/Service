@@ -476,28 +476,22 @@ final class FailingObservedContextAssembler implements LLMContextAssembler
 final class ObservedProbeTool extends AbstractTool
 {
     #[Override]
-    public string $name {
-        get => "probe_tool";
-    }
+    protected(set) string $name = "probe_tool";
     #[Override]
     public string $description {
         get => "Probe tool.";
     }
     #[Override]
-    public bool $isReadOnly {
-        get => true;
-    }
+    protected(set) bool $isReadOnly = true;
     #[Override]
-    public array $inputSchema {
-        get => ["type" => "object", "properties" => ["a" => ["type" => "integer"]]];
-    }
+    protected(set) array $inputSchema = ["type" => "object", "properties" => ["a" => ["type" => "integer"]]];
 
     /**
      * @param Dictionary<mixed> $arguments
      * @return ArrayClass<ContentItem>
      */
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
         return new ArrayClass([new ContentItem("text", "probe result")]);
     }
@@ -506,24 +500,20 @@ final class ObservedProbeTool extends AbstractTool
 final class ObservedWritingTool extends AbstractTool
 {
     #[Override]
-    public string $name {
-        get => "writing_tool";
-    }
+    protected(set) string $name = "writing_tool";
     #[Override]
     public string $description {
         get => "Writing tool.";
     }
     #[Override]
-    public array $inputSchema {
-        get => ["type" => "object", "properties" => []];
-    }
+    protected(set) array $inputSchema = ["type" => "object", "properties" => []];
 
     /**
      * @param Dictionary<mixed> $arguments
      * @return ArrayClass<ContentItem>
      */
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
         return new ArrayClass([new ContentItem("text", "written")]);
     }
@@ -532,28 +522,22 @@ final class ObservedWritingTool extends AbstractTool
 final class ObservedExplodingTool extends AbstractTool
 {
     #[Override]
-    public string $name {
-        get => "exploding_tool";
-    }
+    protected(set) string $name = "exploding_tool";
     #[Override]
     public string $description {
         get => "Exploding tool.";
     }
     #[Override]
-    public bool $isReadOnly {
-        get => true;
-    }
+    protected(set) bool $isReadOnly = true;
     #[Override]
-    public array $inputSchema {
-        get => ["type" => "object", "properties" => []];
-    }
+    protected(set) array $inputSchema = ["type" => "object", "properties" => []];
 
     /**
      * @param Dictionary<mixed> $arguments
      * @return ArrayClass<ContentItem>
      */
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
         throw new LogicException("tool exploded");
     }

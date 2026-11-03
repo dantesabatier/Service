@@ -9,7 +9,6 @@ use Sabatier\CoreData\AttributeType;
 use Sabatier\CoreData\EntityDescription;
 use Sabatier\CoreData\ExpressionDescription;
 use Sabatier\CoreData\FetchRequest;
-use Sabatier\CoreData\FetchRequestResultType;
 use Sabatier\CoreData\ManagedObjectContext;
 use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Dictionary;
@@ -59,9 +58,6 @@ final class ToolCallToFetchRequestAdapter
         $request->returnsDistinctResults = (bool)$arguments["returnsDistinctResults"];
         if ($serialization = $arguments["serialization"]) {
             $request->serialization = $serialization instanceof Dictionary ? $serialization : new Dictionary();
-        }
-        if ($request->propertiesToGroupBy?->isEmpty === false) {
-            $request->resultType = FetchRequestResultType::dictionaryResultType;
         }
         return $request;
     }

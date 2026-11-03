@@ -7,7 +7,6 @@ namespace Sabatier\Service\MCP\Tools;
 use Exception;
 use Override;
 use Sabatier\Foundation\ArrayClass;
-use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\CountPersistentSpaceOperation;
 use Sabatier\Service\MCP\Response\ContentItem;
 
@@ -15,21 +14,17 @@ use Sabatier\Service\MCP\Response\ContentItem;
 final class CountTool extends FetchTool
 {
     #[Override]
-    public string $name {
-        get => "count";
-    }
+    protected(set) string $name = "count";
     #[Override]
-    public array $inputSchema {
-        get => ["type" => "object", "properties" => ["entityName" => self::requestSchema["entityName"], "predicate" => self::requestSchema["predicate"], "includesSubentities" => self::requestSchema["includesSubentities"]], "required" => ["entityName"]];
-    }
+    protected(set) array $inputSchema = ["type" => "object", "properties" => ["entityName" => self::requestSchema["entityName"], "predicate" => self::requestSchema["predicate"], "includesSubentities" => self::requestSchema["includesSubentities"]], "required" => ["entityName"]];
 
     /**
      * @return ArrayClass<ContentItem>
      * @throws Exception
      */
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
-        return $this->jsonResult(["entityName" => $arguments["entityName"], "count" => new CountPersistentSpaceOperation($this->context, $this->fieldSecurityPolicy, $this->fetchRequest($arguments))->perform()]);
+        return $this->jsonResult(["entityName" => $this->arguments["entityName"], "count" => new CountPersistentSpaceOperation($this->context, $this->fieldSecurityPolicy, $this->fetchRequest)->perform()]);
     }
 }

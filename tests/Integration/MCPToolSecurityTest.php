@@ -37,19 +37,19 @@ use Sabatier\Service\Owner;
 use Sabatier\Service\Readable;
 use Throwable;
 
-class OwnedToolEntityFixture extends ManagedObject
+final class OwnedToolEntityFixture extends ManagedObject
 {
     #[Owner]
     public ?Authorizable $createdBy = null;
 }
 
-class UnownedToolEntityFixture extends ManagedObject
+final class UnownedToolEntityFixture extends ManagedObject
 {
     public string $title = "";
 }
 
 #[Readable(["Finance"])]
-class RoleGuardedReadToolEntityFixture extends ManagedObject
+final class RoleGuardedReadToolEntityFixture extends ManagedObject
 {
     public string $title = "";
 }
@@ -57,13 +57,9 @@ class RoleGuardedReadToolEntityFixture extends ManagedObject
 final class SecurityProbeTool extends AbstractTool
 {
     #[Override]
-    public string $name {
-        get => "security_probe";
-    }
+    protected(set) string $name = "security_probe";
     #[Override]
-    public array $inputSchema {
-        get => ["type" => "object"];
-    }
+    protected(set) array $inputSchema = ["type" => "object"];
     #[Override]
     protected bool $isSecurityEnabled {
         get => $this->fieldSecurityPolicy->isSecurityEnabled;
@@ -83,7 +79,7 @@ final class SecurityProbeTool extends AbstractTool
     }
 
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
         return $this->textResult("ok");
     }
@@ -377,16 +373,14 @@ final class MCPToolSecurityTest extends TestCase
         $descriptor = new ReflectionClass(ModelDescriptor::class)->newInstanceWithoutConstructor();
         $tool = new class($context, $descriptor) extends AbstractTool {
             #[Override]
-            public string $name {
-                get => "denying_tool";
-            }
+            protected(set) string $name = "denying_tool";
             #[Override]
             public array $inputSchema {
                 get => ["type" => "object"];
             }
 
             #[Override]
-            protected function executeCore(Dictionary $arguments): ArrayClass
+            protected function executeCore(): ArrayClass
             {
                 throw new ForbiddenException("You don't have permission to delete \"Order\".");
             }
@@ -401,7 +395,7 @@ final class MCPToolSecurityTest extends TestCase
     public function theRegistryAuthorizesTheEntityArgumentBeforeRunning(): void
     {
         $tool = $this->makeTool($this->makeUser(), new ArrayClass(["Ownable:update"]));
-        $this->assertFalse(new ToolRegistry(new ArrayClass([$tool]))->call("security_probe", new Dictionary(["entity" => "Ownable"]))->isError);
+        $this->assertFalse(new ToolRegistry(new ArrayClass([$tool]))->call("security_probe", new Dictionary(["entityName" => "Ownable"]))->isError);
     }
 
     /** @throws Throwable */
@@ -411,7 +405,7 @@ final class MCPToolSecurityTest extends TestCase
         $user = $this->makeUser();
         new InMemoryAuthorizationCache()->setAuthorizableAuthorizations($user, new ArrayClass());
         $tool = $this->makeTool($user, new ArrayClass(["Ownable:create"]));
-        $result = new ToolRegistry(new ArrayClass([$tool]))->call("security_probe", new Dictionary(["entity" => "Ownable"]));
+        $result = new ToolRegistry(new ArrayClass([$tool]))->call("security_probe", new Dictionary(["entityName" => "Ownable"]));
         $this->assertTrue($result->isError);
         $this->assertSame("You don't have permission to update \"Ownable\". Do not retry this call.", $result->text);
     }

@@ -107,19 +107,16 @@ final class MCPResourcesTest extends TestCase
 abstract class ResourceProbeToolBase extends AbstractTool
 {
     #[Override]
-    public array $inputSchema {
-        get => ["type" => "object"];
-    }
+    protected(set) array $inputSchema = ["type" => "object"];
 
     #[Override]
-    public function authorizationResource(Dictionary $arguments): ?string
-    {
-        return null;
+    public ?string $authorizationResource {
+        get => null;
     }
 
     /** @return ArrayClass<ContentItem> */
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
         return $this->jsonResult(["ok" => true]);
     }
@@ -128,21 +125,15 @@ abstract class ResourceProbeToolBase extends AbstractTool
 final class UIBoundProbeTool extends ResourceProbeToolBase
 {
     #[Override]
-    public string $name {
-        get => "ui_bound_probe";
-    }
+    protected(set) string $name = "ui_bound_probe";
     #[Override]
-    public ?string $uiResourceUri {
-        get => "ui://probe/dashboard";
-    }
+    protected(set) ?string $uiResourceUri = "ui://probe/dashboard";
 }
 
 final class PlainProbeTool extends ResourceProbeToolBase
 {
     #[Override]
-    public string $name {
-        get => "plain_probe";
-    }
+    protected(set) string $name = "plain_probe";
 }
 
 final class ProbeResource extends AbstractResource

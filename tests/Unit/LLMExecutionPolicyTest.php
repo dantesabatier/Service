@@ -51,7 +51,7 @@ final class LLMExecutionPolicyTest extends TestCase
         /** @var PurgeHistoryTool $purge */
         $purge = new ReflectionClass(PurgeHistoryTool::class)->newInstanceWithoutConstructor();
 
-        $this->assertTrue($fetch->isReadOnlyCall(new Dictionary()));
-        $this->assertFalse($purge->isReadOnlyCall(new Dictionary()));
+        $this->assertTrue($fetch->isReadOnly);
+        $this->assertFalse($purge->isReadOnly);
     }
 }

@@ -28,27 +28,19 @@ use function Sabatier\Foundation\fatal_error;
 final class DescribeModelTool extends AbstractTool
 {
     #[Override]
-    public string $name {
-        get => "describe_model";
-    }
+    protected(set) string $name = "describe_model";
     #[Override]
-    public bool $isReadOnly {
-        get => true;
-    }
+    protected(set) bool $isReadOnly = true;
     #[Override]
-    public bool $isOpenWorld {
-        get => false;
-    }
+    protected(set) bool $isOpenWorld = false;
     #[Override]
-    public array $inputSchema {
-        get => [
-            "type" => "object",
-            "properties" => [
-                "entity" => ["type" => "array", "items" => ["type" => "string"], "description" => "Omit for a lightweight index of every entity (class, label, aliases, attribute/relationship counts, and an abstract marker when applicable). Pass a JSON array of entity names — [\"Order\"] for one, [\"Order\", \"Customer\"] for several — for the full attributes, relationships and enum cases of those entities. Must be a real array of strings, never a single bracketed string."],
-            ],
-            "required" => [],
-        ];
-    }
+    protected(set) array $inputSchema = [
+        "type" => "object",
+        "properties" => [
+            "entity" => ["type" => "array", "items" => ["type" => "string"], "description" => "Omit for a lightweight index of every entity (class, label, aliases, attribute/relationship counts, and an abstract marker when applicable). Pass a JSON array of entity names — [\"Order\"] for one, [\"Order\", \"Customer\"] for several — for the full attributes, relationships and enum cases of those entities. Must be a real array of strings, never a single bracketed string."],
+        ],
+        "required" => [],
+    ];
     /** @var array<string, mixed> */
     private array $index {
         get {
@@ -76,11 +68,9 @@ final class DescribeModelTool extends AbstractTool
             ];
         }
     }
-
     #[Override]
-    public function authorizationResource(Dictionary $arguments): ?string
-    {
-        return null;
+    public ?string $authorizationResource {
+        get => null;
     }
 
     /**
@@ -88,9 +78,9 @@ final class DescribeModelTool extends AbstractTool
      * @throws JsonException
      */
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
-        $entity = $arguments["entity"];
+        $entity = $this->arguments["entity"];
         $names = $entity instanceof ArrayClass ? $entity : ($entity === null ? new ArrayClass() : new ArrayClass([$entity]));
         return $names->isEmpty ? $this->jsonResult($this->index) : $this->jsonResult($this->detail($names));
     }

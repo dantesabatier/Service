@@ -33,16 +33,12 @@ enum SchemaToolStatusFixture: int
 final class KeyPathProbeTool extends WriteTool
 {
     #[Override]
-    public string $name {
-        get => "schema_probe";
-    }
+    protected(set) string $name = "schema_probe";
     #[Override]
-    public array $inputSchema {
-        get => ["type" => "object"];
-    }
+    protected(set) array $inputSchema = ["type" => "object"];
 
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
         return $this->textResult("ok");
     }

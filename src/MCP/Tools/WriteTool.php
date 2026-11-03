@@ -31,20 +31,10 @@ abstract class WriteTool extends AbstractTool
     protected const array entityNameArgument = ["type" => "string", "description" => "Always required. Entity name from the data model — call describe_model first if unsure."];
 
     #[Override]
-    public bool $isOpenWorld {
-        get => false;
-    }
-
-    /**
-     * The name of the entity a write targets, refused before anything reaches the store.
-     *
-     * @param Dictionary<mixed> $arguments
-     */
-    protected function entityName(Dictionary $arguments): string
-    {
-        $entityName = $arguments["entityName"];
-        /** @noinspection PhpStrictTypeCheckingInspection */
-        return is_string($entityName) && $entityName !== "" ? $entityName : fatal_error("entityName is required");
+    protected(set) bool $isOpenWorld = false;
+    /** @var string The name of the entity a write targets, refused before anything reaches the store. */
+    protected string $entityName {
+        get => is_string($entityName = $this->arguments["entityName"]) && $entityName !== "" ? $entityName : fatal_error("entityName is required");
     }
 
     /**
@@ -70,7 +60,7 @@ abstract class WriteTool extends AbstractTool
     }
 
     /**
-     * Rejects an attempt to create a row for an abstract entity. Abstract entities have no table of their own and cannot be instantiated — a concrete sub-entity must be created instead.
+     * Abstract entities have no table of their own and cannot be instantiated — a concrete sub-entity must be created instead.
      *
      * @throws Exception
      */
@@ -85,37 +75,30 @@ abstract class WriteTool extends AbstractTool
     }
 
     /**
+     * @param string $entityName
      * @param Dictionary<mixed> $values
      * @return Dictionary<mixed>
      */
     protected function normalizeRelationships(string $entityName, Dictionary $values): Dictionary
     {
         $schema = $this->entitySchema($entityName);
-        $normalized = clone $values;
-        foreach ($values as $key => $value) {
-            if ($schema->relationships[$key] && is_numeric($value)) {
-                $normalized[$key] = new Dictionary([ManagedObjectObjectIDKey => $value]);
-            }
-        }
-        return $normalized;
+        return $values->mapValues(fn(mixed $value, int|string $key): mixed => $schema->relationships[$key] && is_numeric($value) ? new Dictionary([ManagedObjectObjectIDKey => $value]) : $value);
     }
 
     /**
-     * Derives a serialization shape from the values passed to a create/update, so the response can echo back exactly the graph that was written — attributes as leaves, related objects (nested dictionaries, or arrays of them) recursed into — without an extra fetch. The shape is the structure of what was created, which is already known at write time.
+     * The response echoes back the graph that was written without an extra fetch: its shape is the structure of what was created, already known at write time.
      *
+     * @param string $entityName
      * @param Dictionary<mixed> $values
      * @return Dictionary<mixed>
      */
     protected function shapeFromValues(string $entityName, Dictionary $values): Dictionary
     {
         $schema = $this->entitySchema($entityName);
-        /** @var Dictionary<mixed> $shape */
-        $shape = new Dictionary();
-        foreach ($values as $key => $value) {
+        return $values->mapValues(function (mixed $value, int|string $key) use ($schema): mixed {
             $relationship = $schema->relationships[$key];
             if (!$relationship instanceof RelationshipSchema) {
-                $shape[$key] = true;
-                continue;
+                return true;
             }
             /** @var ArrayClass<mixed> $children */
             $children = $value instanceof Dictionary ? new ArrayClass([$value]) : ($value instanceof ArrayClass ? $value : new ArrayClass());
@@ -126,9 +109,8 @@ abstract class WriteTool extends AbstractTool
                     $subShape->merge($this->shapeFromValues($relationship->target, $child));
                 }
             });
-            $shape[$key] = $subShape->isEmpty ? true : $subShape;
-        }
-        return $shape;
+            return $subShape->isEmpty ? true : $subShape;
+        });
     }
 
     protected function entitySchema(string $name): EntitySchema

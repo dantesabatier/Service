@@ -11,22 +11,17 @@ use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use ReflectionException;
 use Sabatier\Foundation\ArrayClass;
-use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\MCP\ToolResolver;
 use Sabatier\Service\MCP\Tools\AbstractTool;
 use Sabatier\Service\MCP\Tools\ToolRegistry;
 
 final class UntitledMCPToolFixture extends AbstractTool
 {
-    public string $name {
-        get => "untitled_fixture";
-    }
-    public array $inputSchema {
-        get => ["type" => "object"];
-    }
+    protected(set) string $name = "untitled_fixture";
+    protected(set) array $inputSchema = ["type" => "object"];
 
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
         return new ArrayClass();
     }

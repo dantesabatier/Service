@@ -9,7 +9,6 @@ use Override;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\PersistentHistoryChangeRequest;
 use Sabatier\CoreData\PersistentHistoryResult;
-use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\MCP\ToolCallToFetchRequestAdapter;
 use Sabatier\Service\MCP\ToolCallToPersistentHistoryChangeRequestAdapter;
 use Sabatier\Service\PersistentHistoryOperation;
@@ -46,49 +45,25 @@ abstract class PersistentHistoryTool extends AbstractTool
     ];
 
     #[Override]
-    public bool $isOpenWorld {
-        get => false;
-    }
-
-    /**
-     * The history resource is one: `/history` is a single endpoint, and both tools are authorized against it.
-     *
-     * @param Dictionary<mixed> $arguments The arguments selecting the concrete operation.
-     */
+    protected(set) bool $isOpenWorld = false;
+    /** @var string|null The history resource is one: `/history` is a single endpoint, and both tools are authorized against it. */
     #[Override]
-    public function authorizationResource(Dictionary $arguments): string
-    {
-        return "history";
+    public ?string $authorizationResource {
+        get => "history";
+    }
+    protected PersistentHistoryChangeRequest $changeRequest {
+        get => new ToolCallToPersistentHistoryChangeRequestAdapter($this->arguments)->changeRequest;
+    }
+    /** @var FetchRequest|null The transactions the scope reaches are narrowed by an ordinary fetch request, exactly as `PersistentHistoryResponseStrategy` narrows them for HTTP. */
+    protected ?FetchRequest $transactionFilter {
+        get => $this->arguments["predicate"] ? new ToolCallToFetchRequestAdapter($this->arguments, $this->context)->fetchRequest : null;
     }
 
     /**
-     * @param Dictionary<mixed> $arguments
      * @throws Exception
      */
-    protected function perform(Dictionary $arguments): PersistentHistoryResult
+    protected function perform(): PersistentHistoryResult
     {
-        return new PersistentHistoryOperation($this->context, $this->changeRequest($arguments), $this->transactionFilter($arguments))->perform();
-    }
-
-    /**
-     * @param Dictionary<mixed> $arguments
-     */
-    protected function changeRequest(Dictionary $arguments): PersistentHistoryChangeRequest
-    {
-        return new ToolCallToPersistentHistoryChangeRequestAdapter($arguments)->changeRequest;
-    }
-
-    /**
-     * The transactions the scope reaches are narrowed by an ordinary fetch request, exactly as `PersistentHistoryResponseStrategy` narrows them for HTTP.
-     *
-     * @param Dictionary<mixed> $arguments
-     * @throws Exception
-     */
-    protected function transactionFilter(Dictionary $arguments): ?FetchRequest
-    {
-        if (!$arguments["predicate"]) {
-            return null;
-        }
-        return new ToolCallToFetchRequestAdapter($arguments, $this->context)->fetchRequest;
+        return new PersistentHistoryOperation($this->context, $this->changeRequest, $this->transactionFilter)->perform();
     }
 }

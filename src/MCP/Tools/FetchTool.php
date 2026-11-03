@@ -34,31 +34,16 @@ class FetchTool extends AbstractTool
     ];
 
     #[Override]
-    public string $name {
-        get => "fetch";
-    }
+    protected(set) string $name = "fetch";
     #[Override]
-    public bool $isReadOnly {
-        get => true;
-    }
+    protected(set) bool $isReadOnly = true;
     #[Override]
-    public bool $isOpenWorld {
-        get => false;
-    }
+    protected(set) bool $isOpenWorld = false;
     #[Override]
-    public array $inputSchema {
-        get => ["type" => "object", "properties" => self::requestSchema, "required" => ["entityName"]];
-    }
-
-    /**
-     * The resource a query tool is authorized against is the entity it reads.
-     *
-     * @param Dictionary<mixed> $arguments The arguments selecting the concrete operation.
-     */
-    #[Override]
-    public function authorizationResource(Dictionary $arguments): ?string
-    {
-        return is_string($entityName = $arguments["entityName"]) ? $entityName : null;
+    protected(set) array $inputSchema = ["type" => "object", "properties" => self::requestSchema, "required" => ["entityName"]];
+    /** @var FetchRequest The request this call reads through, built from the arguments the way `ReadPersistentSpaceResponseStrategy` builds one from an HTTP request. */
+    protected FetchRequest $fetchRequest {
+        get => new ToolCallToFetchRequestAdapter($this->arguments, $this->context)->fetchRequest;
     }
 
     /**
@@ -66,35 +51,21 @@ class FetchTool extends AbstractTool
      * @throws Exception
      */
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
-        $rows = new ReadPersistentSpaceOperation($this->context, $this->fieldSecurityPolicy, $this->fetchRequest($arguments))->perform();
-        return $this->jsonResult(["rowCount" => $rows->count, "results" => $rows, "summary" => $this->summary($arguments, $rows->count)]);
+        $rows = new ReadPersistentSpaceOperation($this->context, $this->fieldSecurityPolicy, $this->fetchRequest)->perform();
+        return $this->jsonResult(["rowCount" => $rows->count, "results" => $rows, "summary" => $this->summary($rows->count)]);
     }
 
     /**
-     * The request this call reads through, built from the arguments the way `ReadPersistentSpaceResponseStrategy` builds one from an HTTP request.
-     *
-     * @param Dictionary<mixed> $arguments
-     * @throws Exception
-     */
-    protected function fetchRequest(Dictionary $arguments): FetchRequest
-    {
-        return new ToolCallToFetchRequestAdapter($arguments, $this->context)->fetchRequest;
-    }
-
-    /**
-     * Restates the call and its outcome for the model, in the words it used to make the call.
-     *
      * It is placed last in the result, after the rows, deliberately: a model attends most to the beginning and the end of what it is given, and the summary is where the "this is the whole answer, do not run the same query again" instruction lives. Ahead of the rows it lands in the middle — the one position that gets read least, and precisely where a long result set buries it.
      *
-     * @param Dictionary<mixed> $arguments The arguments the call was made with.
      * @param int $rowCount How many rows came back.
      */
-    protected function summary(Dictionary $arguments, int $rowCount): string
+    protected function summary(int $rowCount): string
     {
-        $parts = new ArrayClass(["Fetched {$arguments["entityName"]}"]);
-        if (($predicate = $arguments["predicate"]) instanceof Dictionary) {
+        $parts = new ArrayClass(["Fetched {$this->arguments["entityName"]}"]);
+        if (($predicate = $this->arguments["predicate"]) instanceof Dictionary) {
             $parts->append("filter: {$predicate["format"]}");
         }
         $parts->append("$rowCount row(s) returned — result is final, do not retry");

@@ -177,22 +177,15 @@ final class StructuredContentTest extends TestCase
 abstract class StructuredProbeToolBase extends AbstractTool
 {
     #[Override]
-    public string $name {
-        get => "structured_probe";
-    }
+    protected(set) string $name = "structured_probe";
     #[Override]
-    public bool $isReadOnly {
-        get => true;
-    }
+    protected(set) bool $isReadOnly = true;
     #[Override]
-    public array $inputSchema {
-        get => ["type" => "object", "properties" => ["structured" => ["type" => "boolean"]]];
-    }
+    protected(set) array $inputSchema = ["type" => "object", "properties" => ["structured" => ["type" => "boolean"]]];
 
     #[Override]
-    public function authorizationResource(Dictionary $arguments): ?string
-    {
-        return null;
+    public ?string $authorizationResource {
+        get => null;
     }
 }
 
@@ -200,7 +193,7 @@ final class StructuredProbeTool extends StructuredProbeToolBase
 {
     /** @return ArrayClass<ContentItem> */
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
         return $this->jsonResult(["rowCount" => 1, "results" => ["ok"]]);
     }
@@ -210,7 +203,7 @@ final class CollectionStructuredProbeTool extends StructuredProbeToolBase
 {
     /** @return ArrayClass<ContentItem> */
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
         return $this->jsonResult(new Dictionary(["entity" => "Widget", "count" => 2]));
     }
@@ -220,7 +213,7 @@ final class ListStructuredProbeTool extends StructuredProbeToolBase
 {
     /** @return ArrayClass<ContentItem> */
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
         return $this->jsonResult(new ArrayClass(["first", "second"]));
     }
@@ -230,7 +223,7 @@ final class ProseStructuredProbeTool extends StructuredProbeToolBase
 {
     /** @return ArrayClass<ContentItem> */
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
         return $this->structuredResult($this->textResult("Saved."), ["saved" => true]);
     }
@@ -240,9 +233,9 @@ final class AlternatingStructuredProbeTool extends StructuredProbeToolBase
 {
     /** @return ArrayClass<ContentItem> */
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
-        return $arguments["structured"] === true ? $this->jsonResult(["rowCount" => 1, "results" => ["ok"]]) : $this->textResult("nothing structured here");
+        return $this->arguments["structured"] === true ? $this->jsonResult(["rowCount" => 1, "results" => ["ok"]]) : $this->textResult("nothing structured here");
     }
 }
 

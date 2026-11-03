@@ -70,14 +70,13 @@ final class ToolRegistry
     }
 
     /**
-     * Whether the named concrete invocation only reads state.
+     * Whether every call to the named tool only reads state; an unknown name answers `false`.
      *
      * @param string $name The registered tool name.
-     * @param Dictionary<mixed> $arguments The arguments selecting the concrete operation.
      */
-    public function isReadOnlyCall(string $name, Dictionary $arguments): bool
+    public function isReadOnly(string $name): bool
     {
-        return $this->tools[$name]?->isReadOnlyCall($arguments) ?? false;
+        return $this->tools[$name]?->isReadOnly ?? false;
     }
 
     /**
@@ -122,8 +121,6 @@ final class ToolRegistry
     }
 
     /**
-     * What is wrong with the arguments before the tool is asked to run, or `null` when nothing is.
-     *
      * A key the schema does not declare is the failure worth catching: the tool reads the ones it knows and ignores the rest, so `filter` where `predicate` was meant produces a fetch with no filter at all — every row, returned as though it were the answer, with nothing to suggest the call was misread. Naming the unknown key and listing the accepted ones is what lets the model fix it; silence is what makes it believe the result.
      *
      * A missing required key is checked in the same pass. The intent is to catch the model's own mistakes, not to police the schema: a tool whose schema declares no properties accepts anything, and a value's type is left to the tool, which reports a type it cannot use in terms of its own domain.

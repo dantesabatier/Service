@@ -58,19 +58,15 @@ abstract class CallProbeTool extends AbstractTool
         get => $this->steps ??= new ArrayClass();
     }
     #[Override]
-    public string $name {
-        get => "call_probe";
-    }
+    protected(set) string $name = "call_probe";
     #[Override]
-    public array $inputSchema {
-        get => ["type" => "object"];
-    }
-
+    protected(set) array $inputSchema = ["type" => "object"];
     #[Override]
-    public function authorizationResource(Dictionary $arguments): ?string
-    {
-        $this->steps->append("authorize");
-        return null;
+    public ?string $authorizationResource {
+        get {
+            $this->steps->append("authorize");
+            return null;
+        }
     }
 
     /** @return ArrayClass<ContentItem> */
@@ -86,7 +82,7 @@ final class CoreCallProbeTool extends CallProbeTool
 {
     /** @return ArrayClass<ContentItem> */
     #[Override]
-    protected function executeCore(Dictionary $arguments): ArrayClass
+    protected function executeCore(): ArrayClass
     {
         return $this->record("executeCore");
     }

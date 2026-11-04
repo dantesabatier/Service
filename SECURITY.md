@@ -56,9 +56,15 @@ misconfiguration:
   defeating the Basic/Bearer/Digest strategies.
 - **Authorization** — reaching data outside the roles or scopes a subject
   holds, or past the evaluator chain, including via the `/refresh` action.
-- **Field- and resource-level security** — reading a field or a row that
-  `#[Readable]` excludes, or writing one that `#[Writable]` denies, by any
-  route: `PersistentSpace`, a custom responder, or an MCP tool call.
+- **Field- and resource-level security** — reading a row that `#[Readable]`
+  excludes, reading a field it excludes from a returned record, or writing one
+  that `#[Writable]` denies, by any route: `PersistentSpace`, a custom
+  responder, or an MCP tool call. A dictionary result (`resultType` `2`,
+  `aggregate`, `group_by`) and a value a tool computes over objects are not
+  records: field-level `#[Readable]` does not filter them, and a field read
+  through one is not a vulnerability. Their rows are still narrowed by the
+  ownership scope and the resource-level `#[Readable]`, and reading a row
+  outside that scope through them is.
 - **MCP resources** — reaching application data through `resources/read`. A
   resource is markup carrying no data, and the rows a UI shows arrive through
   ordinary tool calls under the caller's own rules; a resource that answers

@@ -73,7 +73,7 @@ GET /Article
 Authorization: Bearer <jwt>
 ```
 
-Returns a JSON array of all records the authenticated user is allowed to see. Field-level security (`#[Readable]`) filters the response automatically; ownership scoping limits results to records owned by the current user when applicable.
+Returns a JSON array of all records the authenticated user is allowed to see. Field-level security (`#[Readable]`) filters the records in the response automatically — a dictionary result is not filtered, see [Advanced queries](#advanced-queries-with-fetchrequest); ownership scoping limits results to records owned by the current user when applicable.
 
 ### Simple equality filters
 
@@ -154,6 +154,8 @@ A count response returns `{"count": 7}` rather than an array.
 ```
 
 The inner expression's `resultType` is the raw `AttributeType` value (`500` is `double`), not a `FetchRequestResultType`. The outer `resultType` remains `2` for a dictionary result.
+
+A dictionary result is not a serialized record, so field-level security does not filter it: each row carries whatever `propertiesToFetch` asks for, straight from the store. Neither `#[Readable]` nor an attribute marked sensitive in the model hides a value there. The rows are still narrowed by ownership scoping and the resource-level `#[Readable]`, so a client never sees a row it could not fetch as a record, but within those rows any attribute can be projected or aggregated. As in Core Data, what a dictionary returns is whatever the request asks for and need not correspond to the model, so it cannot be validated against it. A field that `#[Readable]` withholds from a role that may still read the entity is therefore withheld from its records only; keeping it from that role in every form is the application's responsibility.
 
 ### Shaping the response
 

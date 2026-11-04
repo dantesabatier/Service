@@ -41,6 +41,7 @@ final class ToolRegistryCloneTest extends TestCase
         $tool = $this->tool();
         $tool->registry->call("nesting", new Dictionary(["depth" => 2]));
         $this->assertFalse(new ReflectionProperty(AbstractTool::class, "arguments")->isInitialized($tool));
+        $this->assertNull($tool->structuredContent);
     }
 
     /** @throws ReflectionException */
@@ -70,6 +71,6 @@ final class NestingTool extends AbstractTool
         if ($this->arguments["depth"] === 1) {
             $this->registry->call("nesting", new Dictionary(["depth" => 2]));
         }
-        return $this->textResult((string)$this->arguments["depth"]);
+        return $this->structuredResult($this->textResult((string)$this->arguments["depth"]), ["depth" => $this->arguments["depth"]]);
     }
 }

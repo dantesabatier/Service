@@ -18,6 +18,7 @@ use Sabatier\Service\MCP\Schema\EntitySchema;
 use Sabatier\Service\MCP\Schema\RelationshipSchema;
 use Sabatier\Service\ModifyPersistentSpaceOperation;
 use function Sabatier\Foundation\fatal_error;
+use const Sabatier\CoreData\ManagedObjectEntityNameKey;
 use const Sabatier\CoreData\ManagedObjectObjectIDKey;
 
 /**
@@ -34,7 +35,7 @@ abstract class WriteTool extends AbstractTool
     protected(set) bool $isOpenWorld = false;
     /** @var string The name of the entity a write targets, refused before anything reaches the store. */
     protected string $entityName {
-        get => $this->entityName ??= is_string($entityName = $this->arguments["entityName"]) && $entityName !== "" ? $entityName : fatal_error("entityName is required");
+        get => $this->entityName ??= is_string($entityName = $this->arguments[ManagedObjectEntityNameKey]) && $entityName !== "" ? $entityName : fatal_error("entityName is required");
     }
 
     /**

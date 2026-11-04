@@ -12,6 +12,8 @@ use Sabatier\CoreData\PersistentHistoryResult;
 use Sabatier\Service\MCP\ToolCallToFetchRequestAdapter;
 use Sabatier\Service\MCP\ToolCallToPersistentHistoryChangeRequestAdapter;
 use Sabatier\Service\PersistentHistoryOperation;
+use const Sabatier\CoreData\ManagedObjectEntityNameKey;
+use const Sabatier\Service\MCPPredicateArgumentKey;
 use const Sabatier\Service\PersistentHistoryAfterDateKey;
 use const Sabatier\Service\PersistentHistoryAfterTokenKey;
 use const Sabatier\Service\PersistentHistoryAfterTransactionKey;
@@ -40,8 +42,8 @@ abstract class PersistentHistoryTool extends AbstractTool
     ];
     /** @var array<array-key, mixed> The arguments narrowing which transactions the scope reaches, read by the same adapter an ordinary query uses. */
     protected const array transactionFilterSchema = [
-        "entityName" => ["type" => "string", "enum" => ["PersistentHistoryTransaction", "PersistentHistoryChange"], "description" => "History entity the predicate filters on. PersistentHistoryTransaction filters transactions (reach their changes through the \"changes\" relationship, e.g. \"ANY changes.changeType = %d\"); PersistentHistoryChange filters change rows directly."],
-        "predicate" => ["type" => "object", "description" => "Filters the history in scope by the chosen entity's properties — \"author\", \"contextName\", \"bundleID\", \"changes.changeType\": {\"format\": \"%K == %@\", \"arguments\": [...]}."],
+        ManagedObjectEntityNameKey => ["type" => "string", "enum" => ["PersistentHistoryTransaction", "PersistentHistoryChange"], "description" => "History entity the predicate filters on. PersistentHistoryTransaction filters transactions (reach their changes through the \"changes\" relationship, e.g. \"ANY changes.changeType = %d\"); PersistentHistoryChange filters change rows directly."],
+        MCPPredicateArgumentKey => ["type" => "object", "description" => "Filters the history in scope by the chosen entity's properties — \"author\", \"contextName\", \"bundleID\", \"changes.changeType\": {\"format\": \"%K == %@\", \"arguments\": [...]}."],
     ];
 
     #[Override]
@@ -62,7 +64,7 @@ abstract class PersistentHistoryTool extends AbstractTool
                 return $this->transactionFilter;
             }
             $this->isTransactionFilterResolved = true;
-            if (!$this->arguments["predicate"]) {
+            if (!$this->arguments[MCPPredicateArgumentKey]) {
                 return $this->transactionFilter = null;
             }
             return $this->transactionFilter = new ToolCallToFetchRequestAdapter($this->arguments, $this->context)->fetchRequest;

@@ -7,6 +7,7 @@ namespace Sabatier\Service\MCP\Tools;
 use Override;
 use Sabatier\CoreData\FetchRequest;
 use Sabatier\CoreData\FetchRequestResultType;
+use const Sabatier\CoreData\ManagedObjectEntityNameKey;
 
 /** @internal */
 class GroupByTool extends FetchTool
@@ -21,7 +22,7 @@ class GroupByTool extends FetchTool
     #[Override]
     protected(set) string $name = "group_by";
     #[Override]
-    protected(set) array $inputSchema = ["type" => "object", "properties" => [...self::requestSchema, ...self::computationSchema], "required" => ["entityName", "propertiesToFetch", "propertiesToGroupBy"]];
+    protected(set) array $inputSchema = ["type" => "object", "properties" => [...self::requestSchema, ...self::computationSchema], "required" => [ManagedObjectEntityNameKey, "propertiesToFetch", "propertiesToGroupBy"]];
     /** @var FetchRequest A grouped or computed query answers dictionaries, one per group, rather than objects. */
     #[Override]
     protected FetchRequest $fetchRequest {
@@ -38,6 +39,6 @@ class GroupByTool extends FetchTool
     #[Override]
     protected function summary(int $rowCount): string
     {
-        return "Grouped {$this->arguments["entityName"]}. $rowCount group(s) returned — result is final, do not retry";
+        return "Grouped {$this->arguments[ManagedObjectEntityNameKey]}. $rowCount group(s) returned — result is final, do not retry";
     }
 }

@@ -12,6 +12,8 @@ use Sabatier\Foundation\Dictionary;
 use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\ToolCallToFetchRequestAdapter;
 use Sabatier\Service\ReadPersistentSpaceOperation;
+use const Sabatier\CoreData\ManagedObjectEntityNameKey;
+use const Sabatier\Service\MCPPredicateArgumentKey;
 
 /**
  * @internal
@@ -22,8 +24,8 @@ class FetchTool extends AbstractTool
 {
     /** @var array<array-key, mixed> The arguments every query tool accepts, named after the fetch request properties they set. */
     protected const array requestSchema = [
-        "entityName" => ["type" => "string", "description" => "Required. Entity name from the data model — call describe_model first if unsure."],
-        "predicate" => ["type" => "object", "description" => "Filters the rows: {\"format\": \"%K == %@\", \"arguments\": [...]}. %K for key paths, %@ for strings/objects, %d for integers, %f for floats, one argument per placeholder in order."],
+        ManagedObjectEntityNameKey => ["type" => "string", "description" => "Required. Entity name from the data model — call describe_model first if unsure."],
+        MCPPredicateArgumentKey => ["type" => "object", "description" => "Filters the rows: {\"format\": \"%K == %@\", \"arguments\": [...]}. %K for key paths, %@ for strings/objects, %d for integers, %f for floats, one argument per placeholder in order."],
         "serialization" => ["type" => "object", "description" => "The shape of each row, nested to any depth: {\"name\": true, \"customer\": {\"name\": true}}. Omit to return every attribute."],
         "sortDescriptors" => ["type" => "array", "description" => "Sort order: [{\"key\": \"creationDate\", \"ascending\": false}]."],
         "fetchLimit" => ["type" => "integer", "description" => "Maximum rows to return. Omit for all of them."],
@@ -40,7 +42,7 @@ class FetchTool extends AbstractTool
     #[Override]
     protected(set) bool $isOpenWorld = false;
     #[Override]
-    protected(set) array $inputSchema = ["type" => "object", "properties" => self::requestSchema, "required" => ["entityName"]];
+    protected(set) array $inputSchema = ["type" => "object", "properties" => self::requestSchema, "required" => [ManagedObjectEntityNameKey]];
     /** @var FetchRequest The request this call reads through, built from the arguments the way `ReadPersistentSpaceResponseStrategy` builds one from an HTTP request. */
     protected FetchRequest $fetchRequest {
         get => $this->fetchRequest ??= new ToolCallToFetchRequestAdapter($this->arguments, $this->context)->fetchRequest;
@@ -64,8 +66,8 @@ class FetchTool extends AbstractTool
      */
     protected function summary(int $rowCount): string
     {
-        $parts = new ArrayClass(["Fetched {$this->arguments["entityName"]}"]);
-        if (($predicate = $this->arguments["predicate"]) instanceof Dictionary) {
+        $parts = new ArrayClass(["Fetched {$this->arguments[ManagedObjectEntityNameKey]}"]);
+        if (($predicate = $this->arguments[MCPPredicateArgumentKey]) instanceof Dictionary) {
             $parts->append("filter: {$predicate["format"]}");
         }
         $parts->append("$rowCount row(s) returned — result is final, do not retry");

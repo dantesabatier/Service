@@ -25,6 +25,7 @@ use Sabatier\Service\MCP\Response\ContentItem;
 use Sabatier\Service\MCP\Schema\ModelDescriptor;
 use Sabatier\Service\MCP\ToolResolver;
 use function Sabatier\Foundation\localized_string;
+use const Sabatier\CoreData\ManagedObjectEntityNameKey;
 
 /**
  * Base class for all MCP tools, both built-in and custom.
@@ -71,7 +72,7 @@ abstract class AbstractTool
     protected(set) Dictionary $arguments;
     /** @var string|null The resource the running call is authorized against, or null when it needs no authorization; the `entityName` argument by default. */
     public ?string $authorizationResource {
-        get => is_string($entityName = $this->arguments["entityName"]) ? $entityName : null;
+        get => is_string($entityName = $this->arguments[ManagedObjectEntityNameKey]) ? $entityName : null;
     }
     /** @var AuthorizationType The action the running call is authorized for; `read` for a read-only tool and `update` otherwise by default. */
     public AuthorizationType $authorizationAction {

@@ -7,6 +7,10 @@ onward.
 
 ## [Unreleased]
 
+### Added
+
+- `MCPValuesArgumentKey` and `MCPPredicateArgumentKey` name the `values` and `predicate` tool arguments. The built-in tools read and declare their arguments through these and through CoreData's `ManagedObjectEntityNameKey` and `ManagedObjectObjectIDKey`, the same keys `PersistentSpace` reads over HTTP, so a schema, the default `$authorizationResource` and the tools that read an argument can no longer name it differently. A custom tool can use them for the same arguments.
+
 ## [1.11.1] - 2026-11-04
 
 ### Changed

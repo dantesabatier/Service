@@ -17,6 +17,8 @@ use Sabatier\Foundation\Predicates\Predicate;
 use Sabatier\Foundation\SortDescriptor;
 use Sabatier\Service\AccessConditionResolver;
 use function Sabatier\Foundation\fatal_error;
+use const Sabatier\CoreData\ManagedObjectEntityNameKey;
+use const Sabatier\Service\MCPPredicateArgumentKey;
 
 /**
  * Translates the arguments of a tool call into a fetch request, as {@see \Sabatier\Service\RequestToFetchRequestAdapter} translates an HTTP request: the arguments are named after the properties they set, so there is nothing to map. It only translates — a key path that does not exist is reported by Core Data when the statement is generated, and the rules the subject is held to are applied by the operation that runs the request.
@@ -45,8 +47,8 @@ final class ToolCallToFetchRequestAdapter
     {
         $arguments = $this->arguments;
         $request = new FetchRequest();
-        $request->entity = EntityDescription::entity((string)($arguments["entityName"] ?? fatal_error("entityName is required")), $this->context);
-        $request->predicate = $this->predicate($arguments["predicate"]);
+        $request->entity = EntityDescription::entity((string)($arguments[ManagedObjectEntityNameKey] ?? fatal_error("entityName is required")), $this->context);
+        $request->predicate = $this->predicate($arguments[MCPPredicateArgumentKey]);
         $request->havingPredicate = $this->predicate($arguments["havingPredicate"]);
         $request->sortDescriptors = $this->sortDescriptors($arguments["sortDescriptors"]);
         $request->propertiesToFetch = $this->properties($arguments["propertiesToFetch"], $request->entity);

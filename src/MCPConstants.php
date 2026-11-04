@@ -59,6 +59,10 @@ const MCPServerNameDefault = "MCP Server";
 const MCPServerVersionKey = "MCP_SERVER_VERSION";
 /** @var string Default MCP server version when the environment variable is not set. */
 const MCPServerVersionDefault = "1.11.1";
+/** @var string Tool argument carrying the values a write applies, as `create` and `update` read it. */
+const MCPValuesArgumentKey = "values";
+/** @var string Tool argument carrying the predicate a query or a history call is narrowed by. */
+const MCPPredicateArgumentKey = "predicate";
 /** @var string Environment variable key for the Tavily API key consumed by `Sabatier\Service\Search\TavilySearchProvider`; the application decides how it reads it. */
 const WebSearchApiKey = "WEB_SEARCH_API_KEY";
 /** @var string Environment variable key for the identifier of the `WebSearchProvider` the server uses to back `web_search`. */

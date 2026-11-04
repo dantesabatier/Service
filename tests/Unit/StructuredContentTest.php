@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sabatier\Service\Tests\Unit;
 
 use Exception;
+use JsonException;
 use LogicException;
 use Override;
 use PHPUnit\Framework\Attributes\Test;
@@ -35,7 +36,7 @@ use const Sabatier\Service\MCPProtocolVersionStable;
 
 /**
  * Covers the payload a tool contributes for a UI to read: where it is captured, that the text the model reads is
- * unchanged by it, and that it never survives into the next call of the same instance.
+ * unchanged by it, and that it never survives into the next call of the same tool.
  */
 final class StructuredContentTest extends TestCase
 {
@@ -83,15 +84,13 @@ final class StructuredContentTest extends TestCase
         $this->assertSame(["saved" => true], $tool->structuredContent);
     }
 
-    /** @throws Exception */
+    /** @throws Throwable */
     #[Test]
     public function aCallThatContributesNothingDoesNotInheritTheLastPayload(): void
     {
-        $tool = $this->tool(AlternatingStructuredProbeTool::class);
-        $tool->call(new Dictionary(["structured" => true]));
-        $this->assertSame(["rowCount" => 1, "results" => ["ok"]], $tool->structuredContent);
-        $tool->call(new Dictionary());
-        $this->assertNull($tool->structuredContent);
+        $registry = new ToolRegistry(new ArrayClass([$this->tool(AlternatingStructuredProbeTool::class)]));
+        $this->assertSame(["rowCount" => 1, "results" => ["ok"]], $registry->call("structured_probe", new Dictionary(["structured" => true]))->structuredContent);
+        $this->assertNull($registry->call("structured_probe", new Dictionary())->structuredContent);
     }
 
     /** @throws Throwable */
@@ -191,7 +190,10 @@ abstract class StructuredProbeToolBase extends AbstractTool
 
 final class StructuredProbeTool extends StructuredProbeToolBase
 {
-    /** @return ArrayClass<ContentItem> */
+    /**
+     * @return ArrayClass<ContentItem>
+     * @throws JsonException
+     */
     #[Override]
     protected function executeCore(): ArrayClass
     {
@@ -201,7 +203,10 @@ final class StructuredProbeTool extends StructuredProbeToolBase
 
 final class CollectionStructuredProbeTool extends StructuredProbeToolBase
 {
-    /** @return ArrayClass<ContentItem> */
+    /**
+     * @return ArrayClass<ContentItem>
+     * @throws JsonException
+     */
     #[Override]
     protected function executeCore(): ArrayClass
     {
@@ -211,7 +216,10 @@ final class CollectionStructuredProbeTool extends StructuredProbeToolBase
 
 final class ListStructuredProbeTool extends StructuredProbeToolBase
 {
-    /** @return ArrayClass<ContentItem> */
+    /**
+     * @return ArrayClass<ContentItem>
+     * @throws JsonException
+     */
     #[Override]
     protected function executeCore(): ArrayClass
     {
@@ -231,7 +239,10 @@ final class ProseStructuredProbeTool extends StructuredProbeToolBase
 
 final class AlternatingStructuredProbeTool extends StructuredProbeToolBase
 {
-    /** @return ArrayClass<ContentItem> */
+    /**
+     * @return ArrayClass<ContentItem>
+     * @throws JsonException
+     */
     #[Override]
     protected function executeCore(): ArrayClass
     {

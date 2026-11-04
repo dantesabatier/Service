@@ -264,7 +264,7 @@ final class MyTool extends AbstractTool
 }
 ```
 
-`ToolRegistry` invokes a tool only through the final `call()`, which keeps the call's arguments as `$this->arguments`, authorizes the call and then runs `executeCore()`, the one abstract method. A value derived from the arguments is a property hook reading `$this->arguments` — computed on every read, never memoized with `??=`, because the registry reuses one instance of each tool across calls. A value that does not depend on the call — `$name`, `$inputSchema`, the annotation flags — is a plain `protected(set)` property. `$authorizationResource` and `$authorizationAction` are hooks in `AbstractTool` and are overridden with a hook: redeclared as a plain property, the parent's hook still runs and the value is silently ignored.
+`ToolRegistry` invokes a tool only through the final `call()`, which keeps the call's arguments as `$this->arguments`, authorizes the call and then runs `executeCore()`, the one abstract method. A value derived from the arguments is a property hook reading `$this->arguments`, and it may memoize with `??=`: the registry runs each call on a clone of the registered tool, so nothing a call keeps — its arguments, its derived values, its `structuredContent` — reaches another call, a nested one included. A value that does not depend on the call — `$name`, `$inputSchema`, the annotation flags — is a plain `protected(set)` property. `$authorizationResource` and `$authorizationAction` are hooks in `AbstractTool` and are overridden with a hook: redeclared as a plain property, the parent's hook still runs and the value is silently ignored.
 
 `AbstractTool` gives a tool:
 

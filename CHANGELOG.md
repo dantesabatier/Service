@@ -7,6 +7,12 @@ onward.
 
 ## [Unreleased]
 
+## [1.11.1] - 2026-11-04
+
+### Changed
+
+- `ToolRegistry::call()` runs each call on a clone of the registered tool. What a call keeps — `$arguments`, the values derived from them, `structuredContent` — no longer reaches another call, including one nested inside it, which used to overwrite the arguments of the call around it. A hook derived from the arguments may therefore memoize with `??=`, and the built-in tools' `$fetchRequest`, `$entityName`, `$changeRequest` and `$transactionFilter` do. `AbstractTool::call()` no longer clears `structuredContent` before the core runs, so a tool invoked through `call()` directly, outside the registry, carries it from one call into the next.
+
 ## [1.11.0] - 2026-11-03
 
 ### Changed

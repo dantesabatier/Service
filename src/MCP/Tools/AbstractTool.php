@@ -67,7 +67,7 @@ abstract class AbstractTool
     protected(set) bool $isOpenWorld = true;
     /** @var string|null The `ui://` uri of the resource a host renders this tool's answer in, or null for a tool answering as text alone. */
     protected(set) ?string $uiResourceUri = null;
-    /** @var Dictionary<mixed> The validated arguments of the running call, assigned by `call()` before anything reads them; a hook derived from them is never memoized, since the registry reuses each instance across calls. */
+    /** @var Dictionary<mixed> The validated arguments of the running call, assigned by `call()` before anything reads them; the registry runs each call on a clone of the tool, so a hook derived from them may memoize. */
     protected(set) Dictionary $arguments;
     /** @var string|null The resource the running call is authorized against, or null when it needs no authorization; the `entityName` argument by default. */
     public ?string $authorizationResource {
@@ -77,7 +77,7 @@ abstract class AbstractTool
     public AuthorizationType $authorizationAction {
         get => $this->isReadOnly ? AuthorizationType::read : AuthorizationType::update;
     }
-    /** @var array<array-key, mixed>|null The structured payload the running call contributed, or null when it contributed none. The registry reuses one instance of each tool across calls, so `call()` clears this before the core runs and the value is read once after it returns; it never carries from one call into the next. */
+    /** @var array<array-key, mixed>|null The structured payload the running call contributed, or null when it contributed none; the registry runs each call on a clone of the tool, so it never carries from one call into the next. */
     private(set) ?array $structuredContent = null;
     /** @var ToolVocabulary The vocabulary of the bundle that owns this concrete tool class. */
     private ToolVocabulary $vocabulary {
@@ -127,9 +127,6 @@ abstract class AbstractTool
     /**
      * Invokes the tool: keeps the arguments as {@see self::$arguments}, authorizes the call, then runs its core.
      *
-     * The structured payload of any earlier call is cleared first, so what {@see self::$structuredContent} holds
-     * afterwards was contributed by this call or by nothing at all.
-     *
      * @param Dictionary<mixed> $arguments The validated arguments supplied by the caller.
      * @return ArrayClass<ContentItem> The content returned to the caller.
      * @throws Exception
@@ -138,7 +135,6 @@ abstract class AbstractTool
     {
         $this->arguments = $arguments;
         $this->authorize();
-        $this->structuredContent = null;
         return $this->executeCore();
     }
 

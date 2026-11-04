@@ -34,8 +34,9 @@ final class AbstractToolCallTest extends TestCase
     public function theRegistryInvokesAToolThroughCall(): void
     {
         $tool = $this->tool(CoreCallProbeTool::class);
+        $steps = $tool->steps;
         $this->assertFalse(new ToolRegistry(new ArrayClass([$tool]))->call("call_probe", new Dictionary())->isError);
-        $this->assertSame(["authorize", "executeCore"], $tool->steps->array);
+        $this->assertSame(["authorize", "executeCore"], $steps->array);
     }
 
     /**

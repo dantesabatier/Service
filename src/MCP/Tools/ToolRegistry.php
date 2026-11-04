@@ -82,6 +82,9 @@ final class ToolRegistry
     /**
      * Invokes a tool by name and never lets it throw past this point.
      *
+     * Each call runs on a clone of the registered tool, so the state one call keeps — its arguments, its structured
+     * payload — never reaches another, including a call nested inside it.
+     *
      * This is the single funnel both MCP and the in-process agent loop converge on. A tool that
      * mis-fires on the LLM's bad input throws an `InternalInconsistencyException` (via `fatal_error`)
      * carrying a message written for the model; that is captured and returned as a failed
@@ -107,6 +110,7 @@ final class ToolRegistry
         try {
             /** @var AbstractTool $tool */
             $tool = $this->tools[$name] ?? throw new ToolNotFoundException("Unknown tool: $name");
+            $tool = clone $tool;
             $complaint = $this->schemaComplaint($tool, $arguments);
             if ($complaint !== null) {
                 return ToolResult::failure($complaint);

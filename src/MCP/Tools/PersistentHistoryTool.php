@@ -52,11 +52,11 @@ abstract class PersistentHistoryTool extends AbstractTool
         get => "history";
     }
     protected PersistentHistoryChangeRequest $changeRequest {
-        get => new ToolCallToPersistentHistoryChangeRequestAdapter($this->arguments)->changeRequest;
+        get => $this->changeRequest ??= new ToolCallToPersistentHistoryChangeRequestAdapter($this->arguments)->changeRequest;
     }
     /** @var FetchRequest|null The transactions the scope reaches are narrowed by an ordinary fetch request, exactly as `PersistentHistoryResponseStrategy` narrows them for HTTP. */
     protected ?FetchRequest $transactionFilter {
-        get => $this->arguments["predicate"] ? new ToolCallToFetchRequestAdapter($this->arguments, $this->context)->fetchRequest : null;
+        get => $this->transactionFilter ??= $this->arguments["predicate"] ? new ToolCallToFetchRequestAdapter($this->arguments, $this->context)->fetchRequest : null;
     }
 
     /**

@@ -34,7 +34,7 @@ abstract class WriteTool extends AbstractTool
     protected(set) bool $isOpenWorld = false;
     /** @var string The name of the entity a write targets, refused before anything reaches the store. */
     protected string $entityName {
-        get => is_string($entityName = $this->arguments["entityName"]) && $entityName !== "" ? $entityName : fatal_error("entityName is required");
+        get => $this->entityName ??= is_string($entityName = $this->arguments["entityName"]) && $entityName !== "" ? $entityName : fatal_error("entityName is required");
     }
 
     /**
@@ -95,7 +95,7 @@ abstract class WriteTool extends AbstractTool
     protected function shapeFromValues(string $entityName, Dictionary $values): Dictionary
     {
         $schema = $this->entitySchema($entityName);
-        return $values->mapValues(function (mixed $value, int|string $key) use ($schema): mixed {
+        return $values->mapValues(function (mixed $value, int|string $key) use ($schema): true|Dictionary {
             $relationship = $schema->relationships[$key];
             if (!$relationship instanceof RelationshipSchema) {
                 return true;

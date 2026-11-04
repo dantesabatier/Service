@@ -43,7 +43,7 @@ class FetchTool extends AbstractTool
     protected(set) array $inputSchema = ["type" => "object", "properties" => self::requestSchema, "required" => ["entityName"]];
     /** @var FetchRequest The request this call reads through, built from the arguments the way `ReadPersistentSpaceResponseStrategy` builds one from an HTTP request. */
     protected FetchRequest $fetchRequest {
-        get => new ToolCallToFetchRequestAdapter($this->arguments, $this->context)->fetchRequest;
+        get => $this->fetchRequest ??= new ToolCallToFetchRequestAdapter($this->arguments, $this->context)->fetchRequest;
     }
 
     /**

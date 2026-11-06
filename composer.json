@@ -24,8 +24,8 @@
     "ext-intl": "*",
     "ext-mbstring": "*",
     "ext-openssl": "*",
-    "sabatier/foundation": "^1.0",
-    "sabatier/coredata": "^1.0"
+    "sabatier/foundation": "^1.2.2",
+    "sabatier/coredata": "^1.2.13"
   },
   "require-dev": {
     "jetbrains/phpstorm-attributes": "^1.1",

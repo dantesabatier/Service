@@ -7,6 +7,14 @@ onward.
 
 ## [Unreleased]
 
+### Added
+
+- `Application` passes `PersistentStoreFileProtectionKey` from `UserDefaults` to the store's options, as it does `PersistentHistoryTrackingKey`. Registering it as `FileProtectionType::complete` makes CoreData encrypt the store's tables at rest; `none` is the default.
+
+### Changed
+
+- Requires CoreData 1.2.13 and Foundation 1.2.2, the versions that define `PersistentStoreFileProtectionKey` and `FileProtectionType`.
+
 ## [1.11.2] - 2026-11-04
 
 ### Added

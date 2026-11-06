@@ -331,6 +331,10 @@ This layering means that a warm-cache user with a valid JWT authorizing the requ
 - **`POST /logout`** — in session mode, destroys the session. In JWT mode, increments the user's `refreshTokenVersion`, which immediately invalidates all outstanding tokens for that user.
 - **`POST /refresh`** — issues a new JWT from a valid refresh-scoped token. The issued token carries fresh expiry and scope information.
 
+### 9.6 Data at Rest
+
+`Application` passes `PersistentStoreFileProtectionKey` from `UserDefaults` to the store's options, as it does `PersistentHistoryTrackingKey`; an application registers it in its delegate, `UserDefaults::standard()->register(new Dictionary([PersistentStoreFileProtectionKey => FileProtectionType::complete]))`. With `complete`, CoreData creates every table of the store with `ENCRYPTED=YES`, which MariaDB encrypts with the server's key management plugin, and refuses to open the store when no plugin is active; with `none`, the default, the tables are declared `ENCRYPTED=NO`. Changing the value migrates an existing store in either direction the next time it opens. Table encryption does not cover the redo log, the binary log or temporary files: those are encrypted through the server's own configuration.
+
 ---
 
 ## 10. Rate Limiting and Idempotency

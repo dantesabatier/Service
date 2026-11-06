@@ -15,6 +15,7 @@ use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Error;
+use Sabatier\Foundation\FileProtectionType;
 use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Foundation\Notification;
 use Sabatier\Foundation\NotificationCenter;
@@ -29,6 +30,7 @@ use const Sabatier\CoreData\InsertedObjectsKey;
 use const Sabatier\CoreData\ManagedObjectContextDidSave;
 use const Sabatier\CoreData\ManagedObjectContextWillSave;
 use const Sabatier\CoreData\PersistentHistoryTrackingKey;
+use const Sabatier\CoreData\PersistentStoreFileProtectionKey;
 use const Sabatier\CoreData\PersistentStoreRemoteChange;
 use const Sabatier\CoreData\PersistentStoreRemoteChangeNotificationPostOptionKey;
 use const Sabatier\CoreData\UpdatedObjectsKey;
@@ -217,6 +219,7 @@ class Application extends Responder
         if ($description = $persistentContainer->persistentStoreDescriptions->first) {
             $description->setOptionForKey(UserDefaults::standard()->bool(PersistentHistoryTrackingKey), PersistentHistoryTrackingKey);
             $description->setOptionForKey(UserDefaults::standard()->bool(PersistentStoreRemoteChangeNotificationPostOptionKey), PersistentStoreRemoteChangeNotificationPostOptionKey);
+            $description->setOptionForKey(UserDefaults::standard()->string(PersistentStoreFileProtectionKey) ?? FileProtectionType::none, PersistentStoreFileProtectionKey);
         }
     }
 

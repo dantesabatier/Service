@@ -26,7 +26,7 @@ class FetchTool extends AbstractTool
     protected const array requestSchema = [
         ManagedObjectEntityNameKey => ["type" => "string", "description" => "Required. Entity name from the data model — call describe_model first if unsure."],
         MCPPredicateArgumentKey => ["type" => "object", "description" => "Filters the rows: {\"format\": \"%K == %@\", \"arguments\": [...]}. %K for key paths, %@ for strings/objects, %d for integers, %f for floats, one argument per placeholder in order."],
-        "serialization" => ["type" => "object", "description" => "The shape of each row, nested to any depth: {\"name\": true, \"customer\": {\"name\": true}}. Omit to return every attribute."],
+        "serialization" => ["type" => "object", "description" => "The shape of each row, nested to any depth: {\"name\": true, \"customer\": {\"name\": true}}. objectID and entityName come back on every row and every nested object without asking: never list them, and to follow a relationship name at least one of its real attributes. Omit to return every attribute."],
         "sortDescriptors" => ["type" => "array", "description" => "Sort order: [{\"key\": \"creationDate\", \"ascending\": false}]."],
         "fetchLimit" => ["type" => "integer", "description" => "Maximum rows to return. Omit for all of them."],
         "fetchOffset" => ["type" => "integer"],

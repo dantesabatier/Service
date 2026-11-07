@@ -7,6 +7,10 @@ onward.
 
 ## [Unreleased]
 
+### Changed
+
+- The `serialization` argument of the query tools tells the agent that `objectID` and `entityName` come back on every row and every nested object without asking, so it never lists them, and that following a relationship takes at least one of its real attributes. A shape that named only `objectID` read as a request for nothing.
+
 ## [1.11.3] - 2026-11-06
 
 ### Added

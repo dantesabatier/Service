@@ -58,14 +58,17 @@ final readonly class RedisAuthorizationCache implements AuthorizationCache
         $this->redis->del("auth:u:$authorizable->username");
     }
 
+    /**
+     * The walk ends when the cursor returns to 0, not on the first empty batch: `SCAN` answers an empty batch whenever the slice it visited holds no matching key, and in a Redis shared with other caches that is most of them.
+     */
     #[Override]
     public function invalidateAll(): void
     {
         $keys = [];
         $iterator = null;
-        while ($batch = $this->redis->scan($iterator, "auth:u:*", 100)) {
-            $keys = [...$keys, ...$batch];
-        }
+        do {
+            $keys = [...$keys, ...($this->redis->scan($iterator, "auth:u:*", 100) ?: [])];
+        } while ($iterator > 0);
         if ($keys !== []) {
             $this->redis->del($keys);
         }

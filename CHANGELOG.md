@@ -7,6 +7,10 @@ onward.
 
 ## [Unreleased]
 
+### Fixed
+
+- `RedisAuthorizationCache::invalidateAll()` clears every cached authorizable. It stopped at the first empty `SCAN` batch, and in a Redis shared with other caches the first batches rarely hold an `auth:u:*` key, so it usually deleted nothing: a changed permission or role kept answering from the old authorizations until each user's entry expired, up to the cache lifetime.
+
 ## [1.11.4] - 2026-11-06
 
 ### Changed

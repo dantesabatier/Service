@@ -93,6 +93,18 @@ final class DistributedCacheBackendsTest extends TestCase
 
     /** @throws ReflectionException */
     #[Test]
+    public function invalidatingEverythingReachesAuthorizablesPastBatchesWithoutAMatch(): void
+    {
+        [$cache, $redis] = $this->redisCache();
+        $redis->foreignKeys = array_map(fn(int $index): string => "row:$index", range(1, 250));
+        $cache->setAuthorizableAuthorizations($this->user("ada"), $this->authorizations("Order"));
+        $cache->setAuthorizableAuthorizations($this->user("grace"), $this->authorizations("Invoice"));
+        $cache->invalidateAll();
+        $this->assertSame([], $redis->entries);
+    }
+
+    /** @throws ReflectionException */
+    #[Test]
     public function invalidatingEverythingOnAnEmptyCacheDeletesNothing(): void
     {
         [$cache, $redis] = $this->redisCache();
@@ -198,6 +210,8 @@ final class DistributedCacheBackendsTest extends TestCase
             public array $entries = [];
             /** @var array<string, int> */
             public array $lifetimes = [];
+            /** @var list<string> Keys other caches keep in the same Redis. */
+            public array $foreignKeys = [];
             public int $deleteCalls = 0;
 
             #[Override]
@@ -230,8 +244,12 @@ final class DistributedCacheBackendsTest extends TestCase
                 if ($iterator === 0) {
                     return false;
                 }
-                $iterator = 0;
-                return array_keys($this->entries) ?: false;
+                // As phpredis does: each call visits `count` keys of the whole keyspace and answers only those matching the pattern, so a slice without a match comes back empty while the cursor is still running.
+                $keyspace = [...$this->foreignKeys, ...array_keys($this->entries)];
+                $start = (int)$iterator;
+                $slice = array_slice($keyspace, $start, max(1, (int)$count));
+                $iterator = $start + count($slice) < count($keyspace) ? $start + count($slice) : 0;
+                return array_values(array_filter($slice, fn(string $key): bool => $pattern === null || fnmatch($pattern, $key)));
             }
         };
         $cache = new ReflectionClass(RedisAuthorizationCache::class)->newInstanceWithoutConstructor();

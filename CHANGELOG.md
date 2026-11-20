@@ -7,6 +7,13 @@ onward.
 
 ## [Unreleased]
 
+## [1.11.7] - 2026-11-20
+
+### Fixed
+
+- Uploads in the shared public directory are served with `public, max-age=0` instead of the bundle `max-age` and `immutable`. An upload can be replaced under the same name, so a browser that had seen it kept showing the old file for the whole `max-age` without asking; now it revalidates on every use, with `ETag` and `304 Not Modified` when ETags are enabled. Bundle resources and `STATIC_PUBLIC_DIRECTORIES` keep the long `immutable` caching.
+
+
 ## [1.11.6] - 2026-11-20
 
 ### Fixed

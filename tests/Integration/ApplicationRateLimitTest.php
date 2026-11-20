@@ -16,6 +16,7 @@ use ReflectionProperty;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Networking\URLCredential;
 use Sabatier\Foundation\ObjectClass;
+use Sabatier\Foundation\URL;
 use Sabatier\Service\Application;
 use Sabatier\Service\Authentication;
 use Sabatier\Service\AuthenticationContext;
@@ -23,6 +24,8 @@ use Sabatier\Service\AuthenticationManager;
 use Sabatier\Service\AuthenticationScheme;
 use Sabatier\Service\RateLimitPolicy;
 use Sabatier\Service\RateLimitStore;
+use Sabatier\Service\StaticResourceDisposition;
+use Sabatier\Service\StaticResourcePolicy;
 use Sabatier\Service\TooManyRequestsException;
 
 /**
@@ -225,6 +228,44 @@ final class ApplicationRateLimitTest extends TestCase
         $this->enforce($application);
         $this->assertSame(29, $application->rateLimitInfo?->remaining);
         $this->assertSame(500, $store->counts["rate_limit:ip:203.0.113.7"]);
+    }
+
+    /** @throws ReflectionException */
+    #[Test]
+    public function aCacheablePublicStaticFileIsNotCounted(): void
+    {
+        [$application, $store] = $this->application(new RateLimitPolicy(maxRequestsIP: 1));
+        $this->serveStatically($application, new StaticResourceDisposition(true, false, false, true, true));
+        $store->seed("rate_limit:ip:203.0.113.7:anonymous", 50);
+        $this->enforce($application);
+        $this->assertSame(50, $store->counts["rate_limit:ip:203.0.113.7:anonymous"]);
+        $this->assertNull($application->rateLimitInfo);
+    }
+
+    /** @throws ReflectionException */
+    #[Test]
+    public function aStaticFileThatIsNotCacheableIsStillCounted(): void
+    {
+        [$application, $store] = $this->application();
+        $this->serveStatically($application, new StaticResourceDisposition(true, false, false, false, false));
+        $this->enforce($application);
+        $this->assertSame(1, $store->counts["rate_limit:ip:203.0.113.7:anonymous"]);
+    }
+
+    private function serveStatically(Application $application, StaticResourceDisposition $disposition): void
+    {
+        $policy = new readonly class ($disposition) implements StaticResourcePolicy {
+            public function __construct(private StaticResourceDisposition $disposition)
+            {
+            }
+
+            #[Override]
+            public function evaluate(URL $resourceURL): StaticResourceDisposition
+            {
+                return $this->disposition;
+            }
+        };
+        new ReflectionProperty(Application::class, "staticResourcePolicy")->setRawValue($application, $policy);
     }
 
     private function resetInfo(Application $application): void

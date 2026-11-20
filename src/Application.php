@@ -15,6 +15,7 @@ use Sabatier\Foundation\ArrayClass;
 use Sabatier\Foundation\Bundle;
 use Sabatier\Foundation\Dictionary;
 use Sabatier\Foundation\Error;
+use Sabatier\Foundation\FileManager;
 use Sabatier\Foundation\FileProtectionType;
 use Sabatier\Foundation\InternalInconsistencyException;
 use Sabatier\Foundation\Notification;
@@ -329,7 +330,8 @@ class Application extends Responder
     private function enforceRateLimitIfNeeded(): void
     {
         $policy = $this->rateLimitPolicy;
-        if (!$policy->enabled) {
+        // A cacheable public static file is cheap to serve and a page asks for many at once, revalidating each one: it is not counted.
+        if (!$policy->enabled || $this->staticResourcePolicy->evaluate(FileManager::default()->documentRootDirectory->appendingPathComponent($this->request->url->path))->cacheable) {
             return;
         }
         $address = $this->request->remoteAddress ?? "unknown";

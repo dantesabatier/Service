@@ -7,6 +7,8 @@ onward.
 
 ## [Unreleased]
 
+## [1.11.6] - 2026-11-20
+
 ### Fixed
 
 - `APCuRateLimitStore` counters expire at the end of their window. Since APCu 5.1.12, `apcu_inc()` creates a missing key itself, with no expiry, so the counter never reset: once a client reached its limit it got `429 Too Many Requests` on every request, static resources included, until APCu was cleared. Requires APCu 5.1.12 or later.

@@ -7,6 +7,8 @@ onward.
 
 ## [Unreleased]
 
+## [1.11.8] - 2026-11-20
+
 ### Fixed
 
 - A request with no credential is counted under its own key, `rate_limit:ip:<address>:anonymous`, instead of the address counter that authenticated requests share. Charged to that shared counter, it was compared against `RATE_LIMIT_MAX_REQUESTS_IP` (30 by default) after the authenticated requests from the same address, allowed `RATE_LIMIT_MAX_REQUESTS_USER`, had already spent it: an authenticated client got `429 Too Many Requests` on every request that carries no `Authorization` header, such as the images its pages load, however high either limit was set.

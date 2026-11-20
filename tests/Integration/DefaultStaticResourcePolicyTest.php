@@ -115,6 +115,21 @@ final class DefaultStaticResourcePolicyTest extends TestCase
         $this->assertSame(StaticResourceMaxAgeDefault, $disposition->maxAge);
     }
 
+    // --- Archivo subido al directorio público compartido ---
+
+    /** @throws Exception */
+    #[Test]
+    public function uploadInSharedPublicDirectoryIsCacheableButRevalidated(): void
+    {
+        $this->writeFile("{$this->documentRoot()}Public/__policy_probe_upload.png");
+        $disposition = $this->policy->evaluate($this->resolve("/Public/__policy_probe_upload.png"));
+        $this->assertTrue($disposition->shouldHandle);
+        $this->assertTrue($disposition->cacheable);
+        $this->assertTrue($disposition->isProtectedContentAvailable);
+        $this->assertFalse($disposition->immutable);
+        $this->assertSame(0, $disposition->maxAge);
+    }
+
     // --- Recurso fuera de directorios públicos ---
 
     /** @throws Exception */

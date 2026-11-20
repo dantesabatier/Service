@@ -9,7 +9,8 @@ namespace Sabatier\Service;
  * `StaticResourceDisposition` carried in the context.
  *
  * Static bundle resources (public directories such as Resources, vendor, and
- * node_modules) are served with `public, max-age=N`, optionally `immutable`,
+ * node_modules) are served with `public, max-age=N`, optionally `immutable`; uploads in
+ * the shared public directory with `public, max-age=0`, so they are revalidated on every use,
  * independently of the application's HTTPCachePolicy — which targets dynamic
  * API responses and defaults to `private, max-age=0`. Because it writes the
  * header in the user pipeline, the downstream infrastructure CacheHeaderTransformer

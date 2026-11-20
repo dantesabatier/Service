@@ -28,12 +28,16 @@ final class DefaultStaticResourcePolicy implements StaticResourcePolicy
     private Set $resourceKeys {
         get => $this->resourceKeys ??= new Set(self::resourceKeys);
     }
-    /** @var Set<URL> */
-    private Set $publicURLs {
+    /** @var URL The shared public directory, where uploads land. An upload can be replaced under the same name, so its responses are cacheable but never `immutable`. */
+    private URL $sharedPublicURL {
         /**
          * @throws Exception
          */
-        get => $this->publicURLs ??= new Set([FileManager::default()->url(SearchPathDirectory::sharedPublicDirectory)])->union(new Set([Bundle::main(), Bundle::bundleForClass(self::class)])->flatMap(fn(Bundle $bundle): Set => $this->resourceKeys->compactMap(fn(string $key): ?URL => $bundle->valueForKey($key))))->union($this->configuredPublicURLs);
+        get => $this->sharedPublicURL ??= FileManager::default()->url(SearchPathDirectory::sharedPublicDirectory);
+    }
+    /** @var Set<URL> The public bundle directories and the configured ones, whose contents never change under a stable URL. */
+    private Set $publicURLs {
+        get => $this->publicURLs ??= new Set([Bundle::main(), Bundle::bundleForClass(self::class)])->flatMap(fn(Bundle $bundle): Set => $this->resourceKeys->compactMap(fn(string $key): ?URL => $bundle->valueForKey($key)))->union($this->configuredPublicURLs);
     }
     /** @var Set<URL> Extra public directories declared through the STATIC_PUBLIC_DIRECTORIES environment variable, resolved relative to the bundle root and kept only when they exist on disk. */
     private Set $configuredPublicURLs {
@@ -71,6 +75,9 @@ final class DefaultStaticResourcePolicy implements StaticResourcePolicy
             return new StaticResourceDisposition(true, true, true, true, true, StaticResourceOptionalMaxAgeDefault);
         }
         if (FileManager::default()->fileExists($resourceURL->path, $isDirectory) && !$isDirectory) {
+            if (str_starts_with($resourceURL->path, $this->sharedPublicURL->path)) {
+                return new StaticResourceDisposition(true, false, false, true, true);
+            }
             $isPublic = $this->publicURLs->contains(fn(URL $publicURL): bool => str_starts_with($resourceURL->path, $publicURL->path));
             return new StaticResourceDisposition(true, false, false, $isPublic, $isPublic, $isPublic ? $this->bundleMaxAge : 0, $isPublic);
         }

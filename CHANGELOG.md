@@ -7,6 +7,13 @@ onward.
 
 ## [Unreleased]
 
+## [1.11.9] - 2026-11-20
+
+### Fixed
+
+- A request for a cacheable public static file is no longer counted against the rate limit. Since 1.11.7 uploads are revalidated on every use, and those requests carry no credential, so they were held to `RATE_LIMIT_MAX_REQUESTS_IP` (30 by default): a page with more images than that got `429 Too Many Requests` for the rest, and the browser blocked the JSON error body as a cross-origin read. API requests and non-cacheable files are still counted.
+
+
 ## [1.11.8] - 2026-11-20
 
 ### Fixed

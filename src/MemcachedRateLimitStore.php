@@ -10,8 +10,8 @@ use Override;
 /**
  * A Memcached-backed rate limit store for distributed deployments.
  *
- * Uses `Memcached::add()` to atomically initialize the counter only when the key does not exist,
- * mirroring the `apcu_add` pattern in APCuRateLimitStore. Subsequent requests use
+ * Uses `Memcached::add()` to atomically initialize the counter only when the key does not exist.
+ * Subsequent requests use
  * `Memcached::increment()` to atomically advance the counter.
  *
  * Because Memcached does not expose the remaining TTL of a key, this store maintains a parallel

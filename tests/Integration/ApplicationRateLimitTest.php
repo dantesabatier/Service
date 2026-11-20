@@ -69,7 +69,7 @@ final class ApplicationRateLimitTest extends TestCase
     {
         [$application, $store] = $this->application();
         $this->enforce($application);
-        $this->assertSame(["rate_limit:ip:203.0.113.7"], array_keys($store->counts));
+        $this->assertSame(["rate_limit:ip:203.0.113.7:anonymous"], array_keys($store->counts));
     }
 
     /** @throws ReflectionException */
@@ -79,7 +79,7 @@ final class ApplicationRateLimitTest extends TestCase
         unset($_SERVER["REMOTE_ADDR"]);
         [$application, $store] = $this->application();
         $this->enforce($application);
-        $this->assertSame(["rate_limit:ip:unknown"], array_keys($store->counts));
+        $this->assertSame(["rate_limit:ip:unknown:anonymous"], array_keys($store->counts));
     }
 
     /** @throws ReflectionException */
@@ -118,7 +118,7 @@ final class ApplicationRateLimitTest extends TestCase
     public function theAllowanceNeverGoesBelowZero(): void
     {
         [$application, $store] = $this->application(new RateLimitPolicy(maxRequestsIP: 1));
-        $store->seed("rate_limit:ip:203.0.113.7", 50);
+        $store->seed("rate_limit:ip:203.0.113.7:anonymous", 50);
         try {
             $this->enforce($application);
         } catch (TooManyRequestsException) {
@@ -144,7 +144,7 @@ final class ApplicationRateLimitTest extends TestCase
     public function theRefusalTellsTheCallerHowLongToWait(): void
     {
         [$application, $store] = $this->application(new RateLimitPolicy(maxRequestsIP: 1));
-        $store->seed("rate_limit:ip:203.0.113.7", 50);
+        $store->seed("rate_limit:ip:203.0.113.7:anonymous", 50);
         $store->remaining = 17;
         try {
             $this->enforce($application);
@@ -159,7 +159,7 @@ final class ApplicationRateLimitTest extends TestCase
     public function aRefusalAlwaysAsksForAtLeastOneSecond(): void
     {
         [$application, $store] = $this->application(new RateLimitPolicy(maxRequestsIP: 1));
-        $store->seed("rate_limit:ip:203.0.113.7", 50);
+        $store->seed("rate_limit:ip:203.0.113.7:anonymous", 50);
         $store->remaining = 0;
         try {
             $this->enforce($application);
@@ -175,7 +175,7 @@ final class ApplicationRateLimitTest extends TestCase
     {
         [$application, $store] = $this->application();
         $this->enforce($application);
-        $this->assertSame(1, $store->counts["rate_limit:ip:203.0.113.7"]);
+        $this->assertSame(1, $store->counts["rate_limit:ip:203.0.113.7:anonymous"]);
     }
 
     /** @throws ReflectionException */
@@ -214,6 +214,17 @@ final class ApplicationRateLimitTest extends TestCase
         $store->seed("rate_limit:ip:203.0.113.7:user:ada", 9);
         $this->expectException(TooManyRequestsException::class);
         $this->enforce($application);
+    }
+
+    /** @throws ReflectionException */
+    #[Test]
+    public function authenticatedRequestsDoNotSpendTheAnonymousAllowance(): void
+    {
+        [$application, $store] = $this->application(new RateLimitPolicy(maxRequestsUser: 10000, maxRequestsIP: 30));
+        $store->seed("rate_limit:ip:203.0.113.7", 500);
+        $this->enforce($application);
+        $this->assertSame(29, $application->rateLimitInfo?->remaining);
+        $this->assertSame(500, $store->counts["rate_limit:ip:203.0.113.7"]);
     }
 
     private function resetInfo(Application $application): void

@@ -31,22 +31,18 @@ final class RateLimitKeyTest extends TestCase
      */
     private function limits(string $address, ?string $username, int $maximumForIP, int $maximumForUser): Dictionary
     {
-        /** @var Dictionary<int> $limits */
-        $limits = new Dictionary(["rate_limit:ip:$address" => $username !== null ? $maximumForUser : $maximumForIP]);
-        if ($username !== null) {
-            $limits["rate_limit:ip:$address:user:$username"] = $maximumForUser;
-        }
-        return $limits;
+        /** @var Dictionary<int> */
+        return $username === null ? new Dictionary(["rate_limit:ip:$address:anonymous" => $maximumForIP]) : new Dictionary(["rate_limit:ip:$address" => $maximumForUser, "rate_limit:ip:$address:user:$username" => $maximumForUser]);
     }
 
-    /** An anonymous request is charged to its address alone, at the anonymous allowance. */
+    /** An anonymous request is charged to an anonymous counter of its address, at the anonymous allowance. */
     #[Test]
     public function anAnonymousRequestIsChargedToItsAddress(): void
     {
         $limits = $this->limits("1.2.3.4", null, 30, 120);
 
-        $this->assertSame(["rate_limit:ip:1.2.3.4"], array_keys($limits->array));
-        $this->assertSame(30, $limits["rate_limit:ip:1.2.3.4"]);
+        $this->assertSame(["rate_limit:ip:1.2.3.4:anonymous"], array_keys($limits->array));
+        $this->assertSame(30, $limits["rate_limit:ip:1.2.3.4:anonymous"]);
     }
 
     /** A request claiming a subject is charged twice: to its address, and to the pair of address and subject. */

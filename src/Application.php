@@ -324,7 +324,7 @@ class Application extends Responder
      *
      * The username here is the one the request *claims* — this runs before the credential is verified, deliberately, because verifying costs a Core Data lookup and a bcrypt comparison, and a limiter that waits for them lets an unauthenticated caller spend both on every request. A claim therefore cannot be the whole key: keyed on the name alone, anyone could exhaust a victim's quota by asserting their username, or escape the address limit entirely by inventing a new name per request.
      *
-     * Both keys carry the address, which is the part a caller cannot assert. The address counter applies to every request and is what bounds the cost of the work still ahead; the per-subject counter grants a claimed identity its larger allowance within that address, so a legitimate client is not held to the anonymous limit while a rotating one gains nothing. The reported {@see Application::$rateLimitInfo} describes whichever of the two is closer to being spent, since that is the one the client will hit.
+     * Every key carries the address, which is the part a caller cannot assert. A request that claims an identity is charged to the address counter, which bounds the cost of the work still ahead whatever name is claimed, and to the per-subject counter, which grants that identity its larger allowance within the address, so a legitimate client is not held to the anonymous limit while a rotating one gains nothing. A request that claims none is charged to an anonymous counter of its own: sharing the address counter would let the claimed requests from that address, allowed far more, spend the anonymous allowance and refuse every request that carries no credential, such as an image an authenticated page loads. The reported {@see Application::$rateLimitInfo} describes whichever of its counters is closer to being spent, since that is the one the client will hit.
      */
     private function enforceRateLimitIfNeeded(): void
     {
@@ -334,10 +334,7 @@ class Application extends Responder
         }
         $address = $this->request->remoteAddress ?? "unknown";
         $username = $this->authenticationManager->authentication->credential?->user;
-        $limits = new Dictionary(["rate_limit:ip:$address" => $username !== null ? $policy->maxRequestsUser : $policy->maxRequestsIP]);
-        if ($username !== null) {
-            $limits["rate_limit:ip:$address:user:$username"] = $policy->maxRequestsUser;
-        }
+        $limits = $username === null ? new Dictionary(["rate_limit:ip:$address:anonymous" => $policy->maxRequestsIP]) : new Dictionary(["rate_limit:ip:$address" => $policy->maxRequestsUser, "rate_limit:ip:$address:user:$username" => $policy->maxRequestsUser]);
         foreach ($limits as $key => $limit) {
             $count = $this->rateLimitStore->increment($key, $policy->windowSeconds);
             $ttl = $this->rateLimitStore->ttl($key);

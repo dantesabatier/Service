@@ -9,7 +9,9 @@ onward.
 
 ### Fixed
 
-- Disabling an authorizable (`isEnabled` set to `false`) now bumps its `refreshTokenVersion`, so its outstanding JWT is rejected on the next request. Until now only a change to the entity's roles or authorizations invalidated a token; a disabled account whose permissions were untouched kept working under its current token until that token expired (default 30 minutes), since the enabled evaluator trusts the token's `enb` claim in bearer mode. Login and the session path were already rejecting disabled accounts live and are unaffected.
+- Disabling an authorizable, or changing its password, now bumps its `refreshTokenVersion`, so its outstanding JWT is rejected on the next request. Until now only a change to the entity's roles or authorizations invalidated a token; a disabled account, or one whose password had changed, whose permissions were untouched kept working under its current token until it expired (default 30 minutes), since the enabled evaluator trusts the token's `enb` claim in bearer mode. Login and the session path were already rejecting disabled accounts live and are unaffected.
+
+## [1.11.9] - 2026-11-20
 
 ### Fixed
 

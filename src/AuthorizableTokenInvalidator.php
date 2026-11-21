@@ -18,7 +18,7 @@ use function Sabatier\Foundation\fatal_error;
 use function Sabatier\Foundation\is_equal;
 
 /**
- * Invalidates the outstanding JWT tokens of the authorizable entities whose roles, or whose roles' authorizations, a save changes, as well as those of an authorizable a save disables, so that disabling an account takes effect on its next request rather than only once its current token expires.
+ * Invalidates the outstanding JWT tokens of the authorizable entities whose roles, or whose roles' authorizations, a save changes, as well as those of an authorizable a save disables or whose password a save changes, so that disabling an account or changing its credentials takes effect on its next request rather than only once its current token expires.
  *
  * @see Authorizable::$refreshTokenVersion
  * @see JSONWebTokenVersionEvaluator
@@ -107,7 +107,7 @@ final class AuthorizableTokenInvalidator
     private function affectedByChange(ManagedObject $object, ManagedObjectContext $committedContext): Set
     {
         return match (true) {
-            $object instanceof Authorizable => !$this->changedRelatedObjects($object, $this->rolesRelationship, $committedContext)->isEmpty || $this->hasChangedAttributes($object, new ArrayClass(["isEnabled"]), $committedContext) ? new Set([$object]) : new Set(),
+            $object instanceof Authorizable => !$this->changedRelatedObjects($object, $this->rolesRelationship, $committedContext)->isEmpty || $this->hasChangedAttributes($object, new ArrayClass(["isEnabled", "password"]), $committedContext) ? new Set([$object]) : new Set(),
             $object instanceof AuthorizableRole => $this->affectedByRoleChange($object, $committedContext),
             $object instanceof Authorization => $this->affectedByAuthorizationChange($object, $committedContext),
             default => new Set(),

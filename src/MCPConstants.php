@@ -58,7 +58,7 @@ const MCPServerNameDefault = "MCP Server";
 /** @var string Environment variable key for the MCP server version returned during initialization. */
 const MCPServerVersionKey = "MCP_SERVER_VERSION";
 /** @var string Default MCP server version when the environment variable is not set. */
-const MCPServerVersionDefault = "1.11.9";
+const MCPServerVersionDefault = "1.11.10";
 /** @var string Tool argument carrying the values a write applies, as `create` and `update` read it. */
 const MCPValuesArgumentKey = "values";
 /** @var string Tool argument carrying the predicate a query or a history call is narrowed by. */

@@ -323,6 +323,8 @@ class Application extends Responder
     /**
      * Counts the request against its limits and refuses it once either is spent.
      *
+     * A request for a file the static resource policy considers cacheable is not counted: it is cheap to serve, and a page asks for many at once, revalidating each one.
+     *
      * The username here is the one the request *claims* — this runs before the credential is verified, deliberately, because verifying costs a Core Data lookup and a bcrypt comparison, and a limiter that waits for them lets an unauthenticated caller spend both on every request. A claim therefore cannot be the whole key: keyed on the name alone, anyone could exhaust a victim's quota by asserting their username, or escape the address limit entirely by inventing a new name per request.
      *
      * Every key carries the address, which is the part a caller cannot assert. A request that claims an identity is charged to the address counter, which bounds the cost of the work still ahead whatever name is claimed, and to the per-subject counter, which grants that identity its larger allowance within the address, so a legitimate client is not held to the anonymous limit while a rotating one gains nothing. A request that claims none is charged to an anonymous counter of its own: sharing the address counter would let the claimed requests from that address, allowed far more, spend the anonymous allowance and refuse every request that carries no credential, such as an image an authenticated page loads. The reported {@see Application::$rateLimitInfo} describes whichever of its counters is closer to being spent, since that is the one the client will hit.
@@ -330,7 +332,6 @@ class Application extends Responder
     private function enforceRateLimitIfNeeded(): void
     {
         $policy = $this->rateLimitPolicy;
-        // A cacheable public static file is cheap to serve and a page asks for many at once, revalidating each one: it is not counted.
         if (!$policy->enabled || $this->staticResourcePolicy->evaluate(FileManager::default()->documentRootDirectory->appendingPathComponent($this->request->url->path))->cacheable) {
             return;
         }

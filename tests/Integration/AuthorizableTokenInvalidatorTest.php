@@ -53,11 +53,17 @@ final class InvalidatorUserFixture extends ManagedObject implements Authorizable
     }
     #[Override]
     public ?string $password {
-        get => null;
+        get => $this->valueForKey(__PROPERTY__);
+        set {
+            $this->setValueForKey($value, __PROPERTY__);
+        }
     }
     #[Override]
     public bool $isEnabled {
-        get => true;
+        get => (bool)$this->valueForKey(__PROPERTY__);
+        set {
+            $this->setValueForKey($value, __PROPERTY__);
+        }
     }
     #[Override]
     public int $refreshTokenVersion {
@@ -173,7 +179,7 @@ final class AuthorizableTokenInvalidatorTest extends TestCase
     {
         $model = new ManagedObjectModel();
         $model->entities = new ArrayClass([
-            self::entity("InvalidatorUserFixture", InvalidatorUserFixture::class, [self::attribute("username", AttributeType::string), self::attribute("note", AttributeType::string), self::attribute("refreshTokenVersion", AttributeType::integer64), self::relationship("roles", "InvalidatorRoleFixture", "users")]),
+            self::entity("InvalidatorUserFixture", InvalidatorUserFixture::class, [self::attribute("username", AttributeType::string), self::attribute("note", AttributeType::string), self::attribute("password", AttributeType::string), self::attribute("isEnabled", AttributeType::boolean), self::attribute("refreshTokenVersion", AttributeType::integer64), self::relationship("roles", "InvalidatorRoleFixture", "users")]),
             self::entity("InvalidatorRoleFixture", InvalidatorRoleFixture::class, [self::attribute("name", AttributeType::string), self::attribute("position", AttributeType::integer32), self::relationship("users", "InvalidatorUserFixture", "roles"), self::relationship("permissions", "InvalidatorPermissionFixture", "roles")]),
             self::entity("InvalidatorPermissionFixture", InvalidatorPermissionFixture::class, [self::attribute("name", AttributeType::string), self::relationship("roles", "InvalidatorRoleFixture", "permissions")]),
         ]);
@@ -228,6 +234,8 @@ final class AuthorizableTokenInvalidatorTest extends TestCase
     {
         $user = new InvalidatorUserFixture($this->context);
         $user->username = $username;
+        $user->password = password_hash($username, PASSWORD_DEFAULT);
+        $user->isEnabled = true;
         $user->refreshTokenVersion = 0;
         $user->addRolesObject($role);
         return $user;
@@ -368,6 +376,34 @@ final class AuthorizableTokenInvalidatorTest extends TestCase
         $auditors->setValueForKey(new Set([$this->carla]), "users");
         $this->context->save();
         $this->assertSame(["ana" => 0, "bruno" => 0, "carla" => 1], $this->versions());
+    }
+
+    /** @throws Exception */
+    #[Test]
+    public function disablingAUserInvalidatesOnlyThatUser(): void
+    {
+        $this->bruno->isEnabled = false;
+        $this->context->save();
+        $this->assertSame(["ana" => 0, "bruno" => 1, "carla" => 0], $this->versions());
+    }
+
+    /** @throws Exception */
+    #[Test]
+    public function changingAPasswordInvalidatesOnlyThatUser(): void
+    {
+        $this->carla->password = password_hash("new secret", PASSWORD_DEFAULT);
+        $this->context->save();
+        $this->assertSame(["ana" => 0, "bruno" => 0, "carla" => 1], $this->versions());
+    }
+
+    /** @throws Exception */
+    #[Test]
+    public function resubmittingTheSameEnabledStateAndPasswordInvalidatesNoOne(): void
+    {
+        $this->ana->isEnabled = true;
+        $this->ana->setValueForKey($this->ana->password, "password");
+        $this->context->save();
+        $this->assertSame(["ana" => 0, "bruno" => 0, "carla" => 0], $this->versions());
     }
 
     /** @throws Exception */

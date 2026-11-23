@@ -43,7 +43,7 @@ final class AuthorizableTokenInvalidator
             }
             $entity = $this->managedObjectModel->entities->first(fn(EntityDescription $entity): bool => $entity->managedObjectClassName === $this->authorizableClass) ?? fatal_error("No entity found for class \"$this->authorizableClass\".");
             /** @var RelationshipDescription $relationship */
-            $relationship = $entity->relationshipsByName["roles"] ?? fatal_error("Entity \"$entity->name\" has no \"roles\" relationship.");
+            $relationship = $entity->relationshipsByName[AuthenticationRolesKey] ?? fatal_error("Entity \"$entity->name\" has no \"" . AuthenticationRolesKey . "\" relationship.");
             return $this->rolesRelationship = $relationship;
         }
     }
@@ -107,7 +107,7 @@ final class AuthorizableTokenInvalidator
     private function affectedByChange(ManagedObject $object, ManagedObjectContext $committedContext): Set
     {
         return match (true) {
-            $object instanceof Authorizable => !$this->changedRelatedObjects($object, $this->rolesRelationship, $committedContext)->isEmpty || $this->hasChangedAttributes($object, new ArrayClass(["isEnabled", "password"]), $committedContext) ? new Set([$object]) : new Set(),
+            $object instanceof Authorizable => !$this->changedRelatedObjects($object, $this->rolesRelationship, $committedContext)->isEmpty || $this->hasChangedAttributes($object, new ArrayClass([AuthenticationIsEnabledKey, AuthenticationPasswordKey]), $committedContext) ? new Set([$object]) : new Set(),
             $object instanceof AuthorizableRole => $this->affectedByRoleChange($object, $committedContext),
             $object instanceof Authorization => $this->affectedByAuthorizationChange($object, $committedContext),
             default => new Set(),
@@ -120,7 +120,7 @@ final class AuthorizableTokenInvalidator
      */
     private function affectedByRoleChange(ManagedObject $role, ManagedObjectContext $committedContext): Set
     {
-        $members = $this->hasChangedAttributes($role, new ArrayClass(["name"]), $committedContext) || !$this->changedRelatedObjects($role, $this->authorizationsRelationship, $committedContext)->isEmpty ? $this->members($role) : new Set();
+        $members = $this->hasChangedAttributes($role, new ArrayClass([AuthenticationRoleNameKey]), $committedContext) || !$this->changedRelatedObjects($role, $this->authorizationsRelationship, $committedContext)->isEmpty ? $this->members($role) : new Set();
         return $members->union($this->changedRelatedObjects($role, $this->rolesRelationship->inverseRelationship, $committedContext));
     }
 
@@ -131,7 +131,7 @@ final class AuthorizableTokenInvalidator
     private function affectedByAuthorizationChange(ManagedObject $authorization, ManagedObjectContext $committedContext): Set
     {
         /** @var Set<ManagedObject> $roles */
-        $roles = $this->hasChangedAttributes($authorization, new ArrayClass(["name", "type", "scope"]), $committedContext) ? $this->roles($authorization) : new Set();
+        $roles = $this->hasChangedAttributes($authorization, new ArrayClass([AuthenticationAuthorizationNameKey, AuthenticationAuthorizationTypeKey, AuthenticationAuthorizationScopeKey]), $committedContext) ? $this->roles($authorization) : new Set();
         return $roles->union($this->changedRelatedObjects($authorization, $this->authorizationsRelationship->inverseRelationship, $committedContext))->flatMap(fn(ManagedObject $role): Set => $this->members($role));
     }
 

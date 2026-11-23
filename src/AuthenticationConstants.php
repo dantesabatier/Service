@@ -30,3 +30,9 @@ const AuthenticationIsEnabledKey = "isEnabled";
 const AuthenticationRolesKey = "roles";
 /** @var string Key used to identify the name of a role within the roles collection */
 const AuthenticationRoleNameKey = "name";
+/** @var string Key used to identify the name of an authorization within a role's authorizations */
+const AuthenticationAuthorizationNameKey = "name";
+/** @var string Key used to identify the type of an authorization within a role's authorizations */
+const AuthenticationAuthorizationTypeKey = "type";
+/** @var string Key used to identify the scope of an authorization within a role's authorizations */
+const AuthenticationAuthorizationScopeKey = "scope";

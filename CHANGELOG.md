@@ -7,6 +7,10 @@ onward.
 
 ## [Unreleased]
 
+### Added
+
+- `AuthenticationAuthorizationNameKey`, `AuthenticationAuthorizationTypeKey` and `AuthenticationAuthorizationScopeKey`, the keys of an `Authorization`'s `name`, `type` and `scope`, alongside the existing `AuthenticationRoleNameKey`.
+
 ## [1.11.10] - 2026-11-21
 
 ### Fixed
